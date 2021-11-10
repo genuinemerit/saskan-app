@@ -103,3 +103,5 @@ try:
     asyncio.run(main(server, host='127.0.0.1', port=25000))
 except KeyboardInterrupt:
     print('Bye!')
+    # Trying this...
+    asyncio.get_event_loop().stop()

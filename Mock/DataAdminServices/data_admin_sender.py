@@ -75,14 +75,14 @@ if __name__ == '__main__':
     Optionally set as arguments:
     - host: str
     - port: int
-    - channel: str
+    - channel: str  (set up to expect multiple listener workers)
     - size: int (bytes)
     - interval: float (seconds)
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', default=25000, type=int)
-    parser.add_argument('--channel', default='/topic/foo')
+    parser.add_argument('--channel', default='/topic/queue_saskan_concept')
     parser.add_argument('--interval', default=1, type=float)
     parser.add_argument('--size', default=0, type=int)
     try:
