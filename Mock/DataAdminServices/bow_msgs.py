@@ -1,10 +1,13 @@
 #!/usr/bin/python3.9
 """
-:module:    data_admin_msgs.py
+:module:    bow_msgs.py
 
 Mockup for handling Data Admin messages.
 Eventually this will be replaced by a real module
   and moved to component bow-data-admin.
+This is the same for all of my messages.
+But using relative imports in Python is a pain.
+So just include a copy of this file in the same directory.
 
 Main behaviors:
 

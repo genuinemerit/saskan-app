@@ -1,0 +1,1979 @@
+<?xml version="1.0"?>
+<Ontology xmlns="http://www.w3.org/2002/07/owl#"
+     xml:base="http://www.semanticweb.org/genuinemerit/ontologies/2021/10/saskan_ontology"
+     xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+     xmlns:xml="http://www.w3.org/XML/1998/namespace"
+     xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+     xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+     ontologyIRI="http://www.semanticweb.org/genuinemerit/ontologies/2021/10/saskan_ontology"
+     versionIRI="http://www.semanticweb.org/genuinemerit/ontologies/2021/10/saskan_ontology/0.1.0">
+    <Prefix name="" IRI="http://www.semanticweb.org/genuinemerit/ontologies/2021/10/saskan_ontology#"/>
+    <Prefix name="dc" IRI="http://purl.org/dc/elements/1.1/"/>
+    <Prefix name="owl" IRI="http://www.w3.org/2002/07/owl#"/>
+    <Prefix name="rdf" IRI="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
+    <Prefix name="xml" IRI="http://www.w3.org/XML/1998/namespace"/>
+    <Prefix name="xsd" IRI="http://www.w3.org/2001/XMLSchema#"/>
+    <Prefix name="rdfs" IRI="http://www.w3.org/2000/01/rdf-schema#"/>
+    <Prefix name="dcterms" IRI="http://purl.org/dc/terms/"/>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:contributor"/>
+        <Literal xml:lang="pm.me&gt;">GM &lt;genuinemerit</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:contributor"/>
+        <Literal xml:lang="pm.me&gt;">Phoenix Quinn &lt;rfw_pq</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <Literal xml:lang="pm.me&gt;">dave &lt;david.stitt</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <Literal>Define the knowledge base for defining, creating, managing and building a fantasy world for story-telling, story-boarding or game construction. In particular, provide the foundation for design and construction of its data systems such as data stores, transformation streams and messages. The word &quot;saskan&quot; refers to the first such fantasy world to use this ontology.</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:language"/>
+        <Literal>en-us</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:license"/>
+        <Literal>MIT License
+
+Copyright (c) 2021 David Stitt
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the &quot;Software&quot;), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <Literal>Saskan Ontology</Literal>
+    </Annotation>
+    <Annotation>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <Literal>SaskanOntology</Literal>
+    </Annotation>
+    <Declaration>
+        <Class IRI="#AudioType"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Audit"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#CachedLocation"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Caption"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#CreateTS"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#DataFileType"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#DateTimeStamp"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#DeleteTS"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#DocumentType"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Field"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#FieldGroup"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#HashID"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#ImageType"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#NameID"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#NaturalLanguage"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#ObjectID"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Path"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#PersistentLocation"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Primitive"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#SaskanConcept"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#SaskanLanguage"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#SaskanReference"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#SaskanResource"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#SaskanValue"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#SoftwareType"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Story"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Structure"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#Text"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#UniqueID"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#UpdateTS"/>
+    </Declaration>
+    <Declaration>
+        <Class IRI="#VideoType"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasAudit"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasCaption"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasField"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasFieldGroup"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasLength0to80"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasLength16to64"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasName"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasNaturalLanguage"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#hasStoryLanguage"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#isFieldGroup"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#isPath"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#isText"/>
+    </Declaration>
+    <Declaration>
+        <ObjectProperty IRI="#isTimeStamp"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#range_0_80"/>
+    </Declaration>
+    <Declaration>
+        <DataProperty IRI="#range_16_64"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#aiff"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#avi"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#bmp"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#conf"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#csv"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#doc"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#en-us"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#gif"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#javascript"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#jpg"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#json"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#mov"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#mp3"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#mp4"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#ods"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#odt"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#ogg"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#ott"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#pdf"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#rtf"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#sdc"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#sh"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#svg"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#tif"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#txt"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#wav"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#xcf"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#xls"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#xml"/>
+    </Declaration>
+    <Declaration>
+        <NamedIndividual IRI="#python3.9+"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:contributor"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:language"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:license"/>
+    </Declaration>
+    <Declaration>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+    </Declaration>
+    <SubClassOf>
+        <Class IRI="#AudioType"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Audit"/>
+        <Class IRI="#SaskanValue"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#CachedLocation"/>
+        <Class IRI="#SaskanResource"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Caption"/>
+        <Class IRI="#Primitive"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#CreateTS"/>
+        <Class IRI="#Audit"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#DataFileType"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#DateTimeStamp"/>
+        <Class IRI="#Primitive"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#DeleteTS"/>
+        <Class IRI="#Audit"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#DocumentType"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Field"/>
+        <Class IRI="#Structure"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#FieldGroup"/>
+        <Class IRI="#Structure"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#HashID"/>
+        <Class IRI="#Audit"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#ImageType"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#NameID"/>
+        <Class IRI="#Primitive"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#NaturalLanguage"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#ObjectID"/>
+        <Class IRI="#Audit"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Path"/>
+        <Class IRI="#Primitive"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#PersistentLocation"/>
+        <Class IRI="#SaskanResource"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Primitive"/>
+        <Class IRI="#SaskanValue"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#SaskanLanguage"/>
+        <Class IRI="#Story"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#SaskanReference"/>
+        <Class IRI="#SaskanValue"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#SaskanResource"/>
+        <Class IRI="#SaskanConcept"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#SoftwareType"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Story"/>
+        <Class IRI="#SaskanConcept"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Structure"/>
+        <Class IRI="#SaskanValue"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#Text"/>
+        <Class IRI="#Primitive"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#UniqueID"/>
+        <Class IRI="#Audit"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#UpdateTS"/>
+        <Class IRI="#Audit"/>
+    </SubClassOf>
+    <SubClassOf>
+        <Class IRI="#VideoType"/>
+        <Class IRI="#SaskanReference"/>
+    </SubClassOf>
+    <ClassAssertion>
+        <Class IRI="#AudioType"/>
+        <NamedIndividual IRI="#aiff"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#VideoType"/>
+        <NamedIndividual IRI="#avi"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#ImageType"/>
+        <NamedIndividual IRI="#bmp"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#conf"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#csv"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#doc"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#NaturalLanguage"/>
+        <NamedIndividual IRI="#en-us"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#ImageType"/>
+        <NamedIndividual IRI="#gif"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#SoftwareType"/>
+        <NamedIndividual IRI="#javascript"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#ImageType"/>
+        <NamedIndividual IRI="#jpg"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#json"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#VideoType"/>
+        <NamedIndividual IRI="#mov"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#AudioType"/>
+        <NamedIndividual IRI="#mp3"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#VideoType"/>
+        <NamedIndividual IRI="#mp4"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#ods"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#odt"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#AudioType"/>
+        <NamedIndividual IRI="#ogg"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#ott"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#pdf"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#rtf"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#sdc"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#SoftwareType"/>
+        <NamedIndividual IRI="#sh"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#ImageType"/>
+        <NamedIndividual IRI="#svg"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#ImageType"/>
+        <NamedIndividual IRI="#tif"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#txt"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#AudioType"/>
+        <NamedIndividual IRI="#wav"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DocumentType"/>
+        <NamedIndividual IRI="#xcf"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#xls"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#DataFileType"/>
+        <NamedIndividual IRI="#xml"/>
+    </ClassAssertion>
+    <ClassAssertion>
+        <Class IRI="#SoftwareType"/>
+        <NamedIndividual IRI="#python3.9+"/>
+    </ClassAssertion>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasAudit"/>
+        <Class IRI="#SaskanLanguage"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasAudit"/>
+        <Class IRI="#SaskanResource"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasCaption"/>
+        <Class IRI="#SaskanResource"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasField"/>
+        <Class IRI="#FieldGroup"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasFieldGroup"/>
+        <Class IRI="#SaskanResource"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasLength0to80"/>
+        <Class IRI="#Caption"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasLength16to64"/>
+        <Class IRI="#ObjectID"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasLength16to64"/>
+        <Class IRI="#UniqueID"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasName"/>
+        <Class IRI="#Field"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasName"/>
+        <Class IRI="#FieldGroup"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasNaturalLanguage"/>
+        <Class IRI="#SaskanResource"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#hasStoryLanguage"/>
+        <Class IRI="#SaskanResource"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isFieldGroup"/>
+        <Class IRI="#Audit"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isPath"/>
+        <Class IRI="#CachedLocation"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isPath"/>
+        <Class IRI="#PersistentLocation"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#Caption"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#CreateTS"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#DateTimeStamp"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#DeleteTS"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#Field"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#HashID"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#NameID"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#NaturalLanguage"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#ObjectID"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#Path"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#UniqueID"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#UpdateTS"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isTimeStamp"/>
+        <Class IRI="#CreateTS"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isTimeStamp"/>
+        <Class IRI="#DeleteTS"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyDomain>
+        <ObjectProperty IRI="#isTimeStamp"/>
+        <Class IRI="#UpdateTS"/>
+    </ObjectPropertyDomain>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasAudit"/>
+        <Class IRI="#Audit"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasCaption"/>
+        <Class IRI="#Caption"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasField"/>
+        <Class IRI="#Field"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasFieldGroup"/>
+        <Class IRI="#FieldGroup"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasLength0to80"/>
+        <DataSomeValuesFrom>
+            <DataProperty IRI="#range_0_80"/>
+            <Datatype abbreviatedIRI="xsd:integer"/>
+        </DataSomeValuesFrom>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasLength16to64"/>
+        <DataSomeValuesFrom>
+            <DataProperty IRI="#range_16_64"/>
+            <Datatype abbreviatedIRI="xsd:integer"/>
+        </DataSomeValuesFrom>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasName"/>
+        <Class IRI="#NameID"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasNaturalLanguage"/>
+        <Class IRI="#NaturalLanguage"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#hasStoryLanguage"/>
+        <Class IRI="#SaskanLanguage"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#isFieldGroup"/>
+        <Class IRI="#FieldGroup"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#isPath"/>
+        <Class IRI="#Path"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#isText"/>
+        <Class IRI="#Text"/>
+    </ObjectPropertyRange>
+    <ObjectPropertyRange>
+        <ObjectProperty IRI="#isTimeStamp"/>
+        <Class IRI="#DateTimeStamp"/>
+    </ObjectPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#range_0_80"/>
+        <DatatypeRestriction>
+            <Datatype abbreviatedIRI="xsd:integer"/>
+            <FacetRestriction facet="http://www.w3.org/2001/XMLSchema#minInclusive">
+                <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#integer">0</Literal>
+            </FacetRestriction>
+            <FacetRestriction facet="http://www.w3.org/2001/XMLSchema#maxInclusive">
+                <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#integer">80</Literal>
+            </FacetRestriction>
+        </DatatypeRestriction>
+    </DataPropertyRange>
+    <DataPropertyRange>
+        <DataProperty IRI="#range_16_64"/>
+        <DatatypeRestriction>
+            <Datatype abbreviatedIRI="xsd:integer"/>
+            <FacetRestriction facet="http://www.w3.org/2001/XMLSchema#minInclusive">
+                <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#integer">16</Literal>
+            </FacetRestriction>
+            <FacetRestriction facet="http://www.w3.org/2001/XMLSchema#maxInclusive">
+                <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#integer">64</Literal>
+            </FacetRestriction>
+        </DatatypeRestriction>
+    </DataPropertyRange>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#AudioType</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#AudioType</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:45:03Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#AudioType</IRI>
+        <Literal xml:lang="en">Audio File Type Codes</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#AudioType</IRI>
+        <Literal xml:lang="en">AudioFileType</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Audit</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Audit</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:33:37Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Audit</IRI>
+        <Literal xml:lang="en">Keys and timestamps useful for managing a data instance. For immutable records, use the full set of timestamps. For mutable records, using only the update timestamp is recommended.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Audit</IRI>
+        <Literal xml:lang="en">Saskan Audit Fields</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Audit</IRI>
+        <Literal xml:lang="en">AuditFields</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#CachedLocation</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#CachedLocation</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:17:11Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#CachedLocation</IRI>
+        <Literal xml:lang="en">Path to a Resource that is cached in memory. For example, in a queue or a temp directory</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#CachedLocation</IRI>
+        <Literal xml:lang="en">Temporary or In-Memory Cached Location</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#CachedLocation</IRI>
+        <Literal xml:lang="en">CachedLocation</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Caption</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Caption</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:19:02Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Caption</IRI>
+        <Literal xml:lang="en">Brief tag or description suitable for display or quick hint</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Caption</IRI>
+        <Literal xml:lang="en">Saskan Text Captions</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Caption</IRI>
+        <Literal xml:lang="en">SaskanCaption</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#CreateTS</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#CreateTS</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:27:24Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#CreateTS</IRI>
+        <Literal xml:lang="en">When the data object was first added to the data store system. This corresponds to creation of new ObjectIdentifier value.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#CreateTS</IRI>
+        <Literal xml:lang="en">CreateTimeStamp</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#DataFileType</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#DataFileType</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:54:03Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#DataFileType</IRI>
+        <Literal xml:lang="en">Data File Type Codes</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#DataFileType</IRI>
+        <Literal xml:lang="en">DataFileType</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#DateTimeStamp</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#DateTimeStamp</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:29:36Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#DateTimeStamp</IRI>
+        <Literal xml:lang="en">A field containing date and time including time zone indicator. Preferably using the ISO 8601 format.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#DateTimeStamp</IRI>
+        <Literal>Date and Time Stamp</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#DateTimeStamp</IRI>
+        <Literal>TimeStamp</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#DeleteTS</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#DeleteTS</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:27:34Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#DeleteTS</IRI>
+        <Literal xml:lang="en">When the data object was marked as obsolete, possibly for eventual purge. Used on immutable data systems to assist with reversals, activity tracing, change management and so on.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#DeleteTS</IRI>
+        <Literal xml:lang="en">DeleteTimeStamp</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#DocumentType</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#DocumentType</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:54:31Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#DocumentType</IRI>
+        <Literal xml:lang="en">Document Type Codes</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#DocumentType</IRI>
+        <Literal xml:lang="en">DocumentType</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Field</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Field</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:27:01Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Field</IRI>
+        <Literal>Atomic-level data container. Has a name and a value.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Field</IRI>
+        <Literal xml:lang="en">SaskanField</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#FieldGroup</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#FieldGroup</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:41:41Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#FieldGroup</IRI>
+        <Literal>Named collection of Field Values. A logical set of Fields.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#FieldGroup</IRI>
+        <Literal>Saskan Field Groups</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#FieldGroup</IRI>
+        <Literal>SaskanFieldGroup</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#HashID</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#HashID</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:26:22Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#HashID</IRI>
+        <Literal xml:lang="en">64-byte (SHA256) hash of all non-audit values in a data instance. Should not be used as a unique identifier key. Is typically used to identify if there were any data changes between instances of a record, which is useful when managing a data-update system. For example:  Prevent updating the data base when nothing actually changed. Handle updates to the data system automatically rather than per user directives.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#HashID</IRI>
+        <Literal xml:lang="en">HashValueIdentifier</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#ImageType</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#ImageType</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:45:24Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#ImageType</IRI>
+        <Literal xml:lang="en">Still Image Type Codes</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#ImageType</IRI>
+        <Literal xml:lang="en">ImageType</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#NameID</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#NameID</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:47:53Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#NameID</IRI>
+        <Literal xml:lang="en">Unique identifier with behavior like an Object ID, but value is a mnemonic descriptor. For mutable data systems, this may be the only key needed. For immutable systems, Audit fields should also be used.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#NameID</IRI>
+        <Literal xml:lang="en">Unique Key by Name</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#NameID</IRI>
+        <Literal xml:lang="en">UniqueName</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#NaturalLanguage</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#NaturalLanguage</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:27:23Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#NaturalLanguage</IRI>
+        <Literal xml:lang="en">List of codes for natural languages, that is, languages used in the real world, as opposed to fictional SaskanLanguages. These codes are used in the game context in order to identify the langauge of some resources. Preference for Individual codes is to use a 2 character ISO 639-1 code optionally followed by a hyphen and then an ISO 3166-1alpha-2 code. Examples: fr, en-us</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#NaturalLanguage</IRI>
+        <Literal xml:lang="en">Natural Language Codes</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#NaturalLanguage</IRI>
+        <Literal xml:lang="en">NaturalLanguage</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#ObjectID</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#ObjectID</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:26:45Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#ObjectID</IRI>
+        <Literal xml:lang="en">A data object logical key value used to track the same object across multiple records or rows in an immutable data system. Typically a generated number or hash, but could be a NameID.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#ObjectID</IRI>
+        <Literal xml:lang="en">ObjectIdentifier</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Path</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Path</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:13:07Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Path</IRI>
+        <Literal xml:lang="en">Location of a set of bytes in active memory or on an exteranl storage device. For example, a Unix Path, a Windows Path, various types of URI&apos;s, an index to a queue.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Path</IRI>
+        <Literal xml:lang="en">Location Path or Memory Address</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Path</IRI>
+        <Literal xml:lang="en">LocationPath</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#PersistentLocation</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#PersistentLocation</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:17:24Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#PersistentLocation</IRI>
+        <Literal xml:lang="en">Path to a Resource on a persistent storage medium like Solid State Disk, Hard Drive, Cloud Storage device, Internet URL</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#PersistentLocation</IRI>
+        <Literal xml:lang="en">Permanent or Persistent External Storage Location</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#PersistentLocation</IRI>
+        <Literal xml:lang="en">PersistentLocation</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Primitive</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Primitive</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T19:55:28Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Primitive</IRI>
+        <Literal xml:lang="es">Los valores primitivos de bajo nivel ayudan a generar el código correcto para los sistemas de datos. Como bases de datos relacionales orientadas a SQL o formatos de registro para mensajes.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Primitive</IRI>
+        <Literal xml:lang="en">Low-level Primitive values assist in generating correct code for data systems. Like SQL-oriented relational data bases or record formats for messages.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Primitive</IRI>
+        <Literal>Primitive Saskan Values</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Primitive</IRI>
+        <Literal>PrimitiveValue</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#SaskanConcept</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#SaskanConcept</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T19:39:21Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#SaskanConcept</IRI>
+        <Literal xml:lang="en">A class of thing in the Saskan domain. An abstracted object.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#SaskanConcept</IRI>
+        <Literal>Saskan Conceptual Objects</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#SaskanConcept</IRI>
+        <Literal>SaskanThing</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#SaskanLanguage</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#SaskanLanguage</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:05:16Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#SaskanLanguage</IRI>
+        <Literal xml:lang="en">Define characteristics of languages, dialects, vocabularies used within the story-line</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#SaskanLanguage</IRI>
+        <Literal xml:lang="en">Saskan Language Grammars and Dictionaries</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#SaskanLanguage</IRI>
+        <Literal>SaskanLanguage</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#SaskanReference</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#SaskanReference</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:24:08Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#SaskanReference</IRI>
+        <Literal xml:lang="en">Standard sets of codes and values. Each code, or category, is defined as sub-class of the SaskanReference concept. Each value associated with the code is identified as an Individual item.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#SaskanReference</IRI>
+        <Literal xml:lang="en">Saskan Reference Data</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#SaskanReference</IRI>
+        <Literal xml:lang="en">SaskanReference</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#SaskanResource</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#SaskanResource</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:27:28Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#SaskanResource</IRI>
+        <Literal xml:lang="en">Item used in the Saskan context that can be retrieved from storage. May be dynamic in-memory storage or external, persisted storage. May be software, data document, text document, sound, text, still image, video.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#SaskanResource</IRI>
+        <Literal xml:lang="en">Saskan Resources</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#SaskanResource</IRI>
+        <Literal xml:lang="en">SaskanResource</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#SaskanValue</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#SaskanValue</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T19:43:15Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#SaskanValue</IRI>
+        <Literal>The Values partition space is a restricted set of classes from which properties can be associated. It provides two main benefits.
+First, the ability to enumerate values in a set. Used in object properties to intersect a range of values with a class thing, that is, with a Saskan Concept. For example, a sub-classed list of acceptable media types is provided under a Value named &quot;MediaType&quot;. Then this set of values is associated with Saskan thing.
+Second, the ability to associate commonly-used classes with  sub-classes of conceptual things. For example, to indicate that a Structure sub-class includes a Caption, its &quot;hasCaption&quot; object property links to the Caption TextPrimitive.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#SaskanValue</IRI>
+        <Literal>Saskan Values Partition</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#SaskanValue</IRI>
+        <Literal>SaskanValue</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#SoftwareType</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#SoftwareType</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:40:59Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#SoftwareType</IRI>
+        <Literal xml:lang="en">Type, Category or Language of Software Component</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#SoftwareType</IRI>
+        <Literal xml:lang="en">SoftwareType</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Story</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Story</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:02:53Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Story</IRI>
+        <Literal>Class of objects that help to drive a story arc forward, to flesh out its details, and to define conflicts and progressions</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Story</IRI>
+        <Literal>Saskan Story Lines</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Story</IRI>
+        <Literal>SaskanStory</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Structure</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Structure</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:38:16Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Structure</IRI>
+        <Literal>Similar to Primitives in the sense that a Structure gets associated with a Concept class (or other Value) via an Object property. All of the Structure Values define aspects of storing data objects in a data retrieval system.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Structure</IRI>
+        <Literal>Saskan Structure Values</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Structure</IRI>
+        <Literal>StructureValue</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#Text</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#Text</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:18:06Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#Text</IRI>
+        <Literal xml:lang="en">A string of UTF-8 encoded characters. Indeterminate length.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#Text</IRI>
+        <Literal xml:lang="en">Saskan Text Primitives</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#Text</IRI>
+        <Literal xml:lang="en">SaskanText</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#UniqueID</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#UniqueID</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:26:35Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#UniqueID</IRI>
+        <Literal xml:lang="en">A data object unique key value in an immutable data system. A unique value is generated for every record or row, even if they represent the same logical object.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#UniqueID</IRI>
+        <Literal xml:lang="en">UniqueIdentifier</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#UpdateTS</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#UpdateTS</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:27:52Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#UpdateTS</IRI>
+        <Literal xml:lang="en">When the data object was last modified. For mutable records, this is the only Audit timestamp that is needed. This corresponds to the creation of a new UniqueIdentifier value.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#UpdateTS</IRI>
+        <Literal xml:lang="en">UpdateTimeStamp</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#VideoType</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#VideoType</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:45:42Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:title"/>
+        <IRI>#VideoType</IRI>
+        <Literal xml:lang="en">Video File Type Codes</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#VideoType</IRI>
+        <Literal xml:lang="en">VideoType</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#aiff</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#aiff</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:18Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#avi</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#avi</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:47:21Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#bmp</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#bmp</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:50Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#conf</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#conf</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T01:00:07Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#csv</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#csv</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:58:01Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#doc</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#doc</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:57:16Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#en-us</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#en-us</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:36:00Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="rdfs:label"/>
+        <IRI>#en-us</IRI>
+        <Literal>English - USA</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#gif</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#gif</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:57Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasAudit</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasAudit</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:44:39Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasAudit</IRI>
+        <Literal xml:lang="en">Collection of Audit values may be associated with a Thing</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasCaption</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasCaption</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:43:22Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasCaption</IRI>
+        <Literal xml:lang="en">Caption may be associated with a Thing</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasField</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasField</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:54:24Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasFieldGroup</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasFieldGroup</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:56:10Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasFieldGroup</IRI>
+        <Literal>Named Group of Fields may be associated with a Thing</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasLength0to80</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasLength0to80</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T20:16:43Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasLength0to80</IRI>
+        <Literal xml:lang="en">Maximum length of object is 80 characters or elements. Minimum is zero.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasLength16to64</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasLength16to64</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:57:16Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasLength16to64</IRI>
+        <Literal xml:lang="en">Maximum length of object is 64 characters or elements. Minimum is 16.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasName</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasName</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:35:46Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasName</IRI>
+        <Literal>Thing is identified by a NameID, preferably one that - in most cases - is unique.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasNaturalLanguage</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasNaturalLanguage</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:39:00Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#hasStoryLanguage</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#hasStoryLanguage</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:08:24Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#hasStoryLanguage</IRI>
+        <Literal>Thing may be expressed in terms of one or more in-story Language</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#isFieldGroup</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#isFieldGroup</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:43:09Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#isPath</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#isPath</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:15:48Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#isText</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#isText</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:32:55Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#isText</IRI>
+        <Literal>The thing holds text</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#isTimeStamp</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#isTimeStamp</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:32:04Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:description"/>
+        <IRI>#isTimeStamp</IRI>
+        <Literal>Thing is a date time stamp field.</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#javascript</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#javascript</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:42:05Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#jpg</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#jpg</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:45Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#json</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#json</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:58:58Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#mov</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#mov</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:47:28Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#mp3</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#mp3</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:36Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#mp4</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#mp4</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:47:34Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#ods</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#ods</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:58:26Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#odt</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#odt</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:56:57Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#ogg</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#ogg</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:28Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#ott</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#ott</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:57:07Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#pdf</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#pdf</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:57:28Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#range_0_80</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#range_0_80</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T23:01:42Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#range_16_64</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#range_16_64</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-06T22:58:37Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#rtf</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#rtf</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:57:55Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#sdc</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#sdc</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:58:18Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#sh</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#sh</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T01:02:59Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#svg</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#svg</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:47:09Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#tif</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#tif</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:47:03Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#txt</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#txt</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:55:48Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#wav</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#wav</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:46:22Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#xcf</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#xcf</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T01:00:57Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#xls</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#xls</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:58:49Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#xml</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#xml</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:59:11Z</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:creator"/>
+        <IRI>#python3.9+</IRI>
+        <Literal>genuinemerit</Literal>
+    </AnnotationAssertion>
+    <AnnotationAssertion>
+        <AnnotationProperty abbreviatedIRI="dc:date"/>
+        <IRI>#python3.9+</IRI>
+        <Literal datatypeIRI="http://www.w3.org/2001/XMLSchema#dateTime">2021-11-07T00:42:21Z</Literal>
+    </AnnotationAssertion>
+</Ontology>
+
+
+
+<!-- Generated by the OWL API (version 4.5.9.2019-02-01T07:24:44Z) https://github.com/owlcs/owlapi -->
+

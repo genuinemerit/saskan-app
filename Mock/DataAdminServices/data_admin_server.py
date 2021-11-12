@@ -1,6 +1,7 @@
 #!/usr/bin/python3.9
 """
 :module:    data_admin_server.py
+:host:port: localhost:52000
 
 Mockup for serving Data Admin messages.
 Eventually this will be replaced by a real module
@@ -15,7 +16,7 @@ Main behaviors:
     - Communicate with the Bow Data Schema component
 
 - Send
-    - Request_GetSaskanDataObject(
+    - GetSaskanDataObject_Request(
         topic_name: str,
         concept_name: str,
         data_object_type: str,
@@ -28,7 +29,7 @@ Main behaviors:
         - AcceptRequest()
         - Request_Channel(`saksan_concept`)
 
-    - Response_GetSaskanDataObject(
+    - GetSaskanDataObject_Response(
         topic_name: str,
         concept_name: str,
         data_object_type: str,
@@ -41,7 +42,7 @@ from asyncio import StreamReader, StreamWriter, gather
 from collections import defaultdict, deque
 from typing import DefaultDict, Deque
 
-from data_admin_msgs import read_msg, send_msg
+import bow_msgs
 
 SUBSCRIBERS: DefaultDict[bytes, Deque] = defaultdict(deque)
 
@@ -70,18 +71,18 @@ async def server(reader: StreamReader, writer: StreamWriter):
     Remove writer from subscribers
     """
     peername = writer.get_extra_info('peername')
-    subscribe_chan = await read_msg(reader)
+    subscribe_chan = await bow_msgs.read_msg(reader)
     SUBSCRIBERS[subscribe_chan].append(writer)
     print(f'Remote {peername!r} subscribed to {subscribe_chan!r}')
     try:
-        while channel_name := await read_msg(reader):
-            data = await read_msg(reader)
+        while channel_name := await bow_msgs.read_msg(reader):
+            data = await bow_msgs.read_msg(reader)
             print(f'Sending to {channel_name!r}: {data[:19]!r}...')
             conns = SUBSCRIBERS[channel_name]
             if conns and channel_name.startswith(b'/queue'):
                 conns.rotate()
                 conns = deque([conns[0]])
-            await gather(*[send_msg(c, data) for c in conns])
+            await gather(*[bow_msgs.send_msg(c, data) for c in conns])
     except asyncio.CancelledError:
         print(f'Remote {peername} closing connection.')
         writer.close()
@@ -100,7 +101,11 @@ async def main(*args, **kwargs):
         await server.serve_forever()
 
 try:
-    asyncio.run(main(server, host='127.0.0.1', port=25000))
+    # I probably want to try a series of ports until I find one that works.
+    # Ports 1024 to 49151 are "registered", those between 49152 and 65535 are "private".
+    # For my private services, I want to use those above 49152.
+    # asyncio.run(main(server, host='127.0.0.1', port=25000))
+    asyncio.run(main(server, host='127.0.0.1', port=52000))
 except KeyboardInterrupt:
     print('Bye!')
     # Trying this...

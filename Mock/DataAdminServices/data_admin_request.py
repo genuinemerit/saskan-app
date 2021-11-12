@@ -1,10 +1,9 @@
 #!/usr/bin/python3.9
 """
-:module:    data_admin_listener.py
+:module:    data_admin_request.py
+:host:port: localhost:52000
 
 Mockup for serving Data Admin messages.
-Eventually this will be replaced by a real module
-  and moved to component bow-data-admin.
 
 Main behaviors:
 
@@ -32,7 +31,7 @@ import argparse
 import asyncio
 import uuid
 
-from data_admin_msgs import read_msg, send_msg
+import bow_msgs
 
 
 async def main(args):
@@ -49,9 +48,9 @@ async def main(args):
         args.host, args.port)
     print(f'I am {writer.get_extra_info("sockname")}')
     channel = args.listen.encode()
-    await send_msg(writer, channel)
+    await bow_msgs.send_msg(writer, channel)
     try:
-        while data := await read_msg(reader):
+        while data := await bow_msgs.read_msg(reader):
             print(f'Received by {me}: {data[:20]}')
         print('Connection ended.')
     except asyncio.IncompleteReadError:
@@ -68,10 +67,9 @@ if __name__ == '__main__':
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
-    parser.add_argument('--port', default=25000)
+    parser.add_argument('--port', default=52000)
     parser.add_argument('--listen', default='/topic/saskan_concept')
     try:
         asyncio.run(main(parser.parse_args()))
     except KeyboardInterrupt:
         print('Bye!')
-        # asyncio.get_event_loop().close() <-- copilot recommendation

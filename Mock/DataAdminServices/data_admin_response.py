@@ -1,6 +1,7 @@
 #!/usr/bin/python3.9
 """
 :module:    data_admin_sender.py
+:host:port: localhost:52000
 
 Mockup for serving Data Admin messages.
 Eventually this will be replaced by a real module
@@ -26,7 +27,7 @@ import asyncio
 import uuid
 from itertools import count
 
-from data_admin_msgs import send_msg
+import bow_msgs
 
 
 async def main(args):
@@ -53,7 +54,7 @@ async def main(args):
     print(f'I am {writer.get_extra_info("sockname")}')
 
     channel = b'/null'
-    await send_msg(writer, channel)
+    await bow_msgs.send_msg(writer, channel)
 
     chan = args.channel.encode()
     try:
@@ -61,8 +62,8 @@ async def main(args):
             await asyncio.sleep(args.interval)
             data = b'X'*args.size or f'Msg {i} from {me}'.encode()
             try:
-                await send_msg(writer, chan)
-                await send_msg(writer, data)
+                await bow_msgs.send_msg(writer, chan)
+                await bow_msgs.send_msg(writer, data)
             except OSError:
                 print('Connection ended.')
                 break
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')
-    parser.add_argument('--port', default=25000, type=int)
+    parser.add_argument('--port', default=52000, type=int)
     parser.add_argument('--channel', default='/topic/queue_saskan_concept')
     parser.add_argument('--interval', default=1, type=float)
     parser.add_argument('--size', default=0, type=int)
@@ -89,3 +90,4 @@ if __name__ == '__main__':
         asyncio.run(main(parser.parse_args()))
     except KeyboardInterrupt:
         print('Bye!')
+        # asyncio.get_event_loop().close()
