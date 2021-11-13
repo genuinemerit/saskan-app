@@ -26,25 +26,26 @@ from asyncio import StreamReader, StreamWriter, gather
 from collections import defaultdict, deque
 from typing import DefaultDict, Deque
 
-import bow_msgs
+from bow_msgs import BowMessages  # type: ignore
+ms = BowMessages()
 
 SUBSCRIBERS: DefaultDict[bytes, Deque] = defaultdict(deque)
 
 
 async def server(reader: StreamReader, writer: StreamWriter):
     peername = writer.get_extra_info('peername')
-    subscribe_chan = await bow_msgs.read_msg(reader)
+    subscribe_chan = await ms.read_msg(reader)
     SUBSCRIBERS[subscribe_chan].append(writer)
     print(f'Remote {peername!r} subscribed to {subscribe_chan!r}')
     try:
-        while channel_name := await bow_msgs.read_msg(reader):
-            data = await bow_msgs.read_msg(reader)
+        while channel_name := await ms.read_msg(reader):
+            data = await ms.read_msg(reader)
             print(f'Sending to {channel_name!r}: {data[:19]!r}...')
             conns = SUBSCRIBERS[channel_name]
             if conns and channel_name.startswith(b'/queue'):
                 conns.rotate()
                 conns = deque([conns[0]])
-            await gather(*[bow_msgs.send_msg(c, data) for c in conns])
+            await gather(*[ms.send_msg(c, data) for c in conns])
     except asyncio.CancelledError:
         print(f'Remote {peername} closing connection.')
         writer.close()
@@ -68,4 +69,3 @@ try:
     asyncio.run(main(server, host='127.0.0.1', port=52020))
 except KeyboardInterrupt:
     print('Bye!')
-    asyncio.get_event_loop().stop()

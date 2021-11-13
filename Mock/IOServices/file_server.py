@@ -44,27 +44,28 @@ from asyncio import StreamReader, StreamWriter, gather
 from collections import defaultdict, deque
 from typing import DefaultDict, Deque
 
-import bow_msgs
+from bow_msgs import BowMessages  # type: ignore
+ms = BowMessages()
 
 SUBSCRIBERS: DefaultDict[bytes, Deque] = defaultdict(deque)
 
 
 async def server(reader: StreamReader, writer: StreamWriter):
     """
-    See: https://docs.python.org/3/library/asyncio-protocol.html#asyncio.BaseTransport.get_extra_info
-    for more info on the StreamWriter.get_extra_info() function. `peername` returns remote address to
-    which the socket is connected.
+    See: https://tinyurl.com/j7y4vf42 for more info on the
+    StreamWriter.get_extra_info() function. `peername` returns
+    remote address to which the socket is connected.
     """
     peername = writer.get_extra_info('peername')
-    subscribe_chan = await bow_msgs.read_msg(reader)
+    subscribe_chan = await ms.read_msg(reader)
     SUBSCRIBERS[subscribe_chan].append(writer)
     # Start thinking about unifying all console messages into a common format.
     # Consider sending to a common channel which  can be subscribed to by a
     #   GUI, a logger, an analyzer, and so on.
     print(f'Remote {peername!r} subscribed to {subscribe_chan!r}')
     try:
-        while channel_name := await bow_msgs.read_msg(reader):
-            data = await bow_msgs.read_msg(reader)
+        while channel_name := await ms.read_msg(reader):
+            data = await ms.read_msg(reader)
             # Not sure why this is limited to 19 characters.
             # That's apparently what the prototype decided was
             #   max length of the topic name.
@@ -73,7 +74,7 @@ async def server(reader: StreamReader, writer: StreamWriter):
             if conns and channel_name.startswith(b'/queue'):
                 conns.rotate()
                 conns = deque([conns[0]])
-            await gather(*[bow_msgs.send_msg(c, data) for c in conns])
+            await gather(*[ms.send_msg(c, data) for c in conns])
     except asyncio.CancelledError:
         print(f'Remote {peername} closing connection.')
         writer.close()

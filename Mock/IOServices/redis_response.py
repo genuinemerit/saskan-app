@@ -15,7 +15,8 @@ import asyncio
 import uuid
 from itertools import count
 
-import bow_msgs
+from bow_msgs import BowMessages  # type: ignore
+ms = BowMessages()
 
 
 async def main(args):
@@ -26,7 +27,7 @@ async def main(args):
     print(f'I am {writer.get_extra_info("sockname")}')
 
     channel = b'/null'
-    await bow_msgs.send_msg(writer, channel)
+    await ms.send_msg(writer, channel)
 
     chan = args.channel.encode()
     try:
@@ -35,8 +36,8 @@ async def main(args):
             # Modify this to provide the Redis key to RESULT record.
             data = b'X'*args.size or f'Msg {i} from {me}'.encode()
             try:
-                await bow_msgs.send_msg(writer, chan)
-                await bow_msgs.send_msg(writer, data)
+                await ms.send_msg(writer, chan)
+                await ms.send_msg(writer, data)
             except OSError:
                 print('Connection ended.')
                 break

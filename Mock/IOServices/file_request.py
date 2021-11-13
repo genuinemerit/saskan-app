@@ -11,7 +11,8 @@ Am I "listening" for the request or the response?
 - I am listening for RESPONSEs from the publisher of the `ontology_file` topic.
 - I MAY be subscribing to the publisher of the `ontology_file` topic.
 - I MAY be un-subscribing from the publisher of the `ontology_file` topic.
-    - The type of subscription is determined by the roles assigned to the user-listener.
+    - The type of subscription is determined by the roles assigned to the
+    user-listener.
 
 - Manage comms for pub-sub topics -->
   - `/ontology_file` or `/queue/ontology_file`
@@ -48,7 +49,8 @@ For "low level" services like IO and "console info",
   by multiple components, right? Do I think of the the components
   as "users" of the service, rather than thinking of the service
   as a "user"?
-In my prototype so far, the "sends" (and "listens" ?) are triggered by mockup code.
+In my prototype so far, the "sends" (and "listens" ?) are triggered
+  by mockup code.
 In a real system, they would be triggered by a "user" -- a component-function.
 
 Next iteration:
@@ -69,7 +71,8 @@ import argparse
 import asyncio
 import uuid
 
-import bow_msgs
+from bow_msgs import BowMessages  # type: ignore
+ms = BowMessages()
 
 
 async def main(args):
@@ -83,9 +86,9 @@ async def main(args):
     # Get the address of me, of this socket.
     print(f'I am {writer.get_extra_info("sockname")}')
     channel = args.listen.encode()
-    await bow_msgs.send_msg(writer, channel)
+    await ms.send_msg(writer, channel)
     try:
-        while data := await bow_msgs.read_msg(reader):
+        while data := await ms.read_msg(reader):
             # Look carefully at what is being printed here.
             # If it could be sensitive, the restrict it from printing
             print(f'Received by {me}: {data[:20]}')

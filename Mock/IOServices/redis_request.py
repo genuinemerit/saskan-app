@@ -17,7 +17,8 @@ import argparse
 import asyncio
 import uuid
 
-import bow_msgs
+from bow_msgs import BowMessages  # type: ignore
+ms = BowMessages()
 
 
 async def main(args):
@@ -27,9 +28,9 @@ async def main(args):
         args.host, args.port)
     print(f'I am {writer.get_extra_info("sockname")}')
     channel = args.listen.encode()
-    await bow_msgs.send_msg(writer, channel)
+    await ms.send_msg(writer, channel)
     try:
-        while data := await bow_msgs.read_msg(reader):
+        while data := await ms.read_msg(reader):
             print(f'Received by {me}: {data[:20]}')
         print('Connection ended.')
     except asyncio.IncompleteReadError:

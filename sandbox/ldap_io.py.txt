@@ -14,12 +14,14 @@ See:
 
 
 Using this tutorial as a guide:
-https://ldap3.readthedocs.io/en/latest/tutorial_intro.html 
+https://ldap3.readthedocs.io/en/latest/tutorial_intro.html
 
 Main behaviors:
 
-- Identify, Connect and Bind to LDAP server.
--  
+- Identify, Connect and Bind to LDAP server
+
+Had some horrible problems with LDAP server under local Linux VM.
+Staying away from this for a while.
 """
 import ldap3
 

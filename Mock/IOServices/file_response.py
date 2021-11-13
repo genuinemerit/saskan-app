@@ -25,7 +25,8 @@ Am I "sending" the request or the response?
 Am I "listening" for the request or the response?
 - I am listening for the RESPONSE.
 - I MAY be subscribing to the publisher of the `ontology_file` topic.
-    - The type of subscription is determined by the roles assigned to the user-listener.
+    - The type of subscription is determined by the roles assigned to
+      the user-listener.
 
 - Send
 {
@@ -45,7 +46,8 @@ import asyncio
 import uuid
 from itertools import count
 
-import bow_msgs
+from bow_msgs import BowMessages  # type: ignore
+ms = BowMessages()
 
 
 async def main(args):
@@ -63,7 +65,7 @@ async def main(args):
     print(f'I am {writer.get_extra_info("sockname")}')
 
     channel = b'/null'
-    await bow_msgs.send_msg(writer, channel)
+    await ms.send_msg(writer, channel)
 
     chan = args.channel.encode()
     try:
@@ -74,8 +76,8 @@ async def main(args):
             # Then provide the Redis key to the ontology_file as data.
             data = b'X'*args.size or f'Msg {i} from {me}'.encode()
             try:
-                await bow_msgs.send_msg(writer, chan)
-                await bow_msgs.send_msg(writer, data)
+                await ms.send_msg(writer, chan)
+                await ms.send_msg(writer, data)
             except OSError:
                 print('Connection ended.')
                 break
