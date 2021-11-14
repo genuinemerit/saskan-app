@@ -21,8 +21,8 @@ Main behaviors:
 """
 from pprint import pprint as pp               # noqa: F401
 
-# import datetime
 import json
+import zlib
 from avro.schema import parse                 # type: ignore
 # from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter  # type: ignore
@@ -35,17 +35,30 @@ class AvroSerDe(object):
         """Initialize Avro ser/de."""
         pass
 
-    def convert_schema_to_avro(self, json_dict: dict) -> object:
-        """Convert JSON Schema to Avro Object."""
-        schema_json: str = json.dumps(json_dict)
-        schema: object = parse(schema_json)
-        schema = DatumWriter(schema)
-        return schema
+    def verify_avro_object(self, avro_dict: dict) -> str:
+        """Parse Python dict for Avro goodness."""
+        avro_json: str = json.dumps(avro_dict)
+        _ = parse(avro_json)
+        return(avro_json)
 
-    def convert_avro_to_schema(self, avro_obj: object) -> str:
+    def convert_py_dict_to_avro_binary(self, avro_dict: dict) -> object:
+        """Convert Python dict to Avro Object."""
+        return DatumWriter(self.verify_avro_object(avro_dict))
+
+    def convert_avro_binary_to_py_dict(self, avro_obj: object) -> dict:
         """Convert Avro Object to JSON Schema."""
         schema: str = DatumReader(avro_obj)
-        return schema
+        return json.loads(schema)
+
+    def convert_py_dict_to_avro_json_zip(self, avro_dict: dict) -> object:
+        """Convert Python dict to compressed Avro JSON bytes."""
+        avro_json = self.verify_avro_object(avro_dict)
+        return zlib.compress(bytes(avro_json, 'utf-8'))
+
+    def convert_avro_json_zip_to_py_dict(self, avro_json_zip: bytes) -> dict:
+        """Convert compressed Avro JSON bytes to Python dict."""
+        avro_json = zlib.decompress(avro_json_zip)
+        return json.loads(avro_json)
 
 
 if __name__ == "__main__":
