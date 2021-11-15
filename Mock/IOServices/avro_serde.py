@@ -35,30 +35,30 @@ class AvroSerDe(object):
         """Initialize Avro ser/de."""
         pass
 
-    def verify_avro_object(self, avro_dict: dict) -> str:
-        """Parse Python dict for Avro goodness."""
-        avro_json: str = json.dumps(avro_dict)
-        _ = parse(avro_json)
-        return(avro_json)
+    def verify_avro(self, avro_d: dict) -> str:
+        """Parse Python dict for Avro goodness and convert to JSON."""
+        avro_j: str = json.dumps(avro_d)
+        _ = parse(avro_j)
+        return(avro_j)
 
-    def convert_py_dict_to_avro_binary(self, avro_dict: dict) -> object:
-        """Convert Python dict to Avro Object."""
-        return DatumWriter(self.verify_avro_object(avro_dict))
+    def convert_py_dict_to_avro_binary(self, avro_d: dict) -> object:
+        """Convert Python dict to Avro binary object."""
+        return DatumWriter(self.verify_avro(avro_d))
 
-    def convert_avro_binary_to_py_dict(self, avro_obj: object) -> dict:
-        """Convert Avro Object to JSON Schema."""
-        schema: str = DatumReader(avro_obj)
+    def convert_avro_binary_to_py_dict(self, avro_o: object) -> dict:
+        """Convert Avro binary object to JSON."""
+        schema: str = DatumReader(avro_o)
         return json.loads(schema)
 
-    def convert_py_dict_to_avro_json_zip(self, avro_dict: dict) -> object:
+    def convert_py_dict_to_avro_jzby(self, avro_d: dict) -> object:
         """Convert Python dict to compressed Avro JSON bytes."""
-        avro_json = self.verify_avro_object(avro_dict)
-        return zlib.compress(bytes(avro_json, 'utf-8'))
+        avro_j = self.verify_avro(avro_d)
+        return zlib.compress(bytes(avro_j, 'utf-8'))
 
-    def convert_avro_json_zip_to_py_dict(self, avro_json_zip: bytes) -> dict:
+    def convert_avro_jzby_to_py_dict(self, avro_jzby: bytes) -> dict:
         """Convert compressed Avro JSON bytes to Python dict."""
-        avro_json = zlib.decompress(avro_json_zip)
-        return json.loads(avro_json)
+        avro_j = zlib.decompress(avro_jzby)
+        return json.loads(avro_j)
 
 
 if __name__ == "__main__":
