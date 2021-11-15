@@ -1,24 +1,14 @@
 #!/usr/bin/python3.9
 """
 :module:    redis_server.py
-:host:port: 127.0.0.1:52020
+:host:port: curwen:52020
 
 Mockup for serving Redis connections and IO.
 Replace with appropriate component-level services.
 
 Main behaviors:
 
-- Bring up Redis server if not running.
-- Create namespaces if they do not exist.
-- Create Redis connections.
-- GET:
-  - Record(s) from SANDBOX, SCHEMA, or RESULT databases.
-- SET:
-  - Record(s) to SANDBOX, SCHEMA, or RESULT databases.
-- XADD:
-  - Record(s) to LOG database.
-- XRANGE:
-  - Record(s) from LOG database.
+- Handle traffic on port 52020, for the ``redis_io_services`` channel.
 """
 
 import asyncio
@@ -66,6 +56,6 @@ async def main(*args, **kwargs):
         await server.serve_forever()
 
 try:
-    asyncio.run(main(server, host='127.0.0.1', port=52020))
+    asyncio.run(main(server, host='curwen', port=52020))
 except KeyboardInterrupt:
     print('Bye!')

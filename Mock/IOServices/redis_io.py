@@ -34,16 +34,16 @@ Main behaviors:
 Redis commands: https://redis.io/commands
 
 """
+import datetime
+import hashlib
+import json
+import secrets
+import uuid
 from copy import copy
 from dataclasses import dataclass
 from pprint import pprint as pp  # noqa: F401
 
-import datetime
-import hashlib
-import json
 import redis
-import secrets
-import uuid
 
 from avro_serde import AvroSerDe  # type: ignore
 
@@ -57,7 +57,8 @@ class BowRedis(object):
         """Initialize Redis connections."""
         self.set_constants()
         self.RNS = dict()
-        for db_no, db_nm in enumerate(["sandbox", "schema", "result", "log"]):
+        for db_no, db_nm in enumerate(
+                ["sandbox", "schema", "harvest", "log", "monitor"]):
             self.RNS[db_nm] = redis.Redis(
                 host=self.HOST, port=self.PORT, db=db_no)
             self.RNS[db_nm].client_setname(db_nm)
@@ -66,12 +67,10 @@ class BowRedis(object):
         """Set class constants."""
         self.HOST = '127.0.0.1'
         self.PORT = 6379
-        self.field_ty: list = ["array", "hash", "set", "string"]
-        self.sch_act: list = ["list", "publish", "subscribe",
-                              "request", "response"]
-        self.sch_ty: list = ["owl", "redis", "sqlite", "topic"]
-        self.sch_verb: list = ["auth", "decr", "get", "incr",
-                               "meta", "put", "remove", "update"]
+        self.field_ty: set = ("array", "hash", "set", "string")
+        self.msg_cat: set = ("owl", "redis", "sqlite", "topic")
+        self.msg_plan: set = ("get", "put", "remove", "update", "meta")
+        self.msg_svc: set = ("publish", "subscribe", "request", "response")
         self.avro_templ: dict = {
             "aliases": [], "doc": "", "fields": [], "hash": "",
             "name": "", "namespace": "", "token": "",
@@ -188,12 +187,12 @@ class BowRedis(object):
     def verify_verbs_types(self, p_ty: str, p_verb: str,
                            p_act: str, p_fields: list) -> bool:
         msg = ""
-        if p_ty not in self.sch_ty:
-            msg += f"\nType must be in {str(self.sch_ty)}"
-        if p_verb not in self.sch_verb:
-            msg += f"\nVerb must be in {str(self.sch_verb)}"
-        if p_act not in self.sch_act:
-            msg += f"\nAct must be in {str(self.sch_act)}"
+        if p_ty not in self.msg_cat:
+            msg += f"\nType must be in {str(self.msg_cat)}"
+        if p_verb not in self.msg_plan:
+            msg += f"\nVerb must be in {str(self.msg_plan)}"
+        if p_act not in self.msg_svc:
+            msg += f"\nAct must be in {str(self.msg_svc)}"
         for f in p_fields:
             for k, v in f.items():
                 if v not in self.field_ty:
@@ -336,9 +335,9 @@ class BowRedis(object):
 
         :args:
             p_topic (str) may be hierarchical, levels separated by dots
-            p_ty (str): in sch_ty
-            p_verb (str) in sch_verb
-            p_act (str) in sch_act
+            p_ty (str): in msg_cat
+            p_verb (str) in msg_plan
+            p_act (str) in msg_svc
             p_doc (str) URI to a document describing schema
             fields (list) of singleton dicts where
                 key -> string identifying field names
@@ -375,6 +374,7 @@ class BowRedis(object):
         return (up_rec["name"], up_rec["token"])               # type: ignore
 
 
+# For testing:
 if __name__ == "__main__":
     red = BowRedis()
     red.upsert_schema(p_topic="(#MY:Test_Topic.$Number**%THREE,+",
@@ -390,5 +390,6 @@ if __name__ == "__main__":
                       p_verb="auth",
                       p_act="subscribe",
                       p_doc="https://github.com/genuinemerit/bow-wiki/wiki")
+    # Test for failure:
     # red.upsert_schema(p_topic="test_topic", p_ty="junk",
     #                         p_verb="junk", p_act="junk")

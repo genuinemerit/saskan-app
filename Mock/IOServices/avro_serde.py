@@ -19,13 +19,13 @@ Main behaviors:
 - Serialize avro object to bytes
 - Deserialize bytes to avro object
 """
-from pprint import pprint as pp               # noqa: F401
-
 import json
 import zlib
-from avro.schema import parse                 # type: ignore
+from pprint import pprint as pp  # noqa: F401
+
 # from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter  # type: ignore
+from avro.schema import parse  # type: ignore
 
 
 class AvroSerDe(object):

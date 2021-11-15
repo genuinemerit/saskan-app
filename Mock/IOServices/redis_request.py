@@ -1,58 +1,67 @@
 #!/usr/bin/python3.9
 """
-:module:    redis_listener.py
-:host:port: 127.0.0.1:52020
+:module:    redis_request.py
+:host:port: curwen:52020
 
-Mockup for generating Redis request messages.
+Mockup for serving up requests to for Redis IO Services.
 
-Main behaviors:
-
-- Subscribe to Redis-related channel.
-- Send a request message to Redis IO Services.
-- Receive a response message from Redis IO Services.
-- Do something with the response.
+Not sure if this needs to be a separate client, or if
+it serves a purpose, collecting requests for this channel
+from app-level needs.
 """
-
 import argparse
 import asyncio
 import uuid
+from itertools import count
 
 from bow_msgs import BowMessages  # type: ignore
 ms = BowMessages()
 
 
 async def main(args):
-    me = uuid.uuid4().hex[:8]
-    print(f'Starting up {me}')
     reader, writer = await asyncio.open_connection(
-        args.host, args.port)
-    print(f'I am {writer.get_extra_info("sockname")}')
-    channel = args.listen.encode()
+        host=args.host, port=args.port)
+    me = uuid.uuid4().hex[:8] + "_redis_request"
+    sock = writer.get_extra_info("sockname")
+    # Refactor to write to monitoring log
+    print(f"Started {me} at {sock} on {args.host}:{str(args.port)}")
+    # Requestors send a null message to the server to indicate they are ready.
+    # They are not responsible for managing traffic on a channel.
+    channel = b'/null'
     await ms.send_msg(writer, channel)
+    chan = args.channel.encode()
     try:
-        while data := await ms.read_msg(reader):
-            print(f'Received by {me}: {data[:20]}')
-        print('Connection ended.')
-    except asyncio.IncompleteReadError:
-        print('Server closed.')
-    finally:
+        for i in count():
+            await asyncio.sleep(args.interval)
+            # Test message.
+            # Replaced w/ requests relating to channel "redis_io_services".
+            data = b'X'*args.size or f'Msg {i} from {me}'.encode()
+            try:
+                await ms.send_msg(writer, chan)
+                await ms.send_msg(writer, data)
+            except OSError:
+                print('Connection ended.')
+                break
+    except asyncio.CancelledError:
         writer.close()
         await writer.wait_closed()
 
-
 if __name__ == '__main__':
     """
-    Not entirely sure what value is needed for --listen.
-    Don't know that we would want that to be available via an arg?
-    OR is that the right way to use this abstractly? (yes)
-    Consider what kind of set-up we want to use for ports and
-    tie that into UFW (Unix Firewall) configuration.
-    Consider checking first what ports are open in the range I want.
+    Optionally set as arguments:
+    - host: str
+    - port: int
+    - channel: str  (set up to expect multiple listener workers)
+    - size: int (bytes)
+    - interval: float (seconds)
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', default='localhost')
-    parser.add_argument('--port', default=52020)
-    parser.add_argument('--listen', default='/queue/GetRedisMessage')
+    # parser.add_argument('--host', default='localhost')
+    parser.add_argument('--host', default='curwen')
+    parser.add_argument('--port', default=52020, type=int)
+    parser.add_argument('--channel', default='/queue/ontology_file')
+    parser.add_argument('--interval', default=1, type=float)
+    parser.add_argument('--size', default=0, type=int)
     try:
         asyncio.run(main(parser.parse_args()))
     except KeyboardInterrupt:
