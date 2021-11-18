@@ -25,16 +25,6 @@ Main behaviors:
 - Assemble the response.
     - Store in `harvest` namespace, with expiration.
     - Send response to requestor and/or subscribers.
-
-@DEV:
-- Got a "connection refused" error. Maybe...
-    - Using "curwen:52020" instead of "localhost:52020" is bad?
-        - I think not. They are basically the same.
-    - Changing the channel name screwed something up?
-        - I think not. The requestor doesn't even name the channel.
-    - I need to make sure that the responders get fired up before requestors!
-        - Seems most likely. It was receiving messages before its log-monitor
-          message got displayed.
 """
 
 import argparse
@@ -49,13 +39,17 @@ async def main(args):
     me = uuid.uuid4().hex[:8]
     reader, writer = await asyncio.open_connection(
         args.host, args.port)
-    me = uuid.uuid4().hex[:8] + "_redis_response"
+    me = "redis_io_responder_" + uuid.uuid4().hex[:8]
     sock = writer.get_extra_info("sockname")
-    # Responders "listen" to designated channel.
+    # Responders listen to a designated channel.
     channel = args.listen.encode()
-    # Refactor to write to monitoring log
-    mon = f"Started {me} at {sock} on " +\
-          f"{args.host}:{str(args.port)} for {channel} channel"
+    # Refactor prints to write to Redis Monitor namespace,
+    #  then construct a subscription service to read from it.
+    # Display the messages from the Monitor namespace on GUI
+    # Use kivy to build the GUI. Same GUI should eventually
+    # provide nicer front-end for control_servers.sh too.
+    mon = f"Responder: {me} | " +\
+        f"Socket: {sock} | Host: {args.host}:{str(args.port)}"
     print(mon)
     await ms.send_msg(writer, channel)
     try:
@@ -81,9 +75,9 @@ if __name__ == '__main__':
     Maybe investigate using unix sockets instead of ports.
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('--host', default='localhost')
+    parser.add_argument('--host', default='curwen')
     parser.add_argument('--port', default=52020)
-    parser.add_argument('--listen', default='redis_io_services')
+    parser.add_argument('--listen', default='/queue/redis_io_services')
     try:
         asyncio.run(main(parser.parse_args()))
     except KeyboardInterrupt:

@@ -5,10 +5,18 @@
 Mockup for handling core Redis functions.
 To be used mainly by IOServices::redis_response.
 
-Store data in Redis a compressed (zlib) strings --> bytes.
+Store data in Redis using compressed (zlib) strings --> bytes.
 - Data should be validated as a well-formed Avro record.
 - Redis data is NOT stored in the Avro binary format.
 - Redis key = usually the "name" field on the Avro record.
+    - Store + Topic + Message + Plan + Service
+    - Example: "redis.io_services.ontology_file.get.request"
+- Redis value = the Avro record as a bytes string.
+- The Sandbox (0) namespace is reserved for testing and prototyping.
+- In the Schema (1) namespace, store schemas for each message type.
+- In the Harvest (2) namespace, store response payloads for specific messages.
+- In the Log (3) namespace, store log messages.
+- In the Monitor (4) namespace, store monitor messages.
 
 Main behaviors:
 - Administer Redis database.
@@ -65,16 +73,25 @@ class BowRedis(object):
 
     def set_constants(self):
         """Set class constants."""
-        self.HOST = '127.0.0.1'
+        # self.HOST = '127.0.0.1'
+        self.HOST = 'curwen'
         self.PORT = 6379
         self.field_ty: set = ("array", "hash", "set", "string")
         self.msg_cat: set = ("owl", "redis", "sqlite", "topic")
         self.msg_plan: set = ("get", "put", "remove", "update", "meta")
         self.msg_svc: set = ("publish", "subscribe", "request", "response")
         self.avro_templ: dict = {
-            "aliases": [], "doc": "", "fields": [], "hash": "",
-            "name": "", "namespace": "", "token": "",
-            "type": "record", "update_ts": "", "version": ""}
+            "aliases": [],
+            "channel": "",
+            "doc": "",
+            "fields": [],
+            "hash": "",
+            "name": "",
+            "namespace": "",
+            "token": "",
+            "type": "record",
+            "update_ts": "",
+            "version": ""}
 
     @dataclass
     class HashLevel:
@@ -254,7 +271,7 @@ class BowRedis(object):
         rec["fields"] = list()
         s_topic: str = self.make_snake_case(p_topic)        # type: ignore
         sch_nm: str = p_ty + "." + s_topic + "." + p_verb + "." + p_act
-        rec["aliases"] = ["queue/" + sch_nm]
+        rec["aliases"] = []
         rec["doc"] = p_doc
         rec["name"] = sch_nm
         rec["namespace"] = f"net.genuinemerit.{p_ns}"
@@ -385,7 +402,7 @@ if __name__ == "__main__":
                       p_fields=[{"something_new": "string"},
                                 {"something_old": "string"},
                                 {"something_borrowed": "string"}])
-    red.upsert_schema(p_topic="ontology_file",
+    red.upsert_schema(p_topic="/queue/redis_io_services",
                       p_ty="sqlite",
                       p_verb="auth",
                       p_act="subscribe",

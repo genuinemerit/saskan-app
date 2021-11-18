@@ -33,14 +33,14 @@
 show_help()
 {
     ## `$0` is the name of the script
-    echo -e "\nStart and stop the mock servers for BowDataSchema"
+    echo -e "\nStart and stop (mock) servers for BowDataSchema"
     echo -ne "\nUsage: $0 [OPTION]..."
     printf '=%.0s' {1..50}
-    echo -e "\n  -h, --help \t\tdisplay help"
-    echo -e "  -v, --version\t\tshow version information"
-    echo -e "  -j, --jobs\t\tshow running mock server jobs"
-    echo -e "  -r, --run\t\tstart/run mock server jobs"
-    echo -e "  -k, --kill\t\tstop/kill mock server jobs"
+    echo -e "\n  -h, --help \t\tdisplay Help"
+    echo -e "  -v, --version\t\tshow Version information"
+    echo -e "  -j, --jobs\t\tshow running server Jobs"
+    echo -e "  -r, --run\t\tRun server jobs"
+    echo -e "  -k, --kill\t\tKill server jobs"
     echo -e "\nReport bugs to <https://github.com/genuinemerit/bow-data-schema/issues>"
 }
 
@@ -56,23 +56,23 @@ show_version()
     echo -e "\nWritten by GM <genuinemerit @ pm.me>"
 }
 
-check_for_running_jobs ()
+check_running_servers ()
 {
     ##  :args:
     ##          $1:str is "show" or empty string
     ##  :set global for 'return': 
-    ##          $JOBS:int --> 0 if nothing running, else 1
-    JOBS=0
-    for JOB in "${JOBNM[@]}"; do
+    ##          $SERVERS:int --> 0 if nothing running, else 1
+    SERVERS=0
+    for SRV in "${PYSRV[@]}"; do
         if [[ "$1" == "show" ]]; then
-            echo -e "\nLooking for processes like *${JOB}*"
+            echo -e "\nLooking for servers like *${SRV}*"
         fi
-        J=$(ps -ef | grep -v grep | grep "${JOB}")
+        J=$(ps -ef | grep -v grep | grep "${SRV}")
         if [[ -n ${J} ]]; then
             if [ "$1" == "show" ]; then
                 echo -e "${J}"
             fi
-            JOBS=1
+            SERVERS=1
         fi
     done
 }
@@ -80,8 +80,8 @@ check_for_running_jobs ()
 #
 show_jobs ()
 {
-    check_for_running_jobs "show"
-    if [[ ($JOBS -eq 0) ]]; then
+    check_running_servers "show"
+    if [[ ($SERVERS -eq 0) ]]; then
         echo -e "\nNo running jobs found"
     fi
 }
@@ -90,8 +90,8 @@ show_jobs ()
 stop_servers ()
 {
     # When a server gets killed, its listeners and senders die too.
-    check_for_running_jobs ""
-    if [[ ($JOBS -gt 0) ]]; then
+    check_running_servers ""
+    if [[ ($SERVERS -gt 0) ]]; then
         declare -a PIDS
         for SRVR in "${PYSRV[@]}"; do
             echo "Getting PID for ${SRVR}"
@@ -108,8 +108,8 @@ stop_servers ()
             sleep 0.5s
         done
     fi
-    check_for_running_jobs ""
-    if [[ ($JOBS -eq 0) ]]; then
+    check_running_servers ""
+    if [[ ($SERVERS -eq 0) ]]; then
         echo "No server jobs are running."
     else
         echo "Something is awry. Server jobs are still running."
@@ -120,8 +120,8 @@ stop_servers ()
 #
 run_jobs ()
 {
-    check_for_running_jobs ""
-    if [[ ($JOBS -eq 0) ]]; then
+    check_running_servers ""
+    if [[ ($SERVERS -eq 0) ]]; then
         echo -e "Starting up services..."
         for PY in "${PYNM[@]}"; do
             echo -e "\nStart ${PY}"
@@ -135,34 +135,32 @@ run_jobs ()
     else
         echo -e "\nServices are already running"
     fi
-    check_for_running_jobs "show"
+    check_running_servers "show"
 }
 
 #
 ## =================== MAIN ======================
 ARGCNT=$#
-JOBS=0
-DAS="DataAdminServices"
+SERVERS=0
+# DAS="DataAdminServices"
 IOS="IOServices"
 declare -a PYSRV
-PYSRV[0]="${DAS}/data_admin_server.py"
-PYSRV[1]="${IOS}/file_server.py"
+# PYSRV[0]="${DAS}/data_admin_server.py"
+# PYSRV[1]="${IOS}/file_server.py"
 PYSRV[2]="${IOS}/redis_server.py"
 declare -a PYNM
-PYNM[0]="${DAS}/data_admin_server.py"
-PYNM[1]="${DAS}/data_admin_request.py"
-PYNM[2]="${DAS}/data_admin_request.py"
-PYNM[3]="${DAS}/data_admin_response.py"
-PYNM[4]="${IOS}/file_server.py"
-PYNM[5]="${IOS}/file_request.py"
-PYNM[6]="${IOS}/file_response.py"
+# Start servers, then respoders, then requestors
+# PYNM[0]="${DAS}/data_admin_server.py"
+# PYNM[1]="${DAS}/data_admin_response.py"
+# PYNM[2]="${DAS}/data_admin_request.py"
+# PYNM[3]="${DAS}/data_admin_request.py"
+# PYNM[4]="${IOS}/file_server.py"
+# PYNM[5]="${IOS}/file_response.py"
+# PYNM[6]="${IOS}/file_request.py"
 PYNM[7]="${IOS}/redis_server.py"
-PYNM[8]="${IOS}/redis_request.py"
-PYNM[9]="${IOS}/redis_request.py"
-PYNM[10]="${IOS}/redis_response.py"
-declare -a JOBNM
-JOBNM[0]="${DAS}"
-JOBNM[1]="${IOS}"
+PYNM[8]="${IOS}/redis_response.py"
+PYNM[9]="${IOS}/redis_response.py"
+PYNM[10]="${IOS}/redis_request.py"
 VERSION="0.0.1"
 
 if [[ ${1^^} == --HELP || ${1^^} == -H || ${ARGCNT} -gt 1 ]];
@@ -170,7 +168,7 @@ then
     show_help
 elif [[ (${1^^} == --VERSION || ${1^^} == -V) ]]; then
     show_version
-elif [[ (${1^^} == --JOBS || ${1^^} == -J) ]]; then
+elif [[ (${1^^} == --SERVERS || ${1^^} == -J) ]]; then
     show_jobs
 elif [[ (${1^^} == --KILL || ${1^^} == -K) ]]; then
     declare -a PIDS=()

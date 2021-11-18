@@ -50,6 +50,9 @@ async def server(reader: StreamReader, writer: StreamWriter):
 async def main(*args, **kwargs):
     """Launch the Redis server.
     It uses no arguments at this time.
+    Make sure responder and requesters for this server use
+      the same host name and port.
+      Host name needs to be exactly the same.
     """
     server = await asyncio.start_server(*args, **kwargs)
     async with server:
