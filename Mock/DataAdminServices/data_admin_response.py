@@ -21,6 +21,10 @@ Main behaviors:
         concept_name: str,
         data_object_type: str,
         auth_token: str)
+
+@DEV
+- Not clear what is meant by "Data Admin" in this context.
+- This is an earlier prototype. See IOServices for a better one.
 """
 import argparse
 import asyncio
@@ -32,7 +36,7 @@ import bow_msgs
 
 async def main(args):
     """
-    Claim an identity for the sender.
+    Claim an identity for the "sender".
     Make a connection.
     As a sender, just send null message for listen request.
         (first message)
@@ -46,6 +50,14 @@ async def main(args):
     Message payload is either a bytestring of specified size,
         or a specific encoded string. (just examples)
     Send channel name, then mesage payload.
+
+    @DEV:
+    - May have my terminology mixed up. This is a mockup sender.
+    - A "sender" is a requestor, not a responder.
+    - The real "listener" is the server component. It is the
+        component that receives messages and directs them to
+        a handler.
+    - See code in IOServices for better understanding.
     """
     me = uuid.uuid4().hex[:8]
     print(f'Starting up {me}')

@@ -3,13 +3,14 @@
 :module:    bow_msgs.py
 
 Mockup for handling Data Admin messages.
-Eventually this will be replaced by a real module
-  and moved to component bow-data-admin.
-This is the same for all of my messages.
-But using relative imports in Python is a pain.
-So just include a copy of this file in the same directory.
-Also not a great practice. Need to handle it as a dependent
-  git compoment, like bow-quiver.
+Eventually replace by a real module and move to bow-data-admin
+  or maybe bow-quiver.
+Same functions used for all of messages.
+
+Using relative imports in Python is a pain.
+So including a copy of this file in the same directory for now.
+Not a great practice.
+Need to handle it as a dependent git compoment, like bow-quiver.
 
 Main behaviors:
 

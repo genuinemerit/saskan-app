@@ -1,0 +1,63 @@
+#:kivy 2.0.0
+
+# Configuration for widgets in pong.py
+# "self." references the widget using it.
+# "root." references either the core/root window
+#   or attributes defined for the object. Note how
+#   player1 and player2 are defined in pong.py and
+#   then referenced in two instances of the PongPaddle
+#   widget under the PongGame class.
+
+# The default size_hint is for all widgets is (1, 1), meaning it
+#   will strech 100% in x and y until available space is filled.
+# They will resize proportionally unless specified otherwise.
+
+<PongBall>:
+    size: 50, 50
+    canvas:
+        Ellipse:
+            pos: self.pos
+            size: self.size
+
+<PongPaddle>:
+    size: 25, 200
+    canvas:
+        Rectangle:
+            pos:self.pos
+            size:self.size
+
+<PongGame>:
+    ball: pong_ball
+    player1: player_left
+    player2: player_right
+
+    canvas:
+        Rectangle:
+            pos: self.center_x - 5, 0
+            size: 10, self.height
+
+    Label:
+        font_size: 70
+        center_x: root.width / 4
+        top: root.top - 50
+        text: str(root.player1.score)
+
+    Label:
+        font_size: 70
+        center_x: root.width * 3 / 4
+        top: root.top - 50
+        text: str(root.player2.score)
+
+    PongBall:
+        id: pong_ball
+        center: self.parent.center
+
+    PongPaddle:
+        id: player_left
+        x: root.x
+        center_y: root.center_y
+
+    PongPaddle:
+        id: player_right
+        x: root.width - self.width
+        center_y: root.center_y

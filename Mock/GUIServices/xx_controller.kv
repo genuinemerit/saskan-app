@@ -1,0 +1,20 @@
+#:kivy 2.0.0
+
+# Configuration for widgets in controller.py
+# Having trouble getting this to work.
+# Need to do some more tutorials!
+
+<Button>:
+    color: .8, .9, 0, 1
+    font_size: 24
+
+<Controller>
+    Button:
+        id: start_btn
+        text: "Start Services"
+        pos: 0, root.height
+
+    Button:
+        id: kill_btn
+        text: "Kill Services"
+        pos: 100, root.height

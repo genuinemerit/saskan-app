@@ -2,7 +2,7 @@
 # shellcheck disable=SC2009
 # shellcheck disable=SC2207
 #
-## :command: control_servers.sh
+## :command: controller.sh
 ## :synopsis: Start and stop the mock servers
 ## :platform: Linux
 ## :copyright: (c) 2021 by Genuine Merit Software
@@ -143,7 +143,7 @@ run_jobs ()
 ARGCNT=$#
 SERVERS=0
 # DAS="DataAdminServices"
-IOS="IOServices"
+IOS="../IOServices"
 declare -a PYSRV
 # PYSRV[0]="${DAS}/data_admin_server.py"
 # PYSRV[1]="${IOS}/file_server.py"

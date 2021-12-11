@@ -8,7 +8,7 @@
 
 _Event is_ __GetDataCodeObject()__
 
-_Approved Requestors are __BowDataAdmin.{services}__
+_Approved Requestors_ are __BowDataAdmin.{services}__
 
 Listen
 

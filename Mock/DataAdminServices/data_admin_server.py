@@ -101,10 +101,13 @@ async def main(*args, **kwargs):
         await server.serve_forever()
 
 try:
-    # I probably want to try a series of ports until I find one that works.
-    # Ports 1024 to 49151 are "registered", those between 49152 and 65535 are "private".
+    # Try a series of ports until I find what works best.
+    # Ports 1024 to 49151 are "registered",
+    #   those between 49152 and 65535 are "private".
     # For my private services, I want to use those above 49152.
     # asyncio.run(main(server, host='127.0.0.1', port=25000))
+    # Using a named host works fine. All the services using it need
+    #   to use the name instead of the IP address.
     asyncio.run(main(server, host='127.0.0.1', port=52000))
 except KeyboardInterrupt:
     print('Bye!')

@@ -6,17 +6,23 @@ Mockup for handling core Redis functions.
 To be used mainly by IOServices::redis_response.
 
 Store data in Redis using compressed (zlib) strings --> bytes.
-- Data should be validated as a well-formed Avro record.
-- Redis data is NOT stored in the Avro binary format.
-- Redis key = usually the "name" field on the Avro record.
-    - Store + Topic + Message + Plan + Service
+- Data should be validated as a well-formed Avro-style record,
+  but using my own validation function.
+- Redis data is NOT stored in the Avro binary format, just compressed.
+  - May eventually want to encrypt as well, but keep in mind it has to
+    be decrypted before it can be used and the encrypted format has to
+    be string-friendly.
+- Redis key = usually the "name" field on the Avro-type record.
+    - key format: BoW Store Type + Topic + Message + Plan + Service
+    - See design doc: Messages-DataSchemaEvents.md
     - Example: "redis.io_services.ontology_file.get.request"
-- Redis value = the Avro record as a bytes string.
-- The Sandbox (0) namespace is reserved for testing and prototyping.
-- In the Schema (1) namespace, store schemas for each message type.
-- In the Harvest (2) namespace, store response payloads for specific messages.
-- In the Log (3) namespace, store log messages.
-- In the Monitor (4) namespace, store monitor messages.
+- Redis value = the Avro-ish record as a bytes string.
+- Sandbox (0) namespace --> for testing and prototyping
+- Schema (1) namespace  --> store schemas for each message type
+- Harvest (2) namespace --> store response payloads for specific messages
+- Log (3) namespace     --> store log messages, experiment with Redis streams
+- Monitor (4) namespace --> store monitor messages, may also want to use
+                            streams here
 
 Main behaviors:
 - Administer Redis database.
@@ -35,12 +41,15 @@ Main behaviors:
         - (HMSET hashitemkey valuekey1 value1 valuekey2 value2)
 - Read:
     - By key (GET k, MGET k1 k2 k3)
-    - By keys (KEYS pattern)
+    - By keys (KEYS pattern), e.g. `KEYS *` --> show all keys
     - Does this specific key exist yet? (EXIST)
     - Show me all the stuff in this hash item (HGETALL hashitemkey)
 
 Redis commands: https://redis.io/commands
 
+@DEV:
+- These are generic functions. May want to consider combinding with others?
+- Or not.
 """
 import datetime
 import hashlib
@@ -53,9 +62,9 @@ from pprint import pprint as pp  # noqa: F401
 
 import redis
 
-from avro_serde import AvroSerDe  # type: ignore
+from bow_serde import BowSerDe  # type: ignore
 
-ASD = AvroSerDe()
+BSD = BowSerDe()
 
 
 class BowRedis(object):
@@ -72,7 +81,10 @@ class BowRedis(object):
             self.RNS[db_nm].client_setname(db_nm)
 
     def set_constants(self):
-        """Set class constants."""
+        """Set class constants.
+
+        May want to manage some of this via arguments or environment variables.
+        """
         # self.HOST = '127.0.0.1'
         self.HOST = 'curwen'
         self.PORT = 6379
@@ -287,7 +299,7 @@ class BowRedis(object):
         """Return existing record if one exists for specified key."""
         rec = dict()
         if self.RNS["schema"].exists(p_nm):               # type: ignore
-            rec = ASD.convert_avro_jzby_to_py_dict(
+            rec = BSD.convert_avro_jzby_to_py_dict(
                 avro_jzby=self.RNS["schema"].get(p_nm))   # type: ignore
         return rec
 
@@ -318,7 +330,7 @@ class BowRedis(object):
         """Archive previous record to `log` namespace."""
         arc_key = p_old_rec["name"] +\
             ".archive." + self.get_timestamp()   # type: ignore
-        arc_schema = ASD.convert_py_dict_to_avro_jzby(
+        arc_schema = BSD.convert_py_dict_to_avro_jzby(
             avro_d=p_old_rec)
         self.RNS["log"].set(                     # type: ignore
             arc_key, arc_schema, nx=True)
@@ -333,12 +345,12 @@ class BowRedis(object):
             print("\nArchive and update record:")
             self.archive_old_record(p_old_rec)      # type: ignore
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               ASD.convert_py_dict_to_avro_jzby(
+                               BSD.convert_py_dict_to_avro_jzby(
                                    avro_d=p_rec), xx=True)
         elif p_upsert == "nx":
             print("\nWrite new record:")
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               ASD.convert_py_dict_to_avro_jzby(
+                               BSD.convert_py_dict_to_avro_jzby(
                                    avro_d=p_rec), nx=True)
 
     def upsert_schema(self: object,
@@ -391,8 +403,9 @@ class BowRedis(object):
         return (up_rec["name"], up_rec["token"])               # type: ignore
 
 
-# For testing:
 if __name__ == "__main__":
+    """Consider using pytest here.
+    """
     red = BowRedis()
     red.upsert_schema(p_topic="(#MY:Test_Topic.$Number**%THREE,+",
                       p_ty="redis",

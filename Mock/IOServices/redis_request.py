@@ -3,11 +3,11 @@
 :module:    redis_request.py
 :host:port: curwen:52020
 
-Mockup for serving up requests to for Redis IO Services.
+Mockup for serving requests to Redis IO Services.
 
-Not sure if this needs to be a separate client, or if
-it serves a purpose, collecting requests for this channel
-from app-level needs.
+Not sure yet if this needs to be a separate client apart from
+testing and prototyping. Does it / can it serve a purpose, e.g.,
+collecting requests for this channel from app-level needs?
 """
 import argparse
 import asyncio
@@ -15,12 +15,13 @@ import random
 import uuid
 from itertools import count
 from os import urandom
+from pprint import pprint as pp
 
+from bow_serde import BowSerDe  # type: ignore
 from bow_msgs import BowMessages  # type: ignore
-from avro_serde import AvroSerDe  # type: ignore
 
-AV = AvroSerDe()
-MS = BowMessages()
+BSD = BowSerDe()
+MSG = BowMessages()
 
 random.seed(a=urandom(32))
 
@@ -38,7 +39,7 @@ async def main(args):
     # Since they are not responsible for managing traffic on a channel,
     # the initial message indicates a null channel.
     channel = b'/null'
-    await MS.send_msg(writer, channel)
+    await MSG.send_msg(writer, channel)
     chan = args.channel.encode()
     try:
         # This is prototype code, just sending a series of meaningless
@@ -63,13 +64,13 @@ async def main(args):
             # expect in the data portion of the message.
             # The encode() function usually has some params.
             # Not sure why the example I was following didn't just
-            # use bytes() here? With no parames, it uses the
+            # use bytes() here? With no params, it uses the
             # default encoding, whatever that means. I am accustomed
             # to either using bytes() or encode('utf-8').
             data = b'X'*args.size or f'Msg {i} from {me}'.encode()
             try:
-                await MS.send_msg(writer, chan)
-                await MS.send_msg(writer, data)
+                await MSG.send_msg(writer, chan)
+                await MSG.send_msg(writer, data)
             except OSError:
                 print('Connection ended.')
                 break
@@ -77,8 +78,8 @@ async def main(args):
         # test messages, choosing which one randomly.
         msg_ty = random.randint(0, 2)
         if msg_ty == 0:
-            # Use the avro_serde primitives to verify, convert the message.
-            # convert_py_dict_to_avro_jzby() converts to javascript,
+            # Use the bow_serde class to verify, convert the message.
+            # convert_py_dict_to_msg_jzby() converts to javascript,
             # compresses using zlib and base64 encodes.
 
             # This get a little into meta-meta. I want to send a message
@@ -87,7 +88,7 @@ async def main(args):
             # message about writing schemas if it doesn't have a schema
             # to work from? At some point I need to "seed" Redis/Schema
             # with the base set of schemas. I'll work on defining those
-            # as part of the next iteration of prototyp messages...
+            # as part of the next iteration of prototype messages...
 
             # Be clear on distinctions between "channel", "topic", and
             # "message-name"/redis-key.
@@ -122,41 +123,42 @@ async def main(args):
                 # "name": "namespace", "type": "string"
                 # "name": "doc", "type": "string"
 
-                "fields": [
-                    {"namespace": "net.genuinemerit.schema"},
-                    {"store": "redis"},
-                    {"channel": "redis_io"},
-                    {"topic": "ontology_file"},
-                    {"plan_ty": "put"},
-                    {"service_ty": "request"},
-                ]}
+                "fields": {
+                    "namespace": "net.genuinemerit.schema",
+                    "store": "redis",
+                    "channel": "redis_io",
+                    "topic": "ontology_file",
+                    "plan_ty": "put",
+                    "service_ty": "request",
+                }
+            }
         elif msg_ty == 1:
             data: dict = {
                 "type": "record",
                 "name": "redis.schema.put.request",
                 "namespace": "net.genuinemerit.schema",
-                "fields": [
-                    {"namespace": "net.genuinemerit.schema"},
-                    {"store": "redis"},
-                    {"channel": "redis_io"},
-                    {"topic": "ontology_file"},
-                    {"plan_ty": "get"},
-                    {"service_ty": "subscribe"},
-                ]
+                "fields": {
+                    "namespace": "net.genuinemerit.schema",
+                    "store": "redis",
+                    "channel": "redis_io",
+                    "topic": "ontology_file",
+                    "plan_ty": "get",
+                    "service_ty": "subscribe",
+                }
             }
         elif msg_ty == 2:
             data: dict = {
                 "type": "record",
                 "name": "redis.schema.put.request",
                 "namespace": "net.genuinemerit.schema",
-                "fields": [
-                    {"namespace": "net.genuinemerit.schema"},
-                    {"store": "redis"},
-                    {"channel": "redis_io"},
-                    {"topic": "ontology_file"},
-                    {"plan_ty": "remove"},
-                    {"service_ty": "request"},
-                ]
+                "fields": {
+                    "namespace": "net.genuinemerit.schema",
+                    "store": "redis",
+                    "channel": "redis_io",
+                    "topic": "ontology_file",
+                    "plan_ty": "remove",
+                    "service_ty": "request",
+                }
             }
         try:
             # Tho most OS's use little-endian, most comm protocols
@@ -164,14 +166,13 @@ async def main(args):
             # I guess the message needs to be less than 10,000 bytes?
             # Should probably have a check for that.
             size = len(data).to_bytes(4, 'big')
-            # I am getting an error back from the avro parser.
-            # "Fields must have a non-empty name."
-
             # >>> Need to do a bit of debugging here. <<<
 
-            data = size + AV.convert_py_dict_to_avro_jzby(data)
-            await MS.send_msg(writer, chan)
-            await MS.send_msg(writer, data)
+            pp(("data sent to bow_serde: ", data))
+
+            data = size + BSD.convert_py_dict_to_msg_jzby(data)
+            await MSG.send_msg(writer, chan)
+            await MSG.send_msg(writer, data)
         except OSError:
             print('Connection ended.')
     except asyncio.CancelledError:

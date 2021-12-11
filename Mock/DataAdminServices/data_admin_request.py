@@ -36,7 +36,7 @@ import bow_msgs
 
 async def main(args):
     """
-    Create a listener identiy using uuid.
+    Create a "listener" identiy using uuid.
     Open server connection.
     Provide channel name as an input argument.
     Send the channel name.
@@ -64,6 +64,7 @@ if __name__ == '__main__':
     """
     Provide host, port, topic as command line arguments with defaults.
     ???: Why not close the connection?
+    Answer: because closing the server is all we need to do.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='localhost')

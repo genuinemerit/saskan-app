@@ -8,7 +8,8 @@ Replace with appropriate component-level services.
 
 Main behaviors:
 
-- Handle traffic on port 52020, for the ``redis_io_services`` channel.
+- Handle traffic on host curwen, port 52020,
+  for the ``redis_io_services`` channel.
 """
 
 import asyncio
@@ -52,7 +53,7 @@ async def main(*args, **kwargs):
     It uses no arguments at this time.
     Make sure responder and requesters for this server use
       the same host name and port.
-      Host name needs to be exactly the same.
+      Host name and port need to be exactly the same.
     """
     server = await asyncio.start_server(*args, **kwargs)
     async with server:

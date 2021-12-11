@@ -32,7 +32,7 @@ import asyncio
 import uuid
 
 from bow_msgs import BowMessages  # type: ignore
-ms = BowMessages()
+MSG = BowMessages()
 
 
 async def main(args):
@@ -41,7 +41,7 @@ async def main(args):
         args.host, args.port)
     me = "redis_io_responder_" + uuid.uuid4().hex[:8]
     sock = writer.get_extra_info("sockname")
-    # Responders listen to a designated channel.
+    # Responders listen to a designated __channel__.
     channel = args.listen.encode()
     # Refactor prints to write to Redis Monitor namespace,
     #  then construct a subscription service to read from it.
@@ -51,9 +51,9 @@ async def main(args):
     mon = f"Responder: {me} | " +\
         f"Socket: {sock} | Host: {args.host}:{str(args.port)}"
     print(mon)
-    await ms.send_msg(writer, channel)
+    await MSG.send_msg(writer, channel)
     try:
-        while data := await ms.read_msg(reader):
+        while data := await MSG.read_msg(reader):
             print(f'Received by {me}: {data[:20]}')
         print('Connection ended.')
     except asyncio.IncompleteReadError:
@@ -69,10 +69,28 @@ if __name__ == '__main__':
     Schema identifying what to listen for, what to send, by whom.
     Eventually config UFW to only allow ports open that we want to use.
     "listen" identifies a "channel".
-    afaik a channel could handle n requests, and n responses.
+    afaik a channel could handle _n_ requests, and _n_ responses.
     It is also not the same thing as a topic, which is something that
-      can be subscribed to (via a particular channel).
-    Maybe investigate using unix sockets instead of ports.
+      can be subscribed to via a particular channel.
+    The hierarchial design for a message-based system refers to...
+    - A "channel" is a communication path, a host and a port.
+    - A "topic" is a communication topic, category handled on a channel.
+    - A "plan" is a communication plan describing a set of services on a topic.
+    - A "service" is a communication service, which may be either a
+        "request" or a "subscription", on the one hand, or a "response"
+        or a "publication", on the other.
+    - A "server" is a traffic broker for a set of services (a plan) on a topic.
+    - A "schema" defines the acceptable format of a particular message.
+    - A "message" is a communication message, that is, a specific transfer
+        of data between a client and a server.
+    - A "package" is a message that is in transit.
+    - A "record" is a message that is in storage, either cached or persisted.
+    - A "key" is a a unique identifier for a message.
+    - A "value" is a message payload, that is, the body of a message, typically
+      unrelated to handling of the message itself.
+    - A "header" or "meta" are fields that describe a message and assist in
+      handling its transfer, processing, retrieval, and storage.
+    - A "field" is a named data element within the header or body of a message.
     """
     parser = argparse.ArgumentParser()
     parser.add_argument('--host', default='curwen')
