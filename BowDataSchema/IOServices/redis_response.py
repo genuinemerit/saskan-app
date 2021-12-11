@@ -4,9 +4,8 @@
 :host:port: curwen:52020
 :channel:   redis_io_services
 
-Mockup for handling Redis requests, creating and sending responses.
-
-Start up / shut down this service using `control_servers.sh`
+HandleRedis requests, creating and sending responses.
+This is a Messaging Gateway for Redis-related services.
 
 Handle messages like `*.%.+.$`, where...
     % : topic = ("schema", "log", "harvest", "monitor")

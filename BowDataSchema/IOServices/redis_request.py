@@ -3,11 +3,12 @@
 :module:    redis_request.py
 :host:port: curwen:52020
 
-Mockup for serving requests to Redis IO Services.
+Mockup/tester for serving requests to Redis IO Services.
 
-Not sure yet if this needs to be a separate client apart from
-testing and prototyping. Does it / can it serve a purpose, e.g.,
+Can this also serve an ongoing functional purpose, e.g.,
 collecting requests for this channel from app-level needs?
+
+Kind of a broker for requests?
 """
 import argparse
 import asyncio
@@ -17,10 +18,10 @@ from itertools import count
 from os import urandom
 from pprint import pprint as pp
 
-from bow_serde import BowSerDe  # type: ignore
+from bow_schema import BowSchema  # type: ignore
 from bow_msgs import BowMessages  # type: ignore
 
-BSD = BowSerDe()
+BS = BowSchema()
 MSG = BowMessages()
 
 random.seed(a=urandom(32))
@@ -170,7 +171,7 @@ async def main(args):
 
             pp(("data sent to bow_serde: ", data))
 
-            data = size + BSD.convert_py_dict_to_msg_jzby(data)
+            data = size + BS.convert_py_dict_to_msg_jzby(data)
             await MSG.send_msg(writer, chan)
             await MSG.send_msg(writer, data)
         except OSError:

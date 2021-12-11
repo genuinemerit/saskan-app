@@ -3,8 +3,7 @@
 :module:    redis_server.py
 :host:port: curwen:52020
 
-Mockup for serving Redis connections and IO.
-Replace with appropriate component-level services.
+Serve up Redis connections and IO.
 
 Main behaviors:
 

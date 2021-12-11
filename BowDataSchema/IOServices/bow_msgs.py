@@ -2,23 +2,16 @@
 """
 :module:    bow_msgs.py
 
-Mockup for handling Data Admin messages.
-Eventually replace by a real module and move to bow-data-admin
-  or maybe bow-quiver.
-Same functions used for all of messages.
-
-Using relative imports in Python is a pain.
-So including a copy of this file in the same directory for now.
-Not a great practice.
-Need to handle it as a dependent git compoment, like bow-quiver.
+Handle package size and payload sequencing.
+Used across apps and components. May want to move to bow-quiver.
 
 Main behaviors:
 
-- Read a generic message:
+- Read a generic message package:
     - {size: bytes(4) --> int,
        data: bytes(size) --> bytes}
 
-- Write a generic message
+- Write a generic message package:
     - {size: bytes(4) --> int,
        data: bytes(size) --> bytes}
 """

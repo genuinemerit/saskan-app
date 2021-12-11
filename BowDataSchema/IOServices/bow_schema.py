@@ -1,14 +1,12 @@
 #!/usr/bin/python3.9
 """
-:module:    bow_serde.py
+:module:    bow_schema.py
 
-Mockup for handling message serialization / deserialization functions.
-These would be used mainly by IOServices::redis_io, maybe others.
-Using my own approach instead of Avro packages.
+Handle message serialization, deserialization and verification.
 
-N.B.
-- This is a mockup prototype.
-- This is likely to be a generic function, maybe put in bow-quiver.
+Proprietary approach instead of Avro packages.
+- This is likely to become a generic function used in multiple
+  apps/compoments. May want to put it in bow-quiver.
 
 Main behaviors:
 
@@ -25,17 +23,15 @@ Main behaviors:
 3. Return result to the caller.
 
 @DEV
-- Maybe eventually add an encrypt / decrypt option.
-- Is this where to verify message formats match grammars
-  as defined in Redis::Schema?
+- Maybe add an encrypt / decrypt option.
 """
 import json
 import zlib
 from pprint import pprint as pp  # noqa: F401
 
 
-class BowSerDe(object):
-    """Generic Message ser/de handling."""
+class BowSchema(object):
+    """Generic Message ser/de and verification handling."""
 
     def __init__(self):
         """Initialize BoW message de/serialization object."""
@@ -63,4 +59,4 @@ class BowSerDe(object):
 
 # if __name__ == "__main__":
 #     TAG - Put PyTest code here.
-#     BSD = BowSerDe()
+#     BS = BowSchema()

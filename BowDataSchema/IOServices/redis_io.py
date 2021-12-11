@@ -2,7 +2,7 @@
 """
 :module:    redis_io.py
 
-Mockup for handling core Redis functions.
+Handlecore Redis functions.
 To be used mainly by IOServices::redis_response.
 
 Store data in Redis using compressed (zlib) strings --> bytes.
@@ -62,9 +62,9 @@ from pprint import pprint as pp  # noqa: F401
 
 import redis
 
-from bow_serde import BowSerDe  # type: ignore
+from bow_schema import BowSchema  # type: ignore
 
-BSD = BowSerDe()
+BS = BowSchema()
 
 
 class BowRedis(object):
@@ -299,7 +299,7 @@ class BowRedis(object):
         """Return existing record if one exists for specified key."""
         rec = dict()
         if self.RNS["schema"].exists(p_nm):               # type: ignore
-            rec = BSD.convert_avro_jzby_to_py_dict(
+            rec = BS.convert_avro_jzby_to_py_dict(
                 avro_jzby=self.RNS["schema"].get(p_nm))   # type: ignore
         return rec
 
@@ -330,7 +330,7 @@ class BowRedis(object):
         """Archive previous record to `log` namespace."""
         arc_key = p_old_rec["name"] +\
             ".archive." + self.get_timestamp()   # type: ignore
-        arc_schema = BSD.convert_py_dict_to_avro_jzby(
+        arc_schema = BS.convert_py_dict_to_avro_jzby(
             avro_d=p_old_rec)
         self.RNS["log"].set(                     # type: ignore
             arc_key, arc_schema, nx=True)
@@ -345,12 +345,12 @@ class BowRedis(object):
             print("\nArchive and update record:")
             self.archive_old_record(p_old_rec)      # type: ignore
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               BSD.convert_py_dict_to_avro_jzby(
+                               BS.convert_py_dict_to_avro_jzby(
                                    avro_d=p_rec), xx=True)
         elif p_upsert == "nx":
             print("\nWrite new record:")
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               BSD.convert_py_dict_to_avro_jzby(
+                               BS.convert_py_dict_to_avro_jzby(
                                    avro_d=p_rec), nx=True)
 
     def upsert_schema(self: object,
@@ -404,7 +404,7 @@ class BowRedis(object):
 
 
 if __name__ == "__main__":
-    """Consider using pytest here.
+    """Use pytest instead.
     """
     red = BowRedis()
     red.upsert_schema(p_topic="(#MY:Test_Topic.$Number**%THREE,+",

@@ -1,54 +1,15 @@
 #!/usr/bin/python3.9
 """
 :module:    controller.py
-:kv:        controller.kv
-:sh:        controller.sh
 
 :author:    GM (genuinemerit @ pm.me)
 
-Prototype Kivy GUI for a GUIServices module that functions
-as the Service Activator and Deactivator. This module starts
-and stops the services for the BoW app(s). It reads information
-from Redis DB 1 "Schema" to identify:
-- Topics
-- Plans
-- Services
-- Schemas
-
-At least initially, maybe it simply runs the bash shell script
-"control_servers.sh" to start and stop the services.
-But would be nice to pythonize it. Instead of putting all the
-logic in a shell script, it would be nice to put it in python
-as much as possible.
-
-
-It works in synch with a .kv file. The "App" class is
-named "ControllerApp", so the .kv file is "controller.kv".
-The .kv file is located in the same directory as this file.
-
-Widgets:
-- Labels --> one for each each server
-- Text --> to route stdout and stderr
-- StartButton  --> to fire up all servers
-- KillButton   --> so stop all servers
-- InfoButton   --> to show info about the services
-- ControlStation --> to whatever else I need, e.g.,
-                     to play around with timed updates, logs maybe
-
-App:
-- ControllerApp -->
-  Manage a loop by calling ControlStation update() method
-  every "frame".
+Prototype python replacement for the controller.sh script.
 """
-import kivy                          # type: ignore
+import argparse
 import subprocess as shl
-
-from kivy.app import App             # type: ignore
-from kivy.uix.widget import Widget   # type: ignore
-from kivy.uix.button import Button   # type: ignore
-# from kivy.uix.floatlayout import FloatLayout   # type: ignore  # noqa: F401
-
-kivy.require('2.0.0')
+import time
+from pprint import pprint as pp
 
 
 class Shell(object):
@@ -57,13 +18,13 @@ class Shell(object):
     """
 
     @classmethod
-    def run_cmd(cls, p_cmd: list) -> tuple:
+    def run_cmd(cls, p_cmd: str) -> tuple:
         """Execute a shell command.
         Only tested with `bash` shell under POSIX:Linux.
         Don't know if it will work properly on MacOS or Windows
         or with other shells.
         Args:
-            p_cmd (list) shell command as a string in a list
+            p_cmd (str) shell command as a string
         Returns:
             tuple: (success/failure: bool, result: bytes)
         """
@@ -98,61 +59,76 @@ class Shell(object):
         return result
 
 
-class ControllerLayout(Widget):
-    pass
-
-
-class ControllerApp(App):
+class ControllerApp(object):
     """
     @DEV
     - Add a call to show running jobs.
     - Figure out why the bash call isn't really working.
     - Figure out how to get the stdout and stderr from bash.
     - Keep reading up on using kivy; set up widgets using .kv file.
+
+    Now its works but still gets "stuck" when the services are running,
+    even though the bash job is submitted in background.
+    If I kill the python program, the services still run fine and the
+    kill button works fine too if I bring the python program back up.
+
+    I think I need to get away from using bash altogether?
+    Easy enough to run a python script from another python script.
+
+    Sounds like "harvesting" from stdout and stderr is not a recommended
+    practice either. That's OK. It's why I have the monitoring services
+    architecture on the sketchpad.
+
+    Kind of wondering if using asyncio with Popen would work?
+
+    May want to use bash to start the services and use the python script/GUI
+    only for monitoring and killing.
+
+    This works beautifully from the command line:
+        bash controller.sh -r &>> /home/dave/saskan/log/controller.log &
+
+    But keep in mind that harvesting stdout and stderr interactively is a
+    bad idea. May want to write stderr to log, but stdout to /dev/null,
+    and rely on the "wiretap" function instead.
     """
+    def __init__(self, **kwargs):
+        self.logfile = "/home/dave/saskan/log/controller.log"
+        self.controller_cmd = "python3.9 -u {} &"
 
-    def build(self):
-        ba = {
-            "col": (.8, .9, 0, 1),
-            "fs": 24,
-            "sz": (200, 100)}
-        parent = Widget()
-        other_stuff = ControllerLayout()
-        start_btn = Button(
-            text='Start Services',
-            # pos=(0, 100),
-            pos=(0, 500),
-            color=ba["col"], font_size=ba["fs"],
-            size=ba["sz"])
-        stop_btn = Button(
-            text='Kill Services',
-            pos=(200, 500),
-            color=ba["col"], font_size=ba["fs"],
-            size=ba["sz"])
-        start_btn.bind(on_release=self.start_services)
-        stop_btn.bind(on_release=self.stop_services)
-        parent.add_widget(other_stuff)
-        parent.add_widget(start_btn)
-        parent.add_widget(stop_btn)
-        return parent
-
-    def start_services(self, obj):
-        """Returns true but doesn't seem to do anything unless I use exec_bash,
-           which works. However, the python app freezes while  bash script is
-           running. And I'm not getting stdout, stderr.
-           Next, I need to:
-           - Run the bash script in a separate process, that is, in background.
-           - Read the stdout and stderr from the bash script. Figure out how.
-           - Or, use additional system/OS calls to gather the status on  jobs.
+    def start_services(self, args):
+        """This works but...
+           - I get the same problem as launching the bash script, i.e.,
+             python controller module gets 'stuck' waiting for completion.
+           - Also, eventually want to pull the config data from redis.
         """
-        cmd_result = SH.exec_bash(["bash controller.sh --run"])
-        print(cmd_result)
+        pp((args.jobdir))
+        pp((args.jobs))
+        for job in args.jobs:
+            print(job)
+            cmd = "python3.9 -u {}/{} &".format(args.jobdir, job)
+            pp((cmd))
+            cmd_rc, cmd_result = SH.run_cmd(cmd)
+            pp(((cmd_rc, cmd_result)))
+            time.sleep(0.5)
 
-    def stop_services(self, obj):
-        cmd_result = SH.exec_bash(["bash controller.sh --kill"])
-        print(cmd_result)
+    def stop_services(self, args):
+        # cmd_result = SH.exec_bash(["bash controller.sh --kill"])
+        # print(cmd_result)
+        cmd_rc, cmd_result = SH.run_cmd(
+            self.controller_cmd.format("kill", self.logfile))
+        pp(((cmd_rc, cmd_result)))
 
 
 if __name__ == '__main__':
-    SH = Shell()
-    ControllerApp().run()
+    parser = argparse.ArgumentParser()
+    jobs = ["redis_server.py",
+            "redis_response.py", "redis_response.py",
+            "redis_request.py"]
+    parser.add_argument('--jobdir', default='../IOServices')
+    parser.add_argument('--jobs', default=jobs)
+    try:
+        SH = Shell()
+        CA = ControllerApp()
+        CA.start_services(parser.parse_args())
+    except KeyboardInterrupt:
+        print('Bye!')
