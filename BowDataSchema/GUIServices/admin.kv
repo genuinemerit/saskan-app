@@ -1,0 +1,33 @@
+#:kivy 2.0.0
+
+# File name: admin.kv
+# Configuration for widgets in admin_gui.kv
+<AdminManager>:
+    AnchorLayout:
+        anchor_x: 'left'
+        anchor_y: 'top'
+        ToolBox:
+            id: _toolbox
+            size_hint: None, None
+            width: 100
+    AnchorLayout:
+        anchor_x: 'right'
+        anchor_y: 'top'
+        DisplaySpace:
+            id: _displayspace
+            size_hint: None, None
+            width: root.width - _toolbox.width
+            height: root.height - _adminoptions.height
+    AnchorLayout:
+        anchor_x: 'center'
+        anchor_y: 'bottom'
+        BoxLayout:
+            orientation: 'vertical'
+            AdminOptions:
+                id: _adminoptions
+                size_hint: 1, None
+                height: 48
+            StatusDisplay:
+                id: _statusdisplay
+                size_hint: 1, None
+                height: 24

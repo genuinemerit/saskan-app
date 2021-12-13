@@ -160,6 +160,8 @@ class ControllerApp(App):
     @DEV
     - Add a call to show running jobs.
     - Keep reading up on using kivy. Set up widgets using .kv file.
+    - Merge this GUI with Admin and Monitor GUI's.
+    - Move the ControllerShell class to a separate module.
     """
     def __init__(self, **kwargs):
         super(ControllerApp, self).__init__(**kwargs)
