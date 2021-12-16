@@ -1,6 +1,10 @@
 # Upgrade or install python 3.9 before doing anything else.
 # May need to do pip3 installs of kivy, pillow, prettyprint and pywebview
 
+# Include the submodule
+# -r ./bow-quiver/requirements.txt
+# -e ./bow-quiver
+
 # For development only:
 flake8
 isort
@@ -16,5 +20,4 @@ pathlib
 # pillow          # PIL
 # pywebview       # webbrowser
 requests
-tornado
 tzlocal
