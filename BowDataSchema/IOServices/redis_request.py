@@ -4,11 +4,13 @@
 :host:port: curwen:52020
 
 Mockup/tester for serving requests to Redis IO Services.
+Move into a test suite.
+Actual functionality will be handled in App calls.
 
-Can this also serve an ongoing functional purpose, e.g.,
-collecting requests for this channel from app-level needs?
-
-Kind of a broker for requests?
+@DEV
+- Can this also serve an ongoing functional purpose, e.g.,
+  collecting requests for this channel from app-level needs?
+- Kind of a broker for requests?
 """
 import argparse
 import asyncio
@@ -18,11 +20,11 @@ from itertools import count
 from os import urandom
 from pprint import pprint as pp
 
-from bow_schema import BowSchema  # type: ignore
-from bow_msgs import BowMessages  # type: ignore
+from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
+from BowQuiver.msgseq import MsgSequencer  # type: ignore
 
-BS = BowSchema()
-MSG = BowMessages()
+SS = SaskanSchema()
+MS = MsgSequencer()
 
 random.seed(a=urandom(32))
 
@@ -40,7 +42,7 @@ async def main(args):
     # Since they are not responsible for managing traffic on a channel,
     # the initial message indicates a null channel.
     channel = b'/null'
-    await MSG.send_msg(writer, channel)
+    await MS.send_msg(writer, channel)
     chan = args.channel.encode()
     try:
         # This is prototype code, just sending a series of meaningless
@@ -70,8 +72,8 @@ async def main(args):
             # to either using bytes() or encode('utf-8').
             data = b'X'*args.size or f'Msg {i} from {me}'.encode()
             try:
-                await MSG.send_msg(writer, chan)
-                await MSG.send_msg(writer, data)
+                await MS.send_msg(writer, chan)
+                await MS.send_msg(writer, data)
             except OSError:
                 print('Connection ended.')
                 break
@@ -171,9 +173,9 @@ async def main(args):
 
             pp(("data sent to bow_serde: ", data))
 
-            data = size + BS.convert_py_dict_to_msg_jzby(data)
-            await MSG.send_msg(writer, chan)
-            await MSG.send_msg(writer, data)
+            data = size + SS.convert_py_dict_to_msg_jzby(data)
+            await MS.send_msg(writer, chan)
+            await MS.send_msg(writer, data)
         except OSError:
             print('Connection ended.')
     except asyncio.CancelledError:

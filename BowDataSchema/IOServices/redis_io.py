@@ -62,9 +62,9 @@ from pprint import pprint as pp  # noqa: F401
 
 import redis
 
-from bow_schema import BowSchema  # type: ignore
+from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 
-BS = BowSchema()
+SS = SaskanSchema()
 
 
 class BowRedis(object):
@@ -299,7 +299,7 @@ class BowRedis(object):
         """Return existing record if one exists for specified key."""
         rec = dict()
         if self.RNS["schema"].exists(p_nm):               # type: ignore
-            rec = BS.convert_avro_jzby_to_py_dict(
+            rec = SS.convert_msg_jzby_to_py_dict(
                 avro_jzby=self.RNS["schema"].get(p_nm))   # type: ignore
         return rec
 
@@ -330,8 +330,8 @@ class BowRedis(object):
         """Archive previous record to `log` namespace."""
         arc_key = p_old_rec["name"] +\
             ".archive." + self.get_timestamp()   # type: ignore
-        arc_schema = BS.convert_py_dict_to_avro_jzby(
-            avro_d=p_old_rec)
+        arc_schema = SS.convert_py_dict_to_msg_jzby(
+            msg_d=p_old_rec)
         self.RNS["log"].set(                     # type: ignore
             arc_key, arc_schema, nx=True)
 
@@ -345,13 +345,13 @@ class BowRedis(object):
             print("\nArchive and update record:")
             self.archive_old_record(p_old_rec)      # type: ignore
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               BS.convert_py_dict_to_avro_jzby(
-                                   avro_d=p_rec), xx=True)
+                               SS.convert_py_dict_to_msg_jzby(
+                                   msg_d=p_rec), xx=True)
         elif p_upsert == "nx":
             print("\nWrite new record:")
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               BS.convert_py_dict_to_avro_jzby(
-                                   avro_d=p_rec), nx=True)
+                               SS.convert_py_dict_to_msg_jzby(
+                                   msg_d=p_rec), nx=True)
 
     def upsert_schema(self: object,
                       p_topic: str,

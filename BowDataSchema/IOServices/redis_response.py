@@ -30,8 +30,8 @@ import argparse
 import asyncio
 import uuid
 
-from bow_msgs import BowMessages  # type: ignore
-MSG = BowMessages()
+from BowQuiver.msgseq import MsgSequencer  # type: ignore
+MS = MsgSequencer()
 
 
 async def main(args):
@@ -50,9 +50,9 @@ async def main(args):
     mon = f"Responder: {me} | " +\
         f"Socket: {sock} | Host: {args.host}:{str(args.port)}"
     print(mon)
-    await MSG.send_msg(writer, channel)
+    await MS.send_msg(writer, channel)
     try:
-        while data := await MSG.read_msg(reader):
+        while data := await MS.read_msg(reader):
             print(f'Received by {me}: {data[:20]}')
         print('Connection ended.')
     except asyncio.IncompleteReadError:

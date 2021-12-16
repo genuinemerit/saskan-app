@@ -44,21 +44,23 @@
 show_help()
 {
     ## `$0` is the name of the script
-    echo -ne "\nStart servers for BowDataSchema"
-    echo -ne "\nUsage: $0 [OPTION] [SERVICE]\n"
+    echo -ne "\nStart servers for BowDataSchema\n"
     printf '=%.0s' {1..50}
+    echo -ne "\nUsage: $0 [OPTION] [SERVICE]\n"
     echo -e "\n OPTIONS:"
     echo -e "  -h, --help \t\tdisplay Help"
     echo -e "  -r, --run\t\tRun server jobs"
     echo -e "  -j, --jobs\t\tshow running server Jobs"
     echo -e "  -k, --kill\t\tKill server jobs"
     echo -e "  -v, --version\t\tshow Version information"
-    echo -e "\nReport bugs to <https://github.com/genuinemerit/bow-data-schema/issues>"
-    printf '=%.0s' {1..50}
     echo -e "\n SERVICE:"
     echo -e "  data_admin"
     echo -e "  file"
     echo -e "  redis"
+    echo -e "\nEXAMPLE:"
+    echo -e "  bash $0 --run redis\n"
+    printf '=%.0s' {1..50}
+    echo -e "\nReport bugs to <https://github.com/genuinemerit/bow-data-schema/issues>"
 }
 
 #

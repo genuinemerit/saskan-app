@@ -1,0 +1,3 @@
+[submodule "BowDataSchema/bow-quiver"]
+	path = BowDataSchema/bow-quiver
+	url = git@github.com:genuinemerit/bow-quiver.git
