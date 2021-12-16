@@ -16,7 +16,7 @@ from asyncio import StreamReader, StreamWriter, gather
 from collections import defaultdict, deque
 from typing import DefaultDict, Deque
 
-from BowQuiver.msgseq import MsgSequencer
+from BowDataSchema.BowQuiver.msgseq import MsgSequencer
 ms = MsgSequencer()
 
 SUBSCRIBERS: DefaultDict[bytes, Deque] = defaultdict(deque)
