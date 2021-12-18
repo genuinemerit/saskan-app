@@ -162,24 +162,18 @@ VERSION="0.0.1-beta"
 #
 # echo -e "\nRequested service type: $2"
 if [[ -z "$2" ]]; then
-    SVTP="IOServices/file"
+    SVTP="file"
 else
-    if [[ "$2" == "data_admin" ]]; then
-        SVTP="AdminServices/$2"
-    else
-        SVTP="IOServices/$2"
-    fi
+    SVTP="$2"
 fi
-# Need to work on this. The directory hierarchy needs to be a config item.
+# @DEV --> The directory hierarchy needs to be a config item.
+# Or better, handle everything in a python program.
 SVTP="/home/dave/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema/${SVTP}"
-# echo -e "\nDerived service type: ${SVTP}"
 declare -a SVNM
 SVNM[0]="${SVTP}_server.py"
 SVNM[1]="${SVTP}_response.py"
 SVNM[2]="${SVTP}_request.py"
 SRVR="${SVNM[0]}"
-# echo -e "\Derived server: ${SRVR}"
-# echo -e "\Derived service types: ${SVNM[*]}"
 #
 if [[ ${1^^} == --HELP || ${1^^} == -H || ${ARGCNT} -gt 2 ]];
 then
