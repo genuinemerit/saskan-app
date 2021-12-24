@@ -1,33 +1,33 @@
 #:kivy 2.0.0
 
-# File name: admin.kv
-# Configuration for widgets in admin_gui.kv
-<AdminManager>:
+# File name: controller.kv
+# Configuration for widgets in controller_gui.kv
+<ControllerManager>:
     AnchorLayout:
         anchor_x: 'left'
         anchor_y: 'top'
-        AdminToolbox:
-            id: _admintoolbox
+        ControllerToolbox:
+            id: _controllertoolbox
             size_hint: None, None
             width: 100
     AnchorLayout:
         anchor_x: 'right'
         anchor_y: 'top'
-        AdminDisplay:
+        ControllerDisplay:
             id: _displayspace
             size_hint: None, None
-            width: root.width - _admintoolbox.width
-            height: root.height - _adminoptions.height
+            width: root.width - _controllertoolbox.width
+            height: root.height - _controlleroptions.height
     AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'bottom'
         BoxLayout:
             orientation: 'vertical'
-            AdminOptions:
-                id: _adminoptions
+            ControllerOptions:
+                id: _controlleroptions
                 size_hint: 1, None
                 height: 48
-            AdminStatus:
-                id: _adminstatus
+            ControllerStatus:
+                id: _controllerstatus
                 size_hint: 1, None
                 height: 24

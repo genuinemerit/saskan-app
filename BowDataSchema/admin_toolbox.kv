@@ -1,0 +1,21 @@
+#:kivy 2.0.0
+
+# File name: admin_toolbox.kv
+# Configuration for AdminToolbox object in admin_gui.kv
+<ToolButton@ToggleButton>:
+    font_size: '12sp'
+    size_hint: None, None
+    size: '68dp', '42dp'
+    group: 'toolbar'
+
+<AdminToolbox@GridLayout>:
+    cols: 1
+    padding: 2
+    ToolButton:
+        text: 'Edit'
+    ToolButton:
+        text: 'Monitor'
+    ToolButton:
+        text: 'Control'
+    ToolButton:
+        text: 'Test'

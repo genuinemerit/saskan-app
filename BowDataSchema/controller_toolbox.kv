@@ -1,0 +1,22 @@
+#:kivy 2.0.0
+
+# File name: controller_toolbox.kv
+# Configuration for ControllerToolbox object in controller_gui.kv
+<ToolButton@ToggleButton>:
+    markup: True
+    font_size: '12sp'
+    size_hint: None, None
+    size: '68dp', '42dp'
+    group: 'toolbar'
+
+<ControllerToolbox@GridLayout>:
+    cols: 1
+    padding: 2
+    ToolButton:
+        text: '[color=#a1caf1]RedisIO[/color]'
+    ToolButton:
+        text: '[color=#696969]FileIO[/color]'
+    ToolButton:
+        text: '[color=#696969]OntologyIO[/color]'
+    ToolButton:
+        text: '[color=#696969]ResourceIO[/color]'

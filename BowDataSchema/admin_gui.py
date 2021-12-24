@@ -52,10 +52,10 @@ from kivy.uix.anchorlayout import AnchorLayout  # type: ignore
 
 kivy.require('2.0.0')
 
-Builder.load_file('toolbox.kv')
-Builder.load_file('displayspace.kv')
-Builder.load_file('adminoptions.kv')
-Builder.load_file('statusdisplay.kv')
+Builder.load_file('admin_display.kv')
+Builder.load_file('admin_options.kv')
+Builder.load_file('admin_status.kv')
+Builder.load_file('admin_toolbox.kv')
 
 
 class AdminManager(AnchorLayout):
