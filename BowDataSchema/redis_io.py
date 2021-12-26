@@ -62,7 +62,7 @@ from pprint import pprint as pp  # noqa: F401
 
 import redis
 
-from BowQuiver.BowQuiver.saskan_schema import SaskanSchema  # type: ignore
+from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 
 SS = SaskanSchema()
 

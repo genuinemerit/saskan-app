@@ -4,10 +4,9 @@
 # Configuration for widgets in controller_gui.kv
 <ControllerManager>:
     AnchorLayout:
-        anchor_x: 'left'
-        anchor_y: 'top'
+        anchor_x: 'center'
+        anchor_y: 'bottom'
         BoxLayout:
-            orientation: 'vertical'
             ControllerButtons:
                 id: _controller_buttons
                 size_hint: 1, None
@@ -17,13 +16,12 @@
         anchor_y: 'center'
         ControllerDisplay:
             id: _controller_display
-            size_hint: None, None
+            size_hint: 1, None
             height: root.height - (_controller_buttons.height + _controller_status.height)
     AnchorLayout:
-        anchor_x: 'left'
-        anchor_y: 'bottom'
+        anchor_x: 'center'
+        anchor_y: 'top'
         BoxLayout:
-            orientation: 'vertical'
             ControllerStatus:
                 id: _controller_status
                 size_hint: 1, None

@@ -26,17 +26,17 @@ App:
 - Keep working on various prototypes and tutorials.
 - At the same time, prototype a simpler version for this app.
 - I have a way to get regular buttons working, so work with that.
+- Also not making much sense of the Anchored Layouts. Don't know
+  why it isn't putting my buttons in the right place (at top)
 """
 from pprint import pprint as pp  # type: ignore
 
 import kivy  # type: ignore
 from kivy.app import App  # type: ignore
 from kivy.lang import Builder  # type: ignore
-# from kivy.properties import ObjectProperty  # type: ignore
 from kivy.uix.anchorlayout import AnchorLayout  # type: ignore
-# from kivy.uix.togglebutton import ToggleButton  # type: ignore
 
-from BowQuiver.BowQuiver.saskan_texts import SaskanTexts  # type: ignore
+from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from controller_shell import ControllerShell  # type: ignore
 
 kivy.require('2.0.0')
@@ -44,7 +44,6 @@ kivy.require('2.0.0')
 Builder.load_file('controller_buttons.kv')
 Builder.load_file('controller_status.kv')
 Builder.load_file('controller_display.kv')
-# Builder.load_file('controller_toolbox.kv')
 
 TX = SaskanTexts()
 

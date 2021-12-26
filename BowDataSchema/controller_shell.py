@@ -13,8 +13,8 @@ Service Activator / Deactivator class for Data Schema services.
   process from a python script.
 """
 import time
-from BowQuiver.BowQuiver.utils import Utils     # type: ignore
-from BowQuiver.BowQuiver.saskan_texts import SaskanTexts     # type: ignore
+from BowQuiver.utils import Utils     # type: ignore
+from BowQuiver.saskan_texts import SaskanTexts     # type: ignore
 UT = Utils()
 TX = SaskanTexts()
 
