@@ -6,28 +6,25 @@
     AnchorLayout:
         anchor_x: 'left'
         anchor_y: 'top'
-        ControllerToolbox:
-            id: _controllertoolbox
-            size_hint: None, None
-            width: 100
+        BoxLayout:
+            orientation: 'vertical'
+            ControllerButtons:
+                id: _controller_buttons
+                size_hint: 1, None
+                height: 48
     AnchorLayout:
-        anchor_x: 'right'
-        anchor_y: 'top'
+        anchor_x: 'left'
+        anchor_y: 'center'
         ControllerDisplay:
-            id: _displayspace
+            id: _controller_display
             size_hint: None, None
-            width: root.width - _controllertoolbox.width
-            height: root.height - _controlleroptions.height
+            height: root.height - (_controller_buttons.height + _controller_status.height)
     AnchorLayout:
-        anchor_x: 'center'
+        anchor_x: 'left'
         anchor_y: 'bottom'
         BoxLayout:
             orientation: 'vertical'
-            ControllerOptions:
-                id: _controlleroptions
-                size_hint: 1, None
-                height: 48
             ControllerStatus:
-                id: _controllerstatus
+                id: _controller_status
                 size_hint: 1, None
                 height: 24

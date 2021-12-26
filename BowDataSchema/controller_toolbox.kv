@@ -9,14 +9,23 @@
     size: '68dp', '42dp'
     group: 'toolbar'
 
+<RedisButton@ToolButton>:
+    text: '[color=#a1caf1]RedisIO[/color]'
+    # background_normal: './data/images/redis.png'
+    # background_down: './data/images/redis_down.png'
+
 <ControllerToolbox@GridLayout>:
     cols: 1
     padding: 2
+    RedisButton:
+        id: _redis_io_button
+        # on_release: self.show_status(*args)
     ToolButton:
-        text: '[color=#a1caf1]RedisIO[/color]'
-    ToolButton:
+        id: _file_io_button
         text: '[color=#696969]FileIO[/color]'
     ToolButton:
+        id: _ontology_io_button
         text: '[color=#696969]OntologyIO[/color]'
     ToolButton:
+        id: _resource_io_button
         text: '[color=#696969]ResourceIO[/color]'

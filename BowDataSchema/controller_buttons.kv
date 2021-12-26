@@ -1,0 +1,25 @@
+#:kivy 2.0.0
+
+# File name: controller_buttons.kv
+# Configuration for ControllerButtons object in controller_gui.kv
+<ControlButton@Button>:
+    markup: True
+    font_size: '18sp'
+    size: '136dp', '42dp'
+    size_hint: None, None
+
+<ControllerButtons@BoxLayout>:
+    padding: 2
+    ControlButton:
+        id: _start_redis_button
+        text: '[color=#696969]Start Redis[/color]'
+    ControlButton:
+        id: _stop_redis_button
+        text: '[color=#a1caf1]Stop Redis[/color]'
+        on_release: app.stop_redis(*args)
+    ControlButton:
+        id: _monitor_redis_button
+        text: '[color=#696969]Monitor Redis[/color]'
+    ControlButton:
+        id: _explain_redis_button
+        text: '[color=#696969]Explain Redis[/color]'

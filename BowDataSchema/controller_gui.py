@@ -5,7 +5,7 @@
             controller_display.kv,
             controller_options.kv,
             controller_status.kv,
-            controller_toolbox.kv,
+            # controller_toolbox.kv,
 
 :author:    GM (genuinemerit @ pm.me)
 
@@ -16,23 +16,35 @@ and monitor for Saskan services.
 
 App:
 - ControllerApp       --> main app
+
+@DEV
+- Having trouble understanding the Kivy/Python relationships.
+- For example, seems like capturing the state of a toggle button
+  should be easy. But it's not.  I'm not sure why. And I am not
+  finding any clear-cut examples.
+- I'm not sure how to get the state of a toggle button.
+- Keep working on various prototypes and tutorials.
+- At the same time, prototype a simpler version for this app.
+- I have a way to get regular buttons working, so work with that.
 """
 from pprint import pprint as pp  # type: ignore
 
 import kivy  # type: ignore
 from kivy.app import App  # type: ignore
 from kivy.lang import Builder  # type: ignore
+# from kivy.properties import ObjectProperty  # type: ignore
 from kivy.uix.anchorlayout import AnchorLayout  # type: ignore
+# from kivy.uix.togglebutton import ToggleButton  # type: ignore
 
 from BowQuiver.BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from controller_shell import ControllerShell  # type: ignore
 
 kivy.require('2.0.0')
 
-Builder.load_file('controller_display.kv')
-Builder.load_file('controller_options.kv')
+Builder.load_file('controller_buttons.kv')
 Builder.load_file('controller_status.kv')
-Builder.load_file('controller_toolbox.kv')
+Builder.load_file('controller_display.kv')
+# Builder.load_file('controller_toolbox.kv')
 
 TX = SaskanTexts()
 
