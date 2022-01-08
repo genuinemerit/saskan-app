@@ -30,7 +30,7 @@ import argparse
 import asyncio
 import uuid
 
-from BowQuiver.msgseq import MsgSequencer  # type: ignore
+from BowQuiver.msg_sequencer import MsgSequencer  # type: ignore
 MS = MsgSequencer()
 
 

@@ -21,7 +21,7 @@ from os import urandom
 from pprint import pprint as pp
 
 from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
-from BowQuiver.msgseq import MsgSequencer  # type: ignore
+from BowQuiver.msg_sequencer import MsgSequencer  # type: ignore
 
 SS = SaskanSchema()
 MS = MsgSequencer()
