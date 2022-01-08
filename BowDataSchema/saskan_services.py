@@ -16,6 +16,7 @@ BoW Saskan App Admin GUI. (Qt prototype)
 
 import sys
 
+from os import path
 from pprint import pprint as pp     # noqa: F401
 
 from PySide2.QtCore import QRect
@@ -51,13 +52,17 @@ from PySide2.QtWebEngineWidgets import QWebEngineView
 
 from BowQuiver.saskan_fileio import FileIO      # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
+from BowQuiver.saskan_utils import Utils        # type: ignore
 from controller_shell import ControllerShell    # type: ignore
+from redis_io import RedisIO                    # type: ignore
 from saskan_styles import SaskanStyles          # type: ignore
 
 CS = ControllerShell()
 FI = FileIO()
+RI = RedisIO()
 SS = SaskanStyles()
 TX = SaskanTexts()
+UT = Utils()
 
 
 class SaskanServices(QMainWindow):
@@ -70,19 +75,24 @@ class SaskanServices(QMainWindow):
 
     def initialize_UI(self):
         """Set window size and name. Show the window."""
-        self.setGeometry(100, 100, 1200, 650)
+        self.setGeometry(100, 100, 1200, 760)
         self.setWindowTitle(TX.tl.app)
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
+        self.APP = path.join(UT.get_home(), 'saskan')
+        self.RES = path.join(self.APP, 'res')
+        self.LOG = path.join(self.APP, 'log')
         # ==============================================================
         self.create_tool_actions()
         self.create_editor_actions()
         self.create_toolbar()
         self.create_editor_title()
         self.create_editor()
-        self.create_editor_controls()
-        self.create_opengl_display()
+        self.create_ed_mon_ctl_buttons()
+        self.create_ed_edit_widgets()
+        self.create_ed_find_widgets()
         self.create_help_display()
+        self.create_opengl_display()
         self.create_status_bar()
         self.show()
 
@@ -176,10 +186,12 @@ class SaskanServices(QMainWindow):
         self.editor_title.setText("Services Schema Editor")
         self.deactivate_editor_buttons()
         self.activate_schema_buttons()
-        html_path = "/home/dave/saskan/res/redis_help.html"
-        ok, _, _ = FI.get_file("/home/dave/saskan/res/redis_help.html")
+        html_path = path.join(self.RES, "redis_help.html")
+        ok, msg, _ = FI.get_file(html_path)
         if ok:
             self.help_display.setUrl(f"file://{html_path}")
+        else:
+            pp((msg, html_path))
 
     def test_request(self):
         """Slot for Test action"""
@@ -439,7 +451,7 @@ Example:
                     "s": self.show_pressure}},
             "Edit": {
                 "find": {
-                    "t": "Find",
+                    "t": "Find -->",
                     "p": "Find items in Schema DB",
                     "a": False,
                     "s": self.find_record},
@@ -449,7 +461,7 @@ Example:
                     "a": False,
                     "s": self.summarize_db1},
                 "select": {
-                    "t": "Select",
+                    "t": "Select -->",
                     "p": "Select Schema DB items",
                     "a": False,
                     "s": self.select_schemadb_items}},
@@ -519,8 +531,9 @@ Example:
         self.editor_display.setReadOnly(True)
         self.editor_display.move(10, 60)
 
-    def create_editor_controls(self):
-        """Define buttons and inputs related to the editor functions."""
+    def create_ed_mon_ctl_buttons(self):
+        """Define buttons related to the editor
+        monitor and control functions."""
         self.ed_btn = dict()
         col = 35
         for catg in ["Control", "Monitor"]:
@@ -531,29 +544,54 @@ Example:
                 self.ed_btn[key].clicked.connect(obj["s"])
                 self.ed_btn[key].move(col, 360)
                 col += self.ed_btn[key].width() + 3
-        col = 20
-        for key, obj in self.editor_actions["Edit"].items():
-            self.ed_btn[key] = QPushButton(obj["t"], self)
-            self.ed_btn[key].setGeometry(QRect(0, 0, 115, 40))
-            self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
-            self.ed_btn[key].clicked.connect(obj["s"])
-            self.ed_btn[key].move(col, 400)
-            col += self.ed_btn[key].width() + 3
+
+    def create_ed_edit_widgets(self):
+        """Define buttons and inputs related to the editor
+        edit functions."""
         self.ed_chk = dict()
-        col = 370
+        col = 35
+        for key, obj in self.editor_actions["Edit"].items():
+            if key != "find":
+                self.ed_btn[key] = QPushButton(obj["t"], self)
+                self.ed_btn[key].setGeometry(QRect(0, 0, 115, 40))
+                self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
+                self.ed_btn[key].clicked.connect(obj["s"])
+                self.ed_btn[key].move(col, 395)
+                col += self.ed_btn[key].width() + 3
+        col -= 6
         for key, obj in self.editor_actions["Select"].items():
             self.ed_chk[key] = QCheckBox(obj["t"], self)
             self.ed_chk[key].setGeometry(QRect(0, 0, 95, 30))
             self.ed_chk[key].setStyleSheet(SS.get_style('inactive_checkbox'))
             self.ed_chk[key].clicked.connect(obj["s"])
-            self.ed_chk[key].move(col, 405)
-            col += self.ed_chk[key].width() + 3
-        # Find text box
+            self.ed_chk[key].move(col, 400)
+            col += self.ed_chk[key].width()
+
+    def create_ed_find_widgets(self):
+        """Define buttons and inputs related to the editor
+        find functions."""
+        col = 35
+        obj = self.editor_actions["Edit"]["find"]
+        self.ed_btn["find"] = QPushButton(obj["t"], self)
+        self.ed_btn["find"].setGeometry(QRect(0, 0, 115, 40))
+        self.ed_btn["find"].setStyleSheet(SS.get_style('inactive_button'))
+        self.ed_btn["find"].clicked.connect(obj["s"])
+        self.ed_btn["find"].move(col, 430)
         self.ed_find = QLineEdit(self)
         self.ed_find.setGeometry(QRect(0, 0, 120, 30))
         self.ed_find.setStyleSheet(SS.get_style('inactive_editor'))
         self.ed_find.setReadOnly(True)
-        self.ed_find.move(32, 435)
+        self.ed_find.move(col + self.ed_btn["find"].width() - 3, 435)
+
+    def create_help_display(self):
+        """Define a help display area.
+        Items in the help display need to be HTML-formatted and
+        loaded as URLs.
+        """
+        self.help_display = QWebEngineView(self)
+        self.help_display.setGeometry(QRect(0, 0, 800, 275))
+        self.help_display.setStyleSheet(SS.get_style('help'))
+        self.help_display.move(30, 475)
 
     def create_opengl_display(self):
         """Define a canvas area."""
@@ -562,16 +600,6 @@ Example:
         self.canvas.initializeGL()
         self.canvas.setStyleSheet(SS.get_style('canvas'))
         self.canvas.move(850, 80)
-
-    def create_help_display(self):
-        """Define a help display area.
-        Items in the help display need to be HTML-formatted and
-        loaded as URLs.
-        """
-        self.help_display = QWebEngineView(self)
-        self.help_display.setGeometry(QRect(0, 0, 800, 175))
-        self.help_display.setStyleSheet(SS.get_style('help'))
-        self.help_display.move(30, 470)
 
     def create_status_bar(self):
         """Define status bar display area.
@@ -585,7 +613,7 @@ Example:
         self.status_bar.setAlignment(Qt.AlignHCenter)
         self.status_bar.setFrame(True)
         self.status_bar.setText("Ready Player One")
-        self.status_bar.move(0, 620)
+        self.status_bar.move(0, 720)
 
 
 # Run program

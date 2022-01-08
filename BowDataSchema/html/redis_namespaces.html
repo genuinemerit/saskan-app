@@ -1,0 +1,55 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Redis Help</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+    <a href="./redis_help.html">ToC</a> &bull; 
+    <a href="./redis_namespaces.html">Namespaces</a> &bull; 
+    <a href="./redis_record_types.html">Record Types</a> &bull; 
+    <a href="./redis_record_structs.html">Record Structures</a>
+    </div>
+<!--
+<div class="menu">
+<a href="./redis_help.html">Back</a>
+</div>
+-->
+<div class="page">
+<h3><a name="namespaces">Database Namespaces</a></h3>
+<ul>
+    <li class="spaced"><strong>DB 1 "Schema"</strong></li>
+    <ul>
+        <li>Message schema metadata and record templates.
+        <li>Message record templates. For example, topic templates.
+        <li>Primitive record templates. For example, "audit" fields template.
+        <li>Use Schema Editor buttons and tools to explore and edit "Schema" DB.
+    </ul>
+    <li class="spaced">DB 2 "Harvest"</li>
+    <ul>
+        <li>Message response packets.
+        <li>Contents of message responses are written to "Harvest" DB by the messaging gateway.
+        <li>Receivers pull content from Redis using a token = a Redis unique key.
+    </ul>
+    <li class="spaced">DB 3 "Log"</li>
+    <ul>
+        <li>Detailed messaging system log.
+        <li>Forensic info is written to "Log" DB for the messaging system Wire Tap.
+        <li>Use the Monitor buttons and tools to explore "Log" DB and set its
+            expiration rules.
+    </ul>
+    <li class="spaced">DB 4 "Monitor"</li>
+    <ul>
+        <li>Analytical messaging system log and summarizer.
+        <li>Info is written to "Monitor" DB for the messaging system Wire Tap.
+        <li>Use the Monitor buttons and tools to explore "Monitor" DB and set its
+            expiration rules.
+    </ul>
+</ul>
+<p> &nbsp;</p>
+<p> &nbsp;</p>
+</div>
+</body>
+</html>

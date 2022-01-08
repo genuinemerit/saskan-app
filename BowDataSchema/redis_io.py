@@ -1,9 +1,9 @@
 #!/usr/bin/python3.9
 """
 :module:    redis_io.py
+:class:     RedisIO
 
-Handlecore Redis functions.
-To be used mainly by IOServices::redis_response.
+Handle core Redis IO functions.
 
 Store data in Redis using compressed (zlib) strings --> bytes.
 - Data should be validated as a well-formed Avro-style record,
@@ -67,43 +67,8 @@ from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 SS = SaskanSchema()
 
 
-class BowRedis(object):
-    """Generic Redis handling."""
-
-    def __init__(self):
-        """Initialize Redis connections."""
-        self.set_constants()
-        self.RNS = dict()
-        for db_no, db_nm in enumerate(
-                ["sandbox", "schema", "harvest", "log", "monitor"]):
-            self.RNS[db_nm] = redis.Redis(
-                host=self.HOST, port=self.PORT, db=db_no)
-            self.RNS[db_nm].client_setname(db_nm)
-
-    def set_constants(self):
-        """Set class constants.
-
-        May want to manage some of this via arguments or environment variables.
-        """
-        # self.HOST = '127.0.0.1'
-        self.HOST = 'curwen'
-        self.PORT = 6379
-        self.field_ty: set = ("array", "hash", "set", "string")
-        self.msg_cat: set = ("owl", "redis", "sqlite", "topic")
-        self.msg_plan: set = ("get", "put", "remove", "update", "meta")
-        self.msg_svc: set = ("publish", "subscribe", "request", "response")
-        self.avro_templ: dict = {
-            "aliases": [],
-            "channel": "",
-            "doc": "",
-            "fields": [],
-            "hash": "",
-            "name": "",
-            "namespace": "",
-            "token": "",
-            "type": "record",
-            "update_ts": "",
-            "version": ""}
+class RedisIOTexts(object):
+    """Data structures and constants"""
 
     @dataclass
     class HashLevel:
@@ -113,6 +78,13 @@ class BowRedis(object):
         SHA256: int = 64
         SHA224: int = 56
         SHA1: int = 40
+
+
+class RedisIOUtils(object):
+    """Helper functions"""
+
+    def __init__(self):
+        self.TX = RedisIOTexts()
 
     @classmethod
     def get_token(cls) -> str:
@@ -127,14 +99,14 @@ class BowRedis(object):
             tzinfo=datetime.timezone.utc).isoformat()
 
     @classmethod
-    def bump_restricted_chars(cls, p_str: str) -> str:
+    def bump_char_to_underbar(cls, p_str: str) -> str:
         """Return string with URI-restricted chars changed to underbars
 
         Convert reserved characters...
             : / ? # [ ] @ ! $ & ' * + , ; =
-        ...and a few others that can cause hiccups with JSON or Avro...
+        ...and a few others that can cause hiccups with JSON...
             - & ( ) ` € " " (space) \\
-        ... to underbars. Then:
+        ... to underbars.
         """
         r_str = p_str
         restrict = [":", "/", "\\", "?", "#", "[", "]",
@@ -146,10 +118,9 @@ class BowRedis(object):
         return r_str
 
     @classmethod
-    def make_lower(cls, p_str: str) -> str:
+    def make_lower_spine(cls, p_str: str) -> str:
         """Return string with uppers bumped to lowers
-
-        And some additional hyphenating aimed at converting camel to spine
+        and some additional hyphenating aimed at converting camel to spine.
 
         Convert all names of everything (*) to spine-case:
         - convert capital letter in char[0] to `lower`
@@ -170,8 +141,8 @@ class BowRedis(object):
         return r_str
 
     @classmethod
-    def bump_underbars(cls, p_str: str) -> str:
-        """Return string stray underbars removed
+    def bump_stray_underbars(cls, p_str: str) -> str:
+        """Remove stray underbars
 
         - Remove leading or trailing underbars
         - Reduce multiple underbars to single underbars
@@ -195,26 +166,112 @@ class BowRedis(object):
     @classmethod
     def bump_version(cls,
                      p_ver: str,
-                     major: bool = False,
-                     minor: bool = True,
-                     fix: bool = False) -> str:
-        """Return version string with counter bumped."""
+                     p_bump: str) -> str:
+        """Return version string with specified counter bumped.
+
+        :Args:
+            p_ver: str - Current version string
+            p_bump: str - Counter to bump
+
+        If current_version = 1.1.1, then
+        - bump_version(p_ver, "major") -> 2.0.0
+        - bump_version(p_ver, "minor") -> 1.2.0
+        - bump_version(p_ver, "fix") -> 1.1.2
+        """
         r_ver = p_ver.split(".")
-        r_ver[0] = str(int(r_ver[0]) + 1) if major else r_ver[0]
-        r_ver[1] = str(int(r_ver[1]) + 1) if minor else r_ver[1]
-        r_ver[2] = str(int(r_ver[2]) + 1) if fix else r_ver[2]
+        if p_bump == "major":
+            r_ver[0] = str(int(r_ver[0]) + 1)
+            r_ver[1] = "0"
+            r_ver[2] = "0"
+        elif p_bump == "minor":
+            r_ver[1] = str(int(r_ver[1]) + 1)
+        elif p_bump == "fix":
+            r_ver[2] = str(int(r_ver[2]) + 1)
         return ".".join(r_ver)
 
-    def make_snake_case(self, p_str: str) -> str:
-        """Convert string to spine case."""
+    def convert_to_spine(self, p_str: str) -> str:
+        """Convert string p_str to spine case."""
         r_str = p_str
-        r_str = BowRedis.bump_restricted_chars(r_str)
-        r_str = BowRedis.make_lower(r_str)
-        r_str = BowRedis.bump_underbars(r_str)
+        r_str = self.bump_char_to_underbar(r_str)
+        r_str = self.make_lower_spine(r_str)
+        r_str = self.bump_stray_underbars(r_str)
         return r_str
+
+    def compute_hash(self,
+                     p_data_in: str,
+                     p_len: int = 64) -> str:
+        """Create hash of input string, returning UTF-8 hex-string.
+
+        - 128-byte hash uses SHA512
+        - 64-byte hash uses SHA256
+        - 56-byte hash uses SHA224
+        - 40-byte hash uses SHA1
+
+        Args:
+            p_data_in (string): data to be hashed
+            p_len (int): optional hash length, default is SHA256
+
+        Returns:
+            string: UTF-8-encoded hash of input argument
+        """
+        if p_len == self.TX.HashLevel.SHA512:
+            v_hash = self.TX.hashlib.sha512()
+        elif p_len == self.TX.HashLevel.SHA224:
+            v_hash = self.TX.hashlib.sha224()
+        elif p_len == self.TX.HashLevel.SHA1:
+            v_hash = hashlib.sha1()
+        else:
+            v_hash = self.TX.hashlib.sha256()
+        v_hash.update(p_data_in.encode("utf-8"))
+        return v_hash.hexdigest()
+
+
+class RedisIO(object):
+    """Generic Redis handling."""
+
+    def __init__(self):
+        """Initialize Redis connections."""
+        self.UT = RedisIOUtils()
+        self.set_env()
+        self.RNS = dict()
+        for db_no, db_nm in enumerate(
+                ["sandbox", "schema", "harvest", "log", "monitor"]):
+            self.RNS[db_nm] = redis.Redis(
+                host=self.HOST, port=self.PORT, db=db_no)
+            self.RNS[db_nm].client_setname(db_nm)
+
+    def set_env(self):
+        """Set environment variables."""
+        # self.HOST = 'curwen'
+        self.HOST = '127.0.0.1'
+        self.PORT = 6379
+
+    def set_constants(self):
+        """Set class constants.
+
+        May want to manage some of this via arguments or environment variables.
+        These will be handled in Redis records.
+        """
+        self.field_ty: set = ("array", "hash", "set", "string")
+        self.msg_cat: set = ("owl", "redis", "sqlite", "topic")
+        self.msg_plan: set = ("get", "put", "remove", "update", "meta")
+        self.msg_svc: set = ("publish", "subscribe", "request", "response")
+        self.avro_templ: dict = {
+            "aliases": [],
+            "channel": "",
+            "doc": "",
+            "fields": [],
+            "hash": "",
+            "name": "",
+            "namespace": "",
+            "token": "",
+            "type": "record",
+            "update_ts": "",
+            "version": ""}
 
     def verify_verbs_types(self, p_ty: str, p_verb: str,
                            p_act: str, p_fields: list) -> bool:
+        """Verify verb and fields types against Schema DB templates."""
         msg = ""
         if p_ty not in self.msg_cat:
             msg += f"\nType must be in {str(self.msg_cat)}"
@@ -235,39 +292,18 @@ class BowRedis(object):
             print(err)
         return True
 
-    def compute_hash(self,
-                     p_data_in: str,
-                     p_len: int = HashLevel.SHA256) -> str:
-        """Create hash of input string, returning UTF-8 hex-string.
-
-        - 128-byte hash uses SHA512
-        - 64-byte hash uses SHA256
-        - 56-byte hash uses SHA224
-        - 40-byte hash uses SHA1
-
-        Args:
-            p_data_in (string): data to be hashed
-            p_len (int): optional hash length, default is SHA256
-
-        Returns:
-            string: UTF-8-encoded hash of input argument
-        """
-        v_hash = hashlib.sha512() if p_len == self.HashLevel.SHA512\
-            else hashlib.sha224() if p_len == self.HashLevel.SHA224\
-            else hashlib.sha1() if p_len == self.HashLevel.SHA1\
-            else hashlib.sha256()
-        v_hash.update(p_data_in.encode("utf-8"))
-        return v_hash.hexdigest()
-
     def get_record_hash(self, p_rec: dict) -> str:
-        """Return hash of JSON record."""
+        """Return hash of JSON record, excluding audit fields.
+        @DEV:
+        - Get audit fields from template.
+        """
         h_schema = copy(p_rec)
         _ = h_schema.pop("hash", None)
         _ = h_schema.pop("token", None)
         _ = h_schema.pop("update_ts", None)
         _ = h_schema.pop("version", None)
         j_schema = json.dumps(h_schema)
-        hash_v = self.compute_hash(j_schema, self.HashLevel.SHA256)
+        hash_v = self.UT.compute_hash(j_schema)
         return hash_v
 
     def init_new_record(self,
@@ -281,7 +317,7 @@ class BowRedis(object):
         """Assemble new record dict."""
         rec: dict = copy(self.avro_templ)                   # type: ignore
         rec["fields"] = list()
-        s_topic: str = self.make_snake_case(p_topic)        # type: ignore
+        s_topic: str = self.convert_to_spine(p_topic)        # type: ignore
         sch_nm: str = p_ty + "." + s_topic + "." + p_verb + "." + p_act
         rec["aliases"] = []
         rec["doc"] = p_doc
@@ -290,7 +326,7 @@ class BowRedis(object):
         for f in p_fields:
             for k, v in f.items():
                 rec["fields"].append(
-                    {"name": self.make_snake_case(k),       # type: ignore
+                    {"name": self.convert_to_spine(k),       # type: ignore
                      "type": v})
         return rec
 
@@ -321,8 +357,8 @@ class BowRedis(object):
                     p_old_rec["version"])
         # Set audit values
         rec["hash"] = p_hash
-        rec["token"] = BowRedis.get_token()
-        rec["update_ts"] = BowRedis.get_timestamp()
+        rec["token"] = self.UT.get_token()
+        rec["update_ts"] = self.UT.get_timestamp()
         return rec
 
     def archive_old_record(self,
@@ -379,7 +415,6 @@ class BowRedis(object):
         Assemble and verify the Avro object.
         Write to Redis as compressed (zlib) string. Redis key = Avro name.
         """
-        # ============ upsert_schema() main ============
         if self.verify_verbs_types(                             # type: ignore
                 p_ty, p_verb, p_act, p_fields):
             new_rec = self.init_new_record(                     # type: ignore
@@ -401,25 +436,3 @@ class BowRedis(object):
             rec = self.get_existing_record(up_rec["name"])     # type: ignore
             pp(("rec", rec))
         return (up_rec["name"], up_rec["token"])               # type: ignore
-
-
-if __name__ == "__main__":
-    """Use pytest instead.
-    """
-    red = BowRedis()
-    red.upsert_schema(p_topic="(#MY:Test_Topic.$Number**%THREE,+",
-                      p_ty="redis",
-                      p_fields=[{"lang": "string"}])
-    red.upsert_schema(p_topic="ontology_file",
-                      p_ty="owl",
-                      p_fields=[{"something_new": "string"},
-                                {"something_old": "string"},
-                                {"something_borrowed": "string"}])
-    red.upsert_schema(p_topic="/queue/redis_io_services",
-                      p_ty="sqlite",
-                      p_verb="auth",
-                      p_act="subscribe",
-                      p_doc="https://github.com/genuinemerit/bow-wiki/wiki")
-    # Test for failure:
-    # red.upsert_schema(p_topic="test_topic", p_ty="junk",
-    #                         p_verb="junk", p_act="junk")

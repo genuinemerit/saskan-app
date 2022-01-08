@@ -29,7 +29,7 @@ class SaskanStyles(object):
         ss = "background-color: white; " + \
              "border-width: 1px 3px 3px 1px; " + \
              "border-style: solid; " + \
-             "border-color: gray;" + \
+             "border-color: darkgreen;" + \
              "color: black;" + \
              "border-radius: 5px;" + \
              "margin: 5px;" + \
@@ -118,7 +118,7 @@ class SaskanStyles(object):
         ss = "background-color: white; " + \
              "border-width: 1px 1px 1px 1px; " + \
              "border-style: solid; " + \
-             "border-color: black;" + \
+             "border-color: darkgreen;" + \
              "color: black;" + \
              "padding: 2px;"
         return ss

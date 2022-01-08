@@ -1,0 +1,34 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Redis Help</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+    <a href="./redis_help.html">ToC</a> &bull; 
+    <a href="./redis_namespaces.html">Namespaces</a> &bull; 
+    <a href="./redis_record_types.html">Record Types</a> &bull; 
+    <a href="./redis_record_structs.html">Record Structures</a>
+    </div>
+<div class="page">
+<h3><a name="recordtypes">Record Types</a></h3>
+<p>There are 4 record types in the Schema DB. They work in a hierarchical fashion...</p>
+<ul>
+    <li class="spaced">A <strong>Topic</strong> defines categories of communications handled on a channel.
+        A Topic contains zero to many Plans.</li>
+    <li class="spaced">A <strong>Plan</strong> identifies the set of Services which are available for a Topic.</li>
+    <li class="spaced">A <strong>Service</strong> is a set of Request/Reponse or Publish/Subscribe or other
+        collection of messages available within a Plan. The format of each  service message is
+        defined by a Schema.</li>
+    <li class="spaced">A <strong>Schema</strong> identifies the acceptable format of a particular message.</li>
+</ul>
+<p>The Harvest DB contains message reponse packets using Schema formats appropriate to their Plan.
+<p>The Log and Monitor DBs contain packets using Schema formats appropriate to the log or
+    monitoring message Plan.
+<p> &nbsp;</p>
+<p> &nbsp;</p>
+</div>
+</body>
+</html>

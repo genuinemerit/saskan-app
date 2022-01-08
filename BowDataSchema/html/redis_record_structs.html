@@ -1,0 +1,44 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Redis Help</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+    <a href="./redis_help.html">ToC</a> &bull; 
+    <a href="./redis_namespaces.html">Namespaces</a> &bull; 
+    <a href="./redis_record_types.html">Record Types</a> &bull; 
+    <a href="./redis_record_structs.html">Record Structures</a>
+    </div>
+<div class="page">
+<h3><a name="recordstructs">Record Structures</a></h3>
+<p>Records of the same type have the same structural pattern:</p>
+<ul>
+    <li class="spaced">A <strong>Key Format</strong> is the same for all records of the same type.
+        Like...</li>
+    <ul>
+        <li class="spaced">Category:Name:Version</li>
+        <ul>
+        <li><em>Example</em>: Redis:NamespacesSchema:0.1.0</li>
+        </ul>
+        <li class="spaced">TopicName:MessageName:MessageAction:Version</li>
+        <ul>
+        <li><em>Example</em>: Ontology:GetOntologyFile:request:0.1.0</li>
+        <li><em>Example</em>: Ontology:GetOntologyFile:response:0.1.0</li>
+        </ul>
+    </ul>        
+    <li class="spaced">The <strong>Values Format</strong> identifies fields to be passed in on a request or
+    to be provided as a result on response or publication.</li>
+    <li class="spaced">The <strong>Audit Format</strong> is the same for all records.</li>
+    <ul>
+        <li>HashID: hash_value</li>
+        <li>LastModified: timestamp+sequence_number</li>
+    </ul>        
+</ul>
+<p> &nbsp;</p>
+<p> &nbsp;</p>
+</div>
+</body>
+</html>
