@@ -246,11 +246,34 @@ class RedisIO(object):
         self.HOST = '127.0.0.1'
         self.PORT = 6379
 
+    def list_all_dbs(self) -> str:
+        """Return number and name of the Redis namespaces (DB's).
+
+        List keys available in each DB.
+        """
+        result = f"Redis Connections  Host: {self.HOST}  Port: {self.PORT}\n"
+        for db_no, db_nm in enumerate(self.RNS.keys()):
+            if db_no > 0:
+                result += f"\nDB #{str(db_no)}: {db_nm}\n"
+                result += f"Keys: {str(self.RNS[db_nm].get('KEYS *'))}\n"
+        return result
+
+    def get_existing_record(self,
+                            p_nm: str) -> dict:
+        """Return existing record if one exists for specified key."""
+        rec = dict()
+        if self.RNS["schema"].exists(p_nm):               # type: ignore
+            rec = SS.convert_msg_jzby_to_py_dict(
+                avro_jzby=self.RNS["schema"].get(p_nm))   # type: ignore
+        return rec
+
     def set_constants(self):
         """Set class constants.
 
         May want to manage some of this via arguments or environment variables.
         These will be handled in Redis records.
+        @DEV:
+        - Get this info from templates.
         """
         self.field_ty: set = ("array", "hash", "set", "string")
         self.msg_cat: set = ("owl", "redis", "sqlite", "topic")
@@ -271,7 +294,9 @@ class RedisIO(object):
 
     def verify_verbs_types(self, p_ty: str, p_verb: str,
                            p_act: str, p_fields: list) -> bool:
-        """Verify verb and fields types against Schema DB templates."""
+        """Verify verb and fields types against Schema DB templates.
+        @DEV:
+        - Get this info from templates."""
         msg = ""
         if p_ty not in self.msg_cat:
             msg += f"\nType must be in {str(self.msg_cat)}"
@@ -328,15 +353,6 @@ class RedisIO(object):
                 rec["fields"].append(
                     {"name": self.convert_to_spine(k),       # type: ignore
                      "type": v})
-        return rec
-
-    def get_existing_record(self,
-                            p_nm: str) -> dict:
-        """Return existing record if one exists for specified key."""
-        rec = dict()
-        if self.RNS["schema"].exists(p_nm):               # type: ignore
-            rec = SS.convert_msg_jzby_to_py_dict(
-                avro_jzby=self.RNS["schema"].get(p_nm))   # type: ignore
         return rec
 
     def set_upserted_record(self,

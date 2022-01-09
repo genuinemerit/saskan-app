@@ -99,20 +99,21 @@ class SaskanServices(QMainWindow):
     # Helper Actions
     # ==============================================================
     def deactivate_editor_buttons(self):
-        """Deactivate all editor buttons."""
+        """Deactivate Control and Monitor editor buttons."""
         for catg in ["Control", "Monitor"]:
             for key in self.editor_actions[catg].keys():
                 self.editor_actions[catg][key]["a"] = False
                 self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
 
     def activate_editor_buttons(self, p_catg: str):
-        """Activate specified editor buttons."""
+        """Activate editor buttons for category p_catg.
+        """
         for key in self.editor_actions[p_catg].keys():
             self.editor_actions[p_catg][key]["a"] = True
             self.ed_btn[key].setStyleSheet(SS.get_style('active_button'))
 
-    def deactivate_schema_buttons(self):
-        """Deactivate schema editor tool buttons."""
+    def deactivate_db_edit_buttons(self):
+        """Deactivate tool and editor widgets related to DB editing."""
         for key in self.tool_actions["Edit"].keys():
             self.tool_actions["Edit"][key]["a"] = False
             self.tb_btn[key].setStyleSheet(SS.get_style('inactive_tool'))
@@ -126,8 +127,29 @@ class SaskanServices(QMainWindow):
         self.ed_find.setText("")
         self.ed_find.setReadOnly(True)
 
-    def activate_schema_buttons(self):
-        """Activate schema editor tool buttons."""
+    def activate_db_edit_buttons(self):
+        """Activate tool and editor widgets related to DB editing.
+
+        @DEV:
+        - Queues, state engines:
+            - DB-Edit-Tool-Is-Active
+            - DB-Edit-Tool-Is-Inactive
+            - IO-Action-Is-Pending
+            - IO-Actions-Completed-Queue
+            - Record-Is-Selected
+            - No-Record-Is-Selected
+
+        - For any given IO action that causes a change, the reverse action
+          needs to be defined
+
+        - Save, Add, Delete, Undo active when DB-Edit tool is active, and...
+        - Save -> active when a 'dirty' (non saved) IO action pending
+        - Add -> active when a single Select checkbox is toggled on
+        - Delete -> active when one Select checkbox is toggled on and
+                    a single record has been selected
+        - Undo -> becomes "Cancel" when a 'dirty' (non saved) IO action pending
+        - Undo -> active when at least one completed item on IO queue.
+        """
         for key in self.tool_actions["Edit"].keys():
             self.tool_actions["Edit"][key]["a"] = True
             self.tb_btn[key].setStyleSheet(SS.get_style('active_tool'))
@@ -169,7 +191,7 @@ class SaskanServices(QMainWindow):
         self.show_button_status("tb_btn", "Window", "ctl")
         self.editor_title.setText("Services Controller")
         self.deactivate_editor_buttons()
-        self.deactivate_schema_buttons()
+        self.deactivate_db_edit_buttons()
         self.activate_editor_buttons("Control")
 
     def monitor_services(self):
@@ -177,15 +199,15 @@ class SaskanServices(QMainWindow):
         self.show_button_status("tb_btn", "Window", "mon")
         self.editor_title.setText("Services Monitoring Log")
         self.deactivate_editor_buttons()
-        self.deactivate_schema_buttons()
+        self.deactivate_db_edit_buttons()
         self.activate_editor_buttons("Monitor")
 
-    def edit_schema(self):
-        """Slot for Edit Schema action"""
-        self.show_button_status("tb_btn", "Window", "schema")
-        self.editor_title.setText("Services Schema Editor")
+    def edit_database(self):
+        """Slot for Edit Database action"""
+        self.show_button_status("tb_btn", "Window", "database")
+        self.editor_title.setText("Services Database Editor")
         self.deactivate_editor_buttons()
-        self.activate_schema_buttons()
+        self.activate_db_edit_buttons()
         html_path = path.join(self.RES, "redis_help.html")
         ok, msg, _ = FI.get_file(html_path)
         if ok:
@@ -197,7 +219,7 @@ class SaskanServices(QMainWindow):
         """Slot for Test action"""
         self.show_button_status("tb_btn", "Window", "test")
         self.editor_title.setText("Service Requests Tester")
-        self.deactivate_schema_buttons()
+        self.deactivate_db_edit_buttons()
         self.deactivate_editor_buttons()
 
     def save_state(self):
@@ -284,11 +306,13 @@ Example:
         """Slot for Find Record action"""
         self.show_button_status("ed_btn", "Edit", "find")
 
-    def summarize_db1(self):
-        """Slot for Summarize Schema DB action"""
+    def summarize_dbs(self):
+        """Slot for Summarize DBs action"""
         self.show_button_status("ed_btn", "Edit", "summary")
+        dbs = RI.list_all_dbs()
+        self.editor_display.setText(str(dbs))
 
-    def select_schemadb_items(self):
+    def select_database_items(self):
         """Slot for List Items action"""
         self.show_button_status("ed_btn", "Edit", "select")
 
@@ -307,6 +331,10 @@ Example:
     def select_schemas(self):
         """Slot for List Schemas action"""
         self.handle_selects("schemas")
+
+    def select_primitives(self):
+        """Slot for List Primitives action"""
+        self.handle_selects("primitives")
 
     # Define Actions
     # ==============================================================
@@ -330,12 +358,12 @@ Example:
                     "a": True,
                     "s": self.monitor_services,
                     "w": None},
-                "schema": {
-                    "t": "Schema",
-                    "p": "Edit the Saskan Schema",
+                "database": {
+                    "t": "DB",
+                    "p": "Edit the services database",
                     "c": "Ctrl+Alt+S",
                     "a": True,
-                    "s": self.edit_schema,
+                    "s": self.edit_database,
                     "w": None},
                 "test": {
                     "t": "Test",
@@ -354,14 +382,14 @@ Example:
                     "w": None},
                 "add": {
                     "t": "Add",
-                    "p": "Start a new item",
+                    "p": "Insert a new record to the database",
                     "c": "Ctrl+N",
                     "a": False,
                     "s": self.add_item,
                     "w": None},
                 "del": {
                     "t": "Delete",
-                    "p": "Delete the current item",
+                    "p": "Delete the current record from the database",
                     "c": "Ctrl+X",
                     "a": False,
                     "s": self.remove_item,
@@ -457,14 +485,14 @@ Example:
                     "s": self.find_record},
                 "summary": {
                     "t": "Summary",
-                    "p": "Show stats for items in Schema DB",
+                    "p": "Show stats for Redis Databases",
                     "a": False,
-                    "s": self.summarize_db1},
+                    "s": self.summarize_dbs},
                 "select": {
                     "t": "Select -->",
                     "p": "Select Schema DB items",
                     "a": False,
-                    "s": self.select_schemadb_items}},
+                    "s": self.select_database_items}},
             "Select": {
                 "topics": {
                     "t": "Topics",
@@ -485,7 +513,12 @@ Example:
                     "t": "Schemas",
                     "p": "Select schemas in Schema DB",
                     "a": False,
-                    "s": self.select_schemas}}}
+                    "s": self.select_schemas},
+                "primitives": {
+                    "t": "Primitives",
+                    "p": "Select prims in Schema DB",
+                    "a": False,
+                    "s": self.select_primitives}}}
 
     def create_toolbar(self):
         """Define toolbar container and tool buttons.
@@ -561,7 +594,7 @@ Example:
         col -= 6
         for key, obj in self.editor_actions["Select"].items():
             self.ed_chk[key] = QCheckBox(obj["t"], self)
-            self.ed_chk[key].setGeometry(QRect(0, 0, 95, 30))
+            self.ed_chk[key].setGeometry(QRect(0, 0, 110, 30))
             self.ed_chk[key].setStyleSheet(SS.get_style('inactive_checkbox'))
             self.ed_chk[key].clicked.connect(obj["s"])
             self.ed_chk[key].move(col, 400)
@@ -594,7 +627,22 @@ Example:
         self.help_display.move(30, 475)
 
     def create_opengl_display(self):
-        """Define a canvas area."""
+        """Define a canvas area.
+
+        May want to keep this.
+        Would like to show relationships of selected record(s).
+        But for now, it is not used.
+        More needed first...
+        @DEV:
+        - Add a frame for editing the active record.
+        - It will be more like a form.
+        - Keep the current "editor" text display but shrink it.
+        - Consider some better language than just "editor".
+        - Move the add/delete/undo buttons to the editor space.
+        - Add a selector for what database to use.
+        - Add a selector for editing the expiration rule on a DB.
+        - Include rules for what selectors are available on what DBs.
+        """
         self.canvas = QOpenGLWidget(self)
         self.canvas.setGeometry(QRect(0, 0, 150, 400))
         self.canvas.initializeGL()
