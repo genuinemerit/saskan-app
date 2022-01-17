@@ -24,6 +24,15 @@ class SaskanStyles(object):
         return ss
 
     @classmethod
+    def _box_style(cls):
+        """Set default style."""
+        ss = "background-color: black; " + \
+             "border: 1px solid; " + \
+             "border-color: darkblue; " + \
+             "color: white;"
+        return ss
+
+    @classmethod
     def _button_active_style(cls):
         """Set style for activated buttons"""
         ss = "background-color: white; " + \
@@ -144,6 +153,8 @@ class SaskanStyles(object):
         """
         if p_widget in ('base'):
             ss = self._base_style()
+        elif p_widget in ('box'):
+            ss = self._box_style()
         elif p_widget in ('checkbox', 'active_checkbox'):
             ss = self._checkbox_active_style()
         elif p_widget in ('inactive_checkbox'):

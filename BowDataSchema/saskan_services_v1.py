@@ -1,3 +1,4 @@
+#!/usr/bin/python3.9
 """
 :module:    saskan_services.py
 
@@ -676,5 +677,5 @@ if __name__ == '__main__':
     """Instantiate the app and start the event loop.
     """
     app = QApplication(sys.argv)
-    ex = SaskanServices()
+    SRV = SaskanServices()
     sys.exit(app.exec_())
