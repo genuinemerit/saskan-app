@@ -24,15 +24,6 @@ class SaskanStyles(object):
         return ss
 
     @classmethod
-    def _box_style(cls):
-        """Set default style."""
-        ss = "background-color: black; " + \
-             "border: 1px solid; " + \
-             "border-color: darkblue; " + \
-             "color: white;"
-        return ss
-
-    @classmethod
     def _button_active_style(cls):
         """Set style for activated buttons"""
         ss = "background-color: white; " + \
@@ -86,6 +77,15 @@ class SaskanStyles(object):
         return ss
 
     @classmethod
+    def _info_style(cls):
+        """Set default style."""
+        ss = "background-color: darkblue; " + \
+             "border: 1px solid; " + \
+             "border-color: blue; " + \
+             "color: white;"
+        return ss
+
+    @classmethod
     def _editor_active_style(cls):
         """Set style for active editors."""
         ss = "background-color: white; " + \
@@ -106,10 +106,10 @@ class SaskanStyles(object):
     @classmethod
     def _menu_style(cls):
         """Set style for menus."""
-        ss = "background-color: black; " + \
+        ss = "background-color: white; " + \
              "border: 1px solid; " + \
-             "border-color: white; " + \
-             "color: white;"
+             "border-color: black; " + \
+             "color: black;"
         return ss
 
     @classmethod
@@ -153,12 +153,12 @@ class SaskanStyles(object):
         """
         if p_widget in ('base'):
             ss = self._base_style()
-        elif p_widget in ('box'):
-            ss = self._box_style()
         elif p_widget in ('checkbox', 'active_checkbox'):
             ss = self._checkbox_active_style()
         elif p_widget in ('inactive_checkbox'):
             ss = self._checkbox_inactive_style()
+        elif p_widget in ('info'):
+            ss = self._info_style()
         elif p_widget in ('editor', 'active_editor', 'help'):
             ss = self._editor_active_style()
         elif p_widget in ('inactive_editor'):

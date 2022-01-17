@@ -1,4 +1,3 @@
-#!/usr/bin/python3.9
 """
 :module:    saskan_services.py
 
@@ -8,52 +7,11 @@ BoW Saskan App Admin GUI. (Qt prototype)
 
 @DEV:
 - Try refactoring now that I have the main app inheriting
-  from the QMainWindow class and basic stuff kind of working.
-
-- For example:
-
-  - Organize code, including actions-definitions, so that it is a bit
-    more object-oriented, whether actually using sub-classes or not.
-    For example, I'd like to be able to get to the actions, tools,
-    buttons relating to "Control" functions without having to look at
-    stuff about the "Monitor", "DB Edit" and "Help" functions.
-
-    - Do this in a logical way, where my app sub-classes are in synch
-      with -- not precisely overriding, but something like that -- the
-      PyQT objects. Like I did in bow_labs/qtlab/lab_07.py.  But instead
-      of generic overlays (which may also be useful in other areas), create
-      a homespun model for each major function/layout/widget collection.
-
-  - Use the standard statusbar, the one that is "built in" to
-    the QMainWindow class.
-
-  - Re-introduce the Menu and MenuBar, but keep it very simple,
-    just a quit function and maybe an about box.
-
-  - For both the menu and the statusbar, my understanding is that they
-    are attached directly to the QMainWindow object, and do not need to be
-    attached as a widget to a layout box.
-
-  - Use layouts.
-
-    - My understanding is that the children widgets get created
-      first, then those existing widgets are added to the layout,
-      then the layout is added to the main window using setLayout().
-
-    - Use QHBoxLayout, QVBoxLayout first. Then QGridLayout.
-        - I may end up using QGridLayout the most, but want to get a feel
-      for the layout systems.
-
-    - Use QFormLayout for the DB editign form(s)
-
-    - Use QButtonGroup to group buttons, especially radio buttons.
-
-
-  - Get QtOpenGL (canvas) working.
-    - Display a simple graph of the services or the data.
-
-  - Consider putting the menu back in, but maybe only if I can detect
-    that the context is a desktop app?
+  from the QMainWindow class. For example:
+  - Try using layouts.
+  - Try using a central widget.
+  - Try using the standard statusbar.
+- See if I can get QtOpenGL working.
 """
 
 import sys
@@ -69,9 +27,8 @@ from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QApplication
 # Add radio buttons to select a database.
-# from PySide2.QtWidgets import QButtonGroup
+from PySide2.QtWidgets import QButtonGroup
 from PySide2.QtWidgets import QCheckBox
-from PySide2.QtWidgets import QHBoxLayout
 from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QMainWindow
@@ -127,108 +84,29 @@ class SaskanServices(QMainWindow):
         self.RES = path.join(self.APP, 'res')
         self.LOG = path.join(self.APP, 'log')
         # ==============================================================
-        # self.create_tool_actions()
-        # self.create_toolbar()
-        self.create_layouts()
-        # self.create_editor_actions()
-        # self.create_editor_title()
-        # self.create_editor()
-        # self.create_ed_mon_ctl_buttons()
-        # self.create_ed_db_widgets()
-        # self.create_ed_edit_widgets()
-        # self.create_ed_find_widgets()
-        # self.create_help_display()
-        # self.create_opengl_display()
-        # self.create_status_bar()
+        self.create_tool_actions()
+        self.create_editor_actions()
+        self.create_toolbar()
+        self.create_editor_title()
+        self.create_editor()
+        self.create_ed_mon_ctl_buttons()
+        self.create_ed_db_widgets()
+        self.create_ed_edit_widgets()
+        self.create_ed_find_widgets()
+        self.create_help_display()
+        self.create_opengl_display()
+        self.create_status_bar()
         self.show()
-
-    # Define Major Widgets as Sub-Classes
-    # ==============================================================
-
-    class Modes_Toolbox(QToolBar):      # noqa: F821
-        """Customized Qt Toolbox class to change app states:
-           "Control", "Monitor", "DB Edit"
-        The three states are mutually exclusive.
-        Inherits QToolBar. Adds styles and actions.
-        Create as a widget then add to a layout.
-
-        I suppose this could be an entirely separate class,
-        kind of like Kivy?
-        """
-        def __init__(self, parent: QToolBar):
-            """super() call is required."""
-            super().__init__(parent)
-            self.d_icon = QIcon('images/favicon.jpg')
-            d_icon_sz = self.d_icon.availableSizes(mode=QIcon.Normal)[0]
-            self.setIconSize(d_icon_sz)
-            # self.setMovable(False)
-            self.setMovable(True)
-            self.setGeometry(QRect(0, 0,
-                                   int(d_icon_sz.width() * (4 * 3)),
-                                   int(d_icon_sz.height() * 3)))
-            self.setStyleSheet(SS.get_style('inactive_tool'))
-            self.acts: dict = dict()
-            self.set_actions()
-            self.make_actions()
-            self.make_buttons()
-            self.move(320, 0)
-
-        def set_actions(self):
-            """Initialize actions metadata for the toolbox."""
-            acts_template = {
-                "title": str(),
-                "caption": str(),
-                "keycmd": str(),
-                "active": True,
-                "widget": object}
-            acts = {"Control":
-                    {"title": "Services Controller",
-                     "caption": "Start, stop, manage services",
-                     "keycmd": "Ctrl+Alt+C"},
-                    "Monitor":
-                    {"title": "Services Monitor",
-                     "caption": "Monitor running servers and services",
-                     "keycmd": "Ctrl+Alt+M"},
-                    "Edit DB":
-                    {"title": "Service Databases Editor",
-                     "caption": "Edit the services databases",
-                     "keycmd": "Ctrl+Alt+D"}}
-            for key in acts.keys():
-                self.acts[key] = acts_template.copy()
-                for this, do_it in acts[key].items():
-                    self.acts[key][this] = do_it
-
-        def make_actions(self):
-            """Construct the toolbox QAction widgets.
-               Assign actions to widget slots in parent class.
-
-                @DEV:
-                - Design unique icons for each tool
-            """
-            for key in self.acts.keys():
-                self.acts[key]["widget"] = \
-                    QAction(self.d_icon, key, self)
-                self.acts[key]["widget"].setToolTip(
-                    self.acts[key]["caption"])
-                self.acts[key]["widget"].setShortcut(
-                    self.acts[key]["keycmd"])
-
-        def make_buttons(self):
-            """Construct the toolbox QToolButton widgets."""
-            for key in self.acts.keys():
-                btn = QToolButton(self)
-                btn.setFont(QFont('Arial', 9))
-                if self.acts[key]["active"]:
-                    btn.setStyleSheet(SS.get_style('active_tool'))
-                else:
-                    btn.setStyleSheet(SS.get_style('inactive_tool'))
-                btn.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
-                # OK to do this. The actual action can still be assigned later.
-                btn.setDefaultAction(self.acts[key]["widget"])
-                self.addWidget(btn)
 
     # Helper Actions
     # ==============================================================
+    def deactivate_editor_buttons(self):
+        """Deactivate Control and Monitor editor buttons."""
+        for catg in ["Control", "Monitor"]:
+            for key in self.editor_actions[catg].keys():
+                self.editor_actions[catg][key]["a"] = False
+                self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
+
     def activate_editor_buttons(self, p_catg: str):
         """Activate editor buttons for category p_catg.
         """
@@ -287,6 +165,19 @@ class SaskanServices(QMainWindow):
         self.ed_find.setText("")
         self.ed_find.setReadOnly(False)
 
+    def show_button_status(self,
+                           p_type: str,
+                           p_catg: str,
+                           p_key: str):
+        """Display status resulting from a button click
+        in status bar."""
+        if p_type == "tb_btn":
+            btn = self.tool_actions[p_catg][p_key]
+        elif p_type in ("ed_btn", "ed_chk"):
+            btn = self.editor_actions[p_catg][p_key]
+        if btn["a"]:
+            self.status_bar.setText(btn["p"])
+
     def handle_selects(self, p_key: str):
         """Handle selected record types"""
         btn = self.editor_actions["Select"][p_key]
@@ -295,94 +186,36 @@ class SaskanServices(QMainWindow):
             if self.ed_chk[p_key].isChecked():
                 self.status_bar.setText(btn["p"])
 
-    def show_button_status(self, p_text: str):
-        """Display status bar text relevant to a button or tool click.
-
-        Ignore if no text passed in or status bar does not exist.
-        """
-        if p_text not in (None, ""):
-            try:
-                self.status_bar.setText(p_text)
-            except AttributeError:
-                pass
-
-    def show_log_display_title(self, p_text: str):
-        """Display title for log display relevant to mode.
-
-        Ignore if no text passed in or log display title widget does not exist.
-        """
-        if p_text not in (None, ""):
-            try:
-                self.log_display_title.setText(p_text)
-            except AttributeError:
-                pass
-
-    def deactivate_all_buttons(self):
-        """Deactivate all tools and buttons.
-        Update later to handle log-display and db-editor buttons.
-        # Unlikely we'd ever want to disable Modes tools, right?
-        for key in self.tbx_modes.keys():
-            if self.tbx_modes[key]["active"] is True:
-                self.tbx_modes[key]["active"] = False
-                self.tbx_modes[key]["widget"].setStyleSheet(
-                    SS.get_style('inactive_tool'))
-        """
-        print("DEBUG: deactivate_all_buttons()")
-
-    def activate_mode_buttons(self, p_mode: str):
-        """Activate log-display and db-editor buttons relevant to mode."""
-        print(f"DEBUG: activate_mode_buttons({p_mode})")
-
-    # Modes Toolbar Actions
+    # Toolbar and Menu Actions
     # ==============================================================
-    def mode_actions(self, p_mode: str):
-        """Common function for mode-change tools."""
-        mode_act = self.tbx_modes.acts[p_mode]
-        if mode_act["active"]:
-            self.show_button_status(mode_act["caption"])
-            self.show_log_display_title(mode_act["title"])
-            self.deactivate_all_buttons()
-            self.activate_mode_buttons(p_mode)
-
-    def control_actions(self):
+    def control_services(self):
         """Slot for Control action"""
-        self.mode_actions("Control")
+        self.show_button_status("tb_btn", "Window", "ctl")
+        self.editor_title.setText("Services Controller")
+        self.deactivate_editor_buttons()
+        self.deactivate_db_edit_buttons()
+        self.activate_editor_buttons("Control")
 
-    def monitor_actions(self):
+    def monitor_services(self):
         """Slot for Monitor action"""
-        self.mode_actions("Monitor")
+        self.show_button_status("tb_btn", "Window", "mon")
+        self.editor_title.setText("Services Monitoring Log")
+        self.deactivate_editor_buttons()
+        self.deactivate_db_edit_buttons()
+        self.activate_editor_buttons("Monitor")
 
-    def edit_db_actions(self):
-        """Slot for Edit Database action.
-        Show DB editor help page if it exists and the help-display
-        widget exists.
-        """
-        self.mode_actions("Edit DB")
-        if self.tbx_modes.acts["Edit DB"]["active"]:
-            html_path = path.join(self.RES, "redis_help.html")
-            ok, msg, _ = FI.get_file(html_path)
-            if ok:
-                try:
-                    self.help_display.setUrl(f"file://{html_path}")
-                except AttributeError:
-                    pass
-            else:
-                pp((msg, html_path))
-
-    def create_layouts(self):
-        """Wrap everything up in tidy boxes."""
-        layout = QHBoxLayout()
-        layout.setContentsMargins(3, 3, 3, 3)
-        layout.setSpacing(5)
-        self.tbx_modes = self.Modes_Toolbox(self)
-        # Assign actions to slots created in modes_toolbox class
-        acts = {"Control": self.control_actions,
-                "Monitor": self.monitor_actions,
-                "Edit DB": self.edit_db_actions}
-        for key, act in acts.items():
-            self.tbx_modes.acts[key]["widget"].triggered.connect(act)
-        layout.addWidget(self.tbx_modes)
-        self.setLayout(layout)
+    def edit_database(self):
+        """Slot for Edit Database action"""
+        self.show_button_status("tb_btn", "Window", "database")
+        self.editor_title.setText("Services Database Editor")
+        self.deactivate_editor_buttons()
+        self.activate_db_edit_buttons()
+        html_path = path.join(self.RES, "redis_help.html")
+        ok, msg, _ = FI.get_file(html_path)
+        if ok:
+            self.help_display.setUrl(f"file://{html_path}")
+        else:
+            pp((msg, html_path))
 
     def test_request(self):
         """Slot for Test action"""
@@ -843,6 +676,5 @@ if __name__ == '__main__':
     """Instantiate the app and start the event loop.
     """
     app = QApplication(sys.argv)
-    # The class object has the .show() command in it:
-    SRV = SaskanServices()
+    ex = SaskanServices()
     sys.exit(app.exec_())
