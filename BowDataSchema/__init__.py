@@ -8,3 +8,4 @@ from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from BowQuiver.saskan_utils import Utils  # type: ignore
 from modes_toolbox import ModesToolbox # type: ignore
+from service_controls_widget import ServiceControlsWidget # type: ignore
