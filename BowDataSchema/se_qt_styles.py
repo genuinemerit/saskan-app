@@ -1,5 +1,5 @@
 """
-:module:    saskan_styles.py
+:module:    se_qt_styles.py
 
 :author:    GM (genuinemerit @ pm.me)
 
@@ -96,7 +96,7 @@ class SaskanStyles(object):
 
     @classmethod
     def _info_style(cls):
-        """Set default style."""
+        """Set style for an informational text."""
         ss = "background-color: black; " + \
              "border: 5px solid; " + \
              "border-color: blue; " + \
@@ -119,6 +119,15 @@ class SaskanStyles(object):
              "border: 1px solid; " + \
              "border-color: black; " + \
              "color: gray;"
+        return ss
+
+    @classmethod
+    def _title_style(cls):
+        """Set style for title text."""
+        ss = "background-color: black; " + \
+             "border: 5px solid; " + \
+             "border-color: black; " + \
+             "color: cyan;"
         return ss
 
     @classmethod
@@ -173,6 +182,8 @@ class SaskanStyles(object):
             ss = self._menu_style()
         elif p_widget in ('status'):
             ss = self._status_style()
+        elif p_widget in ('title'):
+            ss = self._title_style()
         elif p_widget in ('tool', 'active_tool'):
             ss = self._tool_active_style()
         elif p_widget in ('inactive_tool'):

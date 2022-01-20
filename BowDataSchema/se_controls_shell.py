@@ -1,6 +1,6 @@
 #!/usr/bin/python3.9
 """
-:module:    controller_shell.py
+:module:    se_controls_shell.py
 
 :author:    GM (genuinemerit @ pm.me)
 
@@ -19,7 +19,7 @@ UT = Utils()
 TX = SaskanTexts()
 
 
-class ControllerShell(object):
+class ControlsShell(object):
     """Run Controller-related commands."""
 
     def check_running_services(self,

@@ -7,5 +7,9 @@ from BowQuiver.saskan_logger import Logger  # type: ignore
 from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from BowQuiver.saskan_utils import Utils  # type: ignore
-from modes_toolbox import ModesToolbox # type: ignore
-from service_controls_widget import ServiceControlsWidget # type: ignore
+from se_controls_shell import ControlsShell # type: ignore
+from se_controls_wdg import ControlsWidget # type: ignore
+from se_help_wdg import HelpWidget # type: ignore
+from se_modes_tbx import ModesToolbox # type: ignore
+from se_monitor_wdg import MonitorWidget # type: ignore
+from se_qt_styles import SaskanStyles # type: ignore

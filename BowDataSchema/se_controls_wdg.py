@@ -1,6 +1,6 @@
 #!/usr/bin/python3.9
 """
-:module:    service_controls_widget.py
+:module:    se_controls_wdg.py
 
 :author:    GM (genuinemerit @ pm.me)
 
@@ -9,6 +9,7 @@
 """
 
 from pprint import pprint as pp     # noqa: F401
+from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QHBoxLayout
 from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QPushButton
@@ -17,13 +18,13 @@ from PySide2.QtWidgets import QVBoxLayout
 from PySide2.QtWidgets import QWidget
 
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
-from saskan_styles import SaskanStyles          # type: ignore
+from se_qt_styles import SaskanStyles           # type: ignore
 
 SS = SaskanStyles()
 TX = SaskanTexts()
 
 
-class ServiceControlsWidget(QWidget):
+class ControlsWidget(QWidget):
     """Build container for the Service Controller components.
 
     For layouts, the trick seems to be to define a generic widget,
@@ -39,7 +40,7 @@ class ServiceControlsWidget(QWidget):
     def __init__(self, parent: QWidget):
         """super() call is required."""
         super().__init__(parent)
-        self.control_actions: dict = dict()
+        self.acts: dict = dict()
         self.set_control_actions()
         self.make_controls_widget()
 
@@ -64,28 +65,32 @@ class ServiceControlsWidget(QWidget):
                 {"title": "Test Services",
                  "caption": "Run preset test suites on Saskan services"}}
         for key in acts.keys():
-            self.control_actions[key] = acts_template.copy()
+            self.acts[key] = acts_template.copy()
             for this, do_it in acts[key].items():
-                self.control_actions[key][this] = do_it
+                self.acts[key][this] = do_it
 
     def make_controls_widget(self):
         """Define components of the Service Controller widget."""
         # Controls container
-        self.setGeometry(20, 40, 600, 300)
+        self.setGeometry(20, 35, 600, 300)
         ctl_layout = QVBoxLayout()
         self.setLayout(ctl_layout)
         # Title
-        ctl_layout.addWidget(QLabel("Service Controls"))
+        # Ideally, this would be set based on modes metadata "Title"
+        title = QLabel("Service Controls")
+        title.setStyleSheet(SS.get_style('title'))
+        ctl_layout.addWidget(title)
         # Display area
-        ctl_display = QTextEdit()
-        ctl_display.setReadOnly(True)
-        ctl_display.setStyleSheet(SS.get_style('active_editor'))
-        ctl_layout.addWidget(ctl_display)
+        self.ctl_display = QTextEdit()
+        self.ctl_display.setReadOnly(True)
+        self.ctl_display.setStyleSheet(SS.get_style('active_editor'))
+        ctl_layout.addWidget(self.ctl_display)
         # Service Control buttons
         ctl_btn_hbox = QHBoxLayout()
-        for btn_id in self.control_actions.keys():
+        for btn_id in self.acts.keys():
             btn = QPushButton(btn_id)
+            btn.setFont(QFont('Arial', 9))
             btn.setStyleSheet(SS.get_style('active_button'))
-            self.control_actions[btn_id]["widget"] = btn
+            self.acts[btn_id]["widget"] = btn
             ctl_btn_hbox.addWidget(btn)
         ctl_layout.addLayout(ctl_btn_hbox)

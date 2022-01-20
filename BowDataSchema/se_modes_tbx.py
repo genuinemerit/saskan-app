@@ -1,6 +1,6 @@
 #!/usr/bin/python3.9
 """
-:module:    modes_toolbox.py
+:module:    se_modes_tbx.py
 
 :author:    GM (genuinemerit @ pm.me)
 
@@ -18,7 +18,7 @@ from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QToolBar
 from PySide2.QtWidgets import QToolButton
 
-from saskan_styles import SaskanStyles          # type: ignore
+from se_qt_styles import SaskanStyles          # type: ignore
 
 SS = SaskanStyles()
 
@@ -36,10 +36,12 @@ class ModesToolbox(QToolBar):      # noqa: F821
         self.d_icon = QIcon('images/favicon.jpg')
         d_icon_sz = self.d_icon.availableSizes(mode=QIcon.Normal)[0]
         self.setIconSize(d_icon_sz)
-        # self.setMovable(False)
-        self.setMovable(True)
+        self.setMovable(False)
+        # self.setMovable(True)
+        # Adjust icon count to be number of icons + 1
+        icon_cnt = 5
         self.setGeometry(QRect(0, 0,
-                         int(d_icon_sz.width() * (4 * 3)),
+                         int(d_icon_sz.width() * (icon_cnt * 3)),
                          int(d_icon_sz.height() * 3)))
         self.setStyleSheet(SS.get_style('inactive_tool'))
         self.acts: dict = dict()
@@ -66,7 +68,11 @@ class ModesToolbox(QToolBar):      # noqa: F821
                 "Edit DB":
                 {"title": "Service Databases Editor",
                     "caption": "Edit the services databases",
-                    "keycmd": "Ctrl+Alt+D"}}
+                    "keycmd": "Ctrl+Alt+D"},
+                "Help":
+                {"title": "Help",
+                    "caption": "Show context-sensitive help",
+                    "keycmd": "Ctrl+Alt+H"}}
         for key in acts.keys():
             self.acts[key] = acts_template.copy()
             for this, do_it in acts[key].items():

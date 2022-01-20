@@ -1,12 +1,34 @@
 #!/usr/bin/python3.9
 """
-:module:    saskan_services.py
+:module:    saskan_eyes.py
 
 :author:    GM (genuinemerit @ pm.me)
 
-BoW Saskan App Admin GUI. (Qt prototype)
+BoW Saskan App Admin GUI.
 
 @DEV:
+- Is it better to instantiate helper classes in the main app
+  or in the GUI class, like self.SS = SaskanStyles() instead of
+  SS = SaskanStyles()?
+
+    - My thoughts... this will always be launched as an app.
+    - It doesn't really even need to be implemented as a class except
+      for the fact that that's how PyQt works.
+    - Instantiating in the app means they will always be available but
+      also that they will always occupy some memory.
+    - Instantiating in the Class's __init__ probably amounts to the same
+      thing. Memory management may be slightly different, but I can't
+      imagine it being a big deal.
+    - I could imagine a logical argument for instantating at the moment
+      of need rather than at either app runtime or class instatiation.
+      This would be a better way to manage memory maybe -- not sure how
+      garbage collection works in that case. I could also explicitly delete
+      the object once I'm done with it ==> `del object_name`, which might
+      be slightly more efficient.  Would probably want to think about
+      problems relating to re-instantiating the object. In other words,
+      would likely be inefficient to keep re-creating the object if there
+      is no need to do so.
+
 - Refactoring now that main app inherits from QMainWindow.
 
   - Organized code so that it is more object-oriented, defining major
@@ -43,6 +65,10 @@ BoW Saskan App Admin GUI. (Qt prototype)
       Service Controllers widget set-up. I had to first create a "widget" to
       hold the layouts.
 
+  - Put Help back in as a Modes tool. Use it to show/hide the Help display,
+      and put the Help display in a separate widget, as with Controls,
+      Monitor and DB Editor.
+
   - Get QtOpenGL (canvas) working.
     - Display a simple graph of the services or the data.
 """
@@ -57,7 +83,6 @@ from PySide2.QtCore import QRect
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
 from PySide2.QtGui import QIcon
-from PySide2.QtWebEngineWidgets import QWebEngineView
 from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QApplication
 # from PySide2.QtWidgets import QButtonGroup
@@ -90,13 +115,15 @@ from PySide2.QtWidgets import QTextEdit
 from BowQuiver.saskan_fileio import FileIO      # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from BowQuiver.saskan_utils import Utils        # type: ignore
-from controller_shell import ControllerShell    # type: ignore
-from modes_toolbox import ModesToolbox          # type: ignore
 from redis_io import RedisIO                    # type: ignore
-from saskan_styles import SaskanStyles          # type: ignore
-from service_controls_widget import ServiceControlsWidget   # type: ignore
+from se_controls_shell import ControlsShell     # type: ignore
+from se_controls_wdg import ControlsWidget      # type: ignore
+from se_help_wdg import HelpWidget              # type: ignore
+from se_modes_tbx import ModesToolbox           # type: ignore
+from se_monitor_wdg import MonitorWidget        # type: ignore
+from se_qt_styles import SaskanStyles           # type: ignore
 
-CS = ControllerShell()
+CS = ControlsShell()
 FI = FileIO()
 RI = RedisIO()
 SS = SaskanStyles()
@@ -107,7 +134,7 @@ UT = Utils()
 class SaskanServices(QMainWindow):
     """Combo GUI for Admin, Monitor, Controller and Test GUIs.
 
-    N.B. The class inherits from QMainWindow.
+    May add other stuff later, like a Schema Editor and DB generator.
     """
 
     def __init__(self):
@@ -117,34 +144,40 @@ class SaskanServices(QMainWindow):
 
     def initialize_UI(self):
         """Set window size and name. Show the window."""
-        self.setGeometry(100, 100, 1200, 760)
+        self.setGeometry(100, 100, 1200, 860)
         self.setWindowTitle(TX.tl.app)
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
+        # ==============================================================
+        self.define_data()
+        self.create_menus()
+        self.create_statusbar()
+        self.create_modes_toolbox()
+        self.create_controls()
+        self.create_monitor()
+        self.create_db_editor()
+        self.create_help()
+        self.create_canvas()
+        # ==============================================================
+        self.show()   # <== main window
+
+    # Constants, flags/state holders, and queues
+    # ==============================================================
+    def define_data(self):
+        """Define variables, containers for preserving state."""
         self.APP = path.join(UT.get_home(), 'saskan')
         self.RES = path.join(self.APP, 'res')
         self.LOG = path.join(self.APP, 'log')
-        # ==============================================================
-        self.create_queues()
-        self.create_menus()
-        self.create_statusbar()
-        self.create_modes_tbx()
-        self.create_service_controls()
-        self.create_help_display()
-        self.create_db_editor()
-        self.create_canvas()
-        self.show()
-
-    # State Holders and Queues
-    # ==============================================================
-    def create_queues(self):
-        """Define variables and other containers for preserving state."""
         self.is_active = {
-            'controls_wdg': False}
+            'controls_wdg': False,
+            'monitor_wdg': False,
+            'dbeditor_wdg': False,
+            'help_wdg': False,
+            'canvas_wdg': False}
 
     # Main Menu
     # ==============================================================
-    def exit_app(self):
+    def exit_main(self):
         """Slot for Exit action"""
         self.close()
 
@@ -168,7 +201,7 @@ class SaskanServices(QMainWindow):
         menu_file = mbar.addMenu("File")
         quit_action = QAction("&Quit", self)
         quit_action.setShortcut("Ctrl+Q")
-        quit_action.triggered.connect(self.exit_app)
+        quit_action.triggered.connect(self.exit_main)
         menu_file.addAction(quit_action)
         mbar.addMenu(menu_file)
         # Help Menu
@@ -184,13 +217,14 @@ class SaskanServices(QMainWindow):
     # Statusbar
     # ==============================================================
     def create_statusbar(self):
-        """Initialize status bar."""
+        """Initialize status bar associated with QMainWindow."""
         self.statusBar().showMessage(TX.tl.app)
 
-    # Generic / Shared Actions
+    # Generic / Helper Actions
     # ==============================================================
-    def show_button_status(self, p_text: str):
-        """Display status bar text relevant to a button or tool click.
+    def show_status(self, p_text: str):
+        """Display status bar text relevant to some event like a
+        button or tool click.
 
         Ignore if no text passed in or status bar does not exist.
         """
@@ -200,101 +234,26 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
-    # Modes Toolbar and Actions
+    # Modes Toolbox
     # ==============================================================
-    def show_log_display_title(self, p_text: str):
-        """Display title for log display relevant to mode.
-
-        Ignore if no text passed in or log display title widget does not exist.
-        """
-        if p_text not in (None, ""):
-            try:
-                self.log_display_title.setText(p_text)
-            except AttributeError:
-                pass
-
-    def deactivate_all_buttons(self):
-        """Deactivate all tools and buttons.
-        Update later to handle log-display and db-editor buttons.
-        # Unlikely we'd ever want to disable Modes tools, right?
-        for key in self.tbx_modes.keys():
-            if self.tbx_modes[key]["active"] is True:
-                self.tbx_modes[key]["active"] = False
-                self.tbx_modes[key]["widget"].setStyleSheet(
-                    SS.get_style('inactive_tool'))
-        """
-        print("DEBUG: deactivate_all_buttons()")
-
-    def activate_mode_buttons(self, p_mode: str):
-        """Activate log-display and db-editor buttons relevant to mode."""
-        print(f"DEBUG: activate_mode_buttons({p_mode})")
-
-    def mode_state_actions(self, p_mode: str):
-        """Do common functions for mode-change tools.
-
-        Execute only if the mode tool is in an active state.
-        """
-        mode_act = self.tbx_modes.acts[p_mode]
-        if mode_act["active"]:
-            self.show_button_status(mode_act["caption"])
-            self.show_log_display_title(mode_act["title"])
-            self.deactivate_all_buttons()
-            self.activate_mode_buttons(p_mode)
-
-    def monitor_actions(self):
-        """Slot for Monitor action"""
-        self.mode_state_actions("Monitor")
-
-    def edit_db_actions(self):
-        """Slot for Edit Database action.
-        Show DB editor help page.
-        """
-        self.mode_state_actions("Edit DB")
-        if self.tbx_modes.acts["Edit DB"]["active"]:
-            html_path = path.join(self.RES, "redis_help.html")
-            ok, msg, _ = FI.get_file(html_path)
-            if ok:
-                try:
-                    self.help_display.setUrl(f"file://{html_path}")
-                except AttributeError:
-                    pass
-            else:
-                pp((msg, html_path))
-
-    def create_modes_tbx(self):
+    def create_modes_toolbox(self):
         """Create mode toolbar and assign its actions.
-
-        A movable toolbox can go anywhere on the screen,
-        including off the app window. If no move is done
-        then the widget defaults to upper-left corner of
-        its layout box.
-
-        Now that I have a better sense of how layouts work,
-        may want to try containing the toolbox, or even the
-        entire app, in a layout.
-
-        But don't worry about it too much. Putting each major
-        section in its own widget, which can be shown/hidden,
-        is a great next step.
-
-        Probably don't want to make the toolbox movable tho'.
         """
         self.tbx_modes = ModesToolbox(self)
         acts = {"Control": self.controls_mode_action,
-                "Monitor": self.monitor_actions,
-                "Edit DB": self.edit_db_actions}
+                "Monitor": self.monitor_mode_action,
+                "Edit DB": self.db_editor_mode_action,
+                "Help": self.help_mode_action}
         for key, act in acts.items():
             self.tbx_modes.acts[key]["widget"].triggered.connect(act)
-        self.tbx_modes.move(975, 0)   # <-- move to upper-right corner
-        # self.tbx_modes.move(0, 50)  # <-- move to just below menu
+        self.tbx_modes.move(935, 0)   # <-- move it to upper-right corner
 
     # Service Controls Display and Actions
     # ==============================================================
-    # Start with a small prototype just to see if different displays
-    # can be managed OK for controls, monitors, and tests.
     def controls_mode_action(self):
-        """Slot for Controls Mode tool action"""
-        self.mode_state_actions("Control")
+        """Slot for Controls Mode tool click action"""
+        btn = self.tbx_modes.acts["Control"]
+        self.show_status(btn["caption"])
         try:
             if self.is_active['controls_wdg'] is False:
                 self.service_controls.show()
@@ -306,120 +265,138 @@ class SaskanServices(QMainWindow):
             pass
 
     def start_services(self):
-        """Slot for Start action"""
-        self.show_button_status("ed_btn", "Control", "start")
-        btn = self.editor_actions["Control"]["start"]
-        if btn["a"]:
+        """Slot for Start Services action"""
+        btn = self.service_controls.acts["Start"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
             msg = """
         Services must be started using shell script.
         Example:
             $ bash ../admin/controller.sh --run redis
             """
-            self.editor_display.setText(msg)
+            self.service_controls.ctl_display.setText(msg)
 
     def stop_services(self):
-        """Slot for Stop action"""
-        self.show_button_status("ed_btn", "Control", "stop")
-        btn = self.editor_actions["Control"]["stop"]
-        if btn["a"]:
+        """Slot for Stop Services action"""
+        btn = self.service_controls.acts["Stop"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
             status, msg = CS.stop_running_services(p_service_nm='redis')
-            self.editor_display.setText(msg)
+            self.service_controls.ctl_display.setText(msg)
 
     def show_services(self):
         """Slot for Show Services action"""
-        self.show_button_status("ed_btn", "Control", "show")
-        btn = self.editor_actions["Control"]["show"]
-        if btn["a"]:
+        btn = self.service_controls.acts["Show"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
             status, msg = CS.check_running_services(p_service_nm='redis')
-            self.editor_display.setText(msg)
+            self.service_controls.ctl_display.setText(msg)
 
     def test_services(self):
         """Slot for Test Services action"""
-        self.show_button_status("ed_btn", "Control", "test")
-        btn = self.editor_actions["Control"]["test"]
-        if btn["a"]:
-            pass
+        btn = self.service_controls.acts["Test"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+            msg = """
+        This will run pre-defined tests on the services.
+            """
+            self.service_controls.ctl_display.setText(msg)
 
-    def create_service_controls(self):
+    def create_controls(self):
         """Create the Service Controls widget."""
-        self.service_controls = ServiceControlsWidget(self)
+        self.service_controls = ControlsWidget(self)
         for key, act in {
                 "Start": self.start_services,
                 "Stop": self.stop_services,
                 "Show": self.show_services,
                 "Test": self.test_services}.items():
-            self.service_controls.control_actions[key]["widget"].clicked.connect(act)   # noqa: E501
+            self.service_controls.acts[key]["widget"].clicked.connect(act)
         self.service_controls.hide()
 
-    def create_service_monitors(self):
-        """All or part of this may become a Class.
-        Define/Enable the display-frame for monitor functions.
-        Define the buttons and actions for:
-        - Monitor: Refresh Log, Loads, Fails, Recent, Summary
-        """
-        pass
-        """
-                "top": {
-                    "t": "Top",
-                    "p": "Scrolling to top",
-                    "a": False,
-                    "s": self.scroll_to_top},
-                "tail": {
-                    "t": "Tail",
-                    "p": "Scrolling to bottom",
-                    "a": False,
-                    "s": self.scroll_to_bottom},
-                "log": {
-                    "t": "Log",
-                    "p": "Refreshing full log",
-                    "a": False,
-                    "s": self.show_full_log},
-                "requests": {
-                    "t": "Requests",
-                    "p": "Showing pending requests",
-                    "a": False,
-                    "s": self.show_requests},
-                "failures": {
-                    "t": "Failures",
-                    "p": "Showing failed requests",
-                    "a": False,
-                    "s": self.show_failures},
-                "pressure": {
-                    "t": "Pressure",
-                    "p": "Showings loads on services",
-                    "a": False,
-                    "s": self.show_pressure}},
-        """
-    # Help (Web pages) Display
+    # Service Monitor Display and Actions
     # ==============================================================
-    def show_help_page(self, p_html_file_nm: str):
-        """Refresh the help page display.
+    def monitor_mode_action(self):
+        """Slot for Services Monitor mode tool click action"""
+        btn = self.tbx_modes.acts["Monitor"]
+        self.show_status(btn["caption"])
+        try:
+            if self.is_active['monitor_wdg'] is False:
+                self.service_monitor.show()
+                self.is_active['monitor_wdg'] = True
+            else:
+                self.service_monitor.hide()
+                self.is_active['monitor_wdg'] = False
+        except AttributeError:
+            pass
 
-        Content in help-display are URL-loaded HTML files.
-        - Published to home/saskan/res
-        - Edited, versioned in git repo under app's /html sub-dir
+    def mon_summary(self):
+        """Slot for Monitor Summary button click action"""
+        btn = self.service_monitor.acts["Summary"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
 
-        :Args:
-            - p_html_file_nm: str -> name of html file to display
+    def mon_top(self):
+        """Slot for Monitor Top button click action"""
+        btn = self.service_monitor.acts["Top"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+
+    def mon_tail(self):
+        """Slot for Monitor Tail button click action"""
+        btn = self.service_monitor.acts["Tail"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+
+    def mon_full(self):
+        """Slot for Monitor Full button click action"""
+        btn = self.service_monitor.acts["Full"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+
+    def mon_requests(self):
+        """Slot for Monitor Requests button click action"""
+        btn = self.service_monitor.acts["Requests"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+
+    def mon_fails(self):
+        """Slot for Monitor Fails button click action"""
+        btn = self.service_monitor.acts["Fails"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+
+    def mon_pressure(self):
+        """Slot for Monitor Pressure button click action"""
+        btn = self.service_monitor.acts["Pressure"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+
+    def create_monitor(self):
+        """Create the Service Monitor widget.
         """
-        html_path = path.join(self.RES, p_html_file_nm)
-        ok, msg, _ = FI.get_file(html_path)
-        print(msg, html_path)
-        if ok:
-            self.help.setUrl(f"file://{html_path}")
-
-    def create_help_display(self):
-        """Define help display and related actions as needed.
-
-        QSS StyleSheet seems to have no effect on this widget.
-        """
-        self.help = QWebEngineView(self)
-        self.help.setGeometry(QRect(0, 0, 600, 250))
-        self.help.move(30, 475)
-        self.show_help_page("saskan_help.html")
+        self.service_monitor = MonitorWidget(self)
+        for key, act in {
+                "Summary": self.mon_summary,
+                "Top": self.mon_top,
+                "Tail": self.mon_tail,
+                "Full": self.mon_full,
+                "Requests": self.mon_requests,
+                "Fails": self.mon_fails,
+                "Pressure": self.mon_pressure}.items():
+            self.service_monitor.acts[key]["widget"].clicked.connect(act)
+        self.service_monitor.hide()
 
     # Database Editor and Actions
     # ==============================================================
+    def db_editor_mode_action(self):
+        """Slot for Edit Database modes tool click action.
+        Show DB editor help page.
+        """
+        btn = self.tbx_modes.acts["Edit DB"]
+        self.show_status(btn["caption"])
+        if btn["active"]:
+            self.help.set_content("db_help.html")
+
     def create_db_editor(self):
         """All or part of this may become a Class.
         Define the display-frame for DB edit forms functions.
@@ -524,6 +501,43 @@ class SaskanServices(QMainWindow):
             lbl.setFont(QFont('Arial', 16))
             grp_box_left.addWidget(lbl)
 
+    # Help (Web pages) Display
+    # ==============================================================
+    def help_mode_action(self):
+        """Slot for Help Mode tool click action"""
+        btn = self.tbx_modes.acts["Help"]
+        self.show_status(btn["caption"])
+        try:
+            if self.is_active['help_wdg'] is False:
+                self.help.show()
+                self.is_active['help_wdg'] = True
+            else:
+                self.help.hide()
+                self.is_active['help_wdg'] = False
+        except AttributeError:
+            pass
+
+    def set_help_content(self, p_html_file_nm: str):
+        """Refresh the help page contents.
+
+        Content in help-display are URL-loaded HTML files.
+        - Published to home/saskan/res
+        - Edited, versioned in git repo under app's /html sub-dir
+
+        :Args:
+            - p_html_file_nm: str -> name only of html file to display
+        """
+        html_path = path.join(self.RES, p_html_file_nm)
+        ok, msg, _ = FI.get_file(html_path)
+        if ok:
+            self.help.setUrl(f"file://{html_path}")
+
+    def create_help(self):
+        """Define help display.
+        """
+        self.help = HelpWidget(self)
+        self.help.hide()
+
     # Canvas Display
     # ==============================================================
     def create_canvas(self):
@@ -605,70 +619,70 @@ class SaskanServices(QMainWindow):
 
     def test_request(self):
         """Slot for Test action"""
-        self.show_button_status("tb_btn", "Window", "test")
+        self.show_status("tb_btn", "Window", "test")
         self.editor_title.setText("Service Requests Tester")
         self.deactivate_db_edit_buttons()
         self.deactivate_editor_buttons()
 
     def save_state(self):
         """Slot for Save action"""
-        self.show_button_status("tb_btn", "Edit", "save")
+        self.show_status("tb_btn", "Edit", "save")
 
     def add_item(self):
         """Slot for Add action"""
-        self.show_button_status("tb_btn", "Edit", "add")
+        self.show_status("tb_btn", "Edit", "add")
 
     def remove_item(self):
         """Slot for Remove action"""
-        self.show_button_status("tb_btn", "Edit", "del")
+        self.show_status("tb_btn", "Edit", "del")
 
     def undo_item(self):
         """Slot for Undo action"""
-        self.show_button_status("tb_btn", "Edit", "undo")
+        self.show_status("tb_btn", "Edit", "undo")
 
     def help_me(self):
         """Slot for Help action"""
-        self.show_button_status("tb_btn", "Help", "help")
+        self.show_status("tb_btn", "Help", "help")
 
     # Editor Button Actions
     # ==============================================================
     def scroll_to_top(self):
         """Slot for Top action"""
-        self.show_button_status("ed_btn", "Monitor", "top")
+        self.show_status("ed_btn", "Monitor", "top")
 
     def scroll_to_bottom(self):
         """Slot for Tail action"""
-        self.show_button_status("ed_btn", "Monitor", "tail")
+        self.show_status("ed_btn", "Monitor", "tail")
 
     def show_full_log(self):
         """Slot for Log action"""
-        self.show_button_status("ed_btn", "Monitor", "log")
+        self.show_status("ed_btn", "Monitor", "log")
 
     def show_failures(self):
         """Slot for Failures action"""
-        self.show_button_status("ed_btn", "Monitor", "failures")
+        self.show_status("ed_btn", "Monitor", "failures")
 
     def show_requests(self):
         """Slot for Requests action"""
-        self.show_button_status("ed_btn", "Monitor", "requests")
+        self.show_status("ed_btn", "Monitor", "requests")
 
     def show_pressure(self):
         """Slot for Pressure action"""
-        self.show_button_status("ed_btn", "Monitor", "pressure")
+        self.show_status("ed_btn", "Monitor", "pressure")
 
     def find_record(self):
         """Slot for Find Record action"""
-        self.show_button_status("ed_btn", "Edit", "find")
+        self.show_status("ed_btn", "Edit", "find")
 
     def summarize_dbs(self):
         """Slot for Summarize DBs action"""
-        self.show_button_status("ed_btn", "Edit", "summary")
+        self.show_status("ed_btn", "Edit", "summary")
         dbs = RI.list_all_dbs()
         self.editor_display.setText(str(dbs))
 
     def select_database_items(self):
         """Slot for List Items action"""
-        self.show_button_status("ed_btn", "Edit", "select")
+        self.show_status("ed_btn", "Edit", "select")
 
     def select_topics(self):
         """Slot for List Topics action"""
@@ -768,7 +782,7 @@ class SaskanServices(QMainWindow):
                     "p": "Quit the application",
                     "c": "Ctrl+Q",
                     "a": True,
-                    "s": self.exit_app,
+                    "s": self.exit_main,
                     "w": None}}}
         for catg, actions in self.tool_actions.items():
             for key, obj in actions.items():
