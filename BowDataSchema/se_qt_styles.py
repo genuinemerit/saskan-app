@@ -6,6 +6,10 @@
 BoW Saskan QCC style sheets for Qt.
 """
 
+from PySide2.QtGui import QFont
+from PySide2.QtWidgets import QLineEdit
+from PySide2.QtWidgets import QPushButton
+
 
 class SaskanStyles(object):
     """Define style sheets for QT app"""
@@ -27,26 +31,24 @@ class SaskanStyles(object):
     def _button_active_style(cls):
         """Set style for activated buttons"""
         ss = "background-color: white; " + \
-             "border-width: 1px 3px 3px 1px; " + \
+             "border-width: 0px 2px 2px 0px; " + \
              "border-style: solid; " + \
              "border-color: darkgreen;" + \
              "color: black;" + \
              "border-radius: 5px;" + \
-             "margin: 5px;" + \
-             "padding: 5px;"
+             "margin: 2px;" + \
+             "padding: 2px;"
         return ss
 
     @classmethod
     def _button_inactive_style(cls):
         """Set style for deactivated buttons"""
         ss = "background-color: white; " + \
-             "border-width: 1px 1px 1px 1px; " + \
-             "border-style: solid; " + \
-             "border-color: lavender;" + \
+             "border-width: 0px 0px 0px 0px; " + \
              "color: lavender;" + \
              "border-radius: 5px;" + \
-             "margin: 5px;" + \
-             "padding: 5px;"
+             "margin: 2px;" + \
+             "padding: 2px;"
         return ss
 
     @classmethod
@@ -60,29 +62,30 @@ class SaskanStyles(object):
     def _checkbox_active_style(cls):
         """Set style for active checkbox."""
         ss = "background-color: white; " + \
-             "border: 2px solid; " + \
+             "border: 1px solid; " + \
              "border-color: darkgreen; " + \
              "color: black;" + \
-             "padding: 5px;"
+             "padding: 2px;"
         return ss
 
     @classmethod
     def _checkbox_inactive_style(cls):
         """Set style for active checkbox."""
         ss = "background-color: gray; " + \
-             "border: 2px solid; " + \
+             "border: 1px solid; " + \
              "border-color: black; " + \
              "color: gray;" + \
-             "padding: 5px;"
+             "padding: 2px;"
         return ss
 
     @classmethod
     def _editor_active_style(cls):
         """Set style for active editors."""
         ss = "background-color: white; " + \
-             "border: 2px solid; " + \
+             "border: 1px solid; " + \
              "border-color: darkgreen; " + \
-             "color: black;"
+             "color: black;" + \
+             "padding: 2px;"
         return ss
 
     @classmethod
@@ -91,7 +94,8 @@ class SaskanStyles(object):
         ss = "background-color: gray; " + \
              "border: 1px solid; " + \
              "border-color: black; " + \
-             "color: gray;"
+             "color: gray;" + \
+             "padding: 2px;"
         return ss
 
     @classmethod
@@ -113,12 +117,41 @@ class SaskanStyles(object):
         return ss
 
     @classmethod
+    def _radiobtn_active_style(cls):
+        """Set style for active radio button."""
+        ss = "background-color: white; " + \
+             "border: 1px solid; " + \
+             "border-color: darkgreen; " + \
+             "color: black;" + \
+             "padding: 2px;"
+        return ss
+
+    @classmethod
+    def _radiobtn_inactive_style(cls):
+        """Set style for inactive radio button."""
+        ss = "background-color: gray; " + \
+             "border: 1px solid; " + \
+             "border-color: black; " + \
+             "color: gray;" + \
+             "padding: 2px;"
+        return ss
+
+    @classmethod
     def _status_style(cls):
         """Set default style."""
         ss = "background-color: black; " + \
              "border: 1px solid; " + \
              "border-color: black; " + \
              "color: gray;"
+        return ss
+
+    @classmethod
+    def _subtitle_style(cls):
+        """Set style for smaller / sub-title text."""
+        ss = "background-color: black; " + \
+             "border: 1px solid; " + \
+             "border-color: black; " + \
+             "color: cyan;"
         return ss
 
     @classmethod
@@ -180,8 +213,14 @@ class SaskanStyles(object):
             ss = self._canvas_style()
         elif p_widget in ('menu'):
             ss = self._menu_style()
+        elif p_widget in ('radiobtn', 'active_radiobtn'):
+            ss = self._radiobtn_active_style()
+        elif p_widget in ('inactive_radiobtn'):
+            ss = self._radiobtn_inactive_style()
         elif p_widget in ('status'):
             ss = self._status_style()
+        elif p_widget in ('subtitle'):
+            ss = self._subtitle_style()
         elif p_widget in ('title'):
             ss = self._title_style()
         elif p_widget in ('tool', 'active_tool'):
@@ -191,3 +230,27 @@ class SaskanStyles(object):
         else:
             ss = self._base_style()
         return ss
+
+    def set_button_style(self, btn: QPushButton):      # type: ignore
+        """Set push button style font size and style.
+
+        :Args:
+            btn: a QT push button object
+        :Returns:
+            btn: the modified object
+        """
+        btn.setStyleSheet(SaskanStyles.get_style('button'))
+        btn.setFont(QFont('Arial', 11))
+        return btn
+
+    def set_line_edit_style(self, edt: QLineEdit):      # type: ignore
+        """Set line editor style font size and style.
+
+        :Args:
+            edt: a QT line editor object
+        :Returns:
+            edt: the modified object
+        """
+        edt.setStyleSheet(SaskanStyles.get_style('editor'))
+        edt.setFont(QFont('Arial', 10))
+        return edt

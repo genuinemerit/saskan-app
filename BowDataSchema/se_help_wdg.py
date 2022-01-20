@@ -58,7 +58,7 @@ class HelpWidget(QWidget):
         """Define components of the Help widget.
         """
         # Controls container
-        self.setGeometry(20, 625, 600, 200)
+        self.setGeometry(20, 630, 600, 200)
         help_layout = QVBoxLayout()
         self.setLayout(help_layout)
         # Title

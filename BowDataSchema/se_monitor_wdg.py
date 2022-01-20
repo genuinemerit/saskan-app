@@ -9,7 +9,6 @@
 """
 
 from pprint import pprint as pp     # noqa: F401
-from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QHBoxLayout
 from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QPushButton
@@ -79,7 +78,7 @@ class MonitorWidget(QWidget):
     def make_monitor_widget(self):
         """Define components of the Service Monitor widget."""
         # Controls container
-        self.setGeometry(20, 320, 600, 300)
+        self.setGeometry(20, 330, 600, 300)
         mon_layout = QVBoxLayout()
         self.setLayout(mon_layout)
         # Title
@@ -95,9 +94,7 @@ class MonitorWidget(QWidget):
         # Service Control buttons
         mon_btn_hbox = QHBoxLayout()
         for btn_id in self.acts.keys():
-            btn = QPushButton(btn_id)
-            btn.setFont(QFont('Arial', 9))
-            btn.setStyleSheet(SS.get_style('active_button'))
+            btn = SS.set_button_style(QPushButton(btn_id))
             self.acts[btn_id]["widget"] = btn
             mon_btn_hbox.addWidget(btn)
         mon_layout.addLayout(mon_btn_hbox)

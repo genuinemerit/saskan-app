@@ -5,72 +5,6 @@
 :author:    GM (genuinemerit @ pm.me)
 
 BoW Saskan App Admin GUI.
-
-@DEV:
-- Is it better to instantiate helper classes in the main app
-  or in the GUI class, like self.SS = SaskanStyles() instead of
-  SS = SaskanStyles()?
-
-    - My thoughts... this will always be launched as an app.
-    - It doesn't really even need to be implemented as a class except
-      for the fact that that's how PyQt works.
-    - Instantiating in the app means they will always be available but
-      also that they will always occupy some memory.
-    - Instantiating in the Class's __init__ probably amounts to the same
-      thing. Memory management may be slightly different, but I can't
-      imagine it being a big deal.
-    - I could imagine a logical argument for instantating at the moment
-      of need rather than at either app runtime or class instatiation.
-      This would be a better way to manage memory maybe -- not sure how
-      garbage collection works in that case. I could also explicitly delete
-      the object once I'm done with it ==> `del object_name`, which might
-      be slightly more efficient.  Would probably want to think about
-      problems relating to re-instantiating the object. In other words,
-      would likely be inefficient to keep re-creating the object if there
-      is no need to do so.
-
-- Refactoring now that main app inherits from QMainWindow.
-
-  - Organized code so that it is more object-oriented, defining major
-    widgets in distinct classes, similar to Kivy style. Also group
-    code so that it functions related to a widget are grouped near
-    each other, as opposed, to example, for putting all "action" methods
-    together.
-
-  - Re-introduced MenuBar. Keep it simple --> Quit, About
-
-  - Use standard statusbar, the one that is "built in" to
-    the QMainWindow class.
-
-  - Use layouts to contain for all other widgets.
-
-    - My understanding is that the children widgets get created
-      first, then those existing widgets are added to the layout,
-      then the layout is added to the main window using setLayout().
-
-    - Use QHBoxLayout, QVBoxLayout first. Then QGridLayout.
-        - I may end up using QGridLayout the most, but want to get a feel
-      for the layout systems.
-
-    - Use QFormLayout for the DB editign form(s)
-
-    - Use QButtonGroup to group buttons, especially radio buttons.
-
-    - Don't know what I am doing wrong, but the layout containers never
-      seem to work as I want them to. Going to 86 that for now and just go
-      back to placing things in the main window manually using move() + math.
-      Funny, this is exactly what I ended up doing with Tk too.
-
-      AAND... as soon as I "let it go", I figured it out. See code in the
-      Service Controllers widget set-up. I had to first create a "widget" to
-      hold the layouts.
-
-  - Put Help back in as a Modes tool. Use it to show/hide the Help display,
-      and put the Help display in a separate widget, as with Controls,
-      Monitor and DB Editor.
-
-  - Get QtOpenGL (canvas) working.
-    - Display a simple graph of the services or the data.
 """
 
 import sys
@@ -79,16 +13,12 @@ from os import path
 from pprint import pprint as pp     # noqa: F401
 
 from PySide2.QtCore import QRect
-# from PySide2.QtCore import QSize
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QApplication
-# from PySide2.QtWidgets import QButtonGroup
 from PySide2.QtWidgets import QCheckBox
-from PySide2.QtWidgets import QGroupBox
-# from PySide2.QtWidgets import QHBoxLayout
 from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QMainWindow
@@ -97,20 +27,8 @@ from PySide2.QtWidgets import QMenuBar
 from PySide2.QtWidgets import QOpenGLWidget
 from PySide2.QtWidgets import QPushButton
 from PySide2.QtWidgets import QTextEdit
-# from PySide2.QtWidgets import QVBoxLayout
-# from PySide2.QtWidgets import QWidget
-# from PySide2.QtWidgets import QSizePolicy
-# from PySide2.QtWidgets import QSpacerItem
-# from PySide2.QtWidgets import QToolBar
-# from PySide2.QtWidgets import QToolButton
-# Add radio buttons to select a database.
 # from PySide2.QtGui import QPixmap
 # from PySide2.QtWidgets import QFileDialog
-# from PySide2.QtWidgets import QFormLayout
-# from PySide2.QtWidgets import QHBoxLayout
-# from PySide2.QtWidgets import QMenu <-- used for pop-up menus only
-# from PySide2.QtWidgets import QPlainTextEdit
-# from PySide2.QtWidgets import QStatusBar
 
 from BowQuiver.saskan_fileio import FileIO      # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
@@ -118,6 +36,7 @@ from BowQuiver.saskan_utils import Utils        # type: ignore
 from redis_io import RedisIO                    # type: ignore
 from se_controls_shell import ControlsShell     # type: ignore
 from se_controls_wdg import ControlsWidget      # type: ignore
+from se_dbeditor_wdg import DBEditorWidget      # type: ignore
 from se_help_wdg import HelpWidget              # type: ignore
 from se_modes_tbx import ModesToolbox           # type: ignore
 from se_monitor_wdg import MonitorWidget        # type: ignore
@@ -253,16 +172,17 @@ class SaskanServices(QMainWindow):
     def controls_mode_action(self):
         """Slot for Controls Mode tool click action"""
         btn = self.tbx_modes.acts["Control"]
-        self.show_status(btn["caption"])
-        try:
-            if self.is_active['controls_wdg'] is False:
-                self.service_controls.show()
-                self.is_active['controls_wdg'] = True
-            else:
-                self.service_controls.hide()
-                self.is_active['controls_wdg'] = False
-        except AttributeError:
-            pass
+        if btn["active"]:
+            self.show_status(btn["caption"])
+            try:
+                if self.is_active['controls_wdg'] is False:
+                    self.service_controls.show()
+                    self.is_active['controls_wdg'] = True
+                else:
+                    self.service_controls.hide()
+                    self.is_active['controls_wdg'] = False
+            except AttributeError:
+                pass
 
     def start_services(self):
         """Slot for Start Services action"""
@@ -318,16 +238,17 @@ class SaskanServices(QMainWindow):
     def monitor_mode_action(self):
         """Slot for Services Monitor mode tool click action"""
         btn = self.tbx_modes.acts["Monitor"]
-        self.show_status(btn["caption"])
-        try:
-            if self.is_active['monitor_wdg'] is False:
-                self.service_monitor.show()
-                self.is_active['monitor_wdg'] = True
-            else:
-                self.service_monitor.hide()
-                self.is_active['monitor_wdg'] = False
-        except AttributeError:
-            pass
+        if btn["active"]:
+            self.show_status(btn["caption"])
+            try:
+                if self.is_active['monitor_wdg'] is False:
+                    self.service_monitor.show()
+                    self.is_active['monitor_wdg'] = True
+                else:
+                    self.service_monitor.hide()
+                    self.is_active['monitor_wdg'] = False
+            except AttributeError:
+                pass
 
     def mon_summary(self):
         """Slot for Monitor Summary button click action"""
@@ -393,113 +314,50 @@ class SaskanServices(QMainWindow):
         Show DB editor help page.
         """
         btn = self.tbx_modes.acts["Edit DB"]
-        self.show_status(btn["caption"])
         if btn["active"]:
-            self.help.set_content("db_help.html")
+            self.show_status(btn["caption"])
+            try:
+                if self.is_active['dbeditor_wdg'] is False:
+                    self.db_editor.show()
+                    self.is_active['dbeditor_wdg'] = True
+                    self.help.set_content("db_help.html")
+                else:
+                    self.db_editor.hide()
+                    self.is_active['dbeditor_wdg'] = False
+            except AttributeError:
+                pass
 
     def create_db_editor(self):
         """All or part of this may become a Class.
         Define the display-frame for DB edit forms functions.
         Define queues and other infrastructure to support editing.
         Define the buttons, check-boxes, text inputs and actions for:
-        - Select DB: Sandbox, Schema, Harvest, Log, Monitor
-        - Select Record: All, Primitives, Topics, Plans, Services,
+        - Select DB:
+            - checkboxes -> Sandbox, Schema, Harvest, Log, Monitor
+        - Select Record:
+            - checkboxes -> All, Primitives, Topics, Plans, Services,
             Schema, Requests, Responses
-        - Select Rules: Expirations, Refresh-rate, Retry-rate,
+            - text -> by-key, by-key-regex
+        - Select Rules:
+            - checkboxes -> Expirations, Refresh-rate, Retry-rate,
             Retry-limit, Retry-delay
-        - Edit DB: Add, Delete, Update, Find, Find Next, Find Prev,
+        - Edit DB:
+            - push buttons -> Get/Find, Next, Prev, Add, Delete, Update,
             Replace, Undo, Redo, Save, Cancel
         """
-        pass
+        self.db_editor = DBEditorWidget(self)
         """
-                "save": {
-                    "t": "Save",
-                    "p": "Save current state",
-                    "c": "Ctrl+S",
-                    "a": False,
-                    "s": self.save_state,
-                    "w": None},
-                "add": {
-                    "t": "Add",
-                    "p": "Insert a new record to the database",
-                    "c": "Ctrl+N",
-                    "a": False,
-                    "s": self.add_item,
-                    "w": None},
-                "del": {
-                    "t": "Delete",
-                    "p": "Delete the current record from the database",
-                    "c": "Ctrl+X",
-                    "a": False,
-                    "s": self.remove_item,
-                    "w": None},
-                "undo": {
-                    "t": "Undo",
-                    "p": "Reverse previous action",
-                    "c": "Ctrl+Z",
-                    "a": False,
-                    "s": self.undo_item,
-                    "w": None}},
-
-            "Edit": {
-                "find": {
-                    "t": "Find -->",
-                    "p": "Find items in Schema DB",
-                    "a": False,
-                    "s": self.find_record},
-                "summary": {
-                    "t": "Summary",
-                    "p": "Show stats for Redis Databases",
-                    "a": False,
-                    "s": self.summarize_dbs},
-                "select": {
-                    "t": "Select -->",
-                    "p": "Select Schema DB items",
-                    "a": False,
-                    "s": self.select_database_items}},
-            "Select": {
-                "topics": {
-                    "t": "Topics",
-                    "p": "Select topics in Schema DB",
-                    "a": False,
-                    "s": self.select_topics},
-                "plans": {
-                    "t": "Plans",
-                    "p": "Select plans in Schema DB",
-                    "a": False,
-                    "s": self.select_plans},
-                "services": {
-                    "t": "Services",
-                    "p": "Select services in Schema DB",
-                    "a": False,
-                    "s": self.select_services},
-                "schemas": {
-                    "t": "Schemas",
-                    "p": "Select schemas in Schema DB",
-                    "a": False,
-                    "s": self.select_schemas},
-                "primitives": {
-                    "t": "Primitives",
-                    "p": "Select prims in Schema DB",
-                    "a": False,
-                    "s": self.select_primitives}}}
+        for key, act in {
+                "Summary": self.mon_summary,
+                "Top": self.mon_top,
+                "Tail": self.mon_tail,
+                "Full": self.mon_full,
+                "Requests": self.mon_requests,
+                "Fails": self.mon_fails,
+                "Pressure": self.mon_pressure}.items():
+            self.db_editor.acts[key]["widget"].clicked.connect(act)
         """
-
-    def create_db_selectors(self):
-        """Wrap up everything in tidy boxes.
-        """
-        # QGroupBox is SPECIFICALLY for a set of checkboxes.
-        # Not a generic grouping box.
-        # Maybe use it for the db-select checkboxes.
-        grp_box_left = QGroupBox(self)
-        self.addWidget(grp_box_left)
-        grp_box_left.setFixedHeight(60000)
-        grp_box_left.setFixedWidth(200)
-        for lbl_no in range(5):
-            lbl = QLabel(f"Test {lbl_no}", self)
-            lbl.setStyleSheet(SS.get_style('info'))
-            lbl.setFont(QFont('Arial', 16))
-            grp_box_left.addWidget(lbl)
+        self.db_editor.hide()
 
     # Help (Web pages) Display
     # ==============================================================
