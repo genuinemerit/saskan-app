@@ -8,25 +8,25 @@
 <body>
     <div class="menu">
         <a href="./saskan_help.html">ToC</a> &bull; 
-        <a href="./db_namespaces.html">Namespaces</a> &bull; 
-        <a href="./db_record_types.html">Types</a> &bull; 
-        <a href="./db_record_structs.html">Structures</a>
+        <a href="./app_help.html">App</a> &bull; 
+        <a href="./svc_help.html">Services</a> &bull; 
+        <a href="./db_help.html">DB</a>
     </div>
 <div class="page">
 <h3><a name="recordtypes">Record Types</a></h3>
-<p>There are 4 record types in the Schema DB. They work in a hierarchical fashion...</p>
+<p><strong>Schema</strong> DB has 4 main record types plus Primitives.</p>
 <ul>
-    <li class="spaced">A <strong>Topic</strong> defines categories of communications handled on a channel.
+    <li class="spaced"><strong>Topic</strong> records define communciation categories on a channel.
         A Topic contains zero to many Plans.</li>
-    <li class="spaced">A <strong>Plan</strong> identifies the set of Services which are available for a Topic.</li>
-    <li class="spaced">A <strong>Service</strong> is a set of Request/Reponse or Publish/Subscribe or other
-        collection of messages available within a Plan. The format of each  service message is
-        defined by a Schema.</li>
-    <li class="spaced">A <strong>Schema</strong> identifies the acceptable format of a particular message.</li>
+    <li class="spaced"><strong>Plan</strong> identifies set of Services available for a Topic.</li>
+    <li class="spaced"><strong>Service</strong> is a set of Request/Reponse or Publish/Subscribe messages available within a Plan. The format of each service message is defined by a Schema.</li>
+    <li class="spaced"><strong>Schema</strong> identifies the acceptable format of a particular message.</li>
+    <li class="spaced"><strong>Primitives</strong> define fundamental data types used in the system.</li>
 </ul>
-<p>The Harvest DB contains message reponse packets using Schema formats appropriate to their Plan.
-<p>The Log and Monitor DBs contain packets using Schema formats appropriate to the log or
-    monitoring message Plan.
+<p> &nbsp;</p>
+<p>The <strong>Harvest</strong> DB contains message reponse packets using Schema formats appropriate to a Plan used in the Application.</p>
+<p> &nbsp;</p>
+<p>The <strong>Log</strong> and <strong>Monitor</strong> DBs contain packets using Schema formats appropriate to a log or monitoring message Plan.</p>
 <p> &nbsp;</p>
 <p> &nbsp;</p>
 </div>

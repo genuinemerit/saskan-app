@@ -12,23 +12,14 @@ import sys
 from os import path
 from pprint import pprint as pp     # noqa: F401
 
-from PySide2.QtCore import QRect
-from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
-from PySide2.QtGui import QIcon
+from PySide2.QtGui import QPixmap
 from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QApplication
-from PySide2.QtWidgets import QCheckBox
 from PySide2.QtWidgets import QLabel
-from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QMainWindow
 from PySide2.QtWidgets import QMessageBox
 from PySide2.QtWidgets import QMenuBar
-from PySide2.QtWidgets import QOpenGLWidget
-from PySide2.QtWidgets import QPushButton
-from PySide2.QtWidgets import QTextEdit
-# from PySide2.QtGui import QPixmap
-# from PySide2.QtWidgets import QFileDialog
 
 from BowQuiver.saskan_fileio import FileIO      # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
@@ -37,6 +28,7 @@ from redis_io import RedisIO                    # type: ignore
 from se_controls_shell import ControlsShell     # type: ignore
 from se_controls_wdg import ControlsWidget      # type: ignore
 from se_dbeditor_wdg import DBEditorWidget      # type: ignore
+from se_diagram_wdg import DiagramWidget        # type: ignore
 from se_help_wdg import HelpWidget              # type: ignore
 from se_modes_tbx import ModesToolbox           # type: ignore
 from se_monitor_wdg import MonitorWidget        # type: ignore
@@ -76,7 +68,7 @@ class SaskanServices(QMainWindow):
         self.create_monitor()
         self.create_db_editor()
         self.create_help()
-        self.create_canvas()
+        self.create_diagram()
         # ==============================================================
         self.show()   # <== main window
 
@@ -92,7 +84,7 @@ class SaskanServices(QMainWindow):
             'monitor_wdg': False,
             'dbeditor_wdg': False,
             'help_wdg': False,
-            'canvas_wdg': False}
+            'diagram_wdg': False}
 
     # Main Menu
     # ==============================================================
@@ -189,11 +181,12 @@ class SaskanServices(QMainWindow):
         btn = self.service_controls.acts["Start"]
         if btn["active"]:
             self.show_status(btn["caption"])
-            msg = """
-        Services must be started using shell script.
-        Example:
-            $ bash ../admin/controller.sh --run redis
-            """
+            status, msg = CS.start_services(p_service_nm='redis')
+        #     msg = """
+        # Services must be started using shell script.
+        # Example:
+        #    $ bash ../admin/controller.sh --run redis
+        #    """
             self.service_controls.ctl_display.setText(msg)
 
     def stop_services(self):
@@ -321,9 +314,11 @@ class SaskanServices(QMainWindow):
                     self.db_editor.show()
                     self.is_active['dbeditor_wdg'] = True
                     self.help.set_content("db_help.html")
+                    self.show_diagram()
                 else:
                     self.db_editor.hide()
                     self.is_active['dbeditor_wdg'] = False
+                    self.hide_diagram()
             except AttributeError:
                 pass
 
@@ -367,6 +362,7 @@ class SaskanServices(QMainWindow):
         self.show_status(btn["caption"])
         try:
             if self.is_active['help_wdg'] is False:
+                self.help.set_content("saskan_help.html")
                 self.help.show()
                 self.is_active['help_wdg'] = True
             else:
@@ -375,487 +371,49 @@ class SaskanServices(QMainWindow):
         except AttributeError:
             pass
 
-    def set_help_content(self, p_html_file_nm: str):
-        """Refresh the help page contents.
-
-        Content in help-display are URL-loaded HTML files.
-        - Published to home/saskan/res
-        - Edited, versioned in git repo under app's /html sub-dir
-
-        :Args:
-            - p_html_file_nm: str -> name only of html file to display
-        """
-        html_path = path.join(self.RES, p_html_file_nm)
-        ok, msg, _ = FI.get_file(html_path)
-        if ok:
-            self.help.setUrl(f"file://{html_path}")
-
     def create_help(self):
         """Define help display.
         """
         self.help = HelpWidget(self)
         self.help.hide()
 
-    # Canvas Display
+    # Diagram Display
     # ==============================================================
-    def create_canvas(self):
-        """All or part of this may become a Class.
-        Define the OpenGL Canvas functions.
+    def show_diagram(self):
+        """Slot for Graph Diagram show action"""
+        try:
+            if self.is_active['diagram_wdg'] is False:
+                try:
+                    img = self.network.get_image_path()
+                    with open(img):
+                        self.diagram_wdg = QLabel(self)
+                        self.diagram_wdg.setGeometry(625, 650, 550, 200)
+                        pixmap = QPixmap(img)
+                        self.diagram_wdg.setPixmap(pixmap)
+                        self.diagram_wdg.setStyleSheet(SS.get_style("canvas"))
+                        # self.diagram_wdg.move(625, 650)
+                        self.diagram_wdg.show()
+                        self.is_active['diagram_wdg'] = True
+                except FileNotFoundError:
+                    print("User image file not found:" + img)
+        except AttributeError:
+            pass
+
+    def hide_diagram(self):
+        """Slot for Graph Diagram hide action"""
+        try:
+            if self.is_active['diagram_wdg'] is True:
+                self.diagram_wdg.hide()
+                self.is_active['diagram_wdg'] = False
+        except AttributeError:
+            pass
+
+    def create_diagram(self):
+        """Generate a Graph Diagram.
         """
-        pass
-
-    # Generic Helper Actions (old, maybe obsolete)
-    # ==============================================================
-    def activate_editor_buttons(self, p_catg: str):
-        """Activate editor buttons for category p_catg.
-        """
-        for key in self.editor_actions[p_catg].keys():
-            self.editor_actions[p_catg][key]["a"] = True
-            self.ed_btn[key].setStyleSheet(SS.get_style('active_button'))
-
-    def deactivate_db_edit_buttons(self):
-        """Deactivate tool and editor widgets related to DB editing."""
-        for key in self.tool_actions["Edit"].keys():
-            self.tool_actions["Edit"][key]["a"] = False
-            self.tb_btn[key].setStyleSheet(SS.get_style('inactive_tool'))
-        for key in self.editor_actions["Edit"].keys():
-            self.editor_actions["Edit"][key]["a"] = False
-            self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
-        for key in self.editor_actions["Select"].keys():
-            self.editor_actions["Select"][key]["a"] = False
-            self.ed_chk[key].setStyleSheet(SS.get_style('inactive_checkbox'))
-        self.ed_find.setStyleSheet(SS.get_style('inactive_editor'))
-        self.ed_find.setText("")
-        self.ed_find.setReadOnly(True)
-
-    def activate_db_edit_buttons(self):
-        """Activate tool and editor widgets related to DB editing.
-
-        @DEV:
-        - Queues, state engines:
-            - DB-Edit-Tool-Is-Active
-            - DB-Edit-Tool-Is-Inactive
-            - IO-Action-Is-Pending
-            - IO-Actions-Completed-Queue
-            - Record-Is-Selected
-            - No-Record-Is-Selected
-
-        - For any given IO action that causes a change, the reverse action
-          needs to be defined
-
-        - Save, Add, Delete, Undo active when DB-Edit tool is active, and...
-        - Save -> active when a 'dirty' (non saved) IO action pending
-        - Add -> active when a single Select checkbox is toggled on
-        - Delete -> active when one Select checkbox is toggled on and
-                    a single record has been selected
-        - Undo -> becomes "Cancel" when a 'dirty' (non saved) IO action pending
-        - Undo -> active when at least one completed item on IO queue.
-        """
-        for key in self.tool_actions["Edit"].keys():
-            self.tool_actions["Edit"][key]["a"] = True
-            self.tb_btn[key].setStyleSheet(SS.get_style('active_tool'))
-        for key in self.editor_actions["Edit"].keys():
-            self.editor_actions["Edit"][key]["a"] = True
-            self.ed_btn[key].setStyleSheet(SS.get_style('active_button'))
-        for key in self.editor_actions["Select"].keys():
-            self.editor_actions["Select"][key]["a"] = True
-            self.ed_chk[key].setStyleSheet(SS.get_style('active_checkbox'))
-        self.ed_find.setStyleSheet(SS.get_style('active_editor'))
-        self.ed_find.setText("")
-        self.ed_find.setReadOnly(False)
-
-    def handle_selects(self, p_key: str):
-        """Handle selected record types"""
-        btn = self.editor_actions["Select"][p_key]
-        if btn["a"]:
-            self.status_bar.setText("")
-            if self.ed_chk[p_key].isChecked():
-                self.status_bar.setText(btn["p"])
-
-    # Various Actions (old, maybe obsolete)
-    # ==============================================================
-
-    def test_request(self):
-        """Slot for Test action"""
-        self.show_status("tb_btn", "Window", "test")
-        self.editor_title.setText("Service Requests Tester")
-        self.deactivate_db_edit_buttons()
-        self.deactivate_editor_buttons()
-
-    def save_state(self):
-        """Slot for Save action"""
-        self.show_status("tb_btn", "Edit", "save")
-
-    def add_item(self):
-        """Slot for Add action"""
-        self.show_status("tb_btn", "Edit", "add")
-
-    def remove_item(self):
-        """Slot for Remove action"""
-        self.show_status("tb_btn", "Edit", "del")
-
-    def undo_item(self):
-        """Slot for Undo action"""
-        self.show_status("tb_btn", "Edit", "undo")
-
-    def help_me(self):
-        """Slot for Help action"""
-        self.show_status("tb_btn", "Help", "help")
-
-    # Editor Button Actions
-    # ==============================================================
-    def scroll_to_top(self):
-        """Slot for Top action"""
-        self.show_status("ed_btn", "Monitor", "top")
-
-    def scroll_to_bottom(self):
-        """Slot for Tail action"""
-        self.show_status("ed_btn", "Monitor", "tail")
-
-    def show_full_log(self):
-        """Slot for Log action"""
-        self.show_status("ed_btn", "Monitor", "log")
-
-    def show_failures(self):
-        """Slot for Failures action"""
-        self.show_status("ed_btn", "Monitor", "failures")
-
-    def show_requests(self):
-        """Slot for Requests action"""
-        self.show_status("ed_btn", "Monitor", "requests")
-
-    def show_pressure(self):
-        """Slot for Pressure action"""
-        self.show_status("ed_btn", "Monitor", "pressure")
-
-    def find_record(self):
-        """Slot for Find Record action"""
-        self.show_status("ed_btn", "Edit", "find")
-
-    def summarize_dbs(self):
-        """Slot for Summarize DBs action"""
-        self.show_status("ed_btn", "Edit", "summary")
-        dbs = RI.list_all_dbs()
-        self.editor_display.setText(str(dbs))
-
-    def select_database_items(self):
-        """Slot for List Items action"""
-        self.show_status("ed_btn", "Edit", "select")
-
-    def select_topics(self):
-        """Slot for List Topics action"""
-        self.handle_selects("topics")
-
-    def select_plans(self):
-        """Slot for List Plans action"""
-        self.handle_selects("plans")
-
-    def select_services(self):
-        """Slot for List Services action"""
-        self.handle_selects("services")
-
-    def select_schemas(self):
-        """Slot for List Schemas action"""
-        self.handle_selects("schemas")
-
-    def select_primitives(self):
-        """Slot for List Primitives action"""
-        self.handle_selects("primitives")
-
-    # Define Actions
-    # ==============================================================
-    def create_tool_actions(self):
-        """Define actions triggered by menu items and toolbar buttons."""
-        # Add these texts to saskan_texts.
-        # Design icons for these actions.
-        self.tool_actions = {
-            "Window": {
-                "ctl": {
-                    "t": "Control",
-                    "p": "Start, stop, manage services",
-                    "c": "Ctrl+Alt+C",
-                    "a": True,
-                    "s": self.control_services,
-                    "w": None},
-                "mon": {
-                    "t": "Monitor",
-                    "p": "Monitor running services",
-                    "c": "Ctrl+Alt+M",
-                    "a": True,
-                    "s": self.monitor_services,
-                    "w": None},
-                "database": {
-                    "t": "DB",
-                    "p": "Edit the services database",
-                    "c": "Ctrl+Alt+S",
-                    "a": True,
-                    "s": self.edit_database,
-                    "w": None},
-                "test": {
-                    "t": "Test",
-                    "p": "Test service requests",
-                    "c": "Ctrl+Alt+U",
-                    "a": True,
-                    "s": self.test_request,
-                    "w": None}},
-            "Edit": {
-                "save": {
-                    "t": "Save",
-                    "p": "Save current state",
-                    "c": "Ctrl+S",
-                    "a": False,
-                    "s": self.save_state,
-                    "w": None},
-                "add": {
-                    "t": "Add",
-                    "p": "Insert a new record to the database",
-                    "c": "Ctrl+N",
-                    "a": False,
-                    "s": self.add_item,
-                    "w": None},
-                "del": {
-                    "t": "Delete",
-                    "p": "Delete the current record from the database",
-                    "c": "Ctrl+X",
-                    "a": False,
-                    "s": self.remove_item,
-                    "w": None},
-                "undo": {
-                    "t": "Undo",
-                    "p": "Reverse previous action",
-                    "c": "Ctrl+Z",
-                    "a": False,
-                    "s": self.undo_item,
-                    "w": None}},
-            "Help": {
-                "help": {
-                    "t": "Help",
-                    "p": "Get help",
-                    "c": "Ctrl+H",
-                    "a": True,
-                    "s": self.help_me,
-                    "w": None},
-                "exit": {
-                    "t": "Exit",
-                    "p": "Quit the application",
-                    "c": "Ctrl+Q",
-                    "a": True,
-                    "s": self.exit_main,
-                    "w": None}}}
-        for catg, actions in self.tool_actions.items():
-            for key, obj in actions.items():
-                self.tool_actions[catg][key]["w"] = \
-                    QAction(QIcon('images/favicon.jpg'), obj["t"], self)
-                self.tool_actions[catg][key]["w"].setToolTip(obj["p"])
-                self.tool_actions[catg][key]["w"].setShortcut(obj["c"])
-                self.tool_actions[catg][key]["w"].triggered.connect(obj["s"])
-
-    def create_editor_actions(self):
-        """Define actions. Triggered by editor buttons."""
-        # Add these texts to saskan_texts.
-        # Include icons for these actions.
-        self.editor_actions = {
-            "Control": {
-                "start": {
-                    "t": "Start",
-                    "p": "Starting up services",
-                    "a": False,
-                    "s": self.start_services},
-                "stop": {
-                    "t": "Stop",
-                    "p": "Stopping all services",
-                    "a": False,
-                    "s": self.stop_services},
-                "show": {
-                    "t": "Show",
-                    "p": "Showing services status",
-                    "a": False,
-                    "s": self.show_services},
-                },
-            "Monitor": {
-                "top": {
-                    "t": "Top",
-                    "p": "Scrolling to top",
-                    "a": False,
-                    "s": self.scroll_to_top},
-                "tail": {
-                    "t": "Tail",
-                    "p": "Scrolling to bottom",
-                    "a": False,
-                    "s": self.scroll_to_bottom},
-                "log": {
-                    "t": "Log",
-                    "p": "Refreshing full log",
-                    "a": False,
-                    "s": self.show_full_log},
-                "requests": {
-                    "t": "Requests",
-                    "p": "Showing pending requests",
-                    "a": False,
-                    "s": self.show_requests},
-                "failures": {
-                    "t": "Failures",
-                    "p": "Showing failed requests",
-                    "a": False,
-                    "s": self.show_failures},
-                "pressure": {
-                    "t": "Pressure",
-                    "p": "Showings loads on services",
-                    "a": False,
-                    "s": self.show_pressure}},
-            "Edit": {
-                "find": {
-                    "t": "Find -->",
-                    "p": "Find items in Schema DB",
-                    "a": False,
-                    "s": self.find_record},
-                "summary": {
-                    "t": "Summary",
-                    "p": "Show stats for Redis Databases",
-                    "a": False,
-                    "s": self.summarize_dbs},
-                "select": {
-                    "t": "Select -->",
-                    "p": "Select Schema DB items",
-                    "a": False,
-                    "s": self.select_database_items}},
-            "Select": {
-                "topics": {
-                    "t": "Topics",
-                    "p": "Select topics in Schema DB",
-                    "a": False,
-                    "s": self.select_topics},
-                "plans": {
-                    "t": "Plans",
-                    "p": "Select plans in Schema DB",
-                    "a": False,
-                    "s": self.select_plans},
-                "services": {
-                    "t": "Services",
-                    "p": "Select services in Schema DB",
-                    "a": False,
-                    "s": self.select_services},
-                "schemas": {
-                    "t": "Schemas",
-                    "p": "Select schemas in Schema DB",
-                    "a": False,
-                    "s": self.select_schemas},
-                "primitives": {
-                    "t": "Primitives",
-                    "p": "Select prims in Schema DB",
-                    "a": False,
-                    "s": self.select_primitives}}}
-
-    def create_editor_title(self):
-        """Define area for display identifying current editor mode."""
-        self.editor_title = QLabel(self)
-        self.editor_title.setFont(QFont('Arial', 18))
-        self.editor_title.setStyleSheet(SS.get_style('status'))
-        self.editor_title.setGeometry(QRect(0, 0, 275, 60))
-        self.editor_title.move(10, 10)
-
-    def create_editor(self):
-        """Define area for display of Schema Editor, Monitor Display
-        and Control Forms."""
-        self.editor_display = QTextEdit(self)
-        self.editor_display.setGeometry(QRect(0, 0, 825, 300))
-        self.editor_display.setStyleSheet(SS.get_style('editor'))
-        self.editor_display.setReadOnly(True)
-        self.editor_display.move(10, 60)
-
-    def create_ed_mon_ctl_buttons(self):
-        """Define buttons related to the editor
-        monitor and control functions."""
-        self.ed_btn = dict()
-        col = 35
-        for catg in ["Control", "Monitor"]:
-            for key, obj in self.editor_actions[catg].items():
-                self.ed_btn[key] = QPushButton(obj["t"], self)
-                self.ed_btn[key].setGeometry(QRect(0, 0, 85, 40))
-                self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
-                self.ed_btn[key].clicked.connect(obj["s"])
-                self.ed_btn[key].move(col, 360)
-                col += self.ed_btn[key].width() + 3
-
-    def create_ed_db_widgets(self):
-        """Define buttons and inputs related to editor functions
-        for summarizing and selecting a database."""
-        pass
-
-    def create_ed_edit_widgets(self):
-        """Define buttons and inputs related to the editor
-        edit functions."""
-        self.ed_chk = dict()
-        col = 35
-        for key, obj in self.editor_actions["Edit"].items():
-            if key != "find":
-                self.ed_btn[key] = QPushButton(obj["t"], self)
-                self.ed_btn[key].setGeometry(QRect(0, 0, 115, 40))
-                self.ed_btn[key].setStyleSheet(SS.get_style('inactive_button'))
-                self.ed_btn[key].clicked.connect(obj["s"])
-                self.ed_btn[key].move(col, 395)
-                col += self.ed_btn[key].width() + 3
-        col -= 6
-        for key, obj in self.editor_actions["Select"].items():
-            self.ed_chk[key] = QCheckBox(obj["t"], self)
-            self.ed_chk[key].setGeometry(QRect(0, 0, 110, 30))
-            self.ed_chk[key].setStyleSheet(SS.get_style('inactive_checkbox'))
-            self.ed_chk[key].clicked.connect(obj["s"])
-            self.ed_chk[key].move(col, 400)
-            col += self.ed_chk[key].width()
-
-    def create_ed_find_widgets(self):
-        """Define buttons and inputs related to the editor
-        find functions."""
-        col = 35
-        obj = self.editor_actions["Edit"]["find"]
-        self.ed_btn["find"] = QPushButton(obj["t"], self)
-        self.ed_btn["find"].setGeometry(QRect(0, 0, 115, 40))
-        self.ed_btn["find"].setStyleSheet(SS.get_style('inactive_button'))
-        self.ed_btn["find"].clicked.connect(obj["s"])
-        self.ed_btn["find"].move(col, 430)
-        self.ed_find = QLineEdit(self)
-        self.ed_find.setGeometry(QRect(0, 0, 120, 30))
-        self.ed_find.setStyleSheet(SS.get_style('inactive_editor'))
-        self.ed_find.setReadOnly(True)
-        self.ed_find.move(col + self.ed_btn["find"].width() - 3, 435)
-
-    def create_opengl_display(self):
-        """Define a canvas area.
-
-        May want to keep this.
-        Would like to show relationships of selected record(s).
-        But for now, it is not used.
-        More needed first...
-        @DEV:
-        - Add a frame for editing the active record.
-        - It will be more like a form.
-        - Keep the current "editor" text display but shrink it.
-        - Consider some better language than just "editor".
-        - Move the add/delete/undo buttons to the editor space.
-        - Add a selector for what database to use.
-        - Add a selector for editing the expiration rule on a DB.
-        - Include rules for what selectors are available on what DBs.
-        """
-        self.canvas = QOpenGLWidget(self)
-        self.canvas.setGeometry(QRect(0, 0, 150, 400))
-        self.canvas.initializeGL()
-        self.canvas.setStyleSheet(SS.get_style('canvas'))
-        self.canvas.move(850, 80)
-
-    def create_status_bar(self):
-        """Define status bar display area.
-        @DEV:
-        - Try using the built-in status bar.
-        """
-        self.status_bar = QLineEdit(self)
-        self.status_bar.setGeometry(QRect(0, 0, 850, 30))
-        self.status_bar.setStyleSheet(SS.get_style('status'))
-        self.status_bar.setReadOnly(True)
-        self.status_bar.setAlignment(Qt.AlignHCenter)
-        self.status_bar.setFrame(True)
-        self.status_bar.setText("Ready Player One")
-        self.status_bar.move(0, 720)
+        self.network = DiagramWidget()
+        # By default, creates a test diagram.
+        # See DiagramWidget class method "set_content()" for more details.
 
 
 # Run program

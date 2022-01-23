@@ -142,7 +142,12 @@ run_jobs ()
             echo -e "\nStart ${SV}"
             if [[ -f "${SV}" ]]; then
                 # python3 -u "${SV}" &
-                python3 -u "${SV}" &
+                # try this... seems nicer, cleaner, and more portable
+                # The log is there after the server is shut down.
+                # May be able to call this directly from the Python class
+                # without issues. I will be wiretapping the services so
+                # not too concerned about getting to the bash log file.
+                nohup python3 -u "${SV}" > '/tmp/saskan_services.log' &
             else
                 echo "File ${SV} not found"
             fi

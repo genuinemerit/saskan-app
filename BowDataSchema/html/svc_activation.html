@@ -1,0 +1,69 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Services Help</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+        <a href="./saskan_help.html">ToC</a> &bull; 
+        <a href="./app_help.html">App</a> &bull; 
+        <a href="./svc_help.html">Services</a> &bull; 
+        <a href="./db_help.html">DB</a>
+    </div>
+<div class="page">
+<h3><a name="svc_activation">Services Activation</a></h3>
+
+<p>The Service Activator implements the Admin, Monitor and Controller GUIs, as well as (for now) a Controller shell script. The script starts up the available services. The Controller GUI provides methods for shutting down the services. The Monitor GUI provides methods for observing information about running services.
+    
+<p>Services are implemented via three types of Python programs or interfaces.
+
+<ul>
+    <li class="spaced"><strong>*_server.py</strong> programs</li>
+    <ul>
+        <li>For every *_server program, there is one or more corresponding *_response programs and one or more corresponding *_request interfaces.
+        <li>Routes request and response messages to appropriate targets.
+        <li>Handles all traffic for a Topic.  Along with its cohort of responders and requesters it <em>services</em> a Message Channel, which is activated on a speicfic host and port.
+        <li>In its role as a Content-Based Router, it sends command messages to a Messaging Gateway (a *_response.py program).
+        <li>In its roles as Message Broker, it collects documents and keys from the Messaging Gateway, then sends them on to various types of requestors (*_request.py programs), such as:
+        <ul>
+            <li>Request-Reply requestors
+            <li>Publish-Subscibe channels
+            <li>(Static) Recipient Lists
+            <li>Datatype channel (broadcast data streams)
+            <li>Invalid Message Channel (for debugging)
+        </ul>
+    </ul>
+    <li class="spaced"><strong>*_response.py</strong> programs</li>
+    <ul>
+        <li>For every *_reponse program, there is a corresponding *_server program and one or more more corresponding *_request interfaces, which may be standalone but more often are embedded inside of applications.
+        <li>Recieves command messages from the *_server.py program for its Topic.
+        <li>Performs "backend" logic to prepare a response package.
+        <li>Writes the response data package to the Harvest database.
+        <li>Responds to the *_server with a package containing the Redis Key to the response package on Harvest DB.
+    </ul>
+    <li class="spaced"><strong>*_request.py</strong> programs, classes or methods</li>
+    <ul>
+        <li>While requestor logic may be implemented in a single program, it is often implemented as a class or method used by various application use cases.
+        <li>Requestors use three main types of design patterns:
+        <ul>
+            <li><strong>Transactional Client</strong>. Most common pattern. These are the request-reply and publish-subscribe requestors. Request-reply indicates a one-off kind of transaction, where the requestor expects a specific Reply <i>R</i> to a specific Request <i>Q</i>. Publish-subscribe means that the requestor wants to receive any messages relevant to the subscribed Topic. In this case, the requestor makes a single request ("Subscription") and may receive many replies over time, until it cancels the Subscription.
+            <li><strong>Polling Consumer</strong>. Similar in some ways to Pub-Sub, except there is no Subscription. The requestor may be a "hard-coded" recipient of a specific message type, or may be a "polling" recipient of any message type that appears on a broadcast channel.
+            <li><strong>Event-Driven Consumer</strong>. This is similar to Transactional Client, but the requestor does not explicitly make a request. Rather, a response is delivered to the requestor as a result of an event which in turn triggered a request.
+            <li>In all cases, the actual reponse message contains a Redis Key to the full response package residing on Harvest DB.
+        </ul>
+    </ul>
+</ul>
+
+<p>All 3 types of services-oriented programs or methods send state information to the <strong>bow_tap.py</strong> program, which implements a Wire Tap pattern. It writes state, summary, status, warnings, failures and so forth to the Monitor and Log databases.
+
+<p>All services-oriented programs and methods call the <strong>bow_schema.py</strong> program to retrieve metadata about record structures and to verify that they are properly constructed.
+
+<p>All services-oriented programs and methods call the <strong>bow_msgs.py</strong> program to handle message size and payload sequencing.
+
+<p> &nbsp;</p>
+<p> &nbsp;</p>
+</div>
+</body>
+</html>

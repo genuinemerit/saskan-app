@@ -8,9 +8,9 @@
 <body>
     <div class="menu">
         <a href="./saskan_help.html">ToC</a> &bull; 
-        <a href="./db_namespaces.html">Namespaces</a> &bull; 
-        <a href="./db_record_types.html">Types</a> &bull; 
-        <a href="./db_record_structs.html">Structures</a>
+        <a href="./app_help.html">App</a> &bull; 
+        <a href="./svc_help.html">Services</a> &bull; 
+        <a href="./db_help.html">DB</a>
     </div>
 <!--
 <div class="menu">
@@ -18,34 +18,36 @@
 </div>
 -->
 <div class="page">
-<h3><a name="namespaces">Database Namespaces</a></h3>
+<h3><a name="namespaces">DB Namespaces</a></h3>
 <ul>
-    <li class="spaced"><strong>DB 1 "Schema"</strong></li>
+    <li class="spaced"><strong>DB 1 - Schema</strong></li>
     <ul>
-        <li>Message schema metadata and record templates.
-        <li>Message record templates. For example, topic templates.
-        <li>Primitive record templates. For example, "audit" fields template.
-        <li>Use Schema Editor buttons and tools to explore and edit "Schema" DB.
+        <li>Message schema metadata.  Record templates.
+        <li>For example, topic, primitives and audit templates.
+        <li>Use DB Editor to explore, edit <strong>Schema</strong> DB.
     </ul>
-    <li class="spaced">DB 2 "Harvest"</li>
+    <li class="spaced">DB 2 - Harvest</li>
     <ul>
         <li>Message response packets.
-        <li>Contents of message responses are written to "Harvest" DB by the messaging gateway.
-        <li>Receivers pull content from Redis using a token = a Redis unique key.
+        <li>The messaging gateway writes response content to the <strong>Harvest</strong> DB.
+        <li>Receivers pull content using a token = a Redis unique key to Harvest DB.
+        <li>Use Monitor to explore Harvest DB.
     </ul>
-    <li class="spaced">DB 3 "Log"</li>
+    <li class="spaced">DB 3 - Log</li>
     <ul>
         <li>Detailed messaging system log.
-        <li>Forensic info is written to "Log" DB for the messaging system Wire Tap.
-        <li>Use the Monitor buttons and tools to explore "Log" DB and set its
-            expiration rules.
+        <li>The messaging system Wire Tap writes forensic info to <strong>Log</strong> DB.
+        <li>Use Monitor to explore Log DB.
     </ul>
-    <li class="spaced">DB 4 "Monitor"</li>
+    <li class="spaced">DB 4 - Monitor</li>
     <ul>
         <li>Analytical messaging system log and summarizer.
-        <li>Info is written to "Monitor" DB for the messaging system Wire Tap.
-        <li>Use the Monitor buttons and tools to explore "Monitor" DB and set its
-            expiration rules.
+        <li>The messaging system Wire Tap writes summary and state info to <strong>Monitor</strong> DB.
+        <li>Use Monitor to explore Monitor DB.
+    </ul>
+    <li class="spaced">DB 0 - Sandbox</li>
+    <ul>
+        <li>Testing.  Prototyping.  Developing.
     </ul>
 </ul>
 <p> &nbsp;</p>

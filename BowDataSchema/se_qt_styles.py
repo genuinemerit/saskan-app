@@ -53,9 +53,9 @@ class SaskanStyles(object):
 
     @classmethod
     def _canvas_style(cls):
-        """Set OpenGL canvas style."""
+        """Set canvas style."""
         ss = "border: 1px solid; " + \
-             "border-color: whhite; "
+             "border-color: white; "
         return ss
 
     @classmethod

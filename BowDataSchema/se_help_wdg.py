@@ -69,4 +69,3 @@ class HelpWidget(QWidget):
         # Display area
         self.help = QWebEngineView()
         help_layout.addWidget(self.help)
-        self.set_content("saskan_help.html")
