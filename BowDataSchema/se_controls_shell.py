@@ -33,8 +33,24 @@ class ControlsShell(object):
         Starts up server, requestor and responder for a service.
         Eventually requestor would be for testing only.
 
-        This is working now that I am just using os.system().
-        THe check for server already running is not working right tho.
+        Using nohup prevents the background process from dying if
+        the python context closes. However, it writes log data to a
+        local file called "nohup.out". This file should be deleted or
+        scraped.
+
+        As in an earlier prototype, we will want to have an installer
+        that moves all the python code to the App directory, in which
+        case it might be OK to leave the nohup.out file in same dir
+        with the python files. Note that nothing is being written to
+        the /tmp/*.log files. May want to change that to /dev/null.
+
+        The bottom line is that anything of any interest should be
+        directed to the wiretap module. Speaking of which, I think
+        the saskan_logger module can work as a proto-wiretap module.
+        Will want to have it write to Redis Monitor and Log instead of
+        to a flat log file. And should use redis_io to do that, which
+        in turn implies that the record types, structs should be defined
+        for its use.
 
         Args:
             p_service_nm (str) name of service to start

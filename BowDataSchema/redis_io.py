@@ -5,13 +5,43 @@
 
 Handle core Redis IO functions.
 
+At this point, redis_io.py is kind of the stand-in for the
+Message Translator pattern / "bow_schema.py" design.  What I really
+want is two things:
+- redis-io should be like a layer on top of saskan_fileio, handling
+    similar abstractions (io functions) but for redis instead of files.
+- the saskan_fileio module has status-file-checking methods that
+  should probably be moved to redis_io.  Storing "flag files" as redis
+  records seems like maybe a good idea. Perhaps repurpose the Sandbox
+  namespace for Primitives and State Flags?
+
+- "bow_schema" should more specifically be about providing the
+    right template to use for specific message types, and verifying
+    that a message structure is legit.  It would be calling redis-io
+    to do IO against DB 1/Schema DB.
+
+Also, keep in mind that I will need some "bootstrap" capabilities.
+In other words, I have to be able to write to a Redis DB directly,
+or based on some hard-coded rules, in order to create primitives and
+templates in the first place.
+
+Redis Basement should replace "saskan_texts.py".
+
+So I need like a "dev" mode and and "app" mode for upserts.
+
+Nevertheless, would be good idea to go ahead and define a "bow_schema"
+class that would be used to validate the structures, at least have a
+placeholder for where that kind of logic goes..
+
 Store data in Redis using compressed (zlib) strings --> bytes.
 - Data should be validated as a well-formed Avro-style record,
-  but using my own validation function.
+  but using my own validation function. ==> in bow_schema.py
 - Redis data is NOT stored in the Avro binary format, just compressed.
-  - May eventually want to encrypt as well, but keep in mind it has to
-    be decrypted before it can be used and the encrypted format has to
-    be string-friendly.
+  - May eventually want to encrypt as well. Keep in mind it has to
+    be decrypted before it can be used. And the encrypted format has to
+    be string-friendly. What does that mean? Do we have to do a Base64
+    encoding after encypting, before decrypting?
+
 - Redis key = usually the "name" field on the Avro-type record.
     - key format: BoW Store Type + Topic + Message + Plan + Service
     - See design doc: Messages-DataSchemaEvents.md
@@ -25,10 +55,14 @@ Store data in Redis using compressed (zlib) strings --> bytes.
                             streams here
 
 Main behaviors:
+
+Redis commands: https://redis.io/commands
+
 - Administer Redis database.
     - Connect to a Redis namespace (SELECT)
     - Name a Redis namespace (CLIENT SETNAME)
     - Wipe a Redis namespace (FLUSHDB)
+
 - Write/Update:
     - A new key (SET k v nx)
     - Update value of existing key (SET k v xx)
@@ -39,16 +73,15 @@ Main behaviors:
     - Add some key:values for this hash
         - (HSET hashitemkey valuekey value)
         - (HMSET hashitemkey valuekey1 value1 valuekey2 value2)
+
 - Read:
     - By key (GET k, MGET k1 k2 k3)
     - By keys (KEYS pattern), e.g. `KEYS *` --> show all keys
     - Does this specific key exist yet? (EXIST)
     - Show me all the stuff in this hash item (HGETALL hashitemkey)
 
-Redis commands: https://redis.io/commands
-
 @DEV:
-- These are generic functions. May want to consider combinding with others?
+- These are generic functions. May want to consider combining with others?
 - Or not.
 """
 import datetime
@@ -57,7 +90,6 @@ import json
 import secrets
 import uuid
 from copy import copy
-from dataclasses import dataclass
 from pprint import pprint as pp  # noqa: F401
 
 import redis
@@ -67,24 +99,8 @@ from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 SS = SaskanSchema()
 
 
-class RedisIOTexts(object):
-    """Data structures and constants"""
-
-    @dataclass
-    class HashLevel:
-        """Define valid hashing levels."""
-
-        SHA512: int = 128
-        SHA256: int = 64
-        SHA224: int = 56
-        SHA1: int = 40
-
-
 class RedisIOUtils(object):
     """Helper functions"""
-
-    def __init__(self):
-        self.TX = RedisIOTexts()
 
     @classmethod
     def get_token(cls) -> str:
@@ -198,30 +214,17 @@ class RedisIOUtils(object):
         return r_str
 
     def compute_hash(self,
-                     p_data_in: str,
-                     p_len: int = 64) -> str:
+                     p_data_in: str) -> str:
         """Create hash of input string, returning UTF-8 hex-string.
-
-        - 128-byte hash uses SHA512
-        - 64-byte hash uses SHA256
-        - 56-byte hash uses SHA224
-        - 40-byte hash uses SHA1
+           Use SHA-512 by default.
 
         Args:
             p_data_in (string): data to be hashed
-            p_len (int): optional hash length, default is SHA256
 
         Returns:
             string: UTF-8-encoded hash of input argument
         """
-        if p_len == self.TX.HashLevel.SHA512:
-            v_hash = self.TX.hashlib.sha512()
-        elif p_len == self.TX.HashLevel.SHA224:
-            v_hash = self.TX.hashlib.sha224()
-        elif p_len == self.TX.HashLevel.SHA1:
-            v_hash = hashlib.sha1()
-        else:
-            v_hash = self.TX.hashlib.sha256()
+        v_hash = hashlib.sha512()
         v_hash.update(p_data_in.encode("utf-8"))
         return v_hash.hexdigest()
 
@@ -229,27 +232,24 @@ class RedisIOUtils(object):
 class RedisIO(object):
     """Generic Redis handling."""
 
+    # Summary, admin, state and log queries (DBA type functions)
+    # =========================================================================
     def __init__(self):
         """Initialize Redis connections."""
         self.UT = RedisIOUtils()
-        self.set_env()
-        self.RNS = dict()
+        self.HOST = '127.0.0.1'
+        self.PORT = 6379
+        self.RNS = dict()  # associate DB names to Namespaces, connections
         for db_no, db_nm in enumerate(
-                ["sandbox", "schema", "harvest", "log", "monitor"]):
+                ["basement", "schema", "harvest", "log", "monitor"]):
             self.RNS[db_nm] = redis.Redis(
                 host=self.HOST, port=self.PORT, db=db_no)
             self.RNS[db_nm].client_setname(db_nm)
 
-    def set_env(self):
-        """Set environment variables."""
-        # self.HOST = 'curwen'
-        self.HOST = '127.0.0.1'
-        self.PORT = 6379
-
-    def list_all_dbs(self) -> str:
+    def list_dbs(self) -> str:
         """Return number and name of the Redis namespaces (DB's).
 
-        List keys available in each DB.
+        List keys available in each DB. <-- make this a separate function
         """
         result = f"Redis Connections  Host: {self.HOST}  Port: {self.PORT}\n"
         for db_no, db_nm in enumerate(self.RNS.keys()):
@@ -258,22 +258,211 @@ class RedisIO(object):
                 result += f"Keys: {str(self.RNS[db_nm].get('KEYS *'))}\n"
         return result
 
+    # Primitive, state, template set-up functions (DDL type functions)
+    # =========================================================================
+
+    # Basic, fundamental, helper functions
+    # =======================================
+
     def get_existing_record(self,
+                            p_db: str,
                             p_nm: str) -> dict:
         """Return existing record if one exists for specified key."""
         rec = dict()
-        if self.RNS["schema"].exists(p_nm):               # type: ignore
+        if self.RNS[p_db].exists(p_nm):               # type: ignore
             rec = SS.convert_msg_jzby_to_py_dict(
-                avro_jzby=self.RNS["schema"].get(p_nm))   # type: ignore
+                avro_jzby=self.RNS[p_db].get(p_nm))   # type: ignore
         return rec
+
+    def hash_record(self, p_rec: dict) -> str:
+        """Return hash of JSON record, excluding audit fields.
+
+        @DEV:
+        - Get audit fields from template.
+        """
+        h_schema = copy(p_rec)
+        _ = h_schema.pop("hash", None)
+        _ = h_schema.pop("token", None)
+        _ = h_schema.pop("update_ts", None)
+        _ = h_schema.pop("version", None)
+        j_schema = json.dumps(h_schema)
+        hash_v = self.UT.compute_hash(j_schema)
+        return hash_v
+
+    def encrypt_record(self):
+        pass
+
+    def decrypt_record(self):
+        pass
+
+    def init_record_values(self,
+                           p_ns: str,
+                           p_ty: str,
+                           p_topic: str,
+                           p_verb: str,
+                           p_act: str,
+                           p_doc: str,
+                           p_fields: list) -> dict:
+        """Assemble new record dict."""
+        rec: dict = copy(self.avro_templ)                   # type: ignore
+        rec["fields"] = list()
+        s_topic: str = self.convert_to_spine(p_topic)        # type: ignore
+        sch_nm: str = p_ty + "." + s_topic + "." + p_verb + "." + p_act
+        rec["aliases"] = []
+        rec["doc"] = p_doc
+        rec["name"] = sch_nm
+        rec["namespace"] = f"net.genuinemerit.{p_ns}"
+        for f in p_fields:
+            for k, v in f.items():
+                rec["fields"].append(
+                    {"name": self.convert_to_spine(k),       # type: ignore
+                     "type": v})
+        return rec
+
+    # Generic DML-type functions
+    # =======================================
+
+    def set_record_values(self,
+                          p_new_rec: dict,
+                          p_hash: str,
+                          p_old_rec: dict) -> dict:
+        """Return dict for new or updated record."""
+        if len(p_old_rec) == 0:
+            rec = copy(p_new_rec)
+            rec["version"] = "1.0.0"
+        else:
+            rec = copy(p_old_rec)
+            # Get updated values
+            for k, v in p_new_rec.items():
+                if v != p_old_rec[k]:
+                    rec[k] = copy(v)
+            rec["version"] = self.bump_version(       # type: ignore
+                    p_old_rec["version"])
+        # Set audit values
+        rec["hash"] = p_hash
+        rec["token"] = self.UT.get_token()
+        rec["update_ts"] = self.UT.get_timestamp()
+        return rec
+
+    def do_archive(self,
+                   p_old_rec: dict) -> None:
+        """Archive previous record to `log` namespace."""
+        arc_key = p_old_rec["name"] +\
+            ".archive." + self.get_timestamp()   # type: ignore
+        arc_schema = SS.convert_py_dict_to_msg_jzby(
+            msg_d=p_old_rec)
+        self.RNS["log"].set(                     # type: ignore
+            arc_key, arc_schema, nx=True)
+
+    def do_upsert(self,
+                  p_ns: str,
+                  p_upsert: str,
+                  p_rec: dict,
+                  p_old_rec: dict):
+        """Either update (xx) or write (nx) a record to Redis"""
+        if p_upsert == "xx":
+            print("\nArchive and update record:")
+            self.do_archive(p_old_rec)      # type: ignore
+            self.RNS[p_ns].set(p_rec["name"],       # type: ignore
+                               SS.convert_py_dict_to_msg_jzby(
+                                   msg_d=p_rec), xx=True)
+        elif p_upsert == "nx":
+            print("\nWrite new record:")
+            self.RNS[p_ns].set(p_rec["name"],       # type: ignore
+                               SS.convert_py_dict_to_msg_jzby(
+                                   msg_d=p_rec), nx=True)
+
+    # Bespoke DML-type functions
+    # =======================================
+
+    # create_prim()
+    # get_prim()
+    # set_prim()
+        # texts
+            # en_*
+        # config_*
+        # directories
+            # app_path
+            # app_dir: str = 'saskan'
+            # log_dir: str = 'log'
+        # files
+            # db_status_file: str = 'db_status'
+    # create_state_flag()
+    # get_state_flag()
+    # set_state_flag()
+    # create_template()
+    # get_template()
+    # set_template()
+    # set_expiration_rule()
+    # query_expiration_rule()
+    # query_basement()
+    # query_schema()
+    # query_harvest()
+    # query_monitor()
+    # query_log()
+    # upsert_basement()
+    # upsert_schema()
+    # upsert_harvest()
+    # upsert_monitor()
+    # upsert_log()
+
+    # Probably need lots of refactoring for these functions....
+    # =================================================
+    def upsert_schema(self: object,
+                      p_topic: str,
+                      p_ty: str = "topic",
+                      p_verb: str = "get",
+                      p_act: str = "request",
+                      p_doc: str = "",
+                      p_fields: list = []) -> tuple:
+        """Upsert record to Redis SCHEMA namespace.
+
+        :args:
+            p_topic (str) may be hierarchical, levels separated by dots
+            p_ty (str): in msg_cat
+            p_verb (str) in msg_plan
+            p_act (str) in msg_svc
+            p_doc (str) URI to a document describing schema
+            fields (list) of singleton dicts where
+                key -> string identifying field names
+                value -> string in field_ty
+        :returns:
+            tuple: ("name/key token")
+
+        Assign type, name, namespace, alias based on verified arguments.
+        Compute version, token and hash.
+        Assemble and verify the Avro object.
+        Write to Redis as compressed (zlib) string. Redis key = Avro name.
+        """
+        if self.verify_verbs_types(                          # type: ignore
+                p_ty, p_verb, p_act, p_fields):
+            new_rec = self.init_record_values(               # type: ignore
+                "schema", p_ty, p_topic, p_verb, p_act, p_doc, p_fields)
+            old_rec = self.get_existing_record(new_rec["name"])  # type: ignore
+            nt_hash = self.hash_record(new_rec)              # type: ignore
+            ot_hash = self.hash_record(old_rec)              # type: ignore
+            up_rec = self.set_record_values(                 # type: ignore
+                    new_rec, nt_hash, old_rec)
+            if nt_hash == ot_hash:
+                print("\nNo change: ")
+                up_rec = old_rec
+            else:
+                # xx = update, nx = write
+                upsert = "xx" if len(old_rec) > 0 else "nx"
+                self.do_upsert(                      # type: ignore
+                    "schema", upsert, up_rec, old_rec)
+            # For debugging:
+            rec = self.get_existing_record(up_rec["name"])     # type: ignore
+            pp(("rec", rec))
+        return (up_rec["name"], up_rec["token"])               # type: ignore
 
     def set_constants(self):
         """Set class constants.
 
-        May want to manage some of this via arguments or environment variables.
-        These will be handled in Redis records.
+        Handle in Redis Basement and Schema.
+
         @DEV:
-        - Get this info from templates.
+        - Get this info from templates stored in Basement or Schema DBs.
         """
         self.field_ty: set = ("array", "hash", "set", "string")
         self.msg_cat: set = ("owl", "redis", "sqlite", "topic")
@@ -316,139 +505,3 @@ class RedisIO(object):
         except KeyError as err:
             print(err)
         return True
-
-    def get_record_hash(self, p_rec: dict) -> str:
-        """Return hash of JSON record, excluding audit fields.
-        @DEV:
-        - Get audit fields from template.
-        """
-        h_schema = copy(p_rec)
-        _ = h_schema.pop("hash", None)
-        _ = h_schema.pop("token", None)
-        _ = h_schema.pop("update_ts", None)
-        _ = h_schema.pop("version", None)
-        j_schema = json.dumps(h_schema)
-        hash_v = self.UT.compute_hash(j_schema)
-        return hash_v
-
-    def init_new_record(self,
-                        p_ns: str,
-                        p_ty: str,
-                        p_topic: str,
-                        p_verb: str,
-                        p_act: str,
-                        p_doc: str,
-                        p_fields: list) -> dict:
-        """Assemble new record dict."""
-        rec: dict = copy(self.avro_templ)                   # type: ignore
-        rec["fields"] = list()
-        s_topic: str = self.convert_to_spine(p_topic)        # type: ignore
-        sch_nm: str = p_ty + "." + s_topic + "." + p_verb + "." + p_act
-        rec["aliases"] = []
-        rec["doc"] = p_doc
-        rec["name"] = sch_nm
-        rec["namespace"] = f"net.genuinemerit.{p_ns}"
-        for f in p_fields:
-            for k, v in f.items():
-                rec["fields"].append(
-                    {"name": self.convert_to_spine(k),       # type: ignore
-                     "type": v})
-        return rec
-
-    def set_upserted_record(self,
-                            p_new_rec: dict,
-                            p_hash: str,
-                            p_old_rec: dict) -> dict:
-        """Return dict for new or updated record."""
-        if len(p_old_rec) == 0:
-            rec = copy(p_new_rec)
-            rec["version"] = "1.0.0"
-        else:
-            rec = copy(p_old_rec)
-            # Get updated values
-            for k, v in p_new_rec.items():
-                if v != p_old_rec[k]:
-                    rec[k] = copy(v)
-            rec["version"] = self.bump_version(       # type: ignore
-                    p_old_rec["version"])
-        # Set audit values
-        rec["hash"] = p_hash
-        rec["token"] = self.UT.get_token()
-        rec["update_ts"] = self.UT.get_timestamp()
-        return rec
-
-    def archive_old_record(self,
-                           p_old_rec: dict) -> None:
-        """Archive previous record to `log` namespace."""
-        arc_key = p_old_rec["name"] +\
-            ".archive." + self.get_timestamp()   # type: ignore
-        arc_schema = SS.convert_py_dict_to_msg_jzby(
-            msg_d=p_old_rec)
-        self.RNS["log"].set(                     # type: ignore
-            arc_key, arc_schema, nx=True)
-
-    def upsert_redis_record(self,
-                            p_ns: str,
-                            p_upsert: str,
-                            p_rec: dict,
-                            p_old_rec: dict):
-        """Either update (xx) or write (nx) a record to Redis"""
-        if p_upsert == "xx":
-            print("\nArchive and update record:")
-            self.archive_old_record(p_old_rec)      # type: ignore
-            self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               SS.convert_py_dict_to_msg_jzby(
-                                   msg_d=p_rec), xx=True)
-        elif p_upsert == "nx":
-            print("\nWrite new record:")
-            self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               SS.convert_py_dict_to_msg_jzby(
-                                   msg_d=p_rec), nx=True)
-
-    def upsert_schema(self: object,
-                      p_topic: str,
-                      p_ty: str = "topic",
-                      p_verb: str = "get",
-                      p_act: str = "request",
-                      p_doc: str = "",
-                      p_fields: list = []) -> tuple:
-        """Upsert record to Redis SCHEMA namespace.
-
-        :args:
-            p_topic (str) may be hierarchical, levels separated by dots
-            p_ty (str): in msg_cat
-            p_verb (str) in msg_plan
-            p_act (str) in msg_svc
-            p_doc (str) URI to a document describing schema
-            fields (list) of singleton dicts where
-                key -> string identifying field names
-                value -> string in field_ty
-        :returns:
-            tuple: ("name/key token")
-
-        Assign type, name, namespace, alias based on verified arguments.
-        Compute version, token and hash.
-        Assemble and verify the Avro object.
-        Write to Redis as compressed (zlib) string. Redis key = Avro name.
-        """
-        if self.verify_verbs_types(                             # type: ignore
-                p_ty, p_verb, p_act, p_fields):
-            new_rec = self.init_new_record(                     # type: ignore
-                "schema", p_ty, p_topic, p_verb, p_act, p_doc, p_fields)
-            old_rec = self.get_existing_record(new_rec["name"])  # type: ignore
-            nt_hash = self.get_record_hash(new_rec)              # type: ignore
-            ot_hash = self.get_record_hash(old_rec)              # type: ignore
-            up_rec = self.set_upserted_record(                   # type: ignore
-                    new_rec, nt_hash, old_rec)
-            if nt_hash == ot_hash:
-                print("\nNo change: ")
-                up_rec = old_rec
-            else:
-                # xx = update, nx = write
-                upsert = "xx" if len(old_rec) > 0 else "nx"
-                self.upsert_redis_record(                      # type: ignore
-                    "schema", upsert, up_rec, old_rec)
-            # For debugging:
-            rec = self.get_existing_record(up_rec["name"])     # type: ignore
-            pp(("rec", rec))
-        return (up_rec["name"], up_rec["token"])               # type: ignore

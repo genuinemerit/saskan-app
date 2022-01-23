@@ -11,7 +11,7 @@
 from pprint import pprint as pp     # noqa: F401
 from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
-from PySide2.QtWidgets import QCheckBox
+# from PySide2.QtWidgets import QCheckBox
 from PySide2.QtWidgets import QFormLayout
 from PySide2.QtWidgets import QHBoxLayout
 from PySide2.QtWidgets import QLabel
@@ -42,22 +42,15 @@ class DBEditorWidget(QWidget):
         super().__init__(parent)
         self.acts: dict = dict()
         self.selects: dict = dict()
-        self.texts: dict = dict()
+        self.active_widgets = {
+            "Prims": False
+        }
         self.set_dbeditor_actions()
         self.set_dbeditor_selects()
-        self.set_dbeditor_texts()
         self.make_dbeditor_widget()
 
     def set_dbeditor_actions(self):
         """Define metadata for DB Editor button actions.
-
-        @DEV:
-        - Here and in other widget classes, consider how to define
-          metadata rules managing interactions between buttons.
-        - For example, "button A" should be active only when such-and-such
-          an activity is pending.
-        - It may be better to store event queues in these classes rather than
-          in the parent application class.
         """
         acts_template = {
             "group": str(),
@@ -118,14 +111,6 @@ class DBEditorWidget(QWidget):
 
     def set_dbeditor_selects(self):
         """Define metadata for DB Editor checkbox actions.
-    - Select DB:
-        - checkboxes -> Sandbox, Schema, Harvest, Log, Monitor
-    - Select Record:
-        - checkboxes -> All, Primitives, Topics, Plans, Services,
-        Schema, Requests, Responses
-        - text -> by-key, by-key-regex
-    - Select Rules:
-        - checkboxes -> Expirations, Retry-rate, Retry-limit
         """
         sel_template = {
             "group": str(),
@@ -134,78 +119,54 @@ class DBEditorWidget(QWidget):
             "keycmd": str(),
             "active": True,
             "widget": object}
-        selects = {"Sandbox DB":
-                   {"group": "Select DB",
-                    "title": "Select Sandbox DB",
-                    "caption": "Edit the Sandbox database, " +
-                               "which is Redis namespace #0."},
-                   "Schema DB":
-                   {"group": "Select DB",
-                    "title": "Select Schema DB",
-                    "caption": "Edit the Schema database, " +
-                               "which is Redis namespace #1."},
-                   "Harvest DB":
-                   {"group": "Select DB",
-                    "title": "Select Harvest DB",
-                    "caption": "Edit the Harvest database, " +
-                               "which is Redis namespace #2."},
-                   "Log DB":
-                   {"group": "Select DB",
-                    "title": "Select Log DB",
-                    "caption": "Edit the Log database, " +
-                               "which is Redis namespace #3."},
-                   "Monitor DB":
-                   {"group": "Select DB",
-                    "title": "Select Monitor DB",
-                    "caption": "Edit the Monitor database, " +
-                               "which is Redis namespace #4."},
-                   "All":
-                   {"group": "Select Records",
-                    "title": "Get All Records",
-                    "caption": "Select all records matching current filters."},
-                   "Prims":
-                   {"group": "Select Records",
-                    "title": "Get Primitive Records",
-                    "caption": "Select records definig primitive data " +
-                               "structures or data types."},
+        selects = {"Prims":
+                   {"group": "Basement",
+                    "title": "Get Config Records",
+                    "caption": "Select records defining configuration data " +
+                               "structures."},
+                   "State Flags":
+                   {"group": "Basement",
+                    "title": "Get State Records",
+                    "caption": "Select records definig state data " +
+                               "structures."},
                    "Topics":
-                   {"group": "Select Records",
+                   {"group": "Schema",
                     "title": "Get Topics Records",
                     "caption": "Select records holding Topic definitions."},
                    "Plans":
-                   {"group": "Select Records",
+                   {"group": "Schema",
                     "title": "Get Plans Records",
                     "caption": "Select records holding Plan definitions."},
                    "Services":
-                   {"group": "Select Records",
+                   {"group": "Schema",
                     "title": "Get Services Records",
                     "caption": "Select records holding Service definitions."},
                    "Schemas":
-                   {"group": "Select Records",
+                   {"group": "Schema",
                     "title": "Get Schema Records",
                     "caption": "Select records holding Schema definitions."},
                    "Requests":
-                   {"group": "Select Packages",
+                   {"group": "Harvest",
                     "title": "Get Request or Subscribe Packages",
                     "caption": "Select records holding Request packages." +
                                "This includes Subscriptions."},
                    "Responses":
-                   {"group": "Select Packages",
+                   {"group": "Harvest",
                     "title": "Get Response or Publish Packages",
                     "caption": "Select records holding Response packages." +
                                "This includes Publications."},
                    "Expirations":
-                   {"group": "Select Rules",
+                   {"group": "Rules",
                     "title": "Get Expiration rules",
                     "caption": "Select records holding definition of " +
                                "expiration/purge rules for packages."},
                    "Retry Rate":
-                   {"group": "Select Rules",
+                   {"group": "Rules",
                     "title": "Get Retry Rate rules",
                     "caption": "Select records defining timing of retries" +
                                "for certain types of failed requests."},
                    "Retry Limit":
-                   {"group": "Select Rules",
+                   {"group": "Rules",
                     "title": "Get Retry Limit rules",
                     "caption": "Select records defining count of retries " +
                                "for certain types of failed requests."}}
@@ -213,30 +174,6 @@ class DBEditorWidget(QWidget):
             self.selects[key] = sel_template.copy()
             for this, do_it in selects[key].items():
                 self.selects[key][this] = do_it
-
-    def set_dbeditor_texts(self):
-        """Define metadata for DB Editor text inputs.
-
-        Not sure it is really necessary to have a separate function for these.
-        - Select Record:
-            - text -> by-key
-        """
-        txts_template = {
-            "group": str(),
-            "title": str(),
-            "caption": str(),
-            "keycmd": str(),
-            "active": True,
-            "widget": object}
-        txts = {"Key":
-                {"group": "Select Records",
-                 "title": "Find by Key",
-                 "caption": "Retrieve records from selected DB(s) " +
-                            "for specific key or key-regex."}}
-        for key in txts.keys():
-            self.texts[key] = txts_template.copy()
-            for this, do_it in txts[key].items():
-                self.texts[key][this] = do_it
 
     def make_dbeditor_forms(self):
         """Define Forms components of the Service Monitor widget.
@@ -255,8 +192,15 @@ class DBEditorWidget(QWidget):
 
         The edit fields defined so far are just examples to show how the
         form layout works.
+
+        May want to make each form a separate widget so they can easily
+        be hidden/shown.
         """
-        # self.dbedit_form = QTextEdit()
+        # title
+        title = QLabel("DB Editor")
+        title.setStyleSheet(SS.get_style('title'))
+        self.edt_layout.addWidget(title)
+        # edit fields
         catg_name_txt = SS.set_line_edit_style(QLineEdit())
         subcatg_name_txt = SS.set_line_edit_style(QLineEdit())
         catg_vers_txt = SS.set_line_edit_style(QLineEdit())
@@ -268,6 +212,7 @@ class DBEditorWidget(QWidget):
         value_context_txt = SS.set_line_edit_style(QLineEdit())
         hash_id_txt = SS.set_line_edit_style(QLineEdit())
         timestamp_txt = SS.set_line_edit_style(QLineEdit())
+        # edit form
         self.dbedit_form = QFormLayout()
         self.dbedit_form.setLabelAlignment(Qt.AlignRight)
         self.dbedit_form.addRow("Category:", catg_name_txt)
@@ -284,22 +229,58 @@ class DBEditorWidget(QWidget):
         # self.dbedit_form.setStyleSheet(SS.get_style('active_editor'))
         self.edt_layout.addLayout(self.dbedit_form)
 
-    def make_dbeditor_db_selects(self):
-        """Define Select DBs group components of the Service Monitor widget."""
-        grp = "Select DB"
-        title = QLabel(grp)
+    def make_db_basement_prim_form(self):
+        """Edit a Prim record"""
+        # sub-widget
+        self.dbe_prim = QWidget()
+        self.dbe_layout = QVBoxLayout()
+        # title
+        self.dbe_prim.setLayout(self.dbe_layout)
+        title = QLabel("Basement DB Editor")
+        title.setStyleSheet(SS.get_style('title'))
+        self.dbe_layout.addWidget(title)
+        # edit fields
+        catg_name_txt = SS.set_line_edit_style(QLineEdit())
+        subcatg_name_txt = SS.set_line_edit_style(QLineEdit())
+        config_name_txt = SS.set_line_edit_style(QLineEdit())
+        config_value_txt = SS.set_line_edit_style(QLineEdit())
+        config_vers_txt = SS.set_line_edit_style(QLineEdit())
+        # edit form
+        self.dbedit_form = QFormLayout()
+        self.dbedit_form.setLabelAlignment(Qt.AlignRight)
+        self.dbedit_form.addRow("Config Category:", catg_name_txt)
+        self.dbedit_form.addRow("Sub-Category:", subcatg_name_txt)
+        self.dbedit_form.addRow("Config Name:", config_name_txt)
+        self.dbedit_form.addRow("Config Value:", config_value_txt)
+        self.dbedit_form.addRow("Version:", config_vers_txt)
+        self.dbe_layout.addLayout(self.dbedit_form)
+        self.edt_layout.addWidget(self.dbe_prim)
+        # set status and state
+        self.dbe_prim.hide()
+        self.active_widgets["prims_wdg"] = False
+
+    def make_db_basement_state_form(self):
+        """Edit a State Flag record"""
+        pass
+
+    def make_dbeditor_rec_selects(self):
+        """Define Select Groups components of the Service Monitor widget.
+        """
+        title = QLabel("Select Records")
         title.setStyleSheet(SS.get_style('subtitle'))
         title.setFont(QFont('Arial', 9))
         self.edt_layout.addWidget(title)
-        sel_hbx = QHBoxLayout()
-        for key, val in {k: v for k, v in self.selects.items()
-                         if v["group"] == grp}.items():
-            sel_click = QRadioButton(key)
-            sel_click.setStyleSheet(SS.get_style('radiobtn'))
-            sel_click.setFont(QFont('Arial', 9))
-            sel_hbx.addWidget(sel_click)
-        sel_hbx.addStretch(1)
-        self.edt_layout.addLayout(sel_hbx)
+        for grp in ("Basement", "Schema", "Harvest", "Rules"):
+            sel_hbx = QHBoxLayout()
+            for key, val in {k: v for k, v in self.selects.items()
+                             if v["group"] == grp}.items():
+                sel_click = QRadioButton(key)
+                sel_click.setStyleSheet(SS.get_style('checkbox'))
+                sel_click.setFont(QFont('Arial', 9))
+                sel_hbx.addWidget(sel_click)
+                self.selects[key]["widget"] = sel_click
+            sel_hbx.addStretch(1)
+            self.edt_layout.addLayout(sel_hbx)
 
     def make_dbeditor_find_buttons(self):
         """Define Find Button components of the Service Monitor widget.
@@ -315,30 +296,17 @@ class DBEditorWidget(QWidget):
                          if v["group"] == grp}.items():
             btn = SS.set_button_style(QPushButton(key))
             btn_hbx.addWidget(btn)
+            self.acts[key]["widget"] = btn
+        # Find select-by-key text box
         sel_txt = QLineEdit()
         sel_txt.setStyleSheet(SS.get_style('editor'))
         sel_txt.setFont(QFont('Arial', 9))
         sel_txt.setPlaceholderText("Key or regex")
         btn_hbx.addWidget(sel_txt)
+        # Need to handle slots for it here
+        # Possibly include it in the "acts" dict
         btn_hbx.addStretch(1)
         self.edt_layout.addLayout(btn_hbx)
-
-    def make_dbeditor_rec_selects(self):
-        """Define Select Groups components of the Service Monitor widget."""
-        for grp in ("Select Records", "Select Packages", "Select Rules"):
-            title = QLabel(grp)
-            title.setStyleSheet(SS.get_style('subtitle'))
-            title.setFont(QFont('Arial', 9))
-            self.edt_layout.addWidget(title)
-            sel_hbx = QHBoxLayout()
-            for key, val in {k: v for k, v in self.selects.items()
-                             if v["group"] == grp}.items():
-                sel_click = QCheckBox(key)
-                sel_click.setStyleSheet(SS.get_style('checkbox'))
-                sel_click.setFont(QFont('Arial', 9))
-                sel_hbx.addWidget(sel_click)
-            sel_hbx.addStretch(1)
-            self.edt_layout.addLayout(sel_hbx)
 
     def make_dbeditor_edit_buttons(self):
         """Define Edit Button components of the Service Monitor widget.
@@ -353,6 +321,7 @@ class DBEditorWidget(QWidget):
                          if v["group"] == grp}.items():
             btn = SS.set_button_style(QPushButton(key))
             btn_hbx.addWidget(btn)
+            self.acts[key]["widget"] = btn
         btn_hbx.addStretch(1)
         self.edt_layout.addLayout(btn_hbx)
 
@@ -365,15 +334,14 @@ class DBEditorWidget(QWidget):
         - Edit DB push buttons
         """
         self.setGeometry(620, 40, 550, 600)
+        # self.make_dbeditor_forms() <-- not used was for testing only
         self.edt_layout = QVBoxLayout()
+        self.edt_layout.setAlignment(Qt.AlignTop)
         self.setLayout(self.edt_layout)
-        title = QLabel("DB Editor")
-        title.setStyleSheet(SS.get_style('title'))
-        self.edt_layout.addWidget(title)
-        self.make_dbeditor_forms()
         edt_btns_vbx = QVBoxLayout()
         self.edt_layout.addLayout(edt_btns_vbx)
-        self.make_dbeditor_find_buttons()
-        self.make_dbeditor_db_selects()
         self.make_dbeditor_rec_selects()
+        self.make_dbeditor_find_buttons()
         self.make_dbeditor_edit_buttons()
+        self.show()
+        self.make_db_basement_prim_form()

@@ -14,7 +14,13 @@
     </div>
 <div class="page">
 <h3><a name="recordtypes">Record Types</a></h3>
-<p><strong>Schema</strong> DB has 4 main record types plus Primitives.</p>
+<p><strong>Basement</strong> DB has 2 standard record types.</p>
+<ul>
+    <li class="spaced"><strong>Primitive</strong> records define a base-level structure or datatype or constant used throughout the system. This especially includes things like configuration settings.</li>
+    <li class="spaced"><strong>State Flag</strong> record holds the status of a particular thing or event internal to the system. For example, whether the SQL database has been built yet.</li>
+</ul>
+<p> &nbsp;</p>
+<p><strong>Schema</strong> DB has 4 record types.</p>
 <ul>
     <li class="spaced"><strong>Topic</strong> records define communciation categories on a channel.
         A Topic contains zero to many Plans.</li>

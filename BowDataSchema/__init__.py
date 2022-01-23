@@ -2,11 +2,12 @@
 # flake8: noqa
 from BowQuiver.msg_sequencer import MsgSequencer  # type: ignore
 from BowQuiver.saskan_encrypt import Encrypt  # type: ignore
-from BowQuiver.saskan_fileio import FileIO  # type: ignore
 from BowQuiver.saskan_logger import Logger  # type: ignore
 from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from BowQuiver.saskan_utils import Utils  # type: ignore
+from file_io import FileIO  # type: ignore
+from redis_io import RedisIO  # type: ignore
 from se_canvas_wdg import CanvasWidget  # type: ignore
 from se_controls_shell import ControlsShell # type: ignore
 from se_controls_wdg import ControlsWidget # type: ignore

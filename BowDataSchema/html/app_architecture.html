@@ -21,11 +21,21 @@
 
 <p>The backend database supporting service definition, execution and monitoring is Redis.
 
-<p>The ontology for the application is managed as an OWL structure edited using the Protege editor.  The ontology is the basis for auto-generating a relational database schema, presently implemented using SQLite, but likely to be moved eventually to Postgres or to MariaDB.
+<p>An application ontology provides basis for auto-generating a relational database schema.
 
-<p>Almost all programming is done in Python3.9.  There are bash shell scripts for initiating services, but hopefully these will be replaced by Python classes.
+<h2>Tools</h2>
 
-<p>Code is versioned on GitHub.
+<p>Nearly all programming is done in Python3.9 using the VS Code editor.
+
+<p>Some low-level development and testing of Redis structures may use redis-cli and, if needed, the GDB debugger attached to redis-server. See:  https://redis.io/commands and https://redis.io/topics/debugging
+
+<p>The app ontology is managed as an OWL structure edited using the Protege editor.  Relational database is implemented at present using SQLite, but likely to be moved eventually to Postgres.
+
+<p>Code is versioned on GitHub. The main repositories used at present are:
+    <ul>
+        <li>https://github.com/genuinemerit/bow-data-schema</li>
+        <li>https://github.com/genuinemerit/bow-quiver</li>
+    </ul>
 
 <p>So far, all testing and development is taking place on Ubuntu Linux.
 

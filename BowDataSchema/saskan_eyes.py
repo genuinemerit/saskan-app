@@ -182,11 +182,6 @@ class SaskanServices(QMainWindow):
         if btn["active"]:
             self.show_status(btn["caption"])
             status, msg = CS.start_services(p_service_nm='redis')
-        #     msg = """
-        # Services must be started using shell script.
-        # Example:
-        #    $ bash ../admin/controller.sh --run redis
-        #    """
             self.service_controls.ctl_display.setText(msg)
 
     def stop_services(self):
@@ -322,26 +317,43 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
+    def sel_prims(self):
+        """Slot for Editor Select Prims radio check action"""
+        btn = self.db_editor.selects["Prims"]
+        wdg = self.db_editor.active_widgets["Prims"]
+        self.show_status(btn["caption"] + f" ({btn['group']} DB)")
+        if wdg is not True:
+            self.db_editor.dbe_prim.show()
+            self.db_editor.active_widgets["prims"] = True
+
+    def sel_flags(self):
+        """Slot for Editor Select State Flags radio check action"""
+        btn = self.db_editor.selects["State Flags"]
+        self.show_status(btn["caption"] + f" ({btn['group']} DB)")
+
     def create_db_editor(self):
         """All or part of this may become a Class.
         Define the display-frame for DB edit forms functions.
-        Define queues and other infrastructure to support editing.
-        Define the buttons, check-boxes, text inputs and actions for:
-        - Select DB:
-            - checkboxes -> Sandbox, Schema, Harvest, Log, Monitor
-        - Select Record:
-            - checkboxes -> All, Primitives, Topics, Plans, Services,
-            Schema, Requests, Responses
-            - text -> by-key, by-key-regex
-        - Select Rules:
-            - checkboxes -> Expirations, Refresh-rate, Retry-rate,
-            Retry-limit, Retry-delay
-        - Edit DB:
-            - push buttons -> Get/Find, Next, Prev, Add, Delete, Update,
-            Replace, Undo, Redo, Save, Cancel
+        Define queues, buttons to support editing.
         """
         self.db_editor = DBEditorWidget(self)
+        # Editor Select radio buttons:
+        for key, act in {
+                "Prims": self.sel_prims,
+                "State Flags": self.sel_flags}.items():
+            # "Topics": self.sel_topics,
+            # "Plans": self.sel_plans,
+            # "Services": self.sel_services,
+            # "Schemas": self.sel_schemas,
+            # "Requests": self.sel_requests,
+            # "Responses": self.sel_responses,
+            # "Expirations": self.sel_expires,
+            # "Retry Rate": self.sel_retry_rate,
+            # "Retry Limit": self.sel_retry_limit}.items():
+            self.db_editor.selects[key]["widget"].clicked.connect(act)
+
         """
+        # Editor Find and Edit push buttons:
         for key, act in {
                 "Summary": self.mon_summary,
                 "Top": self.mon_top,
