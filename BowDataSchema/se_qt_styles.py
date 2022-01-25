@@ -41,6 +41,19 @@ class SaskanStyles(object):
         return ss
 
     @classmethod
+    def _button_press_style(cls):
+        """Set style for pressed buttons"""
+        ss = "background-color: white; " + \
+             "border-width: 2px 0px 0px 2px; " + \
+             "border-style: solid; " + \
+             "border-color: green;" + \
+             "color: black;" + \
+             "border-radius: 5px;" + \
+             "margin: 2px;" + \
+             "padding: 2px;"
+        return ss
+
+    @classmethod
     def _button_inactive_style(cls):
         """Set style for deactivated buttons"""
         ss = "background-color: white; " + \
@@ -209,6 +222,8 @@ class SaskanStyles(object):
             ss = self._button_active_style()
         elif p_widget in ('inactive_button'):
             ss = self._button_inactive_style()
+        elif p_widget in ('press_button'):
+            ss = self._button_press_style()
         elif p_widget in ('canvas'):
             ss = self._canvas_style()
         elif p_widget in ('menu'):

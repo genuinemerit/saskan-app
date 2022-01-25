@@ -317,19 +317,94 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
-    def sel_prims(self):
-        """Slot for Editor Select Prims radio check action"""
-        btn = self.db_editor.selects["Prims"]
-        wdg = self.db_editor.active_widgets["Prims"]
-        self.show_status(btn["caption"] + f" ({btn['group']} DB)")
-        if wdg is not True:
-            self.db_editor.dbe_prim.show()
-            self.db_editor.active_widgets["prims"] = True
+    def deactivate_texts(self, p_inp_nm: list):
+        """Generic function to deactivate a text input widget."""
+        for inp_nm in p_inp_nm:
+            inp = self.db_editor.texts[inp_nm]
+            inp["widget"].setStyleSheet(SS.get_style("inactive_editor"))
+            inp["widget"].setEnabled(False)
+            inp["active"] = False
 
-    def sel_flags(self):
+    def deactivate_buttons(self, p_btn_nm: list):
+        """Generic function to deactivate a push button"""
+        for btn_nm in p_btn_nm:
+            btn = self.db_editor.acts[btn_nm]
+            btn["widget"].setStyleSheet(SS.get_style("inactive_button"))
+            btn["widget"].setEnabled(False)
+            btn["active"] = False
+
+    def deactivate_edit_form(self, p_rec: str = None):
+        """Deactivate the Edit Form widget."""
+        for key, form in self.db_editor.forms.items():
+            if (p_rec is None or key != p_rec) and form["active"]:
+                form["widget"].hide()
+                form["active"] = False
+                self.deactivate_buttons(["Cancel", "Get", "Next", "Prev"])
+                self.deactivate_texts(["Key", "Cursor"])
+                break
+
+    def activate_texts(self, p_inp_nm: list):
+        """Generic function to activate a text input widget."""
+        for inp_nm in p_inp_nm:
+            inp = self.db_editor.texts[inp_nm]
+            inp["widget"].setStyleSheet(SS.get_style("active_editor"))
+            inp["widget"].setEnabled(True)
+            inp["active"] = True
+
+    def activate_buttons(self, p_btn_nm: list):
+        """Generic function to activate a push button"""
+        for btn_nm in p_btn_nm:
+            btn = self.db_editor.acts[btn_nm]
+            btn["widget"].setStyleSheet(SS.get_style("active_button"))
+            btn["widget"].setEnabled(True)
+            btn["active"] = True
+
+    def activate_edit_form(self, p_rec: str):
+        """Generic functions when enabling a different edit form.
+        """
+        self.deactivate_edit_form((p_rec))
+        if self.db_editor.forms[p_rec]["active"] is not True:
+            self.show_status(
+                self.db_editor.selects[p_rec]["caption"])
+            try:
+                self.db_editor.forms[p_rec]["widget"].show()
+                self.db_editor.forms[p_rec]["active"] = True
+                self.activate_buttons(["Cancel", "Get"])
+                self.activate_texts(["Key", "Cursor"])
+            except AttributeError:
+                pass
+
+    def push_cancel_btn(self):
+        """Slot for Editor Edit Push Button --> Cancel"""
+        btn = self.db_editor.acts["Cancel"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+            self.deactivate_edit_form()
+
+    def push_get_btn(self):
+        """Slot for Editor Edit Push Button --> Get"""
+        btn = self.db_editor.acts["Get"]
+        if btn["active"]:
+            self.show_status(btn["caption"])
+            # Which record type is selected? --> what DB to search?
+            # Is a specific key or wildcard key being requested?
+            # Call redis_io for the query
+            # If multiple records returned,
+            #  show the first one
+            #  activate the Next and Prev buttons
+            #  display the cursor count and position
+            # If no records returned,
+            #  display a message
+
+    def select_configs(self):
+        """Slot for Editor Select Configs radio check action"""
+        rec = "Configs"
+        self.activate_edit_form(rec)
+
+    def select_state_flags(self):
         """Slot for Editor Select State Flags radio check action"""
-        btn = self.db_editor.selects["State Flags"]
-        self.show_status(btn["caption"] + f" ({btn['group']} DB)")
+        rec = "States"
+        self.activate_edit_form(rec)
 
     def create_db_editor(self):
         """All or part of this may become a Class.
@@ -339,31 +414,14 @@ class SaskanServices(QMainWindow):
         self.db_editor = DBEditorWidget(self)
         # Editor Select radio buttons:
         for key, act in {
-                "Prims": self.sel_prims,
-                "State Flags": self.sel_flags}.items():
-            # "Topics": self.sel_topics,
-            # "Plans": self.sel_plans,
-            # "Services": self.sel_services,
-            # "Schemas": self.sel_schemas,
-            # "Requests": self.sel_requests,
-            # "Responses": self.sel_responses,
-            # "Expirations": self.sel_expires,
-            # "Retry Rate": self.sel_retry_rate,
-            # "Retry Limit": self.sel_retry_limit}.items():
+                "Configs": self.select_configs,
+                "States": self.select_state_flags}.items():
             self.db_editor.selects[key]["widget"].clicked.connect(act)
-
-        """
         # Editor Find and Edit push buttons:
         for key, act in {
-                "Summary": self.mon_summary,
-                "Top": self.mon_top,
-                "Tail": self.mon_tail,
-                "Full": self.mon_full,
-                "Requests": self.mon_requests,
-                "Fails": self.mon_fails,
-                "Pressure": self.mon_pressure}.items():
+                "Cancel": self.push_cancel_btn,
+                "Get": self.push_get_btn}.items():
             self.db_editor.acts[key]["widget"].clicked.connect(act)
-        """
         self.db_editor.hide()
 
     # Help (Web pages) Display
