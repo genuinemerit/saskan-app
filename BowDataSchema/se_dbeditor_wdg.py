@@ -50,6 +50,9 @@ class DBEditorWidget(QWidget):
 
     def set_dbeditor_forms(self):
         """Define metadata for the DB Editor forms.
+
+        @DEV:
+        - May want to combine forms and some selects metadata into one dict.
         """
         self.forms: dict = dict()
         forms_template = {
@@ -60,10 +63,21 @@ class DBEditorWidget(QWidget):
         forms = {"Configs":
                  {"db": "Basement",
                   "title": "Config Record (Basement DB)",
+                  "key": ["Config Category", "Config ID"],
+                  "fields": ["Field Name", "Field Value"],
                   "active": False},
                  "States":
                  {"db": "Basement",
                   "title": "State Record (Basement DB)",
+                  "key": ["Status Category", "Status ID"],
+                  "fields": ["Field Name", "Field Value"],
+                  "active": False},
+                 "Topics":
+                 {"db": "Schema",
+                  "title": "Topics Template (Schema DB)",
+                  "key": ["Template", "Saskan Topic"],
+                  "fields": ["Host", "Port", "Caption", "Description"],
+                  "refs": [("Plans", "list")],
                   "active": False}}
         for key in forms.keys():
             self.forms[key] = forms_template.copy()
@@ -72,9 +86,6 @@ class DBEditorWidget(QWidget):
 
     def set_dbeditor_texts(self):
         """Define metadata for the DB Editor Text Inputs.
-
-        @DEV:
-        - Probably want a status field for pending events summary.
         """
         self.texts: dict = dict()
         texts_template = {
@@ -230,104 +241,68 @@ class DBEditorWidget(QWidget):
             for this, do_it in selects[key].items():
                 self.selects[key][this] = do_it
 
+    def make_subtitle(self, p_title: str):
+        """Generic function to make a sub-title widget.
+
+        :args: p_title: str - the subtitle text
+        :returns: QLabel - the subtitle label object
+        """
+        title = QLabel(p_title)
+        title.setStyleSheet(SS.get_style('subtitle'))
+        title.setFont(QFont('Arial', 9))
+        return (title)
+
     def set_form_widget(self, p_form_key: str):
-        """Generic methods for setting up a db form widget"""
+        """Generic method for setting up a db form widget
+        
+        @DEV
+        - Probably need more space for the form widget
+        - Consider overlaying the Help or Control or Monitor
+          spaces with the Diagram widget instead of trying to
+          squeeze it in below the Editor.
+        """
         if p_form_key in self.forms.keys():
+            meta = self.forms[p_form_key]
             dbe_widget = QWidget()
             dbe_layout = QVBoxLayout()
             dbe_widget.setLayout(dbe_layout)
-            title = QLabel(self.forms[p_form_key]['title'])
+            title = QLabel(meta['title'])
             title.setStyleSheet(SS.get_style('title'))
             dbe_layout.addWidget(title)
             dbe_form = QFormLayout()
             dbe_form.setLabelAlignment(Qt.AlignRight)
-            return (dbe_widget, dbe_layout, dbe_form)
+            dbe_form.addWidget(self.make_subtitle("Key"))
+            for field_nm in meta['key']:
+                dbe_form.addRow(field_nm, SS.set_line_edit_style(QLineEdit()))
+            dbe_form.addWidget(self.make_subtitle("Fields"))
+            for field_nm in meta['fields']:
+                dbe_form.addRow(field_nm, SS.set_line_edit_style(QLineEdit()))
+            if 'refs' in meta.keys():
+                # "refs": [("Plans", "list")],
+                dbe_form.addWidget(self.make_subtitle("Links"))
+                for link in meta['refs']:
+                    dbe_form.addRow(link[0], SS.set_line_edit_style(QLineEdit()))
+                    # If "list" then add some kind of widget to allow entering
+                    # multiple values. Maybe a button or hyperlink with "more..."
+                    # or "+".
+            dbe_layout.addLayout(dbe_form)
+            return (dbe_widget)
 
-    def make_form_widget(self,
-                         p_form_key: str,
-                         p_dbe_form: QFormLayout,
-                         p_dbe_layout: QVBoxLayout,
-                         p_dbe_widget: QWidget):
-        """Generic methods for making a db form widget"""
-        if p_form_key in self.forms.keys():
-            p_dbe_layout.addLayout(p_dbe_form)
-            self.edt_layout.addWidget(p_dbe_widget)
-            self.forms[p_form_key]["widget"] = p_dbe_widget
-            # set status and state
-            p_dbe_widget.hide()
+    def make_dbe_forms(self):
+        """Generate a form widget for each record type.
 
-    def make_dbe_configs_form(self):
-        """Edit a Config record on Basement DB
-
-        @DEV:
-        - When defining record structures, should idenitfy which
-          are the key fields. Try using GroupBox again?
-        - Along the same lines as discussion on whether version
-          belongs in the key, I am assuming a meta-category key
-          value that would be autogenerated.
-        - For example, we might enter:
-            - Category: db
-            - Sub-category: files
-            - Name: app_resources_path
-            - Value: /home/{user}/{app_name}/res
-        - But the key that gets generated is:
-            - config:db:files:app_resources_path:0.1.0
-            - It has one value: "/home/{user}/{app_name}/res"
-            - And we also generate:
-                - A field name along with the field value
-                - A hash of the key and the non-audit field names and values
-                - A last-update timestamp
-        - Work this out before starting to write records.
-        - Won't hurt to see if encrytion can be brought in too, get that done.
+        Everything is driven by metadata.
         """
-        form_key = "Configs"
-        dbe_widget, dbe_layout, dbe_form = self.set_form_widget(form_key)
-        # edit fields
-        config_catg_txt = SS.set_line_edit_style(QLineEdit())
-        config_subcatg_txt = SS.set_line_edit_style(QLineEdit())
-        config_name_txt = SS.set_line_edit_style(QLineEdit())
-        config_value_txt = SS.set_line_edit_style(QLineEdit())
-        # config_version = SS.set_line_edit_style(QLineEdit())
-        # edit form
-        dbe_form.addRow("Config Category:", config_catg_txt)
-        dbe_form.addRow("Sub-Category:", config_subcatg_txt)
-        dbe_form.addRow("Config Name:", config_name_txt)
-        dbe_form.addRow("Config Value:", config_value_txt)
-        # Version is part of audit trail but included in key
-        # Its value should be auto-generated. It is not editable.
-        # If I am showing Version, then should also show other Audit fields.
-        # Might be easier to leave them out for now.
-        # dbe_form.addRow("Version:", config_version)
-        self.make_form_widget(form_key, dbe_form, dbe_layout, dbe_widget)
-
-    def make_dbs_states_form(self):
-        """Edit a State Flag (Status) record on Basement DB"""
-        form_key = "States"
-        dbe_widget, dbe_layout, dbe_form = self.set_form_widget(form_key)
-        # edit fields
-        status_catg_txt = SS.set_line_edit_style(QLineEdit())
-        status_subcatg_txt = SS.set_line_edit_style(QLineEdit())
-        status_name_txt = SS.set_line_edit_style(QLineEdit())
-        status_value_txt = SS.set_line_edit_style(QLineEdit())
-        # status_version = SS.set_line_edit_style(QLineEdit())
-        # edit form
-        dbe_form.addRow("Status Category:", status_catg_txt)
-        dbe_form.addRow("Sub-Category:", status_subcatg_txt)
-        dbe_form.addRow("Status Flag Name:", status_name_txt)
-        dbe_form.addRow("Status Flag Value:", status_value_txt)
-        # dbe_form.addRow("Version:", status_version)
-        self.make_form_widget(form_key, dbe_form, dbe_layout, dbe_widget)
-
-    def make_dbe_subtitle(self, p_title_txt: str):
-        """Generic function to add a sub-title to the DB Editor widget."""
-        title = QLabel(p_title_txt)
-        title.setStyleSheet(SS.get_style('subtitle'))
-        title.setFont(QFont('Arial', 9))
-        self.edt_layout.addWidget(title)
+        for form_key in self.forms.keys():
+            dbe_widget = self.set_form_widget(form_key)
+            self.edt_layout.addWidget(dbe_widget)
+            self.forms[form_key]["widget"] = dbe_widget
+            dbe_widget.hide()
 
     def make_dbe_record_selects(self):
         """Define Select Groups components of the Service Monitor widget."""
-        self.make_dbe_subtitle("Select a Record Type")
+        self.edt_layout.addWidget(
+            self.make_subtitle("Select a Record Type"))
         for grp in ("Basement", "Schema", "Harvest", "Rules"):
             sel_hbx = QHBoxLayout()
             for key, val in {k: v for k, v in self.selects.items()
@@ -370,7 +345,7 @@ class DBEditorWidget(QWidget):
            Plus the text input for find by key.
         """
         grp = "Find Record(s)"
-        self.make_dbe_subtitle(grp)
+        self.edt_layout.addWidget(self.make_subtitle(grp))
         btn_hbx = QHBoxLayout()
         for key, val in {k: v for k, v in self.acts.items()
                          if v["group"] == grp}.items():
@@ -384,7 +359,7 @@ class DBEditorWidget(QWidget):
     def make_dbe_edit_buttons(self):
         """Define Edit Button components of the Data Base Editor widget."""
         grp = "Edit Record"
-        self.make_dbe_subtitle(grp)
+        self.edt_layout.addWidget(self.make_subtitle(grp))
         btn_hbx = QHBoxLayout()
         for key, val in {k: v for k, v in self.acts.items()
                          if v["group"] == grp}.items():
@@ -419,5 +394,6 @@ class DBEditorWidget(QWidget):
         self.make_dbe_edit_buttons()
         self.make_dbe_cursor_display()
         self.show()
-        self.make_dbe_configs_form()
-        self.make_dbs_states_form()
+        # self.make_dbe_configs_form()
+        self.make_dbe_forms()
+        # self.make_dbs_states_form()

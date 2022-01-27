@@ -374,6 +374,29 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
+    def get_active_db(self):
+        """Identify the "active" database based on record type selection.
+           The record type selection matches key of active edit form.
+
+        :returns: tuple (name of db associated with active edit form,
+                         selected record type cast to lower case)
+        """
+        db_rec_types = {
+            "basement": ["Configs", "States"],
+            "schema": ["Topics", "Plans", "Services", "Schemas"]
+        }
+        key_db = None
+        meta_catg = None
+        for rec_type, form in self.db_editor.forms.items():
+            if form["active"]:
+                for db_nm, rec_types in db_rec_types.items():
+                    if rec_type in rec_types:
+                        key_db = db_nm
+                        break
+                meta_catg = rec_type.lower()
+                break
+        return (key_db, meta_catg)
+
     def push_cancel_btn(self):
         """Slot for Editor Edit Push Button --> Cancel"""
         btn = self.db_editor.acts["Cancel"]
@@ -386,9 +409,10 @@ class SaskanServices(QMainWindow):
         btn = self.db_editor.acts["Get"]
         if btn["active"]:
             self.show_status(btn["caption"])
-            # Which record type is selected? --> what DB to search?
-            # Is a specific key or wildcard key being requested?
-            # Call redis_io for the query
+            active_db, meta_catg = self.get_active_db()
+            select_key = self.db_editor.texts["Key"]["widget"].text()
+            result = RI.get_existing_record(active_db, select_key)
+            pp(("redis result:", result))
             # If multiple records returned,
             #  show the first one
             #  activate the Next and Prev buttons
@@ -401,9 +425,14 @@ class SaskanServices(QMainWindow):
         rec = "Configs"
         self.activate_edit_form(rec)
 
-    def select_state_flags(self):
-        """Slot for Editor Select State Flags radio check action"""
+    def select_status_flags(self):
+        """Slot for Editor Select Status Flags radio check action"""
         rec = "States"
+        self.activate_edit_form(rec)
+
+    def select_topics(self):
+        """Slot for Editor Select Topics radio check action"""
+        rec = "Topics"
         self.activate_edit_form(rec)
 
     def create_db_editor(self):
@@ -415,7 +444,8 @@ class SaskanServices(QMainWindow):
         # Editor Select radio buttons:
         for key, act in {
                 "Configs": self.select_configs,
-                "States": self.select_state_flags}.items():
+                "States": self.select_status_flags,
+                "Topics": self.select_topics}.items():
             self.db_editor.selects[key]["widget"].clicked.connect(act)
         # Editor Find and Edit push buttons:
         for key, act in {

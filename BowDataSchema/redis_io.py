@@ -264,14 +264,21 @@ class RedisIO(object):
     # Basic, fundamental, helper functions
     # =======================================
 
+    # Add function to count number of records with requested key, but not
+    #  return anything.
+
     def get_existing_record(self,
                             p_db: str,
-                            p_nm: str) -> dict:
-        """Return existing record if one exists for specified key."""
+                            p_key_val: str) -> dict:
+        """Return existing record if one exists for specified key.
+
+        @DEV:
+        - The "SaskanSchema" class can probably just be included in this one?
+        """
         rec = dict()
-        if self.RNS[p_db].exists(p_nm):               # type: ignore
+        if self.RNS[p_db].exists(p_key_val):               # type: ignore
             rec = SS.convert_msg_jzby_to_py_dict(
-                avro_jzby=self.RNS[p_db].get(p_nm))   # type: ignore
+                avro_jzby=self.RNS[p_db].get(p_key_val))   # type: ignore
         return rec
 
     def hash_record(self, p_rec: dict) -> str:
