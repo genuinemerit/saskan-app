@@ -10,7 +10,6 @@
 
 from pprint import pprint as pp     # noqa: F401
 from PySide2.QtCore import Qt
-from PySide2.QtGui import QFont
 # from PySide2.QtWidgets import QCheckBox
 from PySide2.QtWidgets import QFormLayout
 from PySide2.QtWidgets import QHBoxLayout
@@ -42,358 +41,380 @@ class DBEditorWidget(QWidget):
     def __init__(self, parent: QWidget):
         """super() call is required."""
         super().__init__(parent)
-        self.set_dbeditor_forms()
-        self.set_dbeditor_texts()
-        self.set_dbeditor_buttons()
-        self.set_dbeditor_selects()
-        self.make_dbeditor_widget()
+        self.set_texts_meta()
+        self.set_buttons_meta()
+        self.set_rect_meta()
+        self.make_db_editor_wdg()
 
-    def set_dbeditor_forms(self):
-        """Define metadata for the DB Editor forms.
+    # Text Widget Creation
+    # ============================================================
+
+    def set_texts_meta(self):
+        """Define metadata for the DB Editor Text items.
+
+        This metadata defines text-string attributes of text items.
+        They may be display-only subtitles, placeholder hints
+        in text inputs, the content of a label in a row-based line
+        edits within forms, or the help caption associated with a
+        push button or radio button.
+
+        This dict also holds a copy of the instantiated widget.
 
         @DEV:
-        - May want to combine forms and some selects metadata into one dict.
-        """
-        self.forms: dict = dict()
-        forms_template = {
-            "db": str(),
-            "title": str(),
-            "active": True,
-            "widget": object}
-        forms = {"Configs":
-                 {"db": "Basement",
-                  "title": "Config Record (Basement DB)",
-                  "key": ["Config Category", "Config ID"],
-                  "fields": ["Field Name", "Field Value"],
-                  "active": False},
-                 "States":
-                 {"db": "Basement",
-                  "title": "State Record (Basement DB)",
-                  "key": ["Status Category", "Status ID"],
-                  "fields": ["Field Name", "Field Value"],
-                  "active": False},
-                 "Topics":
-                 {"db": "Schema",
-                  "title": "Topics Template (Schema DB)",
-                  "key": ["Template", "Saskan Topic"],
-                  "fields": ["Host", "Port", "Caption", "Description"],
-                  "refs": [("Plans", "list")],
-                  "active": False}}
-        for key in forms.keys():
-            self.forms[key] = forms_template.copy()
-            for this, do_it in forms[key].items():
-                self.forms[key][this] = do_it
-
-    def set_dbeditor_texts(self):
-        """Define metadata for the DB Editor Text Inputs.
+        - This should be further abstracted via BowQuiver.saskan_texts.
         """
         self.texts: dict = dict()
         texts_template = {
             "caption": str(),
+            "display": str(),
             "hint": str(),
-            "readonly": False,
-            "active": True,
-            "widget": object}
-        texts = {"Key":
-                 {"caption": "Search key value",
-                  "hint": "Search key value",
-                  "active": False},
-                 "Cursor":
-                 {"caption": "Summary of IO result",
-                  "hint": "Cursor/Result summary",
-                  "readonly": True,
-                  "active": False},
-                 "Pending":
-                 {"caption": "Summary of pending changes",
-                  "hint": "Pending changes",
-                  "readonly": True,
-                  "active": False}}
+            "readonly": True,
+            "active": False,
+            "widget": None}
+        texts = {"key_fields": {"display": "Key Fields"},
+                 "value_fields": {"display": "Value Fields"},
+                 "link_fields": {"display": "Link Fields"},
+                 "Key": {"hint": "Search key value"},
+                 "Cursor": {"hint": "Cursor/Result summary"},
+                 "Pending": {"hint": "Pending changes"},
+                 "Keys": {"display": "Key Fields"},
+                 "Values": {"display": "Value Fields"},
+                 "Links": {"display": "Link Fields"},
+                 "Types": {"display": "Select Record Type"},
+                 "Find": {"display": "Find Record(s)"},
+                 "Edit": {"display": "Edit Record"},
+                 "Configs": {
+                    "display": "Config Records (Basement DB)",
+                    "caption": "Records defining config data structures."},
+                 "Status": {
+                    "display": "Status Flag Records (Basement DB)",
+                    "caption": "Records defining status data structures."},
+                 "Expire Rules": {
+                    "display": "Expiration Rules (Basement DB)",
+                    "caption": "Records holding record expiration rules."},
+                 "Retry Rules": {
+                    "display": "Retry Rules (Basement DB)",
+                    "caption": "Records holding message retry rules."},
+                 "Topics": {
+                    "display": "Topic Records (Schema DB)",
+                    "caption": "Records holding service topic definitions."},
+                 "Plans": {
+                    "display": "Plan Records (Schema DB)",
+                    "caption": "Records holding service plan definitions."},
+                 "Services": {
+                    "display": "Service Records (Schema DB)",
+                    "caption": "Records holding service definitions."},
+                 "Schemas": {
+                    "display": "Schema Records (Schema DB)",
+                    "caption": "Records holding service schema definitions."},
+                 "Response": {
+                    "display": "Response Records (Harvest DB)",
+                    "caption": "Records holding request responses and pubs."},
+                 "Activator Log": {
+                    "display": "Activator Events (Log DB)",
+                    "caption": "Log records for service activator events."},
+                 "Request Log": {
+                    "display": "Request Events (Log DB)",
+                    "caption": "Log records for service request/sub events."},
+                 "Response Log": {
+                    "display": "Response Events (Log DB)",
+                    "caption": "Log records for service response/pub events."},
+                 "Server Monitor": {
+                    "display": "Server/Channel Monitor (Monitor DB)",
+                    "caption": "Summary records for server/channel loads."},
+                 "Requests Monitor": {
+                    "display": "Requests Monitor (Monitor DB)",
+                    "caption": "Summary records for request/sub events."},
+                 "Responses Monitor": {
+                    "display": "Responses Monitor (Monitor DB)",
+                    "caption": "Summary records for response/pub events."},
+                 "Get": {"caption": "Retrieve records of selected type. " +
+                         "Select all if no key or wildcard entered."},
+                 "Next": {"caption":
+                          "Retrieve next record from cursor IO result."},
+                 "Prev": {"caption":
+                          "Retrieve previous record from cursor IO result."},
+                 "Add": {"caption":
+                         "Create a new record of the selected type."},
+                 "Delete": {"caption":
+                            "Mark currently selected record for removal."},
+                 "Save": {"caption":
+                          "Commit all pending changes."},
+                 "Undo": {"caption":
+                          "Reverse the most recent edit (Ctrl+Z)."},
+                 "Redo": {"caption":
+                          "Re-apply the most recently undone edit (Ctrl+Y)."},
+                 "Cancel": {"caption":
+                            "Purge pending edits and Close current editor " +
+                            "without saving."},
+                 "More": {"caption":
+                          "Add another input field for Links."},
+                 "Fewer": {"caption":
+                           "Remove an input field for Links."}}
         for key in texts.keys():
             self.texts[key] = texts_template.copy()
             for this, do_it in texts[key].items():
                 self.texts[key][this] = do_it
 
-    def set_dbeditor_buttons(self):
-        """Define metadata for DB Editor button actions."""
-        self.acts: dict = dict()
-        acts_template = {
-            "group": str(),
-            "title": str(),
-            "caption": str(),
-            "keycmd": str(),
-            "active": True,
-            "widget": object}
-        acts = {"Get":
-                {"group": "Find Record(s)",
-                 "title": "Get/Find Record(s)",
-                 "caption": "Retrieve records of selected type. " +
-                            "Select all if no key or wildcard entered."},
-                "Next":
-                {"group": "Find Record(s)",
-                 "title": "Get Next Record",
-                 "caption": "Retrieve next record from cursor IO result."},
-                "Prev":
-                {"group": "Find Record(s)",
-                 "title": "Get Previous Record",
-                 "caption": "Retrieve previous record from cursor IO result."},
+    # Text-widget helper functions
+    # ============================================================
+    def get_hint(self, p_text_key: str) -> str:
+        """Return the hint (placeholder) value for a text item.
 
-                "Add":
-                {"group": "Edit Record",
-                 "title": "Create a New Record",
-                 "caption": "Use current form values to create a new record " +
-                            "of the selected type."},
-                "Delete":
-                {"group": "Edit Record",
-                 "title": "Delete a Record",
-                 "caption": "Mark the currently selected record for " +
-                            " logical delete."},
-                "Save":
-                {"group": "Edit Record",
-                 "title": "Save a Record",
-                 "caption": "Commit all pending changes to the " +
-                            "pertinent database(s)."},
-                "Undo":
-                {"group": "Edit Record",
-                 "title": "Reverse an Edit",
-                 "caption": "Reverse the effect of most recent edit."},
-                "Redo":
-                {"group": "Edit Record",
-                 "title": "Redo an Edit",
-                 "caption": "Re-apply the effect of most recently " +
-                            "reversed edit."},
-                "Cancel":
-                {"group": "Edit Record",
-                 "title": "Cancel Edits",
-                 "caption": "Purge pending edits. Close current " +
-                            "edit form without saving."}}
-        for key in acts.keys():
-            self.acts[key] = acts_template.copy()
-            for this, do_it in acts[key].items():
-                self.acts[key][this] = do_it
-
-    def set_dbeditor_selects(self):
-        """Define metadata for DB Editor checkbox actions.
+        :args: p_text_key: str - key to the text metadata
+        :returns: str - the hint value
         """
-        self.selects: dict = dict()
-        sel_template = {
-            "group": str(),
-            "title": str(),
-            "caption": str(),
-            "keycmd": str(),
-            "active": True,
-            "widget": object}
-        selects = {"Configs":
-                   {"group": "Basement",
-                    "title": "Get Config Records",
-                    "caption": "Select records defining configuration data " +
-                               "structures."},
-                   "States":
-                   {"group": "Basement",
-                    "title": "Get State Records",
-                    "caption": "Select records defining state (status) data " +
-                               "structures."},
+        return (self.texts[p_text_key]["hint"])
 
-                   "Topics":
-                   {"group": "Schema",
-                    "title": "Get Topics Records",
-                    "caption": "Select records holding Topic definitions."},
-                   "Plans":
-                   {"group": "Schema",
-                    "title": "Get Plans Records",
-                    "caption": "Select records holding Plan definitions."},
-                   "Services":
-                   {"group": "Schema",
-                    "title": "Get Services Records",
-                    "caption": "Select records holding Service definitions."},
-                   "Schemas":
-                   {"group": "Schema",
-                    "title": "Get Schema Records",
-                    "caption": "Select records holding Schema definitions."},
+    def make_text_subttl_wdg(self, p_text_key: str):
+        """Create a sub-title text widget. Save it with metadata.
 
-                   "Requests":
-                   {"group": "Harvest",
-                    "title": "Get Request or Subscribe Packages",
-                    "caption": "Select records holding Request packages." +
-                               "This includes Subscriptions."},
-                   "Responses":
-                   {"group": "Harvest",
-                    "title": "Get Response or Publish Packages",
-                    "caption": "Select records holding Response packages." +
-                               "This includes Publications."},
-
-                   "Expirations":
-                   {"group": "Rules",
-                    "title": "Get Expiration rules",
-                    "caption": "Select records holding definition of " +
-                               "expiration/purge rules for packages."},
-                   "Retry Rate":
-                   {"group": "Rules",
-                    "title": "Get Retry Rate rules",
-                    "caption": "Select records defining timing of retries" +
-                               "for certain types of failed requests."},
-                   "Retry Limit":
-                   {"group": "Rules",
-                    "title": "Get Retry Limit rules",
-                    "caption": "Select records defining count of retries " +
-                               "for certain types of failed requests."}}
-        for key in selects.keys():
-            self.selects[key] = sel_template.copy()
-            for this, do_it in selects[key].items():
-                self.selects[key][this] = do_it
-
-    def make_subtitle(self, p_title: str):
-        """Generic function to make a sub-title widget.
-
-        :args: p_title: str - the subtitle text
-        :returns: QLabel - the subtitle label object
+        :args: p_text_key: str - key to text metadata
+        :returns: QLabel object
         """
-        title = QLabel(p_title)
-        title.setStyleSheet(SS.get_style('subtitle'))
-        title.setFont(QFont('Arial', 9))
-        return (title)
+        stt = SS.set_subtitle_style(
+            QLabel(self.texts[p_text_key]["display"]))
+        self.texts[p_text_key]["active"] = True
+        self.texts[p_text_key]["widget"] = stt
+        return (stt)
 
-    def set_form_widget(self, p_form_key: str):
-        """Generic method for setting up a db form widget
-        
-        @DEV
-        - Probably need more space for the form widget
-        - Consider overlaying the Help or Control or Monitor
-          spaces with the Diagram widget instead of trying to
-          squeeze it in below the Editor.
-        """
-        if p_form_key in self.forms.keys():
-            meta = self.forms[p_form_key]
-            dbe_widget = QWidget()
-            dbe_layout = QVBoxLayout()
-            dbe_widget.setLayout(dbe_layout)
-            title = QLabel(meta['title'])
-            title.setStyleSheet(SS.get_style('title'))
-            dbe_layout.addWidget(title)
-            dbe_form = QFormLayout()
-            dbe_form.setLabelAlignment(Qt.AlignRight)
-            dbe_form.addWidget(self.make_subtitle("Key"))
-            for field_nm in meta['key']:
-                dbe_form.addRow(field_nm, SS.set_line_edit_style(QLineEdit()))
-            dbe_form.addWidget(self.make_subtitle("Fields"))
-            for field_nm in meta['fields']:
-                dbe_form.addRow(field_nm, SS.set_line_edit_style(QLineEdit()))
-            if 'refs' in meta.keys():
-                # "refs": [("Plans", "list")],
-                dbe_form.addWidget(self.make_subtitle("Links"))
-                for link in meta['refs']:
-                    dbe_form.addRow(link[0], SS.set_line_edit_style(QLineEdit()))
-                    # If "list" then add some kind of widget to allow entering
-                    # multiple values. Maybe a button or hyperlink with "more..."
-                    # or "+".
-            dbe_layout.addLayout(dbe_form)
-            return (dbe_widget)
+    def make_text_input_wdg(self,
+                            p_text_key: str,
+                            p_readonly: bool = True):
+        """Create a text input widget. Save it with metadata.
 
-    def make_dbe_forms(self):
-        """Generate a form widget for each record type.
-
-        Everything is driven by metadata.
-        """
-        for form_key in self.forms.keys():
-            dbe_widget = self.set_form_widget(form_key)
-            self.edt_layout.addWidget(dbe_widget)
-            self.forms[form_key]["widget"] = dbe_widget
-            dbe_widget.hide()
-
-    def make_dbe_record_selects(self):
-        """Define Select Groups components of the Service Monitor widget."""
-        self.edt_layout.addWidget(
-            self.make_subtitle("Select a Record Type"))
-        for grp in ("Basement", "Schema", "Harvest", "Rules"):
-            sel_hbx = QHBoxLayout()
-            for key, val in {k: v for k, v in self.selects.items()
-                             if v["group"] == grp}.items():
-                sel_click = QRadioButton(key)
-                sel_click.setStyleSheet(SS.get_style('checkbox'))
-                sel_click.setFont(QFont('Arial', 9))
-                sel_hbx.addWidget(sel_click)
-                self.selects[key]["widget"] = sel_click
-            sel_hbx.addStretch(1)
-            self.edt_layout.addLayout(sel_hbx)
-
-    def make_dbe_find_key_input(self):
-        """Define the text input for find by key.
-
+        :args:
+            p_text_key: str - name of the text input
+            p_readonly: bool - whether the input is read-only
         :returns: QLineEdit object
         """
-        sel_txt = QLineEdit()
-        sel_txt.setStyleSheet(SS.get_style('inactive_editor'))
-        sel_txt.setFont(QFont('Arial', 9))
-        sel_txt.setPlaceholderText(self.texts["Key"]["hint"])
-        sel_txt.setEnabled(False)
-        self.texts["Key"]["widget"] = sel_txt
-        return (sel_txt)
+        txt_wdg = SS.set_line_edit_style(QLineEdit(), False)
+        txt_wdg.setPlaceholderText(self.get_hint(p_text_key))
+        txt_wdg.setReadOnly(p_readonly)
+        txt_wdg.setEnabled(True)
+        self.texts[p_text_key]["active"] = True
+        self.texts[p_text_key]["widget"] = txt_wdg
+        return (txt_wdg)
 
-    def set_up_push_button(self, p_key: str):
-        """Generic function for initializing a push button object.
+    # Push-Button Widget Creation
+    # ============================================================
 
-        :args: p_key - key/name for the button
+    def set_buttons_meta(self):
+        """Define metadata for DB Editor button actions.
+
+        Buttons are organized into groups, which facilitates
+        containing into V and H boxes.  Help texts associated
+        with buttons are defined in texts metadata.
+
+        @DEV:
+        - Could be further abstracted via BowQuiver.saskan_buttons.
+        - Could add icons
+        - Maybe can do some action slots here? E.g., if they
+          can be handled entirely within the scope of this class.
+        """
+        self.buttons: dict = dict()
+        button_template = {
+            "icon": None,
+            "keycmd": str(),
+            "active": True,
+            "widget": None}
+        self.buttons = {
+            "Find": {"Get": {}, "Next": {}, "Prev": {}},
+            "Edit": {"Add": {}, "Delete": {}, "Save": {},
+                     "Undo": {}, "Redo": {}, "Cancel": {}},
+            "Links": {"More": {}, "Fewer": {}}}
+        for grp in self.buttons.keys():
+            for btn_nm in self.buttons[grp].keys():
+                self.buttons[grp][btn_nm] = button_template.copy()
+
+    # Push-button helper functions
+    # ============================================================
+
+    def make_push_button_wdg(self,
+                             p_grp: str,
+                             p_key: str):
+        """Instantiate a push button object.
+
+        By default, they are set up in an inactive state.
+
+        :args:
+            p_grp - metadata group for the button
+            p_key - metadata key for the button
         :returns: QPushButton object
         """
-        btn = SS.set_button_style(QPushButton(p_key))
-        btn.setStyleSheet(SS.get_style('inactive_button'))
+        btn = SS.set_button_style(QPushButton(p_key), False)
         btn.setEnabled(False)
-        self.acts[p_key]["widget"] = btn
+        self.buttons[p_grp][p_key]["widget"] = btn
+        self.buttons[p_grp][p_key]["active"] = False
         return (btn)
 
-    def make_dbe_find_buttons(self):
-        """Define Find Button components of the Data Base Editor widget.
-           Plus the text input for find by key.
+    def make_button_group_wdg(self,
+                              p_grp: str):
+        """Make a horizontal box and put buttons and subtitle in it.
+
+        :args:  p_grp: str - name of the button group
+        :returns: QVBoxLayout object
         """
-        grp = "Find Record(s)"
-        self.edt_layout.addWidget(self.make_subtitle(grp))
-        btn_hbx = QHBoxLayout()
-        for key, val in {k: v for k, v in self.acts.items()
-                         if v["group"] == grp}.items():
-            btn = self.set_up_push_button(key)
-            btn_hbx.addWidget(btn)
-        # Add key-input text box
-        btn_hbx.addWidget(self.make_dbe_find_key_input())
-        btn_hbx.addStretch(1)
-        self.edt_layout.addLayout(btn_hbx)
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.make_text_subttl_wdg(p_grp))
+        hbox = QHBoxLayout()
+        for btn_nm, btn_attrs in self.buttons[p_grp].items():
+            btn = self.make_push_button_wdg(p_grp, btn_nm)
+            hbox.addWidget(btn)
+        vbox.addLayout(hbox)
+        return (vbox)
 
-    def make_dbe_edit_buttons(self):
-        """Define Edit Button components of the Data Base Editor widget."""
-        grp = "Edit Record"
-        self.edt_layout.addWidget(self.make_subtitle(grp))
-        btn_hbx = QHBoxLayout()
-        for key, val in {k: v for k, v in self.acts.items()
-                         if v["group"] == grp}.items():
-            btn = self.set_up_push_button(key)
-            btn_hbx.addWidget(btn)
-        btn_hbx.addStretch(1)
-        self.edt_layout.addLayout(btn_hbx)
+    # Push-button action slots <-- needs work here
+    # And see what other button slots can move into this class
+    # ============================================================
 
-    def make_dbe_cursor_display(self):
-        """Define the text display for IO Cursor result.
-
-        :returns: QLineEdit object (readonly)
+    def add_links(self):
+        """Add another input row to form for Links.
         """
-        disp_txt = QLineEdit()
-        disp_txt.setStyleSheet(SS.get_style('inactive_editor'))
-        disp_txt.setFont(QFont('Arial', 9))
-        disp_txt.setReadOnly(True)
-        disp_txt.setPlaceholderText(self.texts["Cursor"]["hint"])
-        self.texts["Cursor"]["widget"] = disp_txt
-        self.edt_layout.addWidget(disp_txt)
+        form_key = \
+            [key for key in self.forms.keys() if self.forms[key]['active']][0]
+        dbe_form = \
+            (self.forms[form_key]["widget"].findChildren(QFormLayout))[0]
+        row_cnt = dbe_form.rowCount()
+        link_nm = self.forms[form_key]['refs'][0][0]
+        dbe_form.insertRow(
+            row_cnt, link_nm, SS.set_line_edit_style(QLineEdit()))
 
-    def make_dbeditor_widget(self):
-        """Define components of the Data Base Editor widget."""
-        self.setGeometry(620, 40, 550, 600)
-        self.edt_layout = QVBoxLayout()
-        self.edt_layout.setAlignment(Qt.AlignTop)
-        self.setLayout(self.edt_layout)
-        edt_btns_vbx = QVBoxLayout()
-        self.edt_layout.addLayout(edt_btns_vbx)
-        self.make_dbe_record_selects()
-        self.make_dbe_find_buttons()
-        self.make_dbe_edit_buttons()
-        self.make_dbe_cursor_display()
+    def remove_links(self):
+        """Remove one input row from the form for Links.
+
+        @DEV
+        - The flaw here is that it will remove any item, not just newly
+          added link inputs.
+        """
+        form_key = \
+            [key for key in self.forms.keys() if self.forms[key]['active']][0]
+        dbe_form = \
+            (self.forms[form_key]["widget"].findChildren(QFormLayout))[0]
+        row_cnt = dbe_form.rowCount()
+        dbe_form.removeRow(row_cnt - 1)
+
+    # Record Type Editor Widget Creation
+    # ============================================================
+
+    def set_rect_meta(self):
+        """Define metadata for the DB Editors for each Record Type.
+
+        The 'rect' widget is a container for input rows and buttons
+        for each Record Type. This metadata is used to generate both
+        the editor widget and items in a radio button group to select
+        which rect to edit.
+
+        Each 'rect' widget holds one or more form widgets and may
+        also have some buttons, subtitles and other objects.
+
+        Each form widget holds one or more input rows.
+        In some cases, the number of input rows may be variable,
+        per user inputs.
+        """
+        rect_template = {
+            "db": str(),
+            "key_fields": list(),
+            "value_fields": list(),
+            "link_fields": list(),
+            "active": False,
+            "selector": None,
+            "widget": None}
+        self.rects = {"Basement": {
+                        "Configs": {
+                          "key_fields": ["Config Category", "Config ID"],
+                          "value_fields": ["Field Name", "Field Value"]},
+                        "Status": {
+                          "key_fields": ["Status Category", "Status ID"],
+                          "value_fields": ["Field Name", "Field Value"]},
+                        "Expire Rules": {},
+                        "Retry Rules": {}},
+                      "Schema":  {
+                        "Topics": {
+                          "key_fields": ["Template", "Saskan Topic"],
+                          "value_fields": ["Host", "Port", "Caption", "Desc"],
+                          "link_fields": ["Plans"]},
+                        "Plans": {},
+                        "Services": {},
+                        "Schemas": {}},
+                      "Harvest": {
+                        "Response": {}},
+                      "Log": {
+                        "Activator Log": {},
+                        "Request Log": {},
+                        "Response Log": {}},
+                      "Monitor": {
+                        "Server Monitor": {},
+                        "Requests Monitor": {},
+                        "Responses Monitor": {}}}
+        for key in self.rects.keys():
+            for rect in self.rects[key].keys():
+                for field, value in rect_template.items():
+                    if field not in self.rects[key][rect].keys():
+                        self.rects[key][rect][field] = value
+        pp(("self.rects", self.rects))
+
+    # Record Type Editor Widget helper functions
+    # ============================================================
+
+    def make_rect_selectors(self):
+        """Return a collection(s) of radio buttons for selecting rect type."""
+        vbox = QVBoxLayout()
+        vbox.addWidget(self.make_text_subttl_wdg("Types"))
+        for db in self.rects.keys():
+            hbox = QHBoxLayout()
+            for rect in self.rects[db].keys():
+                rdo_btn = SS.set_radiobtn_style(QRadioButton(rect))
+                hbox.addWidget(rdo_btn)
+                # hbox.addStretch(1)
+                self.rects[db][rect]["selector"] = rdo_btn
+            vbox.addLayout(hbox)
+        return (vbox)
+
+    def make_rect_wdg(self,
+                      db_nm: str,
+                      rect_nm: str):
+        """Return a container widget for selected db/rect type."""
+        rect_wdg = QWidget()
+        rect_layout = QVBoxLayout()
+        rect_layout.addWidget(
+            self.make_text_subttl_wdg(rect_nm))
+        show_fields = ["key_fields", "value_fields", "link_fields"]
+        rect_layout.addWidget(self.make_text_subttl_wdg(rect_nm))
+        for field_grp in show_fields:
+            rect_layout.addWidget(self.make_text_subttl_wdg(field_grp))
+            form = QFormLayout()
+            form.setLabelAlignment(Qt.AlignRight)
+            for field in self.rects[db_nm][rect_nm][field_grp]:
+                form.addRow(field, SS.set_line_edit_style(QLineEdit()))
+                if field_grp == "link_fields":
+                    form.addRow(self.make_button_group_wdg("Links"))
+                    # add_links.clicked.connect(self.add_links)
+                    # remove_links.clicked.connect(self.remove_links)
+            rect_layout.addLayout(form)
+        rect_wdg.setLayout(rect_layout)
+        return (rect_wdg)
+
+    # Database Editor Widget Creation
+    # ============================================================
+
+    def make_db_editor_wdg(self):
+        """Create all components of Data Base Editor widget.
+        """
+        self.setGeometry(620, 40, 550, 840)
+        self.dbe_layout = QVBoxLayout()
+        self.dbe_layout.setAlignment(Qt.AlignTop)
+        self.setLayout(self.dbe_layout)
+        self.dbe_layout.addLayout(self.make_rect_selectors())
+        vbox = self.make_button_group_wdg("Find")
+        vbox.addWidget(self.make_text_input_wdg("Key", False))
+        self.dbe_layout.addLayout(vbox)
+        self.dbe_layout.addLayout(self.make_button_group_wdg("Edit"))
+        self.dbe_layout.addWidget(self.make_text_input_wdg("Cursor"))
         self.show()
-        # self.make_dbe_configs_form()
-        self.make_dbe_forms()
-        # self.make_dbs_states_form()
+        for db, rects in self.rects.items():
+            for rect, attrs in rects.items():
+                rect_wdg = self.make_rect_wdg(db, rect)
+                self.rects[db][rect]["widget"] = rect_wdg
+                self.dbe_layout.addWidget(rect_wdg)
+                rect_wdg.hide()

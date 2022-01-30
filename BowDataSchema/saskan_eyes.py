@@ -317,6 +317,8 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
+    # Some of these should be moved to the dbeditor_wdg class.
+
     def deactivate_texts(self, p_inp_nm: list):
         """Generic function to deactivate a text input widget."""
         for inp_nm in p_inp_nm:
@@ -325,10 +327,17 @@ class SaskanServices(QMainWindow):
             inp["widget"].setEnabled(False)
             inp["active"] = False
 
-    def deactivate_buttons(self, p_btn_nm: list):
-        """Generic function to deactivate a push button"""
-        for btn_nm in p_btn_nm:
-            btn = self.db_editor.acts[btn_nm]
+    def deactivate_buttons(self, 
+                           p_grp: str,
+                           p_btns: list):
+        """Generic function to deactivate a push button
+
+        :args:
+            p_grp: str name of button group
+            p_btns: list of button names in group
+        """
+        for btn_nm in p_btns:
+            btn = self.db_editor.buttons[p_grp][btn_nm]
             btn["widget"].setStyleSheet(SS.get_style("inactive_button"))
             btn["widget"].setEnabled(False)
             btn["active"] = False
@@ -339,7 +348,10 @@ class SaskanServices(QMainWindow):
             if (p_rec is None or key != p_rec) and form["active"]:
                 form["widget"].hide()
                 form["active"] = False
-                self.deactivate_buttons(["Cancel", "Get", "Next", "Prev"])
+                self.deactivate_buttons(
+                    "Edit", ["Cancel"])
+                self.deactivate_buttons(
+                    "Find", ["Get", "Next", "Prev"])
                 self.deactivate_texts(["Key", "Cursor"])
                 break
 
@@ -351,25 +363,36 @@ class SaskanServices(QMainWindow):
             inp["widget"].setEnabled(True)
             inp["active"] = True
 
-    def activate_buttons(self, p_btn_nm: list):
-        """Generic function to activate a push button"""
+    def activate_buttons(self,
+                         p_grp: str, 
+                         p_btn_nm: list):
+        """Generic function to activate a push button
+
+        :args:
+            p_grp: str name of button group
+            p_btn_nm: list of button names in group
+        """
         for btn_nm in p_btn_nm:
-            btn = self.db_editor.acts[btn_nm]
+            btn = self.db_editor.buttons[p_grp][btn_nm]
             btn["widget"].setStyleSheet(SS.get_style("active_button"))
             btn["widget"].setEnabled(True)
             btn["active"] = True
 
-    def activate_edit_form(self, p_rec: str):
+    def activate_edit_form(self,
+                           p_rec: str):
         """Generic functions when enabling a different edit form.
+
+        :args: p_rec: str name of record type to edit
         """
         self.deactivate_edit_form((p_rec))
         if self.db_editor.forms[p_rec]["active"] is not True:
             self.show_status(
-                self.db_editor.selects[p_rec]["caption"])
+                self.db_editor.texts[p_rec]["caption"])
             try:
                 self.db_editor.forms[p_rec]["widget"].show()
                 self.db_editor.forms[p_rec]["active"] = True
-                self.activate_buttons(["Cancel", "Get"])
+                self.activate_buttons("Edit", ["Cancel"])
+                self.activate_buttons("Find", ["Get"])
                 self.activate_texts(["Key", "Cursor"])
             except AttributeError:
                 pass
@@ -399,16 +422,16 @@ class SaskanServices(QMainWindow):
 
     def push_cancel_btn(self):
         """Slot for Editor Edit Push Button --> Cancel"""
-        btn = self.db_editor.acts["Cancel"]
+        btn = self.db_editor.buttons["Edit"]["Cancel"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.show_status(self.db_editor.texts["Cancel"]["caption"])
             self.deactivate_edit_form()
 
     def push_get_btn(self):
         """Slot for Editor Edit Push Button --> Get"""
-        btn = self.db_editor.acts["Get"]
+        btn = self.db_editor.buttons["Find"]["Get"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.show_status(self.db_editor.texts["Get"]["caption"])
             active_db, meta_catg = self.get_active_db()
             select_key = self.db_editor.texts["Key"]["widget"].text()
             result = RI.get_existing_record(active_db, select_key)
@@ -442,16 +465,19 @@ class SaskanServices(QMainWindow):
         """
         self.db_editor = DBEditorWidget(self)
         # Editor Select radio buttons:
+        """
         for key, act in {
                 "Configs": self.select_configs,
                 "States": self.select_status_flags,
                 "Topics": self.select_topics}.items():
-            self.db_editor.selects[key]["widget"].clicked.connect(act)
+            self.db_editor.rects[key]["selector"].clicked.connect(act)
         # Editor Find and Edit push buttons:
         for key, act in {
-                "Cancel": self.push_cancel_btn,
-                "Get": self.push_get_btn}.items():
-            self.db_editor.acts[key]["widget"].clicked.connect(act)
+                ("Edit", "Cancel"): self.push_cancel_btn,
+                ("Find", "Get"): self.push_get_btn}.items():
+            wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
+            wdg.clicked.connect(act)
+        """
         self.db_editor.hide()
 
     # Help (Web pages) Display
@@ -487,7 +513,7 @@ class SaskanServices(QMainWindow):
                     img = self.network.get_image_path()
                     with open(img):
                         self.diagram_wdg = QLabel(self)
-                        self.diagram_wdg.setGeometry(625, 650, 550, 200)
+                        self.diagram_wdg.setGeometry(20, 650, 550, 200)
                         pixmap = QPixmap(img)
                         self.diagram_wdg.setPixmap(pixmap)
                         self.diagram_wdg.setStyleSheet(SS.get_style("canvas"))

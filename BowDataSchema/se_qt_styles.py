@@ -7,8 +7,10 @@ BoW Saskan QCC style sheets for Qt.
 """
 
 from PySide2.QtGui import QFont
+from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QPushButton
+from PySide2.QtWidgets import QRadioButton
 
 
 class SaskanStyles(object):
@@ -246,26 +248,68 @@ class SaskanStyles(object):
             ss = self._base_style()
         return ss
 
-    def set_button_style(self, btn: QPushButton):      # type: ignore
+    def set_button_style(self,
+                         btn: QPushButton,
+                         active: bool = True):      # type: ignore
         """Set push button style font size and style.
 
         :Args:
             btn: a QT push button object
+            active: bool, optional. If False, make it inactive.
         :Returns:
             btn: the modified object
         """
-        btn.setStyleSheet(SaskanStyles.get_style('button'))
+        if active:
+            btn.setStyleSheet(SaskanStyles.get_style('button'))
+        else:
+            btn.setStyleSheet(SaskanStyles.get_style('inactive_button'))
         btn.setFont(QFont('Arial', 11))
         return btn
 
-    def set_line_edit_style(self, edt: QLineEdit):      # type: ignore
+    def set_line_edit_style(self,
+                            edt: QLineEdit,
+                            active: bool = True):      # type: ignore
         """Set line editor style font size and style.
 
         :Args:
             edt: a QT line editor object
+            active: bool, optional. If False, make it inactive.
         :Returns:
             edt: the modified object
         """
-        edt.setStyleSheet(SaskanStyles.get_style('editor'))
-        edt.setFont(QFont('Arial', 10))
+        if active:
+            edt.setStyleSheet(SaskanStyles.get_style('editor'))
+        else:
+            edt.setStyleSheet(SaskanStyles.get_style('inactive_editor'))
+        edt.setFont(QFont('Arial', 9))
         return edt
+
+    def set_radiobtn_style(self,
+                           rdo: QRadioButton,
+                           active: bool = True):      # type: ignore
+        """Set radio button style font size and style.
+
+        :Args:
+            rdo: a QT radio button object
+            active: bool, optional. If False, make it inactive.
+        :Returns:
+            rdo: the modified object
+        """
+        if active:
+            rdo.setStyleSheet(SaskanStyles.get_style('radiobtn'))
+        else:
+            rdo.setStyleSheet(SaskanStyles.get_style('inactive_radiobtn'))
+        rdo.setFont(QFont('Arial', 9))
+        return rdo
+
+    def set_subtitle_style(self, lbl: QLabel):      # type: ignore
+        """Set subtitle style font size and style.
+
+        :Args:
+            lbl: a QT Label object
+        :Returns:
+            lbl: the modified object
+        """
+        lbl.setStyleSheet(SaskanStyles.get_style('subtitle'))
+        lbl.setFont(QFont('Arial', 11))
+        return lbl
