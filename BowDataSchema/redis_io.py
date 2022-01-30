@@ -269,13 +269,16 @@ class RedisIO(object):
 
     def get_existing_record(self,
                             p_db: str,
-                            p_key_val: str) -> dict:
+                            p_key_val: str):
         """Return existing record if one exists for specified key.
 
-        @DEV:
-        - The "SaskanSchema" class can probably just be included in this one?
+        :args:
+            p_db: str - name of DB to search
+            p_key_val: str - key to search for
+        :returns:
+            dict: records if found, else None
         """
-        rec = dict()
+        rec = None
         if self.RNS[p_db].exists(p_key_val):               # type: ignore
             rec = SS.convert_msg_jzby_to_py_dict(
                 avro_jzby=self.RNS[p_db].get(p_key_val))   # type: ignore

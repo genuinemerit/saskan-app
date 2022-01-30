@@ -74,6 +74,7 @@ class DBEditorWidget(QWidget):
         texts = {"key_fields": {"display": "Key Fields"},
                  "value_fields": {"display": "Value Fields"},
                  "link_fields": {"display": "Link Fields"},
+                 "dbe_status": {"display": "Database Editor Status"},
                  "Key": {"hint": "Search key value"},
                  "Cursor": {"hint": "Cursor/Result summary"},
                  "Pending": {"hint": "Pending changes"},
@@ -145,12 +146,16 @@ class DBEditorWidget(QWidget):
                  "Redo": {"caption":
                           "Re-apply the most recently undone edit (Ctrl+Y)."},
                  "Cancel": {"caption":
-                            "Purge pending edits and Close current editor " +
+                            "Purge pending edits and close current editor " +
                             "without saving."},
                  "More": {"caption":
                           "Add another input field for Links."},
                  "Fewer": {"caption":
-                           "Remove an input field for Links."}}
+                           "Remove an input field for Links."},
+                 "Max More": {"caption":
+                              "Cannot add more Links. Maximum reached."},
+                 "Min Fewer": {"caption":
+                               "Cannot remove more Links. Minimum reached."}}
         for key in texts.keys():
             self.texts[key] = texts_template.copy()
             for this, do_it in texts[key].items():
@@ -166,6 +171,11 @@ class DBEditorWidget(QWidget):
         """
         return (self.texts[p_text_key]["hint"])
 
+    def set_cursor_result(self, p_text: str):
+        """Assign text to Cursor result display."""
+        self.activate_texts(["Cursor"])
+        self.texts["Cursor"]["widget"].setText(p_text)
+
     def make_text_subttl_wdg(self, p_text_key: str):
         """Create a sub-title text widget. Save it with metadata.
 
@@ -177,6 +187,18 @@ class DBEditorWidget(QWidget):
         self.texts[p_text_key]["active"] = True
         self.texts[p_text_key]["widget"] = stt
         return (stt)
+
+    def make_text_status_wdg(self, p_text_key: str):
+        """Create a status/info text widget. Save it with metadata.
+
+        :args: p_text_key: str - key to text metadata
+        :returns: QLabel object
+        """
+        sta = SS.set_status_style(
+            QLabel(self.texts[p_text_key]["display"]))
+        self.texts[p_text_key]["active"] = True
+        self.texts[p_text_key]["widget"] = sta
+        return (sta)
 
     def make_text_input_wdg(self,
                             p_text_key: str,
@@ -195,6 +217,39 @@ class DBEditorWidget(QWidget):
         self.texts[p_text_key]["active"] = True
         self.texts[p_text_key]["widget"] = txt_wdg
         return (txt_wdg)
+
+    # Helper and Slot Actions for Text Widgets
+    # ==============================================================
+
+    def activate_texts(self, p_txts: list):
+        """Activate selected set of input text widgets."""
+        for inp_nm in p_txts:
+            inp = self.texts[inp_nm]
+            inp["widget"].setStyleSheet(SS.get_style("active_editor"))
+            inp["widget"].setEnabled(True)
+            inp["active"] = True
+
+    def deactivate_texts(self, p_txts: list):
+        """Deactivate specified set of input text widgets."""
+        for inp_nm in p_txts:
+            inp = self.texts[inp_nm]
+            inp["widget"].setStyleSheet(SS.get_style("inactive_editor"))
+            inp["widget"].setEnabled(False)
+            inp["active"] = False
+
+    def show_status(self, p_text_nm: str):
+        """Display text in dbe status bar text relevant to event.
+        """
+        if p_text_nm not in (None, "") \
+            and p_text_nm in self.texts \
+            and ("caption" in self.texts[p_text_nm] or
+                 "display" in self.texts[p_text_nm]):
+            if "caption" in self.texts[p_text_nm]:
+                self.texts["dbe_status"]["widget"].setText(
+                    self.texts[p_text_nm]["caption"])
+            else:
+                self.texts["dbe_status"]["widget"].setText(
+                    self.texts[p_text_nm]["display"])
 
     # Push-Button Widget Creation
     # ============================================================
@@ -217,15 +272,25 @@ class DBEditorWidget(QWidget):
             "icon": None,
             "keycmd": str(),
             "active": True,
+            "action": None,
             "widget": None}
         self.buttons = {
-            "Find": {"Get": {}, "Next": {}, "Prev": {}},
-            "Edit": {"Add": {}, "Delete": {}, "Save": {},
-                     "Undo": {}, "Redo": {}, "Cancel": {}},
-            "Links": {"More": {}, "Fewer": {}}}
+            "Find": {"Get": {},
+                     "Next": {},
+                     "Prev": {}},
+            "Edit": {"Add": {},
+                     "Delete": {},
+                     "Save": {},
+                     "Undo": {},
+                     "Redo": {},
+                     "Cancel": {"action": self.push_cancel}},
+            "Links": {"More": {"action": self.push_more_links},
+                      "Fewer": {"action": self.push_fewer_links}}}
         for grp in self.buttons.keys():
             for btn_nm in self.buttons[grp].keys():
-                self.buttons[grp][btn_nm] = button_template.copy()
+                for item in button_template.keys():
+                    if item not in self.buttons[grp][btn_nm].keys():
+                        self.buttons[grp][btn_nm][item] = button_template[item]
 
     # Push-button helper functions
     # ============================================================
@@ -244,55 +309,152 @@ class DBEditorWidget(QWidget):
         """
         btn = SS.set_button_style(QPushButton(p_key), False)
         btn.setEnabled(False)
+        if self.buttons[p_grp][p_key]["action"] is not None:
+            btn.clicked.connect(self.buttons[p_grp][p_key]["action"])
         self.buttons[p_grp][p_key]["widget"] = btn
         self.buttons[p_grp][p_key]["active"] = False
         return (btn)
 
     def make_button_group_wdg(self,
-                              p_grp: str):
-        """Make a horizontal box and put buttons and subtitle in it.
+                              p_grp: str,
+                              p_use_stt: bool = True,
+                              p_activate: bool = False):
+        """Make containers and put buttons in them.
 
-        :args:  p_grp: str - name of the button group
+        Default is that buttons are not activated.
+        Optionally include a subtitle with it.
+        Optionally activate buttons.
+
+        :args:
+            p_grp: str - name of the button group
+            p_use_stt: bool - whether to include a subtitle
+            p_activate: bool - whether to activate buttons
         :returns: QVBoxLayout object
         """
         vbox = QVBoxLayout()
-        vbox.addWidget(self.make_text_subttl_wdg(p_grp))
+        if p_use_stt:
+            vbox.addWidget(self.make_text_subttl_wdg(p_grp))
         hbox = QHBoxLayout()
+        btn_list = list()
         for btn_nm, btn_attrs in self.buttons[p_grp].items():
             btn = self.make_push_button_wdg(p_grp, btn_nm)
+            btn_list.append(btn_nm)
             hbox.addWidget(btn)
+        if p_activate:
+            self.activate_buttons(p_grp, btn_list)
         vbox.addLayout(hbox)
         return (vbox)
 
-    # Push-button action slots <-- needs work here
-    # And see what other button slots can move into this class
+    # Push-button action slots and related helper methods
     # ============================================================
 
-    def add_links(self):
+    def activate_buttons(self,
+                         p_grp: str,
+                         p_btns: list):
+        """Activate selected set of push buttons
+
+        :args:
+            p_grp: str name of button group
+            p_btns: list of button names in group
+        """
+        for btn_nm in p_btns:
+            btn = self.buttons[p_grp][btn_nm]
+            btn["widget"].setStyleSheet(SS.get_style("active_button"))
+            btn["widget"].setEnabled(True)
+            btn["active"] = True
+
+    def deactivate_buttons(self,
+                           p_grp: str,
+                           p_btns: list):
+        """Deactivate a specified set of push buttons
+
+        :args:
+            p_grp: str name of button group
+            p_btns: list of button names in group
+        """
+        for btn_nm in p_btns:
+            btn = self.buttons[p_grp][btn_nm]
+            btn["widget"].setStyleSheet(SS.get_style("inactive_button"))
+            btn["widget"].setEnabled(False)
+            btn["active"] = False
+
+    def select_record_type(self, p_rect_nm: str):
+        """Generic function for record type selection actions.
+
+        :args:
+            p_rect_nm: name of selected record type"""
+        self.show_status(p_rect_nm)
+        self.activate_rect(p_rect_nm)
+
+    def select_configs(self):
+        """Slot for Editor Select Configs radio check action"""
+        self.select_record_type("Configs")
+
+    def select_status(self):
+        """Slot for Editor Select Status Flags radio check action"""
+        self.select_record_type("Status")
+
+    def select_topics(self):
+        """Slot for Editor Select Topics radio check action"""
+        self.select_record_type("Topics")
+
+    def push_cancel(self):
+        """Slot for Editor Edit Push Button --> Cancel"""
+        self.show_status("Cancel")
+        self.deactivate_rect()
+
+    def get_links_form(self):
+        """Get links form for a specified record type.
+
+        :returns: tuple (
+            QFormLayout object or None,
+            name (label) of the links field
+            count of rows in the form or Zero)
+        """
+        link_form = None
+        field_nm = None
+        row_count = 0
+        done = False
+        self.show_status("More")
+        for db in self.rects.keys():
+            for rect, attrs in self.rects[db].items():
+                if attrs["active"]:
+                    # The last edit form is the one for Links
+                    # Going with this method until I can figure
+                    # out how to assign an ID to a form object.
+                    forms = attrs["widget"].findChildren(QFormLayout)
+                    field_nm = attrs['link_fields'][0]
+                    link_form = forms[len(forms) - 1]
+                    row_count = link_form.rowCount()
+                    done = True
+                    break
+            if done:
+                break
+        return (link_form, field_nm, row_count)
+
+    def push_more_links(self):
         """Add another input row to form for Links.
         """
-        form_key = \
-            [key for key in self.forms.keys() if self.forms[key]['active']][0]
-        dbe_form = \
-            (self.forms[form_key]["widget"].findChildren(QFormLayout))[0]
-        row_cnt = dbe_form.rowCount()
-        link_nm = self.forms[form_key]['refs'][0][0]
-        dbe_form.insertRow(
-            row_cnt, link_nm, SS.set_line_edit_style(QLineEdit()))
+        link_form, field_nm, row_count = self.get_links_form()
+        if row_count > 4:
+            self.show_status("Max More")
+        else:
+            self.show_status("More")
+            link_form.insertRow(
+                link_form.rowCount(), field_nm,
+                SS.set_line_edit_style(QLineEdit()))
 
-    def remove_links(self):
+    def push_fewer_links(self):
         """Remove one input row from the form for Links.
 
-        @DEV
-        - The flaw here is that it will remove any item, not just newly
-          added link inputs.
+        Not quite... I want the "link" form within the rect.
         """
-        form_key = \
-            [key for key in self.forms.keys() if self.forms[key]['active']][0]
-        dbe_form = \
-            (self.forms[form_key]["widget"].findChildren(QFormLayout))[0]
-        row_cnt = dbe_form.rowCount()
-        dbe_form.removeRow(row_cnt - 1)
+        link_form, field_nm, row_count = self.get_links_form()
+        if row_count < 2:
+            self.show_status("Min Fewer")
+        else:
+            self.show_status("Fewer")
+            link_form.removeRow(row_count - 1)
 
     # Record Type Editor Widget Creation
     # ============================================================
@@ -314,26 +476,30 @@ class DBEditorWidget(QWidget):
         """
         rect_template = {
             "db": str(),
-            "key_fields": list(),
-            "value_fields": list(),
-            "link_fields": list(),
+            "key_fields": None,
+            "value_fields": None,
+            "link_fields": None,
             "active": False,
             "selector": None,
+            "select_action": None,
             "widget": None}
         self.rects = {"Basement": {
                         "Configs": {
                           "key_fields": ["Config Category", "Config ID"],
-                          "value_fields": ["Field Name", "Field Value"]},
+                          "value_fields": ["Field Name", "Field Value"],
+                          "select_action": self.select_configs},
                         "Status": {
                           "key_fields": ["Status Category", "Status ID"],
-                          "value_fields": ["Field Name", "Field Value"]},
+                          "value_fields": ["Field Name", "Field Value"],
+                          "select_action": self.select_status},
                         "Expire Rules": {},
                         "Retry Rules": {}},
                       "Schema":  {
                         "Topics": {
                           "key_fields": ["Template", "Saskan Topic"],
                           "value_fields": ["Host", "Port", "Caption", "Desc"],
-                          "link_fields": ["Plans"]},
+                          "link_fields": ["Plans"],
+                          "select_action": self.select_topics},
                         "Plans": {},
                         "Services": {},
                         "Schemas": {}},
@@ -352,7 +518,6 @@ class DBEditorWidget(QWidget):
                 for field, value in rect_template.items():
                     if field not in self.rects[key][rect].keys():
                         self.rects[key][rect][field] = value
-        pp(("self.rects", self.rects))
 
     # Record Type Editor Widget helper functions
     # ============================================================
@@ -365,6 +530,9 @@ class DBEditorWidget(QWidget):
             hbox = QHBoxLayout()
             for rect in self.rects[db].keys():
                 rdo_btn = SS.set_radiobtn_style(QRadioButton(rect))
+                if self.rects[db][rect]["select_action"] is not None:
+                    rdo_btn.clicked.connect(
+                        self.rects[db][rect]["select_action"])
                 hbox.addWidget(rdo_btn)
                 # hbox.addStretch(1)
                 self.rects[db][rect]["selector"] = rdo_btn
@@ -377,23 +545,64 @@ class DBEditorWidget(QWidget):
         """Return a container widget for selected db/rect type."""
         rect_wdg = QWidget()
         rect_layout = QVBoxLayout()
-        rect_layout.addWidget(
-            self.make_text_subttl_wdg(rect_nm))
         show_fields = ["key_fields", "value_fields", "link_fields"]
         rect_layout.addWidget(self.make_text_subttl_wdg(rect_nm))
-        for field_grp in show_fields:
-            rect_layout.addWidget(self.make_text_subttl_wdg(field_grp))
-            form = QFormLayout()
-            form.setLabelAlignment(Qt.AlignRight)
-            for field in self.rects[db_nm][rect_nm][field_grp]:
-                form.addRow(field, SS.set_line_edit_style(QLineEdit()))
-                if field_grp == "link_fields":
-                    form.addRow(self.make_button_group_wdg("Links"))
-                    # add_links.clicked.connect(self.add_links)
-                    # remove_links.clicked.connect(self.remove_links)
-            rect_layout.addLayout(form)
+        for f_grp in show_fields:
+            if self.rects[db_nm][rect_nm][f_grp] is not None:
+                rect_layout.addWidget(self.make_text_subttl_wdg(f_grp))
+                if f_grp == "link_fields":
+                    rect_layout.addLayout(
+                        self.make_button_group_wdg("Links", False, True))
+                form = QFormLayout()
+                form.setLabelAlignment(Qt.AlignRight)
+                for field in self.rects[db_nm][rect_nm][f_grp]:
+                    form.addRow(field, SS.set_line_edit_style(QLineEdit()))
+                rect_layout.addLayout(form)
         rect_wdg.setLayout(rect_layout)
+        self.rects[db_nm][rect_nm]["widget"] = rect_wdg
+        rect_wdg.hide()
         return (rect_wdg)
+
+    # Record Type Editor Widget slot actions
+    # ============================================================
+
+    def activate_rect(self,
+                      p_rec: str):
+        """Deactivate a Record Type Edit widget.
+
+        :args: p_rec: str name of record type editor widget to activate.
+        """
+        done = False
+        self.deactivate_rect()
+        for db in self.rects.keys():
+            for rect, attrs in self.rects[db].items():
+                if rect == p_rec and attrs["active"] is False:
+                    attrs["active"] = True
+                    attrs["widget"].show()
+                    self.activate_buttons("Edit", ["Cancel"])
+                    self.activate_buttons("Find", ["Get"])
+                    self.activate_texts(["Key", "Cursor"])
+                    done = True
+                    break
+            if done:
+                break
+
+    def deactivate_rect(self):
+        """Deactivate the active Record Type Edit widget."""
+        done = False
+        for db in self.rects.keys():
+            for rect, attrs in self.rects[db].items():
+                if attrs["active"]:
+                    attrs["active"] = False
+                    attrs["selector"].setChecked(False)
+                    attrs["widget"].hide()
+                    self.deactivate_buttons("Edit", ["Cancel"])
+                    self.deactivate_buttons("Find", ["Get", "Next", "Prev"])
+                    self.deactivate_texts(["Key", "Cursor"])
+                    done = True
+                    break
+            if done:
+                break
 
     # Database Editor Widget Creation
     # ============================================================
@@ -411,10 +620,8 @@ class DBEditorWidget(QWidget):
         self.dbe_layout.addLayout(vbox)
         self.dbe_layout.addLayout(self.make_button_group_wdg("Edit"))
         self.dbe_layout.addWidget(self.make_text_input_wdg("Cursor"))
-        self.show()
         for db, rects in self.rects.items():
-            for rect, attrs in rects.items():
-                rect_wdg = self.make_rect_wdg(db, rect)
-                self.rects[db][rect]["widget"] = rect_wdg
-                self.dbe_layout.addWidget(rect_wdg)
-                rect_wdg.hide()
+            for rect in rects.keys():
+                self.dbe_layout.addWidget(self.make_rect_wdg(db, rect))
+        self.dbe_layout.addWidget(self.make_text_status_wdg("dbe_status"))
+        self.show()

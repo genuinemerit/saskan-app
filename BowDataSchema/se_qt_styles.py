@@ -302,6 +302,18 @@ class SaskanStyles(object):
         rdo.setFont(QFont('Arial', 9))
         return rdo
 
+    def set_status_style(self, lbl: QLabel):      # type: ignore
+        """Set text status/info style font size and style.
+
+        :Args:
+            lbl: a QT Label object
+        :Returns:
+            lbl: the modified object
+        """
+        lbl.setStyleSheet(SaskanStyles.get_style('status'))
+        lbl.setFont(QFont('Arial', 9))
+        return lbl
+
     def set_subtitle_style(self, lbl: QLabel):      # type: ignore
         """Set subtitle style font size and style.
 

@@ -55,7 +55,7 @@ class SaskanServices(QMainWindow):
 
     def initialize_UI(self):
         """Set window size and name. Show the window."""
-        self.setGeometry(100, 100, 1200, 860)
+        self.setGeometry(100, 100, 1200, 900)
         self.setWindowTitle(TX.tl.app)
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
@@ -149,6 +149,8 @@ class SaskanServices(QMainWindow):
     # ==============================================================
     def create_modes_toolbox(self):
         """Create mode toolbar and assign its actions.
+
+        Move this into a widget class, with its own status bar.
         """
         self.tbx_modes = ModesToolbox(self)
         acts = {"Control": self.controls_mode_action,
@@ -309,175 +311,62 @@ class SaskanServices(QMainWindow):
                     self.db_editor.show()
                     self.is_active['dbeditor_wdg'] = True
                     self.help.set_content("db_help.html")
-                    self.show_diagram()
+                    # Display the diagram when there is something
+                    #  interesting to show on it.
+                    # self.show_diagram()
                 else:
                     self.db_editor.hide()
                     self.is_active['dbeditor_wdg'] = False
-                    self.hide_diagram()
-            except AttributeError:
-                pass
-
-    # Some of these should be moved to the dbeditor_wdg class.
-
-    def deactivate_texts(self, p_inp_nm: list):
-        """Generic function to deactivate a text input widget."""
-        for inp_nm in p_inp_nm:
-            inp = self.db_editor.texts[inp_nm]
-            inp["widget"].setStyleSheet(SS.get_style("inactive_editor"))
-            inp["widget"].setEnabled(False)
-            inp["active"] = False
-
-    def deactivate_buttons(self, 
-                           p_grp: str,
-                           p_btns: list):
-        """Generic function to deactivate a push button
-
-        :args:
-            p_grp: str name of button group
-            p_btns: list of button names in group
-        """
-        for btn_nm in p_btns:
-            btn = self.db_editor.buttons[p_grp][btn_nm]
-            btn["widget"].setStyleSheet(SS.get_style("inactive_button"))
-            btn["widget"].setEnabled(False)
-            btn["active"] = False
-
-    def deactivate_edit_form(self, p_rec: str = None):
-        """Deactivate the Edit Form widget."""
-        for key, form in self.db_editor.forms.items():
-            if (p_rec is None or key != p_rec) and form["active"]:
-                form["widget"].hide()
-                form["active"] = False
-                self.deactivate_buttons(
-                    "Edit", ["Cancel"])
-                self.deactivate_buttons(
-                    "Find", ["Get", "Next", "Prev"])
-                self.deactivate_texts(["Key", "Cursor"])
-                break
-
-    def activate_texts(self, p_inp_nm: list):
-        """Generic function to activate a text input widget."""
-        for inp_nm in p_inp_nm:
-            inp = self.db_editor.texts[inp_nm]
-            inp["widget"].setStyleSheet(SS.get_style("active_editor"))
-            inp["widget"].setEnabled(True)
-            inp["active"] = True
-
-    def activate_buttons(self,
-                         p_grp: str, 
-                         p_btn_nm: list):
-        """Generic function to activate a push button
-
-        :args:
-            p_grp: str name of button group
-            p_btn_nm: list of button names in group
-        """
-        for btn_nm in p_btn_nm:
-            btn = self.db_editor.buttons[p_grp][btn_nm]
-            btn["widget"].setStyleSheet(SS.get_style("active_button"))
-            btn["widget"].setEnabled(True)
-            btn["active"] = True
-
-    def activate_edit_form(self,
-                           p_rec: str):
-        """Generic functions when enabling a different edit form.
-
-        :args: p_rec: str name of record type to edit
-        """
-        self.deactivate_edit_form((p_rec))
-        if self.db_editor.forms[p_rec]["active"] is not True:
-            self.show_status(
-                self.db_editor.texts[p_rec]["caption"])
-            try:
-                self.db_editor.forms[p_rec]["widget"].show()
-                self.db_editor.forms[p_rec]["active"] = True
-                self.activate_buttons("Edit", ["Cancel"])
-                self.activate_buttons("Find", ["Get"])
-                self.activate_texts(["Key", "Cursor"])
+                    # self.hide_diagram()
             except AttributeError:
                 pass
 
     def get_active_db(self):
-        """Identify the "active" database based on record type selection.
-           The record type selection matches key of active edit form.
+        """Identify database based on active record type.
 
         :returns: tuple (name of db associated with active edit form,
                          selected record type cast to lower case)
         """
-        db_rec_types = {
-            "basement": ["Configs", "States"],
-            "schema": ["Topics", "Plans", "Services", "Schemas"]
-        }
-        key_db = None
-        meta_catg = None
-        for rec_type, form in self.db_editor.forms.items():
-            if form["active"]:
-                for db_nm, rec_types in db_rec_types.items():
-                    if rec_type in rec_types:
-                        key_db = db_nm
-                        break
-                meta_catg = rec_type.lower()
+        db_nm = None
+        rect_nm = None
+        done = False
+        for db in self.db_editor.rects.keys():
+            for rect, attrs in self.db_editor.rects[db].items():
+                if attrs["active"]:
+                    db_nm = db.lower()
+                    rect_nm = rect.lower()
+                    done = True
+                    break
+            if done:
                 break
-        return (key_db, meta_catg)
-
-    def push_cancel_btn(self):
-        """Slot for Editor Edit Push Button --> Cancel"""
-        btn = self.db_editor.buttons["Edit"]["Cancel"]
-        if btn["active"]:
-            self.show_status(self.db_editor.texts["Cancel"]["caption"])
-            self.deactivate_edit_form()
+        return (db_nm, rect_nm)
 
     def push_get_btn(self):
         """Slot for Editor Edit Push Button --> Get"""
-        btn = self.db_editor.buttons["Find"]["Get"]
-        if btn["active"]:
-            self.show_status(self.db_editor.texts["Get"]["caption"])
-            active_db, meta_catg = self.get_active_db()
-            select_key = self.db_editor.texts["Key"]["widget"].text()
-            result = RI.get_existing_record(active_db, select_key)
-            pp(("redis result:", result))
-            # If multiple records returned,
-            #  show the first one
-            #  activate the Next and Prev buttons
-            #  display the cursor count and position
-            # If no records returned,
-            #  display a message
-
-    def select_configs(self):
-        """Slot for Editor Select Configs radio check action"""
-        rec = "Configs"
-        self.activate_edit_form(rec)
-
-    def select_status_flags(self):
-        """Slot for Editor Select Status Flags radio check action"""
-        rec = "States"
-        self.activate_edit_form(rec)
-
-    def select_topics(self):
-        """Slot for Editor Select Topics radio check action"""
-        rec = "Topics"
-        self.activate_edit_form(rec)
+        self.db_editor.show_status("Get")
+        self.db_editor.set_cursor_result("")
+        db_nm, rect_nm = self.get_active_db()
+        select_key = self.db_editor.texts["Key"]["widget"].text()
+        # Search the Redis database:
+        result = RI.get_existing_record(db_nm, select_key)
+        # If multiple records returned,
+        #  show the first one
+        #  activate the Next and Prev buttons
+        if result is None:
+            self.db_editor.set_cursor_result("No records found.")
+        else:
+            self.db_editor.activate_buttons("Find", ["Next", "Prev"])
 
     def create_db_editor(self):
-        """All or part of this may become a Class.
-        Define the display-frame for DB edit forms functions.
-        Define queues, buttons to support editing.
+        """Instantiate the DB Editor widget.
+
+        Provide actions for events outside of widget's class.
         """
         self.db_editor = DBEditorWidget(self)
-        # Editor Select radio buttons:
-        """
         for key, act in {
-                "Configs": self.select_configs,
-                "States": self.select_status_flags,
-                "Topics": self.select_topics}.items():
-            self.db_editor.rects[key]["selector"].clicked.connect(act)
-        # Editor Find and Edit push buttons:
-        for key, act in {
-                ("Edit", "Cancel"): self.push_cancel_btn,
                 ("Find", "Get"): self.push_get_btn}.items():
             wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
             wdg.clicked.connect(act)
-        """
         self.db_editor.hide()
 
     # Help (Web pages) Display
