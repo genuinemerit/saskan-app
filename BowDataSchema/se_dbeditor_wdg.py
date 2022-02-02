@@ -5,6 +5,8 @@
 :author:    GM (genuinemerit @ pm.me)
 
 @DEV
+- Look for places where assigning an object name
+  to a Qt widget or layout will be useful.
 - Eventually move all text strings to SaskanTexts
 """
 
@@ -403,35 +405,6 @@ class DBEditorWidget(QWidget):
         self.show_status("Cancel")
         self.deactivate_rect()
 
-    def get_links_form(self):
-        """Get links form for a specified record type.
-
-        :returns: tuple (
-            QFormLayout object or None,
-            name (label) of the links field
-            count of rows in the form or Zero)
-        """
-        link_form = None
-        field_nm = None
-        row_count = 0
-        done = False
-        self.show_status("More")
-        for db in self.rects.keys():
-            for rect, attrs in self.rects[db].items():
-                if attrs["active"]:
-                    # The last edit form is the one for Links
-                    # Going with this method until I can figure
-                    # out how to assign an ID to a form object.
-                    forms = attrs["widget"].findChildren(QFormLayout)
-                    field_nm = attrs['link_fields'][0]
-                    link_form = forms[len(forms) - 1]
-                    row_count = link_form.rowCount()
-                    done = True
-                    break
-            if done:
-                break
-        return (link_form, field_nm, row_count)
-
     def push_more_links(self):
         """Add another input row to form for Links.
         """
@@ -522,6 +495,61 @@ class DBEditorWidget(QWidget):
     # Record Type Editor Widget helper functions
     # ============================================================
 
+    def get_active_db_rect(self):
+        """Identify active rect type and db.
+
+        :returns: tuple (db name key, rect type key)
+        """
+        db_nm = None
+        rect_nm = None
+        done = False
+        for db in self.rects.keys():
+            for rect, attrs in self.rects[db].items():
+                if attrs["active"]:
+                    db_nm = db
+                    rect_nm = rect
+                    done = True
+                    break
+            if done:
+                break
+        return (db_nm, rect_nm)
+
+    def get_key_fields(self):
+        """Get name and value from fields on the Keys form
+        of the active record type.
+
+        :returns: dict of field name:field value
+        """
+        db, rect = self.get_active_db_rect()
+        key_values = dict()
+        form_nm = f"{db}:{rect}:key_fields"
+        link_form = \
+            self.rects[db][rect]["widget"].findChild(QFormLayout, form_nm)
+        for key_idx, key in enumerate(self.rects[db][rect]["key_fields"]):
+            name = link_form.itemAt(
+                key_idx, QFormLayout.LabelRole).widget().text()
+            value = link_form.itemAt(
+                key_idx, QFormLayout.FieldRole).widget().text()
+            key_values[name] = value
+        return (key_values)
+
+    def get_links_form(self):
+        """Get links form for the active record type.
+
+        :returns: tuple (
+            QFormLayout object or None,
+            name (label) of the links field
+            count of rows in the links form)
+        """
+        self.show_status("More")
+        db, rect = self.get_active_db_rect()
+        form_nm = f"{db}:{rect}:link_fields"
+        link_form = \
+            self.rects[db][rect]["widget"].findChild(QFormLayout, form_nm)
+        field_nm = self.rects[db][rect]["link_fields"][0]
+        row_count = link_form.rowCount()
+        return (link_form, field_nm, row_count)
+
     def make_rect_selectors(self):
         """Return a collection(s) of radio buttons for selecting rect type."""
         vbox = QVBoxLayout()
@@ -554,6 +582,7 @@ class DBEditorWidget(QWidget):
                     rect_layout.addLayout(
                         self.make_button_group_wdg("Links", False, True))
                 form = QFormLayout()
+                form.setObjectName(f"{db_nm}:{rect_nm}:{f_grp}")
                 form.setLabelAlignment(Qt.AlignRight)
                 for field in self.rects[db_nm][rect_nm][f_grp]:
                     form.addRow(field, SS.set_line_edit_style(QLineEdit()))
@@ -579,7 +608,7 @@ class DBEditorWidget(QWidget):
                 if rect == p_rec and attrs["active"] is False:
                     attrs["active"] = True
                     attrs["widget"].show()
-                    self.activate_buttons("Edit", ["Cancel"])
+                    self.activate_buttons("Edit", ["Add", "Cancel"])
                     self.activate_buttons("Find", ["Get"])
                     self.activate_texts(["Key", "Cursor"])
                     done = True
@@ -596,7 +625,9 @@ class DBEditorWidget(QWidget):
                     attrs["active"] = False
                     attrs["selector"].setChecked(False)
                     attrs["widget"].hide()
-                    self.deactivate_buttons("Edit", ["Cancel"])
+                    self.deactivate_buttons("Edit",
+                                            ["Add", "Delete", "Save",
+                                             "Undo", "Redo", "Cancel"])
                     self.deactivate_buttons("Find", ["Get", "Next", "Prev"])
                     self.deactivate_texts(["Key", "Cursor"])
                     done = True

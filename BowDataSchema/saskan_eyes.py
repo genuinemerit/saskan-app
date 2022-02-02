@@ -321,31 +321,34 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
-    def get_active_db(self):
-        """Identify database based on active record type.
+    def prep_editor_action(self, p_rect_nm):
+        """Common functions used by DB Editor actions
 
-        :returns: tuple (name of db associated with active edit form,
-                         selected record type cast to lower case)
+        :args: p_rect_nm - name of record type being edited
+        :returns: tuple (db assoc. w/ active edit form,
+                         selected record type)
         """
-        db_nm = None
-        rect_nm = None
-        done = False
-        for db in self.db_editor.rects.keys():
-            for rect, attrs in self.db_editor.rects[db].items():
-                if attrs["active"]:
-                    db_nm = db.lower()
-                    rect_nm = rect.lower()
-                    done = True
-                    break
-            if done:
-                break
-        return (db_nm, rect_nm)
+        self.db_editor.show_status(p_rect_nm)
+        self.db_editor.set_cursor_result("")
+        db_nm, rect_nm = self.db_editor.get_active_db_rect()
+        return (db_nm.lower(), rect_nm.lower())
+
+    def push_add_btn(self):
+        """Slot for DB Editor Edit/Add push button click action."""
+        db_nm, rect_nm = self.prep_editor_action("Add")
+        # Get key values from active edit form
+        keys = self.db_editor.get_key_fields()
+        pp(("keys", keys))
+        # If record already exists, reject the add.
+        # Else:
+        # - verify, enhance the key and other values
+        # - add the record if edits pass
+        # - display the new record if insert succeeds
+        # - display the error message if insert fails
 
     def push_get_btn(self):
-        """Slot for Editor Edit Push Button --> Get"""
-        self.db_editor.show_status("Get")
-        self.db_editor.set_cursor_result("")
-        db_nm, rect_nm = self.get_active_db()
+        """Slot for DB Editor Find/Get push button click action."""
+        db_nm, rect_nm = self.prep_editor_action("Get")
         select_key = self.db_editor.texts["Key"]["widget"].text()
         # Search the Redis database:
         result = RI.get_existing_record(db_nm, select_key)
@@ -364,6 +367,7 @@ class SaskanServices(QMainWindow):
         """
         self.db_editor = DBEditorWidget(self)
         for key, act in {
+                ("Edit", "Add"): self.push_add_btn,
                 ("Find", "Get"): self.push_get_btn}.items():
             wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
             wdg.clicked.connect(act)
