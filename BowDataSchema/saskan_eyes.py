@@ -321,44 +321,113 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
-    def prep_editor_action(self, p_rect_nm):
+    def prep_editor_action(self, p_action_nm):
         """Common functions used by DB Editor actions
 
-        :args: p_rect_nm - name of record type being edited
+        :args: p_action_nm - name of button or other widget that
+            triggered the action
         :returns: tuple (db assoc. w/ active edit form,
                          selected record type)
         """
-        self.db_editor.show_status(p_rect_nm)
+        self.db_editor.show_status(p_action_nm)
         self.db_editor.set_cursor_result("")
         db_nm, rect_nm = self.db_editor.get_active_db_rect()
         return (db_nm.lower(), rect_nm.lower())
 
-    def push_add_btn(self):
-        """Slot for DB Editor Edit/Add push button click action."""
-        db_nm, rect_nm = self.prep_editor_action("Add")
-        # Get key values from active edit form
-        keys = self.db_editor.get_key_fields()
-        pp(("keys", keys))
-        # If record already exists, reject the add.
-        # Else:
-        # - verify, enhance the key and other values
-        # - add the record if edits pass
-        # - display the new record if insert succeeds
-        # - display the error message if insert fails
-
-    def push_get_btn(self):
-        """Slot for DB Editor Find/Get push button click action."""
-        db_nm, rect_nm = self.prep_editor_action("Get")
-        select_key = self.db_editor.texts["Key"]["widget"].text()
-        # Search the Redis database:
-        result = RI.get_existing_record(db_nm, select_key)
-        # If multiple records returned,
-        #  show the first one
-        #  activate the Next and Prev buttons
+    def get_redis_record(self,
+                         p_db_nm: str,
+                         p_select_key: str):
+        """Get a record from Redis DB
+        :args: p_db_nm - name of Redis DB
+                p_select_key - key of record to be retrieved
+        :returns: records as a dict or None
+        """
+        result = RI.get_record(p_db_nm, p_select_key)
         if result is None:
-            self.db_editor.set_cursor_result("No records found.")
+            self.db_editor.set_cursor_result(
+                f"No records found with key like '{p_select_key}'")
         else:
-            self.db_editor.activate_buttons("Find", ["Next", "Prev"])
+            print(f"GET Result: {result}")
+            # put the values into the editor
+            pass
+        return (result)
+
+    def find_redis_keys(self,
+                        p_db_nm: str,
+                        p_key_pattern: str):
+        """Get a list of keys for selected DB matching the pattern.
+
+        :args:
+            p_db_nm - name of the database to search
+            p_key_pattern - pattern to match for keys
+        :returns: list of keys that match the pattern or None
+        """
+        result_b = RI.find_records(p_db_nm, p_key_pattern)
+        result: list = []
+        if result_b in (None, [], {}):
+            self.db_editor.set_cursor_result(
+                f"No record found with key like '{p_key_pattern}'")
+        else:
+            for res in result_b:
+                result.append(res.decode("utf-8"))
+            result = sorted(result)
+            # select the first record in the set
+            rcnt = len(result)
+            rword = "record" if rcnt == 1 else "records"
+            self.db_editor.set_cursor_result(
+                f"{rcnt} {rword} found with key like '{p_key_pattern}'")
+            self.db_editor.activate_buttons("Get", ["Next", "Prev"])
+            # This will put the first record in the editor
+            _ = self.get_redis_record(p_db_nm, result[0])
+        return (result)
+
+    def push_add_btn(self):
+        """Slot for DB Editor Edit/Add push button click action.
+
+        Get key values from active edit form.
+        """
+        db_nm, rect_nm = self.prep_editor_action("Add")
+        keys = self.db_editor.get_key_fields()
+        # Use a common function for setting key values?
+        keys = ":".join(keys.values()).lower()
+        if (rect_nm.lower() + ":") not in keys:
+            select_key = f"{rect_nm.lower()}:{keys}"
+        result = self.get_redis_record(db_nm, select_key)
+        if result in (None, [], {}):
+            # nx means "write a new record"
+            record = {"name": select_key}
+            values = self.db_editor.get_value_fields()
+            for name, value in values.items():
+                record[name] = value
+            link_values, _, _, _ = self.db_editor.get_links_fields()
+            for name, value in link_values.items():
+                record[name] = value
+            pp(("Attempting an insert for record: ", record))
+            RI.do_upsert(db_nm.lower(), "nx", record, {})
+        # - verify, enhance the key and other values
+        # - if edits OK, then add audit values
+        # - add the record
+        # - display new record if insert succeeds or at
+        #  least display a message that insert succeeeded
+        #  or is pending, awaiting a commit/save
+        # - display error message if insert fails
+        else:
+            # Record already exists, reject the add.
+            self.db_editor.set_cursor_result(
+                "Insert rejected. Record already exists.")
+
+    def push_find_btn(self):
+        """Slot for DB Editor Find push button click action."""
+        db_nm, rect_nm = self.prep_editor_action("Find")
+        search_key = self.db_editor.texts["Key"]["widget"].text()
+        if f"{rect_nm}:" not in search_key:
+            search_key = f"{rect_nm}:{search_key}"
+        if search_key[:1] != "*":
+            search_key = "*" + search_key
+        if search_key[-1:] != "*":
+            search_key += "*"
+        result = self.find_redis_keys(db_nm, search_key.strip())
+        pp(("FIND result", result))
 
     def create_db_editor(self):
         """Instantiate the DB Editor widget.
@@ -368,7 +437,7 @@ class SaskanServices(QMainWindow):
         self.db_editor = DBEditorWidget(self)
         for key, act in {
                 ("Edit", "Add"): self.push_add_btn,
-                ("Find", "Get"): self.push_get_btn}.items():
+                ("Get", "Find"): self.push_find_btn}.items():
             wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
             wdg.clicked.connect(act)
         self.db_editor.hide()

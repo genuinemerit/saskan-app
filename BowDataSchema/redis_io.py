@@ -267,10 +267,30 @@ class RedisIO(object):
     # Add function to count number of records with requested key, but not
     #  return anything.
 
-    def get_existing_record(self,
-                            p_db: str,
-                            p_key_val: str):
-        """Return existing record if one exists for specified key.
+    def find_records(self,
+                     p_db: str,
+                     p_key_pattern: str):
+        """Return keys of records that match search pattern.
+
+        This is a Redis KEYS function.
+
+        :args:
+            p_db: str - name of DB to search
+            p_key_pattern: str - search criteria
+        :returns:
+            dict: records if found, else None
+        """
+        result = None
+        # print(f"Looking for keys like {p_key_pattern} on db {p_db}")
+        result = self.RNS[p_db].keys(p_key_pattern)
+        return result
+
+    def get_record(self,
+                   p_db: str,
+                   p_key_val: str):
+        """Return existing record if one exists for a specified key.
+
+        This is a Redis GET function.
 
         :args:
             p_db: str - name of DB to search
@@ -280,8 +300,9 @@ class RedisIO(object):
         """
         rec = None
         if self.RNS[p_db].exists(p_key_val):               # type: ignore
-            rec = SS.convert_msg_jzby_to_py_dict(
-                avro_jzby=self.RNS[p_db].get(p_key_val))   # type: ignore
+            # print(f"Record exists for key {p_key_val}")
+            redis_result = self.RNS[p_db].get(p_key_val)
+            rec = SS.convert_msg_jzby_to_py_dict(redis_result)
         return rec
 
     def hash_record(self, p_rec: dict) -> str:
@@ -378,9 +399,17 @@ class RedisIO(object):
                                    msg_d=p_rec), xx=True)
         elif p_upsert == "nx":
             print("\nWrite new record:")
-            self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               SS.convert_py_dict_to_msg_jzby(
-                                   msg_d=p_rec), nx=True)
+            try:
+                self.RNS[p_ns].set(
+                    p_rec["name"],
+                    SS.convert_py_dict_to_msg_jzby(
+                        msg_d=p_rec), nx=True)
+            except redis.exceptions.ResponseError as e:
+                print(f"\nRedis error: {e}")
+                print(f"\nRecord: {p_rec}")
+                print(f"\nRecord name: {p_rec['name']}")
+                print(f"\nRecord namespace: {p_ns}")
+                raise e
 
     # Bespoke DML-type functions
     # =======================================
@@ -448,7 +477,7 @@ class RedisIO(object):
                 p_ty, p_verb, p_act, p_fields):
             new_rec = self.init_record_values(               # type: ignore
                 "schema", p_ty, p_topic, p_verb, p_act, p_doc, p_fields)
-            old_rec = self.get_existing_record(new_rec["name"])  # type: ignore
+            old_rec = self.get_record(new_rec["name"])  # type: ignore
             nt_hash = self.hash_record(new_rec)              # type: ignore
             ot_hash = self.hash_record(old_rec)              # type: ignore
             up_rec = self.set_record_values(                 # type: ignore
@@ -462,7 +491,7 @@ class RedisIO(object):
                 self.do_upsert(                      # type: ignore
                     "schema", upsert, up_rec, old_rec)
             # For debugging:
-            rec = self.get_existing_record(up_rec["name"])     # type: ignore
+            rec = self.get_record(up_rec["name"])     # type: ignore
             pp(("rec", rec))
         return (up_rec["name"], up_rec["token"])               # type: ignore
 

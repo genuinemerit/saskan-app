@@ -84,7 +84,7 @@ class DBEditorWidget(QWidget):
                  "Values": {"display": "Value Fields"},
                  "Links": {"display": "Link Fields"},
                  "Types": {"display": "Select Record Type"},
-                 "Find": {"display": "Find Record(s)"},
+                 "Get": {"display": "Find Record(s)"},
                  "Edit": {"display": "Edit Record"},
                  "Configs": {
                     "display": "Config Records (Basement DB)",
@@ -131,8 +131,8 @@ class DBEditorWidget(QWidget):
                  "Responses Monitor": {
                     "display": "Responses Monitor (Monitor DB)",
                     "caption": "Summary records for response/pub events."},
-                 "Get": {"caption": "Retrieve records of selected type. " +
-                         "Select all if no key or wildcard entered."},
+                 "Find": {"caption": "Find records matching key pattern. " +
+                          "Select all if no key pattern entered."},
                  "Next": {"caption":
                           "Retrieve next record from cursor IO result."},
                  "Prev": {"caption":
@@ -277,9 +277,9 @@ class DBEditorWidget(QWidget):
             "action": None,
             "widget": None}
         self.buttons = {
-            "Find": {"Get": {},
-                     "Next": {},
-                     "Prev": {}},
+            "Get": {"Find": {},
+                    "Next": {},
+                    "Prev": {}},
             "Edit": {"Add": {},
                      "Delete": {},
                      "Save": {},
@@ -407,8 +407,12 @@ class DBEditorWidget(QWidget):
 
     def push_more_links(self):
         """Add another input row to form for Links.
+
+        @DEV:
+        - Will probably want to extend this to other sets
+          of inputs where multiple values/lists are allowed.
         """
-        link_form, field_nm, row_count = self.get_links_form()
+        _, link_form, field_nm, row_count = self.get_links_fields()
         if row_count > 4:
             self.show_status("Max More")
         else:
@@ -422,7 +426,7 @@ class DBEditorWidget(QWidget):
 
         Not quite... I want the "link" form within the rect.
         """
-        link_form, field_nm, row_count = self.get_links_form()
+        _, link_form, field_nm, row_count = self.get_links_fields()
         if row_count < 2:
             self.show_status("Min Fewer")
         else:
@@ -469,8 +473,10 @@ class DBEditorWidget(QWidget):
                         "Retry Rules": {}},
                       "Schema":  {
                         "Topics": {
-                          "key_fields": ["Template", "Saskan Topic"],
-                          "value_fields": ["Host", "Port", "Caption", "Desc"],
+                          "key_fields": ["Topic Category", "Topic ID"],
+                          "value_fields":
+                          ["Host", "Port", "Channel ID",
+                           "Caption", "Description"],
                           "link_fields": ["Plans"],
                           "select_action": self.select_topics},
                         "Plans": {},
@@ -496,7 +502,7 @@ class DBEditorWidget(QWidget):
     # ============================================================
 
     def get_active_db_rect(self):
-        """Identify active rect type and db.
+        """Identify active db and record type.
 
         :returns: tuple (db name key, rect type key)
         """
@@ -523,32 +529,68 @@ class DBEditorWidget(QWidget):
         db, rect = self.get_active_db_rect()
         key_values = dict()
         form_nm = f"{db}:{rect}:key_fields"
-        link_form = \
+        key_form = \
             self.rects[db][rect]["widget"].findChild(QFormLayout, form_nm)
         for key_idx, key in enumerate(self.rects[db][rect]["key_fields"]):
-            name = link_form.itemAt(
+            name = key_form.itemAt(
                 key_idx, QFormLayout.LabelRole).widget().text()
-            value = link_form.itemAt(
+            value = key_form.itemAt(
                 key_idx, QFormLayout.FieldRole).widget().text()
             key_values[name] = value
         return (key_values)
 
-    def get_links_form(self):
+    def get_value_fields(self):
+        """Get name and value from all fields on all sub-forms,
+        excluding the Keys forms, for the active record type.
+
+        Note that for links and possibly others, there may be
+        lists of values. Need to figure out how to manage that
+        for Redis.
+        """
+        db, rect = self.get_active_db_rect()
+        form_values = dict()
+        form_nm = f"{db}:{rect}:value_fields"
+        vals_form = \
+            self.rects[db][rect]["widget"].findChild(QFormLayout, form_nm)
+        for val_idx, val in enumerate(self.rects[db][rect]["value_fields"]):
+            name = vals_form.itemAt(
+                val_idx, QFormLayout.LabelRole).widget().text()
+            value = vals_form.itemAt(
+                val_idx, QFormLayout.FieldRole).widget().text()
+            form_values[name] = value
+        return (form_values)
+
+    def get_links_fields(self):
         """Get links form for the active record type.
 
+        @DEV:
+        - Provide a combo function for keys, values, links so
+          it doesn't have to be done in the calling app.
+
         :returns: tuple (
+            dict of field name:list of field values,
             QFormLayout object or None,
             name (label) of the links field
             count of rows in the links form)
         """
-        self.show_status("More")
         db, rect = self.get_active_db_rect()
-        form_nm = f"{db}:{rect}:link_fields"
-        link_form = \
-            self.rects[db][rect]["widget"].findChild(QFormLayout, form_nm)
-        field_nm = self.rects[db][rect]["link_fields"][0]
-        row_count = link_form.rowCount()
-        return (link_form, field_nm, row_count)
+        link_values = None
+        link_form = None
+        field_nm = None
+        row_count = 0
+        if self.rects[db][rect]["link_fields"] is not None:
+            self.show_status("More")
+            field_nm = self.rects[db][rect]["link_fields"][0]
+            link_values = {field_nm: []}
+            form_nm = f"{db}:{rect}:link_fields"
+            link_form = \
+                self.rects[db][rect]["widget"].findChild(QFormLayout, form_nm)
+            for link_idx in range(link_form.rowCount()):
+                value = link_form.itemAt(
+                    link_idx, QFormLayout.FieldRole).widget().text()
+                link_values[field_nm].append(value)
+            row_count = link_form.rowCount()
+        return (link_values, link_form, field_nm, row_count)
 
     def make_rect_selectors(self):
         """Return a collection(s) of radio buttons for selecting rect type."""
@@ -609,7 +651,7 @@ class DBEditorWidget(QWidget):
                     attrs["active"] = True
                     attrs["widget"].show()
                     self.activate_buttons("Edit", ["Add", "Cancel"])
-                    self.activate_buttons("Find", ["Get"])
+                    self.activate_buttons("Get", ["Find"])
                     self.activate_texts(["Key", "Cursor"])
                     done = True
                     break
@@ -628,7 +670,7 @@ class DBEditorWidget(QWidget):
                     self.deactivate_buttons("Edit",
                                             ["Add", "Delete", "Save",
                                              "Undo", "Redo", "Cancel"])
-                    self.deactivate_buttons("Find", ["Get", "Next", "Prev"])
+                    self.deactivate_buttons("Get", ["Find", "Next", "Prev"])
                     self.deactivate_texts(["Key", "Cursor"])
                     done = True
                     break
@@ -646,7 +688,7 @@ class DBEditorWidget(QWidget):
         self.dbe_layout.setAlignment(Qt.AlignTop)
         self.setLayout(self.dbe_layout)
         self.dbe_layout.addLayout(self.make_rect_selectors())
-        vbox = self.make_button_group_wdg("Find")
+        vbox = self.make_button_group_wdg("Get")
         vbox.addWidget(self.make_text_input_wdg("Key", False))
         self.dbe_layout.addLayout(vbox)
         self.dbe_layout.addLayout(self.make_button_group_wdg("Edit"))
