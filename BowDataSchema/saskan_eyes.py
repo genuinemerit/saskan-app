@@ -321,19 +321,6 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
-    def prep_editor_action(self, p_action_nm):
-        """Common functions used by DB Editor actions
-
-        :args: p_action_nm - name of button or other widget that
-            triggered the action
-        :returns: tuple (db assoc. w/ active edit form,
-                         selected record type)
-        """
-        self.db_editor.show_status(p_action_nm)
-        self.db_editor.set_cursor_result("")
-        db_nm, rect_nm = self.db_editor.get_active_db_rect()
-        return (db_nm.lower(), rect_nm.lower())
-
     def get_redis_record(self,
                          p_db_nm: str,
                          p_select_key: str):
@@ -384,33 +371,27 @@ class SaskanServices(QMainWindow):
     def push_add_btn(self):
         """Slot for DB Editor Edit/Add push button click action.
 
-        Get key values from active edit form.
+        Get all values from active edit form.
+        Check to see if record w/key already exists on DB.
+
+        For now, reject Add if rec already exists.
+        Later, maybe provide update option.
         """
-        db_nm, rect_nm = self.prep_editor_action("Add")
-        keys = self.db_editor.get_key_fields()
-        # Use a common function for setting key values?
-        keys = ":".join(keys.values()).lower()
-        if (rect_nm.lower() + ":") not in keys:
-            select_key = f"{rect_nm.lower()}:{keys}"
-        result = self.get_redis_record(db_nm, select_key)
+        self.db_editor.prep_editor_action("Add")
+        db_nm, record = self.db_editor.get_all_fields()
+        result = self.get_redis_record(db_nm, record["name"])
         if result in (None, [], {}):
-            # nx means "write a new record"
-            record = {"name": select_key}
-            values = self.db_editor.get_value_fields()
-            for name, value in values.items():
-                record[name] = value
-            link_values, _, _, _ = self.db_editor.get_links_fields()
-            for name, value in link_values.items():
-                record[name] = value
-            pp(("Attempting an insert for record: ", record))
-            RI.do_upsert(db_nm.lower(), "nx", record, {})
-        # - verify, enhance the key and other values
-        # - if edits OK, then add audit values
+            pp((f"Attempting a {db_nm} insert for record: ", record))
+            # nx means "write a new record. do not overwrite existing"
+            RI.do_upsert(db_nm, "nx", record, {})
+        # - prep the record
+        #   - convert value package to bytes
+        #   - encrypt value package (maybe)
         # - add the record
-        # - display new record if insert succeeds or at
-        #  least display a message that insert succeeeded
-        #  or is pending, awaiting a commit/save
-        # - display error message if insert fails
+        #   - if insert succeeds show success message
+        #   - if we move to a pending/commit/save model,
+        #       then update the pending queue & status
+        #   - display error message if insert fails
         else:
             # Record already exists, reject the add.
             self.db_editor.set_cursor_result(
@@ -418,15 +399,9 @@ class SaskanServices(QMainWindow):
 
     def push_find_btn(self):
         """Slot for DB Editor Find push button click action."""
-        db_nm, rect_nm = self.prep_editor_action("Find")
-        search_key = self.db_editor.texts["Key"]["widget"].text()
-        if f"{rect_nm}:" not in search_key:
-            search_key = f"{rect_nm}:{search_key}"
-        if search_key[:1] != "*":
-            search_key = "*" + search_key
-        if search_key[-1:] != "*":
-            search_key += "*"
-        result = self.find_redis_keys(db_nm, search_key.strip())
+        self.db_editor.prep_editor_action("Find")
+        db_nm, search_key = self.db_editor.get_search_value()
+        result = self.find_redis_keys(db_nm, search_key)
         pp(("FIND result", result))
 
     def create_db_editor(self):
