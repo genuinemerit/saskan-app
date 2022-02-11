@@ -87,16 +87,12 @@ Redis commands: https://redis.io/commands
 import datetime
 import hashlib
 import json
+import redis
 import secrets
 import uuid
+import zlib
 from copy import copy
 from pprint import pprint as pp  # noqa: F401
-
-import redis
-
-from BowQuiver.saskan_schema import SaskanSchema  # type: ignore
-
-SS = SaskanSchema()
 
 
 class RedisIOUtils(object):
@@ -228,6 +224,16 @@ class RedisIOUtils(object):
         v_hash.update(p_data_in.encode("utf-8"))
         return v_hash.hexdigest()
 
+    def convert_dict_to_bytes(self, msg_d: dict) -> object:
+        """Convert Python dict to compressed JSON bytes."""
+        msg_j: str = json.dumps(msg_d)
+        return zlib.compress(bytes(msg_j, 'utf-8'))
+
+    def convert_bytes_to_dict(self, msg_jzby: bytes) -> dict:
+        """Convert compressed JSON bytes to Python dict."""
+        msg_j = zlib.decompress(msg_jzby)
+        return json.loads(msg_j)
+
 
 class RedisIO(object):
     """Generic Redis handling."""
@@ -300,9 +306,8 @@ class RedisIO(object):
         """
         rec = None
         if self.RNS[p_db].exists(p_key_val):               # type: ignore
-            # print(f"Record exists for key {p_key_val}")
             redis_result = self.RNS[p_db].get(p_key_val)
-            rec = SS.convert_msg_jzby_to_py_dict(redis_result)
+            rec = self.UT.convert_bytes_to_dict(redis_result)
         return rec
 
     def hash_record(self, p_rec: dict) -> str:
@@ -380,7 +385,7 @@ class RedisIO(object):
         """Archive previous record to `log` namespace."""
         arc_key = p_old_rec["name"] +\
             ".archive." + self.get_timestamp()   # type: ignore
-        arc_schema = SS.convert_py_dict_to_msg_jzby(
+        arc_schema = self.UT.convert_dict_to_bytes(
             msg_d=p_old_rec)
         self.RNS["log"].set(                     # type: ignore
             arc_key, arc_schema, nx=True)
@@ -392,17 +397,15 @@ class RedisIO(object):
                   p_old_rec: dict):
         """Either update (xx) or write (nx) a record to Redis"""
         if p_upsert == "xx":
-            print("\nArchive and update record:")
             self.do_archive(p_old_rec)      # type: ignore
             self.RNS[p_ns].set(p_rec["name"],       # type: ignore
-                               SS.convert_py_dict_to_msg_jzby(
+                               self.UT.convert_dict_to_bytes(
                                    msg_d=p_rec), xx=True)
         elif p_upsert == "nx":
-            print("\nWrite new record:")
             try:
                 self.RNS[p_ns].set(
                     p_rec["name"],
-                    SS.convert_py_dict_to_msg_jzby(
+                    self.UT.convert_dict_to_bytes(
                         msg_d=p_rec), nx=True)
             except redis.exceptions.ResponseError as e:
                 print(f"\nRedis error: {e}")

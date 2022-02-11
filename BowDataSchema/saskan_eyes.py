@@ -341,12 +341,14 @@ class SaskanServices(QMainWindow):
 
     def find_redis_keys(self,
                         p_db_nm: str,
-                        p_key_pattern: str):
+                        p_key_pattern: str,
+                        p_load_records: bool = True):
         """Get a list of keys for selected DB matching the pattern.
 
         :args:
             p_db_nm - name of the database to search
             p_key_pattern - pattern to match for keys
+            p_load_records - load 1st record found into editor
         :returns: list of keys that match the pattern or None
         """
         result_b = RI.find_records(p_db_nm, p_key_pattern)
@@ -363,12 +365,13 @@ class SaskanServices(QMainWindow):
             rword = "record" if rcnt == 1 else "records"
             self.db_editor.set_cursor_result(
                 f"{rcnt} {rword} found with key like '{p_key_pattern}'")
-            self.db_editor.activate_buttons("Get", ["Next", "Prev"])
-            # This will put the first record in the editor
-            _ = self.get_redis_record(p_db_nm, result[0])
+            if p_load_records:
+                # Put first record found into the editor
+                _ = self.get_redis_record(p_db_nm, result[0])
+                self.db_editor.activate_buttons("Get", ["Next", "Prev"])
         return (result)
 
-    def push_add_btn(self):
+    def push_add_btn(self) -> bool:
         """Slot for DB Editor Edit/Add push button click action.
 
         Get all values from active edit form.
@@ -376,14 +379,37 @@ class SaskanServices(QMainWindow):
 
         For now, reject Add if rec already exists.
         Later, maybe provide update option.
+
+        :returns: (bool) True if record was added, False if not
         """
         self.db_editor.prep_editor_action("Add")
         db_nm, record = self.db_editor.get_all_fields()
         result = self.get_redis_record(db_nm, record["name"])
         if result in (None, [], {}):
-            pp((f"Attempting a {db_nm} insert for record: ", record))
-            # nx means "write a new record. do not overwrite existing"
-            RI.do_upsert(db_nm, "nx", record, {})
+            # Do edits associated with the record type.
+            if self.db_editor.run_rectyp_edits():
+                # If all OK, then do link auto-formatting and checks.
+                links = self.db_editor.get_value_fields(p_links_only=True)
+                if links != {}:
+                    pp(("links", links))
+                    for link_nm, link_values in links.items():
+                        for link_ix, link_val in enumerate(link_values):
+                            print(f"link_val: {link_val}")
+                            link_key = \
+                                self.db_editor.edit["redis_key"](link_val)
+                            print(f"link_key: {link_key}")
+                            record[link_nm][link_ix] = link_key
+                            link_rec = self.find_redis_keys(
+                                db_nm, link_key, p_load_records=False)
+                            if link_rec in (None, {}, []):
+                                self.db_editor.set_cursor_result(
+                                    f"No record found with key '{link_key}'")
+                                return False
+                # If all OK, then format the Audit fields.
+                pp((f"Attempting a {db_nm} insert for record: ", record))
+                # nx means "write a new record. do not overwrite existing"
+                RI.do_upsert(db_nm, "nx", record, {})
+                return True
         # - prep the record
         #   - convert value package to bytes
         #   - encrypt value package (maybe)
@@ -396,6 +422,7 @@ class SaskanServices(QMainWindow):
             # Record already exists, reject the add.
             self.db_editor.set_cursor_result(
                 "Insert rejected. Record already exists.")
+            return False
 
     def push_find_btn(self):
         """Slot for DB Editor Find push button click action."""

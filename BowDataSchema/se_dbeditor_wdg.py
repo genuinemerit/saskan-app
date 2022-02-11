@@ -87,10 +87,19 @@ class DBEditorWidget(QWidget):
                     r_str = r_str.replace(char, "_")
             return bump_underbars(r_str)
 
-        self.enum = {"hostlist": ["localhost", "curwen"]}
+        def verify_host(p_value: str):
+            """Validate value against enumerated list."""
+            if p_value in ["localhost", "curwen"]:
+                print(f"Host {p_value} is valid.")
+                return True
+            else:
+                print(f"Host {p_value} is not valid.")
+                return False
+
         self.mask = {"date": "0000-00-00",
                      "lower": "<"}
-        self.edit = {"redis_key": bump_redis_key}
+        self.edit = {"redis_key": bump_redis_key,
+                     "hostlist": verify_host}
 
     # Text Widget Creation
     # ============================================================
@@ -119,14 +128,12 @@ class DBEditorWidget(QWidget):
             "widget": None}
         texts = {"key_fields": {"display": "Key Fields"},
                  "value_fields": {"display": "Value Fields"},
-                 "link_fields": {"display": "Link Fields"},
                  "dbe_status": {"display": "Database Editor Status"},
-                 "Key": {"hint": "Search key value"},
+                 "Key": {"hint": "lower case letters, underbars, colons only"},
                  "Cursor": {"hint": "Cursor/Result summary"},
                  "Pending": {"hint": "Pending changes"},
                  "Keys": {"display": "Key Fields"},
                  "Values": {"display": "Value Fields"},
-                 "Links": {"display": "Link Fields"},
                  "Types": {"display": "Select Record Type"},
                  "Get": {"display": "Find Record(s)"},
                  "Edit": {"display": "Edit Record"},
@@ -196,14 +203,14 @@ class DBEditorWidget(QWidget):
                             "without saving."},
                  "More": {"display": "+",
                           "caption":
-                          "Add another input field for Links."},
+                          "Add another input field."},
                  "Fewer": {"display": "-",
                            "caption":
-                           "Remove an input field for Links."},
+                           "Remove an input field."},
                  "Max More": {"caption":
-                              "Cannot add more Links. Maximum reached."},
+                              "Cannot add fields to list. Max reached."},
                  "Min Fewer": {"caption":
-                               "Cannot remove more Links. Minimum reached."}}
+                               "Cannot remove fields from list. Min reached."}}
         for key in texts.keys():
             self.texts[key] = texts_template.copy()
             for this, do_it in texts[key].items():
@@ -246,7 +253,9 @@ class DBEditorWidget(QWidget):
         :returns: QLineEdit object
         """
         txt_wdg = SS.set_line_edit_style(QLineEdit(), False)
-        txt_wdg.setPlaceholderText(self.get_hint(p_text_key))
+        hint = self.get_hint(p_text_key)
+        txt_wdg.setPlaceholderText(hint)
+        txt_wdg.setToolTip(hint)
         txt_wdg.setReadOnly(p_readonly)
         txt_wdg.setEnabled(True)
         self.texts[p_text_key]["active"] = True
@@ -301,6 +310,7 @@ class DBEditorWidget(QWidget):
         search_key = self.texts["Key"]["widget"].text().strip()
         db_nm = db_nm.lower()
         rectyp_nm = rectyp_nm.lower()
+        search_key = self.edit["redis_key"](search_key)
         if f"{rectyp_nm}:" not in search_key:
             search_key = f"{rectyp_nm}:{search_key}"
         if search_key[:1] != "*":
@@ -365,8 +375,8 @@ class DBEditorWidget(QWidget):
                      "Undo": {},
                      "Redo": {},
                      "Cancel": {"action": self.push_cancel}},
-            "Links": {"More": {"action": self.push_more_links},
-                      "Fewer": {"action": self.push_fewer_links}}}
+            "List": {"More": {"action": self.add_row_to_list},
+                     "Fewer": {"action": self.remove_row_from_list}}}
         for grp in self.buttons.keys():
             for btn_nm in self.buttons[grp].keys():
                 for item in button_template.keys():
@@ -378,34 +388,36 @@ class DBEditorWidget(QWidget):
 
     def make_push_button_wdg(self,
                              p_grp: str,
-                             p_key: str):
+                             p_btn_name: str,
+                             p_list_name: str = None):
         """Instantiate a push button object.
 
         By default, they are set up in an inactive state.
 
         :args:
             p_grp - metadata group for the button
-            p_key - metadata key for the button
+            p_btn_name - metadata key / button name
+            p_list_name - field_name for repeat-lists, add to button name
         :returns: QPushButton object
         """
-        p_key_txt = p_key
-        if p_key in self.texts:
-            if "display" in self.texts[p_key] and\
-                    self.texts[p_key]["display"] not in (None, "", [], {}):
-                p_key_txt = self.texts[p_key]["display"]
-        print(f"DEBUG Creating button for {p_grp}:{p_key}. " +
-              f"Display text: {p_key_txt}")
-        btn = SS.set_button_style(QPushButton(p_key_txt), False)
-        btn.setObjectName(f"{p_grp}.{p_key}.btn")
+        btn_text = p_btn_name
+        list_nm = (":" + p_list_name) if p_list_name is not None else ""
+        if p_btn_name in self.texts and \
+            "display" in self.texts[p_btn_name] and \
+                self.texts[p_btn_name]["display"] not in (None, "", [], {}):
+            btn_text = self.texts[p_btn_name]["display"]
+        btn = SS.set_button_style(QPushButton(btn_text), False)
+        btn.setObjectName(f"{p_grp}.{p_btn_name}{list_nm}.btn")
         btn.setEnabled(False)
-        if self.buttons[p_grp][p_key]["action"] is not None:
-            btn.clicked.connect(self.buttons[p_grp][p_key]["action"])
-        self.buttons[p_grp][p_key]["widget"] = btn
-        self.buttons[p_grp][p_key]["active"] = False
+        if self.buttons[p_grp][p_btn_name]["action"] is not None:
+            btn.clicked.connect(self.buttons[p_grp][p_btn_name]["action"])
+        self.buttons[p_grp][p_btn_name]["widget"] = btn
+        self.buttons[p_grp][p_btn_name]["active"] = False
         return (btn)
 
     def make_button_group_wdg(self,
                               p_grp: str,
+                              p_list_name: str = None,
                               p_use_stt: bool = True,
                               p_activate: bool = False):
         """Make containers and put buttons in them.
@@ -416,25 +428,26 @@ class DBEditorWidget(QWidget):
 
         :args:
             p_grp: str - name of the button group
-            p_use_stt: bool - whether to include a subtitle
-            p_activate: bool - whether to activate buttons
+            p_list_name: str - name to add to button, for list items (optional)
+            p_use_stt: bool - whether to include a subtitle (optional)
+            p_activate: bool - whether to activate buttons (optional)
         :returns: QVBoxLayout object
-
-        @DEV:
-        - Would like some more options for formatting the buttons,
-          especially sizing them.
         """
+        list_nm = p_list_name if p_list_name is not None else ""
         vbox = QVBoxLayout()
         if p_use_stt:
             vbox.addWidget(self.make_text_subttl_wdg(p_grp))
         hbox = QHBoxLayout()
+        hbox.LeftToRight
         btn_list = list()
         for btn_nm, btn_attrs in self.buttons[p_grp].items():
-            btn = self.make_push_button_wdg(p_grp, btn_nm)
+            btn = self.make_push_button_wdg(p_grp, btn_nm, list_nm)
             btn_list.append(btn_nm)
             hbox.addWidget(btn)
         if p_activate:
             self.activate_buttons(p_grp, btn_list)
+        hbox.addStretch()
+        hbox.addSpacing(30)
         vbox.addLayout(hbox)
         return (vbox)
 
@@ -496,33 +509,35 @@ class DBEditorWidget(QWidget):
         self.show_status("Cancel")
         self.deactivate_rectyp()
 
-    def push_more_links(self):
-        """Add another input row to form for Links.
-
-        @DEV:
-        - Will probably want to extend this to other sets
-          of inputs where multiple values/lists are allowed.
+    def add_row_to_list(self):
+        """Add an input row to form for list of fields.
         """
-        _, link_form, field_nm, row_count = self.get_links_fields()
-        if row_count > 4:
+        list_nm = self.sender().objectName().split(":")[1].split(".")[0]
+        list_values, list_form = self.get_list_fields(list_nm)
+        rowcnt = len(list_values)
+        if rowcnt > 4:
             self.show_status("Max More")
         else:
             self.show_status("More")
-            link_form.insertRow(
-                link_form.rowCount(), field_nm,
-                SS.set_line_edit_style(QLineEdit()))
+            db, rectyp = self.get_active_db_rectyp()
+            edit_rules = [fld[1] for fld in
+                          self.rectyps[db][rectyp]["value_fields"]
+                          if fld[0] == list_nm][0]
+            edit_wdg = SS.set_line_edit_style(QLineEdit())
+            edit_wdg = self.apply_pre_edits(edit_rules, edit_wdg)
+            list_form.insertRow(rowcnt, list_nm, edit_wdg)
 
-    def push_fewer_links(self):
-        """Remove one input row from the form for Links.
-
-        Not quite... I want the "link" form within the rectyp.
+    def remove_row_from_list(self):
+        """Remove one input row from the form for list of field.
         """
-        _, link_form, field_nm, row_count = self.get_links_fields()
-        if row_count < 2:
+        list_nm = self.sender().objectName().split(":")[1].split(".")[0]
+        list_values, list_form = self.get_list_fields(list_nm)
+        rowcnt = len(list_values)
+        if rowcnt < 2:
             self.show_status("Min Fewer")
         else:
             self.show_status("Fewer")
-            link_form.removeRow(row_count - 1)
+            list_form.removeRow(rowcnt - 1)
 
     # Record Type Editor Widget Creation
     # ============================================================
@@ -648,7 +663,6 @@ class DBEditorWidget(QWidget):
             "db": str(),
             "key_fields": None,
             "value_fields": None,
-            "link_fields": None,
             "active": False,
             "selector": None,
             "select_action": None,
@@ -685,8 +699,6 @@ class DBEditorWidget(QWidget):
                      ["Caption"],
                      ["Description"],
                      ["Plans", ("notnull", "link", "list")]],
-                    "link_fields":
-                    [["Plans", ("notnull", "link", "list")]],
                     "select_action": self.select_topics},
                 "Plans": {},
                 "Services": {},
@@ -730,6 +742,33 @@ class DBEditorWidget(QWidget):
             vbox.addLayout(hbox)
         return (vbox)
 
+    def apply_pre_edits(self,
+                        p_edit_rules: set,
+                        p_edit_wdg: QLineEdit):
+        """Format edit attributes of form line edit item
+
+        :args:
+            (Qt object) The edit item widget
+            (set) Names of edit rules for the edit item
+        :returns: Modified edit widget
+        """
+        edit_wdg = p_edit_wdg
+        hint = ""
+        if "notnull" in p_edit_rules:
+            edit_wdg.setValidator(QRegExpValidator(
+                QRegExp("[^\s]+"), edit_wdg))       # noqa W605
+            hint += " required"
+            edit_wdg.setPlaceholderText("Required")
+        if "posint" in p_edit_rules:
+            edit_wdg.setValidator(QIntValidator(edit_wdg))
+            hint += " positive integer"
+        if "link" in p_edit_rules:
+            hint += f" {self.texts['Key']['hint']}"
+        if hint != "":
+            edit_wdg.setPlaceholderText(hint)
+            edit_wdg.setToolTip(hint)
+        return (edit_wdg)
+
     def make_rectyp_wdg(self,
                         db_nm: str,
                         rectyp_nm: str):
@@ -740,71 +779,41 @@ class DBEditorWidget(QWidget):
                   specialized edit buttons (like for list length),
                   and Form layouts (rows of related edit fields).
         """
-        print("\n=====\nDEBUG. Creating editor widget for " +
-              f"{rectyp_nm} on {db_nm} DB")
-
         rectyp_wdg = QWidget()
         rectyp_layout = QVBoxLayout()
         rectyp_layout.addWidget(self.make_text_subttl_wdg(rectyp_nm))
-        # Will eventually get rid of "link_fields"
-        for f_grp in ["key_fields", "value_fields", "link_fields"]:
-            # Even standard groups can be None while in development
-            # Eventually we'll set link_fields to none. For dev,
-            # we'll have two sets of list fields.
+        for f_grp in ["key_fields", "value_fields"]:
             if self.rectyps[db_nm][rectyp_nm][f_grp] is not None:
                 # Add sub-title for group of fields
                 rectyp_layout.addWidget(self.make_text_subttl_wdg(f_grp))
-                print(f"DEBUG. Working on {f_grp} group")
-
-                # Edit forms (rows of line edit fields)
                 form = QFormLayout()
                 form_nm = f"{db_nm}:{rectyp_nm}:{f_grp}"
                 form.setObjectName(form_nm)
-                print(f"DEBUG. Created form {form_nm}")
-
                 form.setLabelAlignment(Qt.AlignRight)
                 for field in self.rectyps[db_nm][rectyp_nm][f_grp]:
-
                     field_nm = field[0]
-                    print(f"DEBUG. Working on field {field_nm}")
-                    edit_wdg = SS.set_line_edit_style(QLineEdit())
-
-                    # Start logic for deriving edit rules
-
-                    print(f"DEBUG. Applying edit rules for {field_nm}")
-                    if len(field) > 1:
-                        edit_rules = field[1]
-                        hint = ""
-                        if "notnull" in edit_rules:
-                            edit_wdg.setValidator(QRegExpValidator(
-                                QRegExp("[^\s]+"), edit_wdg))       # noqa W605
-                            hint += " Required"
-                            edit_wdg.setPlaceholderText("Required")
-                        if "posint" in edit_rules:
-                            edit_wdg.setValidator(QIntValidator(edit_wdg))
-                            hint += " Positive Integer"
-                        if hint != "":
-                            edit_wdg.setPlaceholderText(hint)
-                            edit_wdg.setToolTip(hint)
-
-                    form.addRow(field_nm, edit_wdg)
+                    edit_rules = field[1] if len(field) > 1 else ()
+                    if "list" in edit_rules:
+                        # Handle inputs where a list of values is allowed
+                        list_vbox = QVBoxLayout()
+                        list_vbox.setObjectName(
+                            f"{db_nm}:{rectyp_nm}:{field_nm}.box")
+                        list_form = QFormLayout()
+                        list_form.setObjectName(
+                            f"{db_nm}:{rectyp_nm}:{field_nm}.frm")
+                        edit_wdg = SS.set_line_edit_style(QLineEdit())
+                        edit_wdg = self.apply_pre_edits(edit_rules, edit_wdg)
+                        list_form.addRow(field_nm, edit_wdg)
+                        list_vbox.addLayout(list_form)
+                        list_vbox.addLayout(
+                            self.make_button_group_wdg(
+                                "List", field_nm, False, True))
+                        form.addRow(list_vbox)
+                    else:
+                        edit_wdg = SS.set_line_edit_style(QLineEdit())
+                        edit_wdg = self.apply_pre_edits(edit_rules, edit_wdg)
+                        form.addRow(field_nm, edit_wdg)
                 rectyp_layout.addLayout(form)
-
-                # Buttons for adding more repeating fields
-                # Needs work. Smaller buttons ("+", "-").
-                # Locate after list-type fields, not before.
-                # For expanding, shrinking, make sure form contains
-                # ONLY the edit rows and that buttons are in a box
-                # outside of the list form. In other words, listed
-                # edit fields need to go in their own form.
-                # And that's what I am seeing.. that the buttons
-                # are added to the vbox, not to the edit form.
-                # But we're going to need to continue this approach
-                # when list fields are not defined as distinct field
-                # groups in the metadata, but only tagged.
-                if f_grp == "link_fields":
-                    rectyp_layout.addLayout(
-                        self.make_button_group_wdg("Links", False, True))
         rectyp_wdg.setLayout(rectyp_layout)
         self.rectyps[db_nm][rectyp_nm]["widget"] = rectyp_wdg
         rectyp_wdg.hide()
@@ -851,61 +860,59 @@ class DBEditorWidget(QWidget):
             value = key_form.itemAt(
                 key_idx, QFormLayout.FieldRole).widget().text()
             form_keys[name] = value
+        # Use bump logic here to remove unwanted characters
         db_key = ":".join(form_keys.values()).lower()
         if (rectyp.lower() + ":") not in db_key:
             db_key = f"{rectyp.lower()}:{db_key}"
+        db_key = self.edit["redis_key"](db_key)
         return (form_keys, db_key)
 
-    def get_value_fields(self):
+    def get_list_fields(self,
+                        p_field_nm: str):
+        """Get specified list form for the active record type.
+
+        And for the requested list-of-values field name.
+
+        :returns: tuple (
+            list of field values,
+            QFormLayout object)
+        """
+        db, rectyp = self.get_active_db_rectyp()
+        list_form = None
+        list_values = []
+        list_form = \
+            self.rectyps[db][rectyp]["widget"].findChild(
+                QFormLayout, f"{db}:{rectyp}:{p_field_nm}.frm")
+        for link_idx in range(list_form.rowCount()):
+            value = list_form.itemAt(
+                link_idx, QFormLayout.FieldRole).widget().text()
+            list_values.append(value)
+        return (list_values, list_form)
+
+    def get_value_fields(self,
+                         p_links_only: bool = False):
         """Get name and value from all fields on all sub-forms,
         excluding the Keys forms, for the active record type.
-
-        Note that for links and possibly others, there may be
-        lists of values. Need to figure out how to manage that
-        for Redis.
         """
         db, rectyp = self.get_active_db_rectyp()
-        form_values = dict()
-        form_nm = f"{db}:{rectyp}:value_fields"
+        form_values: dict = {}
         form_rows = \
             self.rectyps[db][rectyp]["widget"].findChild(
-                QFormLayout, form_nm)
+                QFormLayout, f"{db}:{rectyp}:value_fields")
         for val_idx, val in enumerate(
                 self.rectyps[db][rectyp]["value_fields"]):
-            name = form_rows.itemAt(
-                val_idx, QFormLayout.LabelRole).widget().text()
-            value = form_rows.itemAt(
-                val_idx, QFormLayout.FieldRole).widget().text()
-            form_values[name] = value
+            edit_rules = val[1] if len(val) > 1 else ()
+            if "list" in edit_rules:
+                name = val[0]
+                value, _ = self.get_list_fields(name)
+            else:
+                name = form_rows.itemAt(
+                    val_idx, QFormLayout.LabelRole).widget().text()
+                value = form_rows.itemAt(
+                    val_idx, QFormLayout.FieldRole).widget().text()
+            if (not p_links_only) or (p_links_only and "link" in edit_rules):
+                form_values[name] = value
         return (form_values)
-
-    def get_links_fields(self):
-        """Get links form for the active record type.
-        :returns: tuple (
-            dict of field name:list of field values,
-            QFormLayout object or None,
-            name (label) of the links field
-            count of rows in the links form)
-        """
-        db, rectyp = self.get_active_db_rectyp()
-        link_values = None
-        link_form = None
-        field_nm = None
-        row_count = 0
-        if self.rectyps[db][rectyp]["link_fields"] is not None:
-            self.show_status("More")
-            field_nm = self.rectyps[db][rectyp]["link_fields"][0]
-            link_values = {field_nm: []}
-            form_nm = f"{db}:{rectyp}:link_fields"
-            link_form = \
-                self.rectyps[db][rectyp]["widget"].findChild(
-                    QFormLayout, form_nm)
-            for link_idx in range(link_form.rowCount()):
-                value = link_form.itemAt(
-                    link_idx, QFormLayout.FieldRole).widget().text()
-                link_values[field_nm].append(value)
-            row_count = link_form.rowCount()
-        return (link_values, link_form, field_nm, row_count)
 
     def get_all_fields(self):
         """Get all the field names and values for active edit form.
@@ -923,14 +930,8 @@ class DBEditorWidget(QWidget):
         values = self.get_value_fields()
         for name, value in values.items():
             record[name] = value
-        link_values, _, _, _ = self.get_links_fields()
-        if link_values not in (None, {}, [], ""):
-            for name, value in link_values.items():
-                record[name] = value
         return (db_nm.lower(), record)
 
-    # Record Type Editor Widget slot actions
-    # ============================================================
     def activate_rectyp(self,
                         p_rec: str):
         """Deactivate a Record Type Edit widget.
@@ -971,7 +972,41 @@ class DBEditorWidget(QWidget):
             if done:
                 break
 
-    # Database Editor Widget Creation
+    def run_rectyp_edits(self) -> bool:
+        """Run the edits associated with the active record type.
+
+        These are executed when an Add or Save button is pressed.
+
+        :returns: (bool) True if all edits pass else False
+        """
+        db, rectyp = self.get_active_db_rectyp()
+        form_keys, _ = self.get_key_fields()
+        form_values = form_keys | self.get_value_fields()
+        edits_passed = True
+        error_msg = ""
+        for f_grp in ["key_fields", "value_fields"]:
+            for field in self.rectyps[db][rectyp][f_grp]:
+                field_nm = field[0]
+                edit_rules = field[1] if len(field) > 1 else ()
+                pp(("DEBUG field_nm, edit_rules", field_nm, edit_rules))
+                if "notnull" in edit_rules:
+                    print("Checking for null value")
+                    if form_values[field_nm] in (None, "", [], {}):
+                        error_msg = f"{field_nm} is required. "
+                        edits_passed = False
+                        break
+                if "hostlist" in edit_rules:
+                    print("Checking for valid host name")
+                    if not (self.edit["hostlist"](form_values[field_nm])):
+                        error_msg = "Invalid host name. "
+                        edits_passed = False
+                        break
+            if not edits_passed:
+                self.set_cursor_result(error_msg)
+                break
+        return (edits_passed)
+
+    # Database Editor Widget make function
     # ============================================================
 
     def make_db_editor_wdg(self):
