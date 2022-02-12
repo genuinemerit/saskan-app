@@ -283,8 +283,7 @@ class SaskanServices(QMainWindow):
             self.show_status(btn["caption"])
 
     def create_monitor(self):
-        """Create the Service Monitor widget.
-        """
+        """Create the Service Monitor widget."""
         self.service_monitor = MonitorWidget(self)
         for key, act in {
                 "Summary": self.mon_summary,
@@ -351,7 +350,7 @@ class SaskanServices(QMainWindow):
             p_load_records - load 1st record found into editor
         :returns: list of keys that match the pattern or None
         """
-        result_b = RI.find_records(p_db_nm, p_key_pattern)
+        result_b = RI.find_keys(p_db_nm, p_key_pattern)
         result: list = []
         if result_b in (None, [], {}):
             self.db_editor.set_cursor_result(
@@ -371,14 +370,36 @@ class SaskanServices(QMainWindow):
                 self.db_editor.activate_buttons("Get", ["Next", "Prev"])
         return (result)
 
-    def push_add_btn(self) -> bool:
+    def validate_links(self,
+                       p_db_nm: str,
+                       p_record: dict):
+        """Validate foreign key values before writing to DB.
+
+        :args:
+            p_db_nm - name of db containing the record type
+            p_record - record to be written to DB
+        """
+        links = self.db_editor.get_value_fields(p_links_only=True)
+        if links != {}:
+            for link_nm, link_values in links.items():
+                for link_ix, link_val in enumerate(link_values):
+                    link_key = \
+                        self.db_editor.edit["redis_key"](link_val)
+                    p_record[link_nm][link_ix] = link_key
+                    link_rec = self.find_redis_keys(
+                        p_db_nm, link_key, p_load_records=False)
+                    if link_rec in (None, {}, []):
+                        self.db_editor.set_cursor_result(
+                            f"No record found with key '{link_key}'")
+                        return False
+        return True
+
+    def push_add_btn(self):
         """Slot for DB Editor Edit/Add push button click action.
 
         Get all values from active edit form.
         Check to see if record w/key already exists on DB.
-
-        For now, reject Add if rec already exists.
-        Later, maybe provide update option.
+        Reject Add if rec already exists.
 
         :returns: (bool) True if record was added, False if not
         """
@@ -386,38 +407,13 @@ class SaskanServices(QMainWindow):
         db_nm, record = self.db_editor.get_all_fields()
         result = self.get_redis_record(db_nm, record["name"])
         if result in (None, [], {}):
-            # Do edits associated with the record type.
             if self.db_editor.run_rectyp_edits():
-                # If all OK, then do link auto-formatting and checks.
-                links = self.db_editor.get_value_fields(p_links_only=True)
-                if links != {}:
-                    pp(("links", links))
-                    for link_nm, link_values in links.items():
-                        for link_ix, link_val in enumerate(link_values):
-                            print(f"link_val: {link_val}")
-                            link_key = \
-                                self.db_editor.edit["redis_key"](link_val)
-                            print(f"link_key: {link_key}")
-                            record[link_nm][link_ix] = link_key
-                            link_rec = self.find_redis_keys(
-                                db_nm, link_key, p_load_records=False)
-                            if link_rec in (None, {}, []):
-                                self.db_editor.set_cursor_result(
-                                    f"No record found with key '{link_key}'")
-                                return False
-                # If all OK, then format the Audit fields.
-                pp((f"Attempting a {db_nm} insert for record: ", record))
-                # nx means "write a new record. do not overwrite existing"
-                RI.do_upsert(db_nm, "nx", record, {})
+                if not self.validate_links(db_nm, record):
+                    return False
+                record = RI.set_audit_values(record)
+                # For now, system exception on insert failure
+                RI.do_insert(db_nm, record)
                 return True
-        # - prep the record
-        #   - convert value package to bytes
-        #   - encrypt value package (maybe)
-        # - add the record
-        #   - if insert succeeds show success message
-        #   - if we move to a pending/commit/save model,
-        #       then update the pending queue & status
-        #   - display error message if insert fails
         else:
             # Record already exists, reject the add.
             self.db_editor.set_cursor_result(

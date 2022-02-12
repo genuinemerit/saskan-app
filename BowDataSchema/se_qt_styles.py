@@ -71,7 +71,9 @@ class SaskanStyles(object):
              "border: 1px solid; " + \
              "border-color: darkgreen; " + \
              "color: black;" + \
-             "padding: 2px;"
+             "padding: 2px;" + \
+             "padding-left: 8px;" + \
+             "padding-right: 8px;"
         return ss
 
     @classmethod
@@ -81,7 +83,9 @@ class SaskanStyles(object):
              "border: 1px solid; " + \
              "border-color: black; " + \
              "color: gray;" + \
-             "padding: 2px;"
+             "padding: 2px;" + \
+             "padding-left: 8px;" + \
+             "padding-right: 8px;"
         return ss
 
     @classmethod

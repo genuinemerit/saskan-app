@@ -288,7 +288,8 @@ class DBEditorWidget(QWidget):
         """
         return (self.texts[p_text_key]["hint"])
 
-    def set_cursor_result(self, p_text: str):
+    def set_cursor_result(self,
+                          p_text: str = ""):
         """Assign text to Cursor result display."""
         self.activate_texts(["Cursor"])
         self.texts["Cursor"]["widget"].setText(p_text)
@@ -333,14 +334,15 @@ class DBEditorWidget(QWidget):
                 self.texts["dbe_status"]["widget"].setText(
                     self.texts[p_text_nm]["display"])
 
-    def prep_editor_action(self, p_action_nm):
+    def prep_editor_action(self,
+                           p_action_nm: str):
         """Common functions used by DB Editor actions
 
         :args: p_action_nm - name of button or other widget that
             triggered the actione)
         """
         self.show_status(p_action_nm)
-        self.set_cursor_result("")
+        self.set_cursor_result()
 
     # Push-Button Widget Creation
     # ============================================================
@@ -731,14 +733,15 @@ class DBEditorWidget(QWidget):
         vbox.addWidget(self.make_text_subttl_wdg("Types"))
         for db in self.rectyps.keys():
             hbox = QHBoxLayout()
+            hbox.LeftToRight
             for rectyp in self.rectyps[db].keys():
                 rdo_btn = SS.set_radiobtn_style(QRadioButton(rectyp))
                 if self.rectyps[db][rectyp]["select_action"] is not None:
                     rdo_btn.clicked.connect(
                         self.rectyps[db][rectyp]["select_action"])
                 hbox.addWidget(rdo_btn)
-                # hbox.addStretch(1)
                 self.rectyps[db][rectyp]["selector"] = rdo_btn
+            hbox.addStretch(1)
             vbox.addLayout(hbox)
         return (vbox)
 
@@ -848,6 +851,11 @@ class DBEditorWidget(QWidget):
         :returns: tuple (
             dict of field name:field value,
             key value as used on database)
+
+        @DEV:
+        - I am losing the "ID" part of the key.
+        - Started after adding verification and audit-gen logic.
+        - Figure it out and fix it!! :-)
         """
         db, rectyp = self.get_active_db_rectyp()
         form_keys = dict()
@@ -948,6 +956,7 @@ class DBEditorWidget(QWidget):
                     self.activate_buttons("Edit", ["Add", "Cancel"])
                     self.activate_buttons("Get", ["Find"])
                     self.activate_texts(["Key", "Cursor"])
+                    self.prep_editor_action(p_rec)
                     done = True
                     break
             if done:
@@ -988,15 +997,12 @@ class DBEditorWidget(QWidget):
             for field in self.rectyps[db][rectyp][f_grp]:
                 field_nm = field[0]
                 edit_rules = field[1] if len(field) > 1 else ()
-                pp(("DEBUG field_nm, edit_rules", field_nm, edit_rules))
                 if "notnull" in edit_rules:
-                    print("Checking for null value")
                     if form_values[field_nm] in (None, "", [], {}):
                         error_msg = f"{field_nm} is required. "
                         edits_passed = False
                         break
                 if "hostlist" in edit_rules:
-                    print("Checking for valid host name")
                     if not (self.edit["hostlist"](form_values[field_nm])):
                         error_msg = "Invalid host name. "
                         edits_passed = False
