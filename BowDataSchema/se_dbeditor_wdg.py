@@ -77,23 +77,23 @@ class DBEditorWidget(QWidget):
                 r_str = r_str[1:]
             return r_str
 
-        def bump_redis_key(text):
+        def bump_redis_key(text: str):
             """Convert anything not a letter or colon to underbar.
             And make it lowercase.
             """
             r_str = text
             for char in r_str:
-                if not char.isalpha() and char != ":":
+                if not char.isalpha() and \
+                   not char.isdigit() and \
+                   not char == ":":
                     r_str = r_str.replace(char, "_")
             return bump_underbars(r_str)
 
         def verify_host(p_value: str):
             """Validate value against enumerated list."""
             if p_value in ["localhost", "curwen"]:
-                print(f"Host {p_value} is valid.")
                 return True
             else:
-                print(f"Host {p_value} is not valid.")
                 return False
 
         self.mask = {"date": "0000-00-00",
@@ -161,6 +161,9 @@ class DBEditorWidget(QWidget):
                  "Schemas": {
                     "display": "Schema Records (Schema DB)",
                     "caption": "Records holding service schema definitions."},
+                 "Queues": {
+                    "display": "Queue Records (Harvest DB)",
+                    "caption": "Records holding temporary lists."},
                  "Response": {
                     "display": "Response Records (Harvest DB)",
                     "caption": "Records holding request responses and pubs."},
@@ -506,6 +509,10 @@ class DBEditorWidget(QWidget):
         """Slot for Editor Select Topics radio check action"""
         self.select_record_type("Topics")
 
+    def select_queues(self):
+        """Slot for Editor Select Queues radio check action"""
+        self.select_record_type("Queues")
+
     def push_cancel(self):
         """Slot for Editor Edit Push Button --> Cancel"""
         self.show_status("Cancel")
@@ -706,6 +713,12 @@ class DBEditorWidget(QWidget):
                 "Services": {},
                 "Schemas": {}},
             "Harvest": {
+                "Queues": {
+                    "key_fields":
+                    [["Hash ID", ("notnull", "auto")]],
+                    "value_fields":
+                    [["Queue Value", ("notnull", "auto", "list")]],
+                    "select_action": self.select_queues},
                 "Response": {}},
             "Log": {
                 "Activator Log": {},
@@ -757,11 +770,13 @@ class DBEditorWidget(QWidget):
         """
         edit_wdg = p_edit_wdg
         hint = ""
+        if "auto" in p_edit_rules:
+            edit_wdg.setReadOnly(True)
+            hint += " automatically generated"
         if "notnull" in p_edit_rules:
             edit_wdg.setValidator(QRegExpValidator(
                 QRegExp("[^\s]+"), edit_wdg))       # noqa W605
             hint += " required"
-            edit_wdg.setPlaceholderText("Required")
         if "posint" in p_edit_rules:
             edit_wdg.setValidator(QIntValidator(edit_wdg))
             hint += " positive integer"
@@ -790,7 +805,7 @@ class DBEditorWidget(QWidget):
                 # Add sub-title for group of fields
                 rectyp_layout.addWidget(self.make_text_subttl_wdg(f_grp))
                 form = QFormLayout()
-                form_nm = f"{db_nm}:{rectyp_nm}:{f_grp}"
+                form_nm = f"{db_nm}:{rectyp_nm}:{f_grp}.frm"
                 form.setObjectName(form_nm)
                 form.setLabelAlignment(Qt.AlignRight)
                 for field in self.rectyps[db_nm][rectyp_nm][f_grp]:
@@ -798,6 +813,7 @@ class DBEditorWidget(QWidget):
                     edit_rules = field[1] if len(field) > 1 else ()
                     if "list" in edit_rules:
                         # Handle inputs where a list of values is allowed
+                        # Move this to a separate function
                         list_vbox = QVBoxLayout()
                         list_vbox.setObjectName(
                             f"{db_nm}:{rectyp_nm}:{field_nm}.box")
@@ -808,9 +824,12 @@ class DBEditorWidget(QWidget):
                         edit_wdg = self.apply_pre_edits(edit_rules, edit_wdg)
                         list_form.addRow(field_nm, edit_wdg)
                         list_vbox.addLayout(list_form)
-                        list_vbox.addLayout(
-                            self.make_button_group_wdg(
-                                "List", field_nm, False, True))
+                        # If values are set automatically, then do not
+                        # provide add/remove buttons
+                        if "auto" not in edit_rules:
+                            list_vbox.addLayout(
+                                self.make_button_group_wdg(
+                                    "List", field_nm, False, True))
                         form.addRow(list_vbox)
                     else:
                         edit_wdg = SS.set_line_edit_style(QLineEdit())
@@ -844,20 +863,23 @@ class DBEditorWidget(QWidget):
                 break
         return (db_nm, rectyp_nm)
 
-    def get_key_fields(self):
+    def get_key_fields(self,
+                       p_db_nm: str = None,
+                       p_rectyp_nm: str = None):
         """Get name and value from fields on the Keys form
         of the active record type.
+
+        if db or rectype not specified, use active db and rectype.
 
         :returns: tuple (
             dict of field name:field value,
             key value as used on database)
-
-        @DEV:
-        - I am losing the "ID" part of the key.
-        - Started after adding verification and audit-gen logic.
-        - Figure it out and fix it!! :-)
         """
-        db, rectyp = self.get_active_db_rectyp()
+        if p_db_nm is None or p_rectyp_nm is None:
+            db, rectyp = self.get_active_db_rectyp()
+        else:
+            db = p_db_nm
+            rectyp = p_rectyp_nm
         form_keys = dict()
         form_nm = f"{db}:{rectyp}:key_fields"
         key_form = \
@@ -876,16 +898,23 @@ class DBEditorWidget(QWidget):
         return (form_keys, db_key)
 
     def get_list_fields(self,
-                        p_field_nm: str):
+                        p_field_nm: str,
+                        p_db_nm: str = None,
+                        p_rectyp_nm: str = None):
         """Get specified list form for the active record type.
 
         And for the requested list-of-values field name.
+        If db or rectype not specified, use active db and rectype.
 
         :returns: tuple (
             list of field values,
             QFormLayout object)
         """
-        db, rectyp = self.get_active_db_rectyp()
+        if p_db_nm is None or p_rectyp_nm is None:
+            db, rectyp = self.get_active_db_rectyp()
+        else:
+            db = p_db_nm
+            rectyp = p_rectyp_nm
         list_form = None
         list_values = []
         list_form = \
@@ -898,11 +927,19 @@ class DBEditorWidget(QWidget):
         return (list_values, list_form)
 
     def get_value_fields(self,
-                         p_links_only: bool = False):
+                         p_links_only: bool = False,
+                         p_db_nm: str = None,
+                         p_rectyp_nm: str = None):
         """Get name and value from all fields on all sub-forms,
         excluding the Keys forms, for the active record type.
+
+        If db or rectype not specified, use active db and rectype.
         """
-        db, rectyp = self.get_active_db_rectyp()
+        if p_db_nm is None or p_rectyp_nm is None:
+            db, rectyp = self.get_active_db_rectyp()
+        else:
+            db = p_db_nm
+            rectyp = p_rectyp_nm
         form_values: dict = {}
         form_rows = \
             self.rectyps[db][rectyp]["widget"].findChild(
@@ -912,7 +949,7 @@ class DBEditorWidget(QWidget):
             edit_rules = val[1] if len(val) > 1 else ()
             if "list" in edit_rules:
                 name = val[0]
-                value, _ = self.get_list_fields(name)
+                value, _ = self.get_list_fields(name, db, rectyp)
             else:
                 name = form_rows.itemAt(
                     val_idx, QFormLayout.LabelRole).widget().text()
@@ -922,23 +959,30 @@ class DBEditorWidget(QWidget):
                 form_values[name] = value
         return (form_values)
 
-    def get_all_fields(self):
+    def get_all_fields(self,
+                       p_db_nm: str = None,
+                       p_rectyp_nm: str = None):
         """Get all the field names and values for active edit form.
+
+        if db and rectype not specified, use active db and rectype.
 
         :returns: (tuple)
             ( db name in lower case, as used on redis,
               dict {field name:field value, ...} in db record format)
-
-        @DEV:
-        - Add audit fields here?
         """
-        db_nm, _ = self.get_active_db_rectyp()
-        form_keys, db_key = self.get_key_fields()
+        if p_db_nm is None:
+            db, rectyp = self.get_active_db_rectyp()
+        else:
+            db = p_db_nm
+            rectyp = p_rectyp_nm
+        form_keys, db_key = self.get_key_fields(db, rectyp)
         record = {"name": db_key}
-        values = self.get_value_fields()
+        values = self.get_value_fields(False, db, rectyp)
+        for name, value in form_keys.items():
+            record[name] = value
         for name, value in values.items():
             record[name] = value
-        return (db_nm.lower(), record)
+        return (db.lower(), record)
 
     def activate_rectyp(self,
                         p_rec: str):
@@ -989,8 +1033,8 @@ class DBEditorWidget(QWidget):
         :returns: (bool) True if all edits pass else False
         """
         db, rectyp = self.get_active_db_rectyp()
-        form_keys, _ = self.get_key_fields()
-        form_values = form_keys | self.get_value_fields()
+        form_keys, _ = self.get_key_fields(db, rectyp)
+        form_values = form_keys | self.get_value_fields(False, db, rectyp)
         edits_passed = True
         error_msg = ""
         for f_grp in ["key_fields", "value_fields"]:

@@ -197,7 +197,8 @@ class RedisIO(object):
     # DML functions
     # =======================================
     def set_audit_values(self,
-                         p_rec: dict) -> dict:
+                         p_rec: dict,
+                         p_include_hash: bool = True) -> dict:
         """Set audit values for a record.
 
         :returns: dict - record with audit values set
@@ -210,7 +211,8 @@ class RedisIO(object):
         else:
             audit = {"version": "1.0.0"}
         audit["modified"] = self.UT.get_timestamp()
-        audit["hash"] = self.UT.get_hash(str(rec))
+        if p_include_hash:
+            audit["hash"] = self.UT.get_hash(str(rec))
         rec["audit"] = audit
         return (rec)
 

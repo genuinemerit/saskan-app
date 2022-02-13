@@ -338,45 +338,15 @@ class SaskanServices(QMainWindow):
             pass
         return (result)
 
-    def find_redis_keys(self,
-                        p_db_nm: str,
-                        p_key_pattern: str,
-                        p_load_records: bool = True):
-        """Get a list of keys for selected DB matching the pattern.
-
-        :args:
-            p_db_nm - name of the database to search
-            p_key_pattern - pattern to match for keys
-            p_load_records - load 1st record found into editor
-        :returns: list of keys that match the pattern or None
-        """
-        result_b = RI.find_keys(p_db_nm, p_key_pattern)
-        result: list = []
-        if result_b in (None, [], {}):
-            self.db_editor.set_cursor_result(
-                f"No record found with key like '{p_key_pattern}'")
-        else:
-            for res in result_b:
-                result.append(res.decode("utf-8"))
-            result = sorted(result)
-            # select the first record in the set
-            rcnt = len(result)
-            rword = "record" if rcnt == 1 else "records"
-            self.db_editor.set_cursor_result(
-                f"{rcnt} {rword} found with key like '{p_key_pattern}'")
-            if p_load_records:
-                # Put first record found into the editor
-                _ = self.get_redis_record(p_db_nm, result[0])
-                self.db_editor.activate_buttons("Get", ["Next", "Prev"])
-        return (result)
-
     def validate_links(self,
                        p_db_nm: str,
+                       p_rectyp: str,
                        p_record: dict):
         """Validate foreign key values before writing to DB.
 
         :args:
             p_db_nm - name of db containing the record type
+            p_rectyp - record type
             p_record - record to be written to DB
         """
         links = self.db_editor.get_value_fields(p_links_only=True)
@@ -387,45 +357,148 @@ class SaskanServices(QMainWindow):
                         self.db_editor.edit["redis_key"](link_val)
                     p_record[link_nm][link_ix] = link_key
                     link_rec = self.find_redis_keys(
-                        p_db_nm, link_key, p_load_records=False)
+                        p_db_nm, p_rectyp, link_key, p_load_1st_rec=False)
                     if link_rec in (None, {}, []):
                         self.db_editor.set_cursor_result(
                             f"No record found with key '{link_key}'")
                         return False
         return True
 
-    def push_add_btn(self):
-        """Slot for DB Editor Edit/Add push button click action.
+    def add_record_to_db(self,
+                         p_is_auto: bool = False,
+                         p_db_nm: str = None,
+                         p_rectyp_nm: str = None):
+        """Add a record to the DB per active record type in Editor.
+
+        Acts as slot for DB Editor Edit/Add push button click action.
+        Or if based on parameters, does automated record-add logic.
 
         Get all values from active edit form.
         Check to see if record w/key already exists on DB.
         Reject Add if rec already exists.
 
+        :args:
+            p_is_auto - True if this is an auto-add,
+                        False if Add button was clicked
+            p_db_nm - name of the DB to add the record to,
+                      defaults to None for Add button clicks.
+            p_rectyp_nm - name of the record type to add,
+                      defaults to None for Add button clicks.
+
         :returns: (bool) True if record was added, False if not
         """
+        manual_add = True
         self.db_editor.prep_editor_action("Add")
-        db_nm, record = self.db_editor.get_all_fields()
-        result = self.get_redis_record(db_nm, record["name"])
+        if p_db_nm is None or p_rectyp_nm is None:
+            db, rectyp = self.db_editor.get_active_record_type()
+            _, record = self.db_editor.get_all_fields()
+        else:
+            db = p_db_nm
+            rectyp = p_rectyp_nm
+            # It is an auto-generated record.
+            # Need to specify the DB and record type.
+            # Would we still use a Form widget to CREATE the record?
+            # hmmm... probably not? But would it be doable? Why not?
+            manual_add = False
+            values = self.db_editor.get_value_fields(False, db, rectyp)
+            key = f"{rectyp.lower()}:{RI.UT.get_hash(str(values))}"
+            record = {"name": key} | values
+        result = self.get_redis_record(db, record["name"])
         if result in (None, [], {}):
             if self.db_editor.run_rectyp_edits():
-                if not self.validate_links(db_nm, record):
+                if not self.validate_links(db, rectyp, record):
                     return False
-                record = RI.set_audit_values(record)
-                # For now, system exception on insert failure
-                RI.do_insert(db_nm, record)
+                if manual_add:
+                    record = RI.set_audit_values(record, p_include_hash=True)
+                else:
+                    record = RI.set_audit_values(record, p_include_hash=False)
+                RI.do_insert(db, record)
                 return True
         else:
-            # Record already exists, reject the add.
             self.db_editor.set_cursor_result(
                 "Insert rejected. Record already exists.")
             return False
 
-    def push_find_btn(self):
+    def find_redis_keys(self,
+                        p_db_nm: str,
+                        p_rectyp: str,
+                        p_key_pattern: str,
+                        p_load_1st_rec: bool = True):
+        """Get a list of keys for selected DB matching the pattern.
+
+        :args:
+            p_db_nm - name of the database to search
+            p_rectyp - record type to search
+            p_key_pattern - pattern to match for keys
+            p_load_1st_rec - load 1st record found into editor
+        :returns: list of keys that match the pattern or None
+        """
+        db = p_db_nm
+        result_b = RI.find_keys(db, p_key_pattern)
+        result: list = []
+        if result_b in (None, [], {}):
+            self.db_editor.set_cursor_result(
+                f"No record found with key like '{p_key_pattern}'")
+        else:
+            for res in result_b:
+                result.append(res.decode("utf-8"))
+            result = sorted(result)
+            rcnt = len(result)
+            rword = "record" if rcnt == 1 else "records"
+            self.db_editor.set_cursor_result(
+                f"{rcnt} {rword} found with key like '{p_key_pattern}'")
+            if p_load_1st_rec:
+                # Get first record from find key list, display in editor
+                # Select first record in the set of found keys.
+                _ = self.get_redis_record(db, result[0])
+
+                # Populate the rectyp editor widget and forms for first record.
+                # Don't pull in the widget here. Instead,
+                # create functions in dbeditor_wdg like:
+                #  set_key_fields()
+                #  set_value_fields()
+                #    and a sub-function probably for set_list_fields()
+                #  Widget stored at:
+                #    self.rectyps[db_nm][rectyp_nm]["widget"] = rectyp_wdg
+                #  Name of the entire form:
+                #    f"{db_nm}:{rectyp_nm}:{f_grp}.frm"
+                #  Name of the list forms, if any:
+                #    f"{db_nm}:{rectyp_nm}:{field_nm}.frm"
+
+                # Store auto-generated records in the Qt form first.
+                # Then store list of found keys in a queue for later use.
+                # Use a Redis queue (a list) for this. On Harvest Queues.
+                # Still need to store the hash/key locally and keep track
+                # of which record in the list is being displayed/edited.
+
+                # This is also an opportunity to learn setting expiry rules.
+                # Create a Harvest Queue record with the keyset result.
+ 
+                # Put it into the Harvest/Queue editor, but don't
+                #  display it. Full list of keys is "displayed" in
+                #  individual "list" fields in the editor form, then
+                #  shmushed back into a list when stored on Redis.
+                # Based on that, write a record to Harvest "Queues".
+
+                # Should be able to find/display the queue record.
+
+                # Don't create a queue if the find result is empty or has
+                # only one record. Do expire the queue record after a short
+                # time. Maybe expire the previous queue record if the Find
+                # button is clicked again?
+
+                # If more than one key was found,
+                if len(result) > 1:
+                    self.db_editor.activate_buttons("Get", ["Next", "Prev"])
+                else:
+                    self.db_editor.deactivate_buttons("Get", ["Next", "Prev"])
+        return (result)
+
+    def find_record_keys(self):
         """Slot for DB Editor Find push button click action."""
         self.db_editor.prep_editor_action("Find")
         db_nm, search_key = self.db_editor.get_search_value()
-        result = self.find_redis_keys(db_nm, search_key)
-        pp(("FIND result", result))
+        _ = self.find_redis_keys(db_nm, search_key, p_load_1st_rec=True)
 
     def create_db_editor(self):
         """Instantiate the DB Editor widget.
@@ -434,8 +507,8 @@ class SaskanServices(QMainWindow):
         """
         self.db_editor = DBEditorWidget(self)
         for key, act in {
-                ("Edit", "Add"): self.push_add_btn,
-                ("Get", "Find"): self.push_find_btn}.items():
+                ("Edit", "Add"): self.add_record_to_db,
+                ("Get", "Find"): self.find_record_keys}.items():
             wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
             wdg.clicked.connect(act)
         self.db_editor.hide()
