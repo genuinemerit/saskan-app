@@ -33,6 +33,7 @@ from se_help_wdg import HelpWidget              # type: ignore
 from se_modes_tbx import ModesToolbox           # type: ignore
 from se_monitor_wdg import MonitorWidget        # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
+from se_record_mgmt import RecordMgmt           # type: ignore
 
 CS = ControlsShell()
 FI = FileIO()
@@ -42,10 +43,11 @@ TX = SaskanTexts()
 UT = Utils()
 
 
-class SaskanServices(QMainWindow):
+class SaskanEyes(QMainWindow):
     """Combo GUI for Admin, Monitor, Controller and Test GUIs.
 
-    May add other stuff later, like a Schema Editor and DB generator.
+    May add other stuff later, like a Schema Editor and DB generator,
+    link into the game itself, later on.
     """
 
     def __init__(self):
@@ -60,22 +62,29 @@ class SaskanServices(QMainWindow):
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
         # ==============================================================
-        self.define_data()
-        self.create_menus()
-        self.create_statusbar()
-        self.create_modes_toolbox()
-        self.create_controls()
-        self.create_monitor()
-        self.create_db_editor()
-        self.create_help()
-        self.create_diagram()
+        self.make_state_containers()
+        self.make_menus()
+        self.make_statusbar()
+        self.make_modes_toolbox()
+        self.make_svc_controls_wdg()
+        self.make_svc_monitor_wdg()
+        self.make_db_editor_wdg()
+        self.make_records_mgmt_wdg()
+        self.make_help_widget()
+        self.make_graph_diagram_wdg()
         # ==============================================================
         self.show()   # <== main window
 
     # Constants, flags/state holders, and queues
     # ==============================================================
-    def define_data(self):
-        """Define variables, containers for preserving state."""
+    def make_state_containers(self):
+        """Define variables, containers for preserving state.
+
+        @DEV:
+        - Move config values to Redis or config file.
+        - See if we can do away with "active" flags.
+          Query a Qt signal for active state instead?
+        """
         self.APP = path.join(UT.get_home(), 'saskan')
         self.RES = path.join(self.APP, 'res')
         self.LOG = path.join(self.APP, 'log')
@@ -86,25 +95,15 @@ class SaskanServices(QMainWindow):
             'help_wdg': False,
             'diagram_wdg': False}
 
-    # Main Menu
+    # Make menu methods
     # ==============================================================
-    def exit_main(self):
-        """Slot for Exit action"""
-        self.close()
+    def make_menus(self):
+        """Define menu bar, menus, menu items (actions).
 
-    def show_about(self):
-        """Display a message box."""
-        msg = "Control, Monitor, Test and Edit the Saskan Services.\n\n" + \
-            "Version: 0.0.1"
-        mbox = QMessageBox()
-        mbox.about(self, "About Saskan Eyes", msg)
-
-    def show_about_qt(self):
-        """Display a message box about Qt."""
-        QMessageBox.aboutQt(self, "About Qt")
-
-    def create_menus(self):
-        """Define menu bar, menus, menu items (actions)."""
+        @DEV
+        - Consider moving menu construction, get, set
+          to a separate Class.
+        """
         mbar = QMenuBar(self)
         mbar.setGeometry(0, 0, 100, 25)
         mbar.setStyleSheet(SS.get_style('menu'))
@@ -125,19 +124,40 @@ class SaskanServices(QMainWindow):
         menu_help.addAction(about_qt_action)
         mbar.addMenu(menu_help)
 
-    # Statusbar
+    # Menu actions and helper methods
     # ==============================================================
-    def create_statusbar(self):
+    def exit_main(self):
+        """Slot for Exit action"""
+        self.close()
+
+    def show_about(self):
+        """Display a message box."""
+        msg = "Control, Monitor, Test and Edit the Saskan Services.\n\n" + \
+            "Version: 0.0.1"
+        mbox = QMessageBox()
+        mbox.about(self, "About Saskan Eyes", msg)
+
+    def show_about_qt(self):
+        """Display a message box about Qt."""
+        QMessageBox.aboutQt(self, "About Qt")
+
+    # Statusbar make method
+    # ==============================================================
+    def make_statusbar(self):
         """Initialize status bar associated with QMainWindow."""
         self.statusBar().showMessage(TX.tl.app)
 
-    # Generic / Helper Actions
+    # Statusbar helper methods
     # ==============================================================
-    def show_status(self, p_text: str):
+    def set_status_bar_text(self, p_text: str):
         """Display status bar text relevant to some event like a
         button or tool click.
 
         Ignore if no text passed in or status bar does not exist.
+
+        @DEV
+        - Consider moving status bar construction, get, set to
+            a separate Class.
         """
         if p_text not in (None, ""):
             try:
@@ -145,9 +165,9 @@ class SaskanServices(QMainWindow):
             except AttributeError:
                 pass
 
-    # Modes Toolbox
+    # Make modes toolbox method
     # ==============================================================
-    def create_modes_toolbox(self):
+    def make_modes_toolbox(self):
         """Create mode toolbar and assign its actions.
 
         Move this into a widget class, with its own status bar.
@@ -161,13 +181,28 @@ class SaskanServices(QMainWindow):
             self.tbx_modes.acts[key]["widget"].triggered.connect(act)
         self.tbx_modes.move(935, 0)   # <-- move it to upper-right corner
 
-    # Service Controls Display and Actions
+    # Make Service Controls widget
+    # Define a status bar for the widget so we can make the functions
+    # more autonomous.
+    # ==============================================================
+    def make_svc_controls_wdg(self):
+        """Create the Service Controls widget."""
+        self.service_controls = ControlsWidget(self)
+        for key, act in {
+                "Start": self.start_services,
+                "Stop": self.stop_services,
+                "Show": self.show_services,
+                "Test": self.test_services}.items():
+            self.service_controls.acts[key]["widget"].clicked.connect(act)
+        self.service_controls.hide()
+
+    # Service Controls slot and helper methods
     # ==============================================================
     def controls_mode_action(self):
         """Slot for Controls Mode tool click action"""
         btn = self.tbx_modes.acts["Control"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             try:
                 if self.is_active['controls_wdg'] is False:
                     self.service_controls.show()
@@ -182,7 +217,7 @@ class SaskanServices(QMainWindow):
         """Slot for Start Services action"""
         btn = self.service_controls.acts["Start"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             status, msg = CS.start_services(p_service_nm='redis')
             self.service_controls.ctl_display.setText(msg)
 
@@ -190,7 +225,7 @@ class SaskanServices(QMainWindow):
         """Slot for Stop Services action"""
         btn = self.service_controls.acts["Stop"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             status, msg = CS.stop_running_services(p_service_nm='redis')
             self.service_controls.ctl_display.setText(msg)
 
@@ -198,7 +233,7 @@ class SaskanServices(QMainWindow):
         """Slot for Show Services action"""
         btn = self.service_controls.acts["Show"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             status, msg = CS.check_running_services(p_service_nm='redis')
             self.service_controls.ctl_display.setText(msg)
 
@@ -206,30 +241,37 @@ class SaskanServices(QMainWindow):
         """Slot for Test Services action"""
         btn = self.service_controls.acts["Test"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             msg = """
         This will run pre-defined tests on the services.
             """
             self.service_controls.ctl_display.setText(msg)
 
-    def create_controls(self):
-        """Create the Service Controls widget."""
-        self.service_controls = ControlsWidget(self)
+    # Make Service Monitor widget
+    # Create a stutus bar for the widget so we can make the functions
+    # more autonomous.
+    # ==============================================================
+    def make_svc_monitor_wdg(self):
+        """Create the Service Monitor widget."""
+        self.service_monitor = MonitorWidget(self)
         for key, act in {
-                "Start": self.start_services,
-                "Stop": self.stop_services,
-                "Show": self.show_services,
-                "Test": self.test_services}.items():
-            self.service_controls.acts[key]["widget"].clicked.connect(act)
-        self.service_controls.hide()
+                "Summary": self.mon_summary,
+                "Top": self.mon_top,
+                "Tail": self.mon_tail,
+                "Full": self.mon_full,
+                "Requests": self.mon_requests,
+                "Fails": self.mon_fails,
+                "Pressure": self.mon_pressure}.items():
+            self.service_monitor.acts[key]["widget"].clicked.connect(act)
+        self.service_monitor.hide()
 
-    # Service Monitor Display and Actions
+    # Service Monitor slot and helper methods
     # ==============================================================
     def monitor_mode_action(self):
         """Slot for Services Monitor mode tool click action"""
         btn = self.tbx_modes.acts["Monitor"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             try:
                 if self.is_active['monitor_wdg'] is False:
                     self.service_monitor.show()
@@ -244,59 +286,72 @@ class SaskanServices(QMainWindow):
         """Slot for Monitor Summary button click action"""
         btn = self.service_monitor.acts["Summary"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
     def mon_top(self):
         """Slot for Monitor Top button click action"""
         btn = self.service_monitor.acts["Top"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
     def mon_tail(self):
         """Slot for Monitor Tail button click action"""
         btn = self.service_monitor.acts["Tail"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
     def mon_full(self):
         """Slot for Monitor Full button click action"""
         btn = self.service_monitor.acts["Full"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
     def mon_requests(self):
         """Slot for Monitor Requests button click action"""
         btn = self.service_monitor.acts["Requests"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
     def mon_fails(self):
         """Slot for Monitor Fails button click action"""
         btn = self.service_monitor.acts["Fails"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
     def mon_pressure(self):
         """Slot for Monitor Pressure button click action"""
         btn = self.service_monitor.acts["Pressure"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
 
-    def create_monitor(self):
-        """Create the Service Monitor widget."""
-        self.service_monitor = MonitorWidget(self)
+    # Make Database Editor widget
+    # ==============================================================
+    def make_db_editor_wdg(self):
+        """Instantiate the DB Editor widget.
+
+        Provide actions for events outside of widget's class.
+        Use RecordMgmt class to define DB interactions.
+        """
+        self.db_editor = DBEditorWidget(self)
         for key, act in {
-                "Summary": self.mon_summary,
-                "Top": self.mon_top,
-                "Tail": self.mon_tail,
-                "Full": self.mon_full,
-                "Requests": self.mon_requests,
-                "Fails": self.mon_fails,
-                "Pressure": self.mon_pressure}.items():
-            self.service_monitor.acts[key]["widget"].clicked.connect(act)
-        self.service_monitor.hide()
+                ("Edit", "Add"): self.add_record_to_db,
+                ("Get", "Find"): self.find_record_keys}.items():
+            wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
+            wdg.clicked.connect(act)
+        self.db_editor.hide()
 
-    # Database Editor and Actions
+    # Make Records Management widget
+    # ==============================================================
+    def make_records_mgmt_wdg(self):
+        """Instantiate the Records Management widget.
+
+        Define record types, specific editors for each record type,
+        and functions to manage DB interactions.
+        """
+        self.RM = RecordMgmt(self, self.db_editor)
+        pp(("self.RM, self.db_editor", self.RM, self.db_editor))
+
+    # Database Editor and Record Management slots and helper methods
     # ==============================================================
     def db_editor_mode_action(self):
         """Slot for Edit Database modes tool click action.
@@ -304,7 +359,7 @@ class SaskanServices(QMainWindow):
         """
         btn = self.tbx_modes.acts["Edit DB"]
         if btn["active"]:
-            self.show_status(btn["caption"])
+            self.set_status_bar_text(btn["caption"])
             try:
                 if self.is_active['dbeditor_wdg'] is False:
                     self.db_editor.show()
@@ -312,14 +367,16 @@ class SaskanServices(QMainWindow):
                     self.help.set_content("db_help.html")
                     # Display the diagram when there is something
                     #  interesting to show on it.
-                    # self.show_diagram()
+                    # self.show_graph_diagram()
                 else:
                     self.db_editor.hide()
                     self.is_active['dbeditor_wdg'] = False
-                    # self.hide_diagram()
+                    # self.hide_graph_diagram()
             except AttributeError:
                 pass
 
+    # Move these to RecordMgmt class ...
+    # ==============================================================
     def get_redis_record(self,
                          p_db_nm: str,
                          p_select_key: str):
@@ -451,6 +508,18 @@ class SaskanServices(QMainWindow):
                 # Get first record from find key list, display in editor
                 # Select first record in the set of found keys.
                 _ = self.get_redis_record(db, result[0])
+                # If more than one key was found,
+                if len(result) > 1:
+                    self.db_editor.activate_buttons("Get", ["Next", "Prev"])
+                else:
+                    self.db_editor.deactivate_buttons("Get", ["Next", "Prev"])
+                # To load from db record to editor form(s), use functions
+                # in the DB Editor class:
+                #  db_editor.set_key_fields(record)
+                #  db_editor.set_value_fields(record)
+                #   sub-function: db_editor.set_list_field(field, value)
+                #  consider whether to display audit and expiry values?
+                #    I am thinking yes. Why not? Just can't edit them.
 
                 # Populate the rectyp editor widget and forms for first record.
                 # Don't pull in the widget here. Instead,
@@ -465,33 +534,54 @@ class SaskanServices(QMainWindow):
                 #  Name of the list forms, if any:
                 #    f"{db_nm}:{rectyp_nm}:{field_nm}.frm"
 
-                # Store auto-generated records in the Qt form first.
-                # Then store list of found keys in a queue for later use.
+                # Create a Harvest Queue record with the keyset result.
+                # Store list of found keys in the queue for use with
+                #  Next and Prev buttons.
                 # Use a Redis queue (a list) for this. On Harvest Queues.
                 # Still need to store the hash/key locally and keep track
                 # of which record in the list is being displayed/edited.
-
-                # This is also an opportunity to learn setting expiry rules.
-                # Create a Harvest Queue record with the keyset result.
- 
-                # Put it into the Harvest/Queue editor, but don't
-                #  display it. Full list of keys is "displayed" in
-                #  individual "list" fields in the editor form, then
-                #  shmushed back into a list when stored on Redis.
-                # Based on that, write a record to Harvest "Queues".
-
+                # For adds:
+                #   Store auto-generated Queue record in the Qt form first.
+                #   Store the list of found keys as a single field value.
+                #   Then call the Add record function.
+                # Put it into the Harvest/Queue editor widget form(s),
+                #  but don't display it.
+                #
                 # Should be able to find/display the queue record.
+                # If the Queue record itself is target of a Find commend,
+                #  then full list of keys needs to be displayed in
+                #  individual "list"-type fields in the editor form.
+                #  Queue records should not be edited manually.
+
+                # This is an opportunity to learn setting expiry rules.
+                # Consider how to display expiry times. Thinking that
+                # should be an Audit field.
 
                 # Don't create a queue if the find result is empty or has
                 # only one record. Do expire the queue record after a short
                 # time. Maybe expire the previous queue record if the Find
                 # button is clicked again?
 
-                # If more than one key was found,
-                if len(result) > 1:
-                    self.db_editor.activate_buttons("Get", ["Next", "Prev"])
-                else:
-                    self.db_editor.deactivate_buttons("Get", ["Next", "Prev"])
+                # The record displayed in the editor is the first one
+                # found by the Find. It may or may not be a Queue record.
+                # It could be any kind of record on any database.
+
+                # Let's work first on displaying the 1st record returned,
+                # then on expiry time stamps & rules, then on queue recs.
+
+                # Expire time can be set 4 ways:
+                #    EXPIRE <key> <seconds> <-- from now
+                #    EXPIREAT <key> <timestamp> <-- Unix timestamp
+                #    PEXPIRE <key> <milliseconds> <-- from now
+                #    PEXPIREAT <key> <milliseconds-timestamp> <-- Unix ts in ms
+                #  Get expire time 4 ways:
+                #    TTL <key> <-- get time to live in seconds
+                #    PTTL <key> <-- get time to live in ms
+                #    EXPIRETIME <key> <-- Unix timestamp
+                #    PEXPIRETIME <key> <-- Unix timestamp in ms
+                # I am thinking to set a rule in a Basement:Config record for
+                #   each DB/record type. That will drive the expiry time.
+
         return (result)
 
     def find_record_keys(self):
@@ -500,25 +590,20 @@ class SaskanServices(QMainWindow):
         db_nm, search_key = self.db_editor.get_search_value()
         _ = self.find_redis_keys(db_nm, search_key, p_load_1st_rec=True)
 
-    def create_db_editor(self):
-        """Instantiate the DB Editor widget.
-
-        Provide actions for events outside of widget's class.
+    # Make Help widget (web pages) display
+    # ==============================================================
+    def make_help_widget(self):
+        """Define help display.
         """
-        self.db_editor = DBEditorWidget(self)
-        for key, act in {
-                ("Edit", "Add"): self.add_record_to_db,
-                ("Get", "Find"): self.find_record_keys}.items():
-            wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
-            wdg.clicked.connect(act)
-        self.db_editor.hide()
+        self.help = HelpWidget(self)
+        self.help.hide()
 
     # Help (Web pages) Display
     # ==============================================================
     def help_mode_action(self):
         """Slot for Help Mode tool click action"""
         btn = self.tbx_modes.acts["Help"]
-        self.show_status(btn["caption"])
+        self.set_status_bar_text(btn["caption"])
         try:
             if self.is_active['help_wdg'] is False:
                 self.help.set_content("saskan_help.html")
@@ -530,15 +615,19 @@ class SaskanServices(QMainWindow):
         except AttributeError:
             pass
 
-    def create_help(self):
-        """Define help display.
-        """
-        self.help = HelpWidget(self)
-        self.help.hide()
-
-    # Diagram Display
+    # Make widget to display networkx graph diagrams
     # ==============================================================
-    def show_diagram(self):
+    def make_graph_diagram_wdg(self):
+        """Generate a Graph Diagram.
+        """
+        self.network = DiagramWidget()
+        # By default, creates a test diagram.
+        # See DiagramWidget class method "set_content()" for more details.
+
+    # Graph diagram slots and helper functions
+    # May be able to move these into the DiagramWidget class.
+    # ==============================================================
+    def show_graph_diagram(self):
         """Slot for Graph Diagram show action"""
         try:
             if self.is_active['diagram_wdg'] is False:
@@ -558,7 +647,7 @@ class SaskanServices(QMainWindow):
         except AttributeError:
             pass
 
-    def hide_diagram(self):
+    def hide_graph_diagram(self):
         """Slot for Graph Diagram hide action"""
         try:
             if self.is_active['diagram_wdg'] is True:
@@ -567,13 +656,6 @@ class SaskanServices(QMainWindow):
         except AttributeError:
             pass
 
-    def create_diagram(self):
-        """Generate a Graph Diagram.
-        """
-        self.network = DiagramWidget()
-        # By default, creates a test diagram.
-        # See DiagramWidget class method "set_content()" for more details.
-
 
 # Run program
 if __name__ == '__main__':
@@ -581,5 +663,5 @@ if __name__ == '__main__':
     """
     app = QApplication(sys.argv)
     # The class object has the .show() command in it:
-    SRV = SaskanServices()
+    SRV = SaskanEyes()
     sys.exit(app.exec_())

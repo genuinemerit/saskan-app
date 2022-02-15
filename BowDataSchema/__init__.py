@@ -17,3 +17,4 @@ from se_help_wdg import HelpWidget # type: ignore
 from se_modes_tbx import ModesToolbox # type: ignore
 from se_monitor_wdg import MonitorWidget # type: ignore
 from se_qt_styles import SaskanStyles # type: ignore
+from se_record_mgmt import RecordMgmt # type: ignore

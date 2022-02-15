@@ -698,3 +698,35 @@ Connection ended.
  '"net.genuinemerit.schema", "store": "redis", "channel": "redis_io", "topic": '
  '"ontology_file", "plan_ty": "remove", "service_ty": "request"}}')
 Connection ended.
+Responder: redis_io_responder_0991850d | Socket: ('127.0.0.1', 35802) | Host: curwen:52020
+Remote ('127.0.0.1', 35802) subscribed to b'/queue/redis_io_services'
+Requestor: redis_io_requestor_f870c8ee | Socket: ('127.0.0.1', 35804) | Host: curwen:52020
+Remote ('127.0.0.1', 35804) subscribed to b'/null'
+Sending to b'/queue/redis_io_services': b'Msg 0 from redis_io'...
+Received by redis_io_responder_0991850d: b'Msg 0 from redis_io_'
+Sending to b'/queue/redis_io_services': b'Msg 1 from redis_io'...
+Received by redis_io_responder_0991850d: b'Msg 1 from redis_io_'
+Sending to b'/queue/redis_io_services': b'Msg 2 from redis_io'...
+Received by redis_io_responder_0991850d: b'Msg 2 from redis_io_'
+Sending to b'/queue/redis_io_services': b'Msg 3 from redis_io'...
+Received by redis_io_responder_0991850d: b'Msg 3 from redis_io_'
+Sending to b'/queue/redis_io_services': b'Msg 4 from redis_io'...
+Received by redis_io_responder_0991850d: b'Msg 4 from redis_io_'
+Server closed.
+Connection ended.
+('data sent to bow_serde: ',
+ {'fields': {'channel': 'redis_io',
+             'namespace': 'net.genuinemerit.schema',
+             'plan_ty': 'get',
+             'service_ty': 'subscribe',
+             'store': 'redis',
+             'topic': 'ontology_file'},
+  'name': 'redis.schema.put.request',
+  'namespace': 'net.genuinemerit.schema',
+  'type': 'record'})
+('js version of msg: ',
+ '{"type": "record", "name": "redis.schema.put.request", "namespace": '
+ '"net.genuinemerit.schema", "fields": {"namespace": '
+ '"net.genuinemerit.schema", "store": "redis", "channel": "redis_io", "topic": '
+ '"ontology_file", "plan_ty": "get", "service_ty": "subscribe"}}')
+Connection ended.
