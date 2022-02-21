@@ -5,6 +5,8 @@
 :author:    GM (genuinemerit @ pm.me)
 
 Service Activator / Deactivator class for Data Schema services.
+
+Not sure if this will work anywhere but Linux. Probably not.
 """
 # import subprocess as shl
 import os

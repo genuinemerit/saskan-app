@@ -6,10 +6,10 @@
 
 BoW Saskan App Admin GUI.
 """
-
+import argparse
+import json
 import sys
 
-from os import path
 from pprint import pprint as pp     # noqa: F401
 
 from PySide2.QtGui import QFont
@@ -21,26 +21,25 @@ from PySide2.QtWidgets import QMainWindow
 from PySide2.QtWidgets import QMessageBox
 from PySide2.QtWidgets import QMenuBar
 
-from BowQuiver.saskan_fileio import FileIO      # type: ignore
-from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
-from BowQuiver.saskan_utils import Utils        # type: ignore
-from redis_io import RedisIO                    # type: ignore
+from boot_texts import BootTexts  # type: ignore
+from file_io import FileIO  # type: ignore
+from redis_io import RedisIO  # type: ignore
 from se_controls_shell import ControlsShell     # type: ignore
 from se_controls_wdg import ControlsWidget      # type: ignore
 from se_dbeditor_wdg import DBEditorWidget      # type: ignore
 from se_diagram_wdg import DiagramWidget        # type: ignore
 from se_help_wdg import HelpWidget              # type: ignore
+from se_menus_wdg import MenusWidget            # type: ignore
 from se_modes_tbx import ModesToolbox           # type: ignore
 from se_monitor_wdg import MonitorWidget        # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
 from se_record_mgmt import RecordMgmt           # type: ignore
 
+BT = BootTexts()
 CS = ControlsShell()
 FI = FileIO()
 RI = RedisIO()
 SS = SaskanStyles()
-TX = SaskanTexts()
-UT = Utils()
 
 
 class SaskanEyes(QMainWindow):
@@ -53,12 +52,88 @@ class SaskanEyes(QMainWindow):
     def __init__(self):
         """super() call is required."""
         super().__init__()
+        self.initialize_CLI()
+        self.TXT = self.load_meta("text")
+        self.WDG = self.load_meta("widget")
         self.initialize_UI()
 
+    # Command line option handlers
+    # ==============================================================
+    def initialize_CLI(self):
+        """Handle command-line arguments."""
+        parser = argparse.ArgumentParser(description=BT.txt.app_desc)
+        parser.add_argument(
+            '--force-refresh',
+            action='store_true', help=BT.txt.refresh_desc)
+        args = parser.parse_args()
+        if args.force_refresh:
+            self.refresh_configs()
+
+    def refresh_configs(self):
+        """Refresh Basement DB texts, configs from JSON config file"""
+
+        def load_cfg_file(p_config_file_path: str):
+            """Read data from config file."""
+            ok, err, configs = FI.get_file(p_config_file_path)
+            if not ok:
+                print(err)
+                exit(1)
+            elif configs is None:
+                print(f"{BT.txt.no_file}{p_config_file_path}")
+                exit(1)
+            config_data = json.loads(configs)
+            return(config_data)
+
+        def set_configs(p_config_data: dict,
+                        p_catg: str):
+            """Set basement db text and widget metadata records"""
+            db = "basement"
+            for k, values in p_config_data.items():
+                key = RI.UT.clean_redis_key(f"{p_catg}:{k}")
+                record = {"name": key} | values
+                record, update = \
+                    RI.set_audit_values(db, record, p_include_hash=True)
+                key = record["name"]
+                if update:
+                    RI.do_update(db, record)
+                else:
+                    RI.do_insert(db, record)
+
+        set_configs(load_cfg_file(BT.file_texts), "text")
+        set_configs(load_cfg_file(BT.file_widgets), "widget")
+
+    # Load and save texts and widget metadata
+    # ==============================================================
+    def load_meta(self, p_catg):
+        """Load configuration data from db to memory."""
+        db = "basement"
+        keys: list = RI.find_keys(db, f"{p_catg}:*")
+        data: dict = {}
+        for k in keys:
+            key = k.decode('utf-8').replace(f"{p_catg}:", "")
+            record = RI.get_values(RI.get_record(db, k))
+            data[key] = record
+        return(data)
+
+    def save_meta(self,
+                  p_wdg_catg: str,
+                  p_qt_wdg):
+        """Update Basement DB with modified widget record"""
+        db = "basement"
+        self.WDG[p_wdg_catg]["widget"]["name"] = p_qt_wdg.objectName()
+        self.WDG[p_wdg_catg]["state"] = "active"
+        record = {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]
+        record, _ = \
+            RI.set_audit_values(db, record, p_include_hash=True)
+        RI.do_update(db, record)
+        self.WDG[p_wdg_catg]["widget"]["object"] = p_qt_wdg
+
+    # GUI / Main App handlers
+    # ==============================================================
     def initialize_UI(self):
         """Set window size and name. Show the window."""
         self.setGeometry(100, 100, 1200, 900)
-        self.setWindowTitle(TX.tl.app)
+        self.setWindowTitle(self.TXT['app']['a'])
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
         # ==============================================================
@@ -69,7 +144,6 @@ class SaskanEyes(QMainWindow):
         self.make_svc_controls_wdg()
         self.make_svc_monitor_wdg()
         self.make_db_editor_wdg()
-        self.make_records_mgmt_wdg()
         self.make_help_widget()
         self.make_graph_diagram_wdg()
         # ==============================================================
@@ -79,15 +153,11 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def make_state_containers(self):
         """Define variables, containers for preserving state.
+        Move these to metadata structures for each of the widgets
+        and/or store in Redis Basement.
 
-        @DEV:
-        - Move config values to Redis or config file.
-        - See if we can do away with "active" flags.
-          Query a Qt signal for active state instead?
+        Consider storing all of the metadata in Redis Basement.
         """
-        self.APP = path.join(UT.get_home(), 'saskan')
-        self.RES = path.join(self.APP, 'res')
-        self.LOG = path.join(self.APP, 'log')
         self.is_active = {
             'controls_wdg': False,
             'monitor_wdg': False,
@@ -95,34 +165,41 @@ class SaskanEyes(QMainWindow):
             'help_wdg': False,
             'diagram_wdg': False}
 
-    # Make menu methods
+    # Make menubar, menus and menu items
     # ==============================================================
     def make_menus(self):
         """Define menu bar, menus, menu items (actions).
 
         @DEV
-        - Consider moving menu construction, get, set
-          to a separate Class.
+        - Tried moving menu make, get, set to a separate Class.
+        - Menus not working properly, neither in main app nor
+          in a separate class. Not going to worry about this for now.
+        - Not doing much with menus anyway. Work on it another time.
+        - Interestingly, the Ctrl-Q command shortcut works, but the
+          menu-items don't display.
         """
-        mbar = QMenuBar(self)
-        mbar.setGeometry(0, 0, 100, 25)
-        mbar.setStyleSheet(SS.get_style('menu'))
-        # File Menu
-        menu_file = mbar.addMenu("File")
-        quit_action = QAction("&Quit", self)
-        quit_action.setShortcut("Ctrl+Q")
-        quit_action.triggered.connect(self.exit_main)
-        menu_file.addAction(quit_action)
-        mbar.addMenu(menu_file)
-        # Help Menu
-        menu_help = mbar.addMenu("Help")
-        about_action = QAction("About Sasan Eyes", self)
-        about_action.triggered.connect(self.show_about)
-        menu_help.addAction(about_action)
-        about_qt_action = QAction("About Qt", self)
-        about_qt_action.triggered.connect(self.show_about_qt)
-        menu_help.addAction(about_qt_action)
-        mbar.addMenu(menu_help)
+        menu_bar = QMenuBar(self)
+        menu_bar.setObjectName("app.menu_bar")
+        menu_bar.setGeometry(0, 0, 100, 25)
+        menu_bar.setStyleSheet(SS.get_style('menu'))
+        for mkey, menus in self.WDG["menus"]["menu"].items():
+            mname = menus["name"]
+            menu = menu_bar.addMenu(mname)
+            for mi_key, m_item in menus["items"].items():
+                mi_name = m_item["name"]
+                mi_action = QAction(mi_name, self)
+                mi_cmd = m_item["cmd"] if "cmd" in m_item.keys() else None
+                if mi_cmd is not None:
+                    mi_action.setShortcut(mi_cmd)
+                if mi_key == "app_help":
+                    mi_action.triggered.connect(self.show_about)
+                elif mi_key == "qt_help":
+                    mi_action.triggered.connect(self.show_about_qt)
+                elif mi_key == "exit":
+                    mi_action.triggered.connect(self.exit_main)
+                menu.addAction(mi_action)
+            menu_bar.addMenu(menu)
+        self.save_meta("menus", menu_bar)
 
     # Menu actions and helper methods
     # ==============================================================
@@ -132,38 +209,27 @@ class SaskanEyes(QMainWindow):
 
     def show_about(self):
         """Display a message box."""
-        msg = "Control, Monitor, Test and Edit the Saskan Services.\n\n" + \
-            "Version: 0.0.1"
+        msg = self.TXT['app']['c']
         mbox = QMessageBox()
-        mbox.about(self, "About Saskan Eyes", msg)
+        mbox.about(self, self.TXT['app']['b'], msg)
 
     def show_about_qt(self):
         """Display a message box about Qt."""
-        QMessageBox.aboutQt(self, "About Qt")
+        QMessageBox.aboutQt(self, self.TXT['qt']['a'])
 
     # Statusbar make method
     # ==============================================================
     def make_statusbar(self):
         """Initialize status bar associated with QMainWindow."""
-        self.statusBar().showMessage(TX.tl.app)
+        self.statusBar().showMessage(self.TXT['app']['a'])
 
     # Statusbar helper methods
     # ==============================================================
     def set_status_bar_text(self, p_text: str):
-        """Display status bar text relevant to some event like a
-        button or tool click.
-
-        Ignore if no text passed in or status bar does not exist.
-
-        @DEV
-        - Consider moving status bar construction, get, set to
-            a separate Class.
+        """Display status bar text relevant to events from the main
+        app widgets, like the menu or the toolbar.
         """
-        if p_text not in (None, ""):
-            try:
-                self.statusBar().showMessage(p_text)
-            except AttributeError:
-                pass
+        self.statusBar().showMessage(p_text)
 
     # Make modes toolbox method
     # ==============================================================
@@ -324,32 +390,18 @@ class SaskanEyes(QMainWindow):
         if btn["active"]:
             self.set_status_bar_text(btn["caption"])
 
-    # Make Database Editor widget
+    # Make Database Editor and Record Management widgets
     # ==============================================================
     def make_db_editor_wdg(self):
         """Instantiate the DB Editor widget.
-
-        Provide actions for events outside of widget's class.
-        Use RecordMgmt class to define DB interactions.
-        """
-        self.db_editor = DBEditorWidget(self)
-        for key, act in {
-                ("Edit", "Add"): self.add_record_to_db,
-                ("Get", "Find"): self.find_record_keys}.items():
-            wdg = self.db_editor.buttons[key[0]][key[1]]["widget"]
-            wdg.clicked.connect(act)
-        self.db_editor.hide()
-
-    # Make Records Management widget
-    # ==============================================================
-    def make_records_mgmt_wdg(self):
-        """Instantiate the Records Management widget.
+           Instantiate the Records Management widget.
 
         Define record types, specific editors for each record type,
-        and functions to manage DB interactions.
+        and functions to manage DB interactions. Dfeine DB IO actions.
         """
+        self.db_editor = DBEditorWidget(self)
         self.RM = RecordMgmt(self, self.db_editor)
-        pp(("self.RM, self.db_editor", self.RM, self.db_editor))
+        self.db_editor.hide()
 
     # Database Editor and Record Management slots and helper methods
     # ==============================================================
@@ -374,221 +426,6 @@ class SaskanEyes(QMainWindow):
                     # self.hide_graph_diagram()
             except AttributeError:
                 pass
-
-    # Move these to RecordMgmt class ...
-    # ==============================================================
-    def get_redis_record(self,
-                         p_db_nm: str,
-                         p_select_key: str):
-        """Get a record from Redis DB
-        :args: p_db_nm - name of Redis DB
-                p_select_key - key of record to be retrieved
-        :returns: records as a dict or None
-        """
-        result = RI.get_record(p_db_nm, p_select_key)
-        if result is None:
-            self.db_editor.set_cursor_result(
-                f"No records found with key like '{p_select_key}'")
-        else:
-            print(f"GET Result: {result}")
-            # put the values into the editor
-            pass
-        return (result)
-
-    def validate_links(self,
-                       p_db_nm: str,
-                       p_rectyp: str,
-                       p_record: dict):
-        """Validate foreign key values before writing to DB.
-
-        :args:
-            p_db_nm - name of db containing the record type
-            p_rectyp - record type
-            p_record - record to be written to DB
-        """
-        links = self.db_editor.get_value_fields(p_links_only=True)
-        if links != {}:
-            for link_nm, link_values in links.items():
-                for link_ix, link_val in enumerate(link_values):
-                    link_key = \
-                        self.db_editor.edit["redis_key"](link_val)
-                    p_record[link_nm][link_ix] = link_key
-                    link_rec = self.find_redis_keys(
-                        p_db_nm, p_rectyp, link_key, p_load_1st_rec=False)
-                    if link_rec in (None, {}, []):
-                        self.db_editor.set_cursor_result(
-                            f"No record found with key '{link_key}'")
-                        return False
-        return True
-
-    def add_record_to_db(self,
-                         p_is_auto: bool = False,
-                         p_db_nm: str = None,
-                         p_rectyp_nm: str = None):
-        """Add a record to the DB per active record type in Editor.
-
-        Acts as slot for DB Editor Edit/Add push button click action.
-        Or if based on parameters, does automated record-add logic.
-
-        Get all values from active edit form.
-        Check to see if record w/key already exists on DB.
-        Reject Add if rec already exists.
-
-        :args:
-            p_is_auto - True if this is an auto-add,
-                        False if Add button was clicked
-            p_db_nm - name of the DB to add the record to,
-                      defaults to None for Add button clicks.
-            p_rectyp_nm - name of the record type to add,
-                      defaults to None for Add button clicks.
-
-        :returns: (bool) True if record was added, False if not
-        """
-        manual_add = True
-        self.db_editor.prep_editor_action("Add")
-        if p_db_nm is None or p_rectyp_nm is None:
-            db, rectyp = self.db_editor.get_active_record_type()
-            _, record = self.db_editor.get_all_fields()
-        else:
-            db = p_db_nm
-            rectyp = p_rectyp_nm
-            # It is an auto-generated record.
-            # Need to specify the DB and record type.
-            # Would we still use a Form widget to CREATE the record?
-            # hmmm... probably not? But would it be doable? Why not?
-            manual_add = False
-            values = self.db_editor.get_value_fields(False, db, rectyp)
-            key = f"{rectyp.lower()}:{RI.UT.get_hash(str(values))}"
-            record = {"name": key} | values
-        result = self.get_redis_record(db, record["name"])
-        if result in (None, [], {}):
-            if self.db_editor.run_rectyp_edits():
-                if not self.validate_links(db, rectyp, record):
-                    return False
-                if manual_add:
-                    record = RI.set_audit_values(record, p_include_hash=True)
-                else:
-                    record = RI.set_audit_values(record, p_include_hash=False)
-                RI.do_insert(db, record)
-                return True
-        else:
-            self.db_editor.set_cursor_result(
-                "Insert rejected. Record already exists.")
-            return False
-
-    def find_redis_keys(self,
-                        p_db_nm: str,
-                        p_rectyp: str,
-                        p_key_pattern: str,
-                        p_load_1st_rec: bool = True):
-        """Get a list of keys for selected DB matching the pattern.
-
-        :args:
-            p_db_nm - name of the database to search
-            p_rectyp - record type to search
-            p_key_pattern - pattern to match for keys
-            p_load_1st_rec - load 1st record found into editor
-        :returns: list of keys that match the pattern or None
-        """
-        db = p_db_nm
-        result_b = RI.find_keys(db, p_key_pattern)
-        result: list = []
-        if result_b in (None, [], {}):
-            self.db_editor.set_cursor_result(
-                f"No record found with key like '{p_key_pattern}'")
-        else:
-            for res in result_b:
-                result.append(res.decode("utf-8"))
-            result = sorted(result)
-            rcnt = len(result)
-            rword = "record" if rcnt == 1 else "records"
-            self.db_editor.set_cursor_result(
-                f"{rcnt} {rword} found with key like '{p_key_pattern}'")
-            if p_load_1st_rec:
-                # Get first record from find key list, display in editor
-                # Select first record in the set of found keys.
-                _ = self.get_redis_record(db, result[0])
-                # If more than one key was found,
-                if len(result) > 1:
-                    self.db_editor.activate_buttons("Get", ["Next", "Prev"])
-                else:
-                    self.db_editor.deactivate_buttons("Get", ["Next", "Prev"])
-                # To load from db record to editor form(s), use functions
-                # in the DB Editor class:
-                #  db_editor.set_key_fields(record)
-                #  db_editor.set_value_fields(record)
-                #   sub-function: db_editor.set_list_field(field, value)
-                #  consider whether to display audit and expiry values?
-                #    I am thinking yes. Why not? Just can't edit them.
-
-                # Populate the rectyp editor widget and forms for first record.
-                # Don't pull in the widget here. Instead,
-                # create functions in dbeditor_wdg like:
-                #  set_key_fields()
-                #  set_value_fields()
-                #    and a sub-function probably for set_list_fields()
-                #  Widget stored at:
-                #    self.rectyps[db_nm][rectyp_nm]["widget"] = rectyp_wdg
-                #  Name of the entire form:
-                #    f"{db_nm}:{rectyp_nm}:{f_grp}.frm"
-                #  Name of the list forms, if any:
-                #    f"{db_nm}:{rectyp_nm}:{field_nm}.frm"
-
-                # Create a Harvest Queue record with the keyset result.
-                # Store list of found keys in the queue for use with
-                #  Next and Prev buttons.
-                # Use a Redis queue (a list) for this. On Harvest Queues.
-                # Still need to store the hash/key locally and keep track
-                # of which record in the list is being displayed/edited.
-                # For adds:
-                #   Store auto-generated Queue record in the Qt form first.
-                #   Store the list of found keys as a single field value.
-                #   Then call the Add record function.
-                # Put it into the Harvest/Queue editor widget form(s),
-                #  but don't display it.
-                #
-                # Should be able to find/display the queue record.
-                # If the Queue record itself is target of a Find commend,
-                #  then full list of keys needs to be displayed in
-                #  individual "list"-type fields in the editor form.
-                #  Queue records should not be edited manually.
-
-                # This is an opportunity to learn setting expiry rules.
-                # Consider how to display expiry times. Thinking that
-                # should be an Audit field.
-
-                # Don't create a queue if the find result is empty or has
-                # only one record. Do expire the queue record after a short
-                # time. Maybe expire the previous queue record if the Find
-                # button is clicked again?
-
-                # The record displayed in the editor is the first one
-                # found by the Find. It may or may not be a Queue record.
-                # It could be any kind of record on any database.
-
-                # Let's work first on displaying the 1st record returned,
-                # then on expiry time stamps & rules, then on queue recs.
-
-                # Expire time can be set 4 ways:
-                #    EXPIRE <key> <seconds> <-- from now
-                #    EXPIREAT <key> <timestamp> <-- Unix timestamp
-                #    PEXPIRE <key> <milliseconds> <-- from now
-                #    PEXPIREAT <key> <milliseconds-timestamp> <-- Unix ts in ms
-                #  Get expire time 4 ways:
-                #    TTL <key> <-- get time to live in seconds
-                #    PTTL <key> <-- get time to live in ms
-                #    EXPIRETIME <key> <-- Unix timestamp
-                #    PEXPIRETIME <key> <-- Unix timestamp in ms
-                # I am thinking to set a rule in a Basement:Config record for
-                #   each DB/record type. That will drive the expiry time.
-
-        return (result)
-
-    def find_record_keys(self):
-        """Slot for DB Editor Find push button click action."""
-        self.db_editor.prep_editor_action("Find")
-        db_nm, search_key = self.db_editor.get_search_value()
-        _ = self.find_redis_keys(db_nm, search_key, p_load_1st_rec=True)
 
     # Make Help widget (web pages) display
     # ==============================================================

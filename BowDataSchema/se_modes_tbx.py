@@ -29,6 +29,33 @@ class ModesToolbox(QToolBar):      # noqa: F821
     The three states are mutually exclusive.
     Inherit QToolBar. Add styles and actions.
     Create as a widget then add to a layout.
+
+    "tools": {
+        "tool": {
+            "control": {
+                "a": "Control",
+                "b": "Services Controller",
+                "c": "Start, stop, manage services",
+                "cmd": "Ctrl+Alt+C"},
+            "monitor": {
+                "a": "Monitor",
+                "b": "Services Monitor",
+                "c": "Monitor running servers and services",
+                "cmd": "Ctrl+Alt+M"},
+            "editor": {
+                "a": "Editor",
+                "b": "Service Databases Editor",
+                "c": "Edit the services databases",
+                "cmd": "Ctrl+Alt+D"},
+            "help":
+                {"a": "Help",
+                "b": "Application Help",
+                "c": "Show context-sensitive help",
+                "cmd": "Ctrl+Alt+H"},
+        "widget": {
+            "name": null,
+            "object": null}},
+        "state": "inactive"},
     """
     def __init__(self, parent: QToolBar):
         """super() call is required."""

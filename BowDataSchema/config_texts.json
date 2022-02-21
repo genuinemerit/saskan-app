@@ -1,0 +1,126 @@
+{
+    "app": {"a": "Saskan Eyes",
+            "b": "About Saskan Eyes",
+            "c": "Control, Monitor, Test and Edit the Saskan Services.\n\n Version: 0.0.1"},
+    "cursor": {"b": "cursor/result summary"},
+    "dbe_status": {"a": "Database Editor Status"},
+    "edit": {"a": "Edit Record"},
+    "find": {"a": "Find Record(s)"},
+    "key": {"b": "lower case letters, underbars, colons only"},
+    "keys": {"a": "Key Fields"},
+    "max_more": {"c": "Cannot add fields to list. Max reached."},
+    "min_fewer": {"c": "Cannot remove fields from list. Min reached."},
+    "pending": {"b": "pending changes"},
+    "types": {"a": "Select Record Type"},
+    "values": {"a": "Value Fields"},
+    "qt": {"a": "About Qt"},
+
+    "activator_log": {
+        "a": "Activator Events (Log DB)",
+        "c": "Log records for service activator events."
+    },
+    "add_btn": {
+        "a": "Add",
+        "c": "Create a new record of the selected type."
+    },
+    "cancel_btn": {
+        "a": "Cancel",
+        "c": "Purge pending edits and close current editor without saving."
+    },
+    "configs": {
+        "a": "Config Records (Basement DB)",
+        "c": "Records defining config data structures."
+    },
+    "delete_btn": {
+        "a": "Delete",
+        "c": "Mark currently selected record for removal."
+    },
+    "expire_rules": {
+        "a": "Expiration Rules (Basement DB)",
+        "c": "Records holding record expiration rules."
+    },
+    "fewer_btn": {
+        "a": "-",
+        "c": "Remove an input field."
+    },
+    "find_btn": {
+        "a": "Find",
+        "c": "Find keys matching search pattern. Select all keys if no text entered."
+    },
+    "more_btn": {
+        "a": "+",
+        "c": "Add another input field."
+    },
+    "next_btn": {
+        "a": "Next",
+        "c": "Retrieve next record from cursor IO result."
+    },
+    "plans": {
+        "a": "Plan Records (Schema DB)",
+        "c": "Records holding service plan definitions."
+    },
+    "prev_btn": {
+        "a": "Prev",
+        "c": "Retrieve previous record from cursor IO result."
+    },
+    "queues": {
+        "a": "Queue Records (Harvest DB)",
+        "c": "Records holding temporary lists."
+    },
+    "redo_btn": {
+        "a": "Redo",
+        "c": "Re-apply the most recently undone edit (Ctrl+Y)."
+    },
+    "request_log": {
+        "a": "Request Events (Log DB)",
+        "c": "Log records for service request/sub events."
+    },
+    "requests_monitor": {
+        "a": "Requests Monitor (Monitor DB)",
+        "c": "Summary records for request/sub events."
+    },
+    "response": {
+        "a": "Response Records (Harvest DB)",
+        "c": "Records holding request responses and pubs."
+    },
+    "response_log": {
+        "a": "Response Events (Log DB)",
+        "c": "Log records for service response/pub events."
+    },
+    "responses_monitor": {
+        "a": "Responses Monitor (Monitor DB)",
+        "c": "Summary records for response/pub events."
+    },
+    "retry_rules": {
+        "a": "Retry Rules (Basement DB)",
+        "c": "Records holding message retry rules."
+    },
+    "save_btn": {
+        "a": "Save",
+        "c": "Commit all pending changes."
+    },
+    "schemas": {
+        "a": "Schema Records (Schema DB)",
+        "c": "Records holding service schema definitions."
+    },
+    "server_monitor": {
+        "a": "Server/Channel Monitor (Monitor DB)",
+        "c": "Summary records for server/channel loads."
+    },
+    "services": {
+        "a": "Service Records (Schema DB)",
+        "c": "Records holding service definitions."
+    },
+    "status": {
+        "a": "Status Flag Records (Basement DB)",
+        "c": "Records defining status data structures."
+    },
+    "topics": {
+        "a": "Topic Records (Schema DB)",
+        "c": "Records holding service topic definitions."
+    },
+    "undo_btn": {
+        "a": "Undo",
+        "c": "Reverse the most recent edit (Ctrl+Z)."
+    }
+}

@@ -30,6 +30,9 @@ Redis commands: https://redis.io/commands
 
 - Redis Basement should also replace "saskan_texts.py".
 
+- FLUSHDB -- delete all keys in current namespace
+- FLUSHALL -- delete all keys in all namespaces
+
 
 Main behaviors:
 
@@ -124,7 +127,8 @@ class RedisIOUtils(object):
             r_ver[1] = str(int(r_ver[1]) + 1)
         elif p_bump == "fix":
             r_ver[2] = str(int(r_ver[2]) + 1)
-        return ".".join(r_ver)
+        m_ver = r_ver[0] + "." + r_ver[1] + "." + r_ver[2]
+        return m_ver
 
     @classmethod
     def get_token(cls) -> str:
@@ -135,6 +139,34 @@ class RedisIOUtils(object):
         """
         return (str(uuid.UUID(bytes=secrets.token_bytes(16)).hex) +
                 str(uuid.UUID(bytes=secrets.token_bytes(16)).hex))
+
+    @classmethod
+    def bump_underbars(cls, text) -> str:
+        """Remove stray underbars
+
+        - Remove leading or trailing underbars
+        - Reduce multiple underbars to single underbars
+        """
+        r_str = text
+        while "__" in r_str:
+            r_str = r_str.replace("__", "_")
+        while r_str[-1:] == "_":
+            r_str = r_str[:-1]
+        while r_str[:1] == "_":
+            r_str = r_str[1:]
+        return r_str
+
+    def clean_redis_key(self, text: str):
+        """Convert anything not a letter or colon to underbar.
+        And make it lowercase.
+        """
+        r_str = text
+        for char in r_str:
+            if not char.isalpha() and \
+               not char.isdigit() and \
+               not char == ":":
+                r_str = r_str.replace(char, "_")
+        return self.bump_underbars(r_str).lower()
 
 
 class RedisIO(object):
@@ -194,37 +226,48 @@ class RedisIO(object):
             rec = self.UT.convert_bytes_to_dict(redis_result)
         return rec
 
+    def get_values(self, record):
+        """Return only the values of a record."""
+        record.pop("name")
+        record.pop("audit")
+        return record
+
     # DML functions
     # =======================================
     def set_audit_values(self,
+                         p_db: str,
                          p_rec: dict,
-                         p_include_hash: bool = True) -> dict:
+                         p_include_hash: bool = True) -> tuple:
         """Set audit values for a record.
 
-        :returns: dict - record with audit values set
+        :returns: (
+            dict - record with audit values set or modified,
+            bool - indicates to do update (True) or insert (False))
         """
+        r_update = False
         rec = p_rec
-        if 'audit' in rec:
-            audit = rec["audit"]
+        exists = self.get_record(p_db, p_rec["name"])
+        if exists is not None and 'audit' in exists:
+            audit = exists["audit"]
             audit["version"] = self.UT.set_version(audit["version"], "minor")
-            del rec["audit"]
+            rec["audit"] = audit
+            r_update = True
         else:
             audit = {"version": "1.0.0"}
         audit["modified"] = self.UT.get_timestamp()
         if p_include_hash:
             audit["hash"] = self.UT.get_hash(str(rec))
         rec["audit"] = audit
-        return (rec)
+        return (rec, r_update)
 
     def do_insert(self,
                   p_db: str,
                   p_rec: dict):
-        "Insert a record to Redis"
+        """Insert a record to Redis"""
         try:
-            self.RNS[p_db].set(
-                p_rec["name"],
-                self.UT.convert_dict_to_bytes(p_rec),
-                nx=True)
+            key = p_rec["name"]
+            values = self.UT.convert_dict_to_bytes(p_rec)
+            self.RNS[p_db].set(key, values, nx=True)
         except redis.exceptions.ResponseError as e:
             # Write to log instead of raise exception
             print(f"\nRedis error: {e}")
@@ -236,20 +279,21 @@ class RedisIO(object):
     def do_archive(self,
                    p_rec: dict):
         """Copy/archive record to `log` namespace."""
-        rec = p_rec
-        rec["name"] = "archive:" + p_rec["name"] + \
+        log_rec = p_rec
+        log_rec["name"] = "archive:" + p_rec["name"] + \
             ":" + self.UT.get_timestamp()
-        self.do_insert("log", rec)
+        self.do_insert("log", log_rec)
 
     def do_update(self,
                   p_db: str,
                   p_rec: dict):
-        "Update a record on Redis"
-        self.do_archive(p_rec)
+        """Update a record on Redis"""
+        old_rec = self.get_record(p_db, p_rec["name"])
+        self.do_archive(old_rec)
         try:
-            self.RNS[p_db].set(p_rec["name"],
-                               self.UT.convert_dict_to_bytes(
-                                   msg_d=p_rec), xx=True)
+            key = p_rec["name"]
+            values = self.UT.convert_dict_to_bytes(p_rec)
+            self.RNS[p_db].set(key, values, xx=True)
         except redis.exceptions.ResponseError as e:
             # Write to log instead of raise exception
             print(f"\nRedis error: {e}")

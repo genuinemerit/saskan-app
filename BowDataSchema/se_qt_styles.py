@@ -152,7 +152,7 @@ class SaskanStyles(object):
         ss = "background-color: black; " + \
              "border: 1px solid; " + \
              "border-color: black; " + \
-             "color: gray;"
+             "color: palegreen;"
         return ss
 
     @classmethod

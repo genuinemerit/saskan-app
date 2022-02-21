@@ -36,7 +36,7 @@ class DBEditorWidget(QWidget):
     record types are defined in the closely-related
     RecordMgmt class.
 
-    @DEV - 
+    @DEV -
     May want to look at use of QStackedWidget or, even better,
     .setCurrentIndex(), to determine order of items within the
     editor widget. OR mayhbe it is insertWidget(index, widget),
@@ -246,39 +246,9 @@ class DBEditorWidget(QWidget):
         """
         return (self.texts[p_text_key]["hint"])
 
-    def get_search_value(self):
-        """Return value of the search/find text input widget.
-
-        The search is for key values only.
-        Adjust it to work as a wildcard search on redis by
-          preceding and ending with asterisks.
-        Include the rectyp name in the search text.
-        Cast to lower case.
-
-        :returns: tuple (
-            db name cast lower for use on redis,
-            search key value modified for use on redis)
-        """
-        db_nm, rectyp_nm = self.get_active_db_rectyp()
-        search_key = self.texts["Key"]["widget"].text().strip()
-        db_nm = db_nm.lower()
-        rectyp_nm = rectyp_nm.lower()
-        search_key = self.RM.edit["redis_key"](search_key)
-        if f"{rectyp_nm}:" not in search_key:
-            search_key = f"{rectyp_nm}:{search_key}"
-        if search_key[:1] != "*":
-            search_key = "*" + search_key
-        if search_key[-1:] != "*":
-            search_key += "*"
-        return (db_nm, search_key.lower())
-
-    def set_cursor_result(self,
-                          p_text: str = ""):
-        """Assign text to Cursor result display."""
-        self.activate_texts(["Cursor"])
-        self.texts["Cursor"]["widget"].setText(p_text)
-
-    def set_dbe_status(self, p_text_nm: str):
+    def set_dbe_status(self,
+                       p_text_nm: str = "",
+                       p_text: str = ""):
         """Display text in dbe status bar text relevant to event.
         """
         if p_text_nm not in (None, "") \
@@ -291,6 +261,8 @@ class DBEditorWidget(QWidget):
             else:
                 self.texts["dbe_status"]["widget"].setText(
                     self.texts[p_text_nm]["display"])
+        else:
+            self.texts["dbe_status"]["widget"].setText(p_text)
 
     def prep_editor_action(self,
                            p_action_nm: str):
@@ -300,7 +272,7 @@ class DBEditorWidget(QWidget):
             triggered the actione)
         """
         self.set_dbe_status(p_action_nm)
-        self.set_cursor_result()
+        self.set_dbe_status()
 
     # Push-Button Widget Creation
     # ============================================================
@@ -443,30 +415,6 @@ class DBEditorWidget(QWidget):
             btn["widget"].setStyleSheet(SS.get_style("inactive_button"))
             btn["widget"].setEnabled(False)
             btn["active"] = False
-
-    def select_record_type(self, p_rectyp_nm: str):
-        """Generic function for record type selection actions.
-
-        :args:
-            p_rectyp_nm: name of selected record type"""
-        self.set_dbe_status(p_rectyp_nm)
-        self.activate_rectyp(p_rectyp_nm)
-
-    def select_configs(self):
-        """Slot for Editor Select Configs radio check action"""
-        self.select_record_type("Configs")
-
-    def select_status(self):
-        """Slot for Editor Select Status Flags radio check action"""
-        self.select_record_type("Status")
-
-    def select_topics(self):
-        """Slot for Editor Select Topics radio check action"""
-        self.select_record_type("Topics")
-
-    def select_queues(self):
-        """Slot for Editor Select Queues radio check action"""
-        self.select_record_type("Queues")
 
     def push_cancel(self):
         """Slot for Editor Edit Push Button --> Cancel"""
