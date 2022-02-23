@@ -6,11 +6,13 @@
 BoW Saskan QCC style sheets for Qt.
 """
 
+from PySide2.QtCore import Qt
 from PySide2.QtGui import QFont
 from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QPushButton
 from PySide2.QtWidgets import QRadioButton
+from PySide2.QtWidgets import QToolButton
 
 
 class SaskanStyles(object):
@@ -240,6 +242,25 @@ class SaskanStyles(object):
         else:
             ss = self._base_style()
         return ss
+
+    def set_tool_style(self,
+                       tool: QToolButton,
+                       active: bool = True):      # type: ignore
+        """Set tool button style font size and style.
+
+        :Args:
+            tool: a QT tool button object
+            active: bool, optional. If False, make it inactive.
+        :Returns:
+            tool: the modified object
+        """
+        if active:
+            tool.setStyleSheet(SaskanStyles.get_style('active_tool'))
+        else:
+            tool.setStyleSheet(SaskanStyles.get_style('inactive_tool'))
+        tool.setFont(QFont('Arial', 9))
+        tool.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+        return tool
 
     def set_button_style(self,
                          btn: QPushButton,

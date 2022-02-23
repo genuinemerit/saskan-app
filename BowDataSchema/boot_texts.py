@@ -66,7 +66,7 @@ class BootTexts(object):
 
         self.path_app: str = path.join(self.dir_home, self.dir_app)
         self.path_cache: str = path.join(self.path_app, self.dir_cache)
-        self.path_cache: str = path.join(self.path_app, self.dir_log)
+        self.path_log: str = path.join(self.path_app, self.dir_log)
         self.path_res: str = path.join(self.path_app, self.dir_res)
 
         self.file_texts: str = path.join(

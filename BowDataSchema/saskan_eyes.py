@@ -21,15 +21,15 @@ from PySide2.QtWidgets import QMainWindow
 from PySide2.QtWidgets import QMessageBox
 from PySide2.QtWidgets import QMenuBar
 
-from boot_texts import BootTexts  # type: ignore
-from file_io import FileIO  # type: ignore
-from redis_io import RedisIO  # type: ignore
+from boot_texts import BootTexts                # type: ignore
+from file_io import FileIO                      # type: ignore
+from redis_io import RedisIO                    # type: ignore
 from se_controls_shell import ControlsShell     # type: ignore
 from se_controls_wdg import ControlsWidget      # type: ignore
 from se_dbeditor_wdg import DBEditorWidget      # type: ignore
 from se_diagram_wdg import DiagramWidget        # type: ignore
 from se_help_wdg import HelpWidget              # type: ignore
-from se_menus_wdg import MenusWidget            # type: ignore
+# from se_menus_wdg import MenusWidget            # type: ignore
 from se_modes_tbx import ModesToolbox           # type: ignore
 from se_monitor_wdg import MonitorWidget        # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
@@ -235,17 +235,17 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def make_modes_toolbox(self):
         """Create mode toolbar and assign its actions.
-
-        Move this into a widget class, with its own status bar.
         """
-        self.tbx_modes = ModesToolbox(self)
-        acts = {"Control": self.controls_mode_action,
-                "Monitor": self.monitor_mode_action,
-                "Edit DB": self.db_editor_mode_action,
-                "Help": self.help_mode_action}
-        for key, act in acts.items():
-            self.tbx_modes.acts[key]["widget"].triggered.connect(act)
-        self.tbx_modes.move(935, 0)   # <-- move it to upper-right corner
+        self.tbx_modes = ModesToolbox(self, self.WDG["tools"])
+        self.WDG["tools"] = self.tbx_modes.get_tools()
+        for tk, action in {
+                "control.tool": self.controls_mode_action,
+                "monitor.tool": self.monitor_mode_action,
+                "editor.tool": self.db_editor_mode_action,
+                "help.tool": self.help_mode_action}.items():
+            self.WDG["tools"][tk]["widget"].triggered.connect(action)
+        # Move toolbox to upper-right corner of the main window.
+        self.tbx_modes.move(935, 0)
 
     # Make Service Controls widget
     # Define a status bar for the widget so we can make the functions
