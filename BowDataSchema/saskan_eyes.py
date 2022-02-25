@@ -10,6 +10,7 @@ import argparse
 import json
 import sys
 
+from os import path
 from pprint import pprint as pp     # noqa: F401
 
 from PySide2.QtGui import QFont
@@ -24,19 +25,16 @@ from PySide2.QtWidgets import QMenuBar
 from boot_texts import BootTexts                # type: ignore
 from file_io import FileIO                      # type: ignore
 from redis_io import RedisIO                    # type: ignore
-from se_controls_shell import ControlsShell     # type: ignore
 from se_controls_wdg import ControlsWidget      # type: ignore
 from se_dbeditor_wdg import DBEditorWidget      # type: ignore
-from se_diagram_wdg import DiagramWidget        # type: ignore
+from se_diagram_wdg import DiagramWidget      # type: ignore
 from se_help_wdg import HelpWidget              # type: ignore
-# from se_menus_wdg import MenusWidget            # type: ignore
 from se_modes_tbx import ModesToolbox           # type: ignore
 from se_monitor_wdg import MonitorWidget        # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
 from se_record_mgmt import RecordMgmt           # type: ignore
 
 BT = BootTexts()
-CS = ControlsShell()
 FI = FileIO()
 RI = RedisIO()
 SS = SaskanStyles()
@@ -141,7 +139,7 @@ class SaskanEyes(QMainWindow):
         self.make_menus()
         self.make_statusbar()
         self.make_modes_toolbox()
-        self.make_svc_controls_wdg()
+        self.make_svc_control_wdg()
         self.make_svc_monitor_wdg()
         self.make_db_editor_wdg()
         self.make_help_widget()
@@ -159,9 +157,9 @@ class SaskanEyes(QMainWindow):
         Consider storing all of the metadata in Redis Basement.
         """
         self.is_active = {
-            'controls_wdg': False,
+            'control_wdg': False,
             'monitor_wdg': False,
-            'dbeditor_wdg': False,
+            'editor_wdg': False,
             'help_wdg': False,
             'diagram_wdg': False}
 
@@ -231,91 +229,84 @@ class SaskanEyes(QMainWindow):
         """
         self.statusBar().showMessage(p_text)
 
-    # Make modes toolbox method
+    # Make modes toolbox
     # ==============================================================
     def make_modes_toolbox(self):
         """Create mode toolbar and assign its actions.
+
+        Move toolbox to upper-right corner of the main window.
         """
         self.tbx_modes = ModesToolbox(self, self.WDG["tools"])
         self.WDG["tools"] = self.tbx_modes.get_tools()
         for tk, action in {
-                "control.tool": self.controls_mode_action,
-                "monitor.tool": self.monitor_mode_action,
-                "editor.tool": self.db_editor_mode_action,
-                "help.tool": self.help_mode_action}.items():
+                "control.tool": self.controls_mode_tool_click,
+                "monitor.tool": self.monitor_mode_tool_click,
+                "editor.tool": self.editor_mode_tool_click,
+                "help.tool": self.help_mode_tool_click}.items():
             self.WDG["tools"][tk]["widget"].triggered.connect(action)
-        # Move toolbox to upper-right corner of the main window.
         self.tbx_modes.move(935, 0)
 
-    # Make Service Controls widget
-    # Define a status bar for the widget so we can make the functions
-    # more autonomous.
+    # Modes toolbox actions and helpers
     # ==============================================================
-    def make_svc_controls_wdg(self):
-        """Create the Service Controls widget."""
-        self.service_controls = ControlsWidget(self)
-        for key, act in {
-                "Start": self.start_services,
-                "Stop": self.stop_services,
-                "Show": self.show_services,
-                "Test": self.test_services}.items():
-            self.service_controls.acts[key]["widget"].clicked.connect(act)
-        self.service_controls.hide()
+    def mode_tool_click(self,
+                        p_tool_nm: str,
+                        p_widget: object,
+                        p_help_pg: str = None):
+        """Generic action for mode tool click action
 
-    # Service Controls slot and helper methods
-    # ==============================================================
-    def controls_mode_action(self):
+        Optionally show main help page assoc w/ activated widget.
+        :args:
+            p_tool_nm: str
+                Name of the tool.
+            p_widget: object
+                Qt widget associated with the tool.
+            p_help_pg:
+                Name of the help page to show.
+        """
+        meta = self.WDG["tools"][f"{p_tool_nm}.tool"]
+        self.set_status_bar_text(meta["c"])
+        if self.is_active[f"{p_tool_nm}_wdg"] is False:
+            p_widget.show()     # type: ignore
+            if p_help_pg is not None:
+                self.help.set_content(path.join(BT.path_res, p_help_pg))
+                self.help.show()
+            self.is_active[f"{p_tool_nm}_wdg"] = True
+        else:
+            p_widget.hide()     # type: ignore
+            self.is_active[f"{p_tool_nm}_wdg"] = False
+
+    def controls_mode_tool_click(self):
         """Slot for Controls Mode tool click action"""
-        btn = self.tbx_modes.acts["Control"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            try:
-                if self.is_active['controls_wdg'] is False:
-                    self.service_controls.show()
-                    self.is_active['controls_wdg'] = True
-                else:
-                    self.service_controls.hide()
-                    self.is_active['controls_wdg'] = False
-            except AttributeError:
-                pass
+        self.mode_tool_click("control", self.svc_control_wdg,
+                             "svc_activation.html")
 
-    def start_services(self):
-        """Slot for Start Services action"""
-        btn = self.service_controls.acts["Start"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            status, msg = CS.start_services(p_service_nm='redis')
-            self.service_controls.ctl_display.setText(msg)
+    def monitor_mode_tool_click(self):
+        """Slot for Services Monitor mode tool click action"""
+        self.mode_tool_click("monitor", self.service_monitor,
+                             "svc_monitoring.html")
 
-    def stop_services(self):
-        """Slot for Stop Services action"""
-        btn = self.service_controls.acts["Stop"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            status, msg = CS.stop_running_services(p_service_nm='redis')
-            self.service_controls.ctl_display.setText(msg)
+    def editor_mode_tool_click(self):
+        """Slot for DB Editor mode tool click action."""
+        self.mode_tool_click("editor", self.db_editor, "db_help.html")
 
-    def show_services(self):
-        """Slot for Show Services action"""
-        btn = self.service_controls.acts["Show"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            status, msg = CS.check_running_services(p_service_nm='redis')
-            self.service_controls.ctl_display.setText(msg)
+    def help_mode_tool_click(self):
+        """Slot for Help mode tool click action"""
+        self.mode_tool_click("help", self.help, "saskan_help.html")
 
-    def test_services(self):
-        """Slot for Test Services action"""
-        btn = self.service_controls.acts["Test"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            msg = """
-        This will run pre-defined tests on the services.
-            """
-            self.service_controls.ctl_display.setText(msg)
+    # Make Service Controls widget.
+    # ==============================================================
+    def make_svc_control_wdg(self):
+        """Create the Service Controls widget.
 
-    # Make Service Monitor widget
+        All of its actions are handled within the class.
+        """
+        self.svc_control_wdg = ControlsWidget(self, self.WDG["controls"])
+        self.WDG["controls"] = self.svc_control_wdg.get_tools()
+
+    # Make Service Monitor widget.
     # Create a stutus bar for the widget so we can make the functions
-    # more autonomous.
+    # more autonomous. Extend the class similarly to how the control
+    # widget was modified.
     # ==============================================================
     def make_svc_monitor_wdg(self):
         """Create the Service Monitor widget."""
@@ -333,21 +324,6 @@ class SaskanEyes(QMainWindow):
 
     # Service Monitor slot and helper methods
     # ==============================================================
-    def monitor_mode_action(self):
-        """Slot for Services Monitor mode tool click action"""
-        btn = self.tbx_modes.acts["Monitor"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            try:
-                if self.is_active['monitor_wdg'] is False:
-                    self.service_monitor.show()
-                    self.is_active['monitor_wdg'] = True
-                else:
-                    self.service_monitor.hide()
-                    self.is_active['monitor_wdg'] = False
-            except AttributeError:
-                pass
-
     def mon_summary(self):
         """Slot for Monitor Summary button click action"""
         btn = self.service_monitor.acts["Summary"]
@@ -403,30 +379,6 @@ class SaskanEyes(QMainWindow):
         self.RM = RecordMgmt(self, self.db_editor)
         self.db_editor.hide()
 
-    # Database Editor and Record Management slots and helper methods
-    # ==============================================================
-    def db_editor_mode_action(self):
-        """Slot for Edit Database modes tool click action.
-        Show DB editor help page.
-        """
-        btn = self.tbx_modes.acts["Edit DB"]
-        if btn["active"]:
-            self.set_status_bar_text(btn["caption"])
-            try:
-                if self.is_active['dbeditor_wdg'] is False:
-                    self.db_editor.show()
-                    self.is_active['dbeditor_wdg'] = True
-                    self.help.set_content("db_help.html")
-                    # Display the diagram when there is something
-                    #  interesting to show on it.
-                    # self.show_graph_diagram()
-                else:
-                    self.db_editor.hide()
-                    self.is_active['dbeditor_wdg'] = False
-                    # self.hide_graph_diagram()
-            except AttributeError:
-                pass
-
     # Make Help widget (web pages) display
     # ==============================================================
     def make_help_widget(self):
@@ -434,23 +386,6 @@ class SaskanEyes(QMainWindow):
         """
         self.help = HelpWidget(self)
         self.help.hide()
-
-    # Help (Web pages) Display
-    # ==============================================================
-    def help_mode_action(self):
-        """Slot for Help Mode tool click action"""
-        btn = self.tbx_modes.acts["Help"]
-        self.set_status_bar_text(btn["caption"])
-        try:
-            if self.is_active['help_wdg'] is False:
-                self.help.set_content("saskan_help.html")
-                self.help.show()
-                self.is_active['help_wdg'] = True
-            else:
-                self.help.hide()
-                self.is_active['help_wdg'] = False
-        except AttributeError:
-            pass
 
     # Make widget to display networkx graph diagrams
     # ==============================================================

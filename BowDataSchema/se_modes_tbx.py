@@ -12,9 +12,6 @@ from os import path
 from pprint import pprint as pp     # noqa: F401
 
 from PySide2.QtCore import QRect
-# from PySide2.QtCore import Qt
-from PySide2.QtCore import QSize
-# from PySide2.QtGui import QFont
 from PySide2.QtGui import QIcon
 from PySide2.QtWidgets import QAction
 from PySide2.QtWidgets import QToolBar

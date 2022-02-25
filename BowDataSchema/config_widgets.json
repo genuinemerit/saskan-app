@@ -1,6 +1,39 @@
 {
     "controls": {
-        "state": "inactive"},
+        "a": "Services Controller",
+        "buttons":{
+            "start.btn": {
+                "a": "Start",
+                "b": "Start Services",
+                "c": "Start up (Run) Saskan services",
+                "state": "inactive",
+                "widget": null},
+            "stop.btn": {
+                "a": "Stop",
+                "b": "Stop Services",
+                "c": "Kill all running Saskan services",
+                "state": "inactive",
+                "widget": null},
+            "show.btn": {
+                "a": "Show",
+                "b": "Show Services Status",
+                "c": "Show current status of Saskan services",
+                "state": "inactive",
+                "widget": null},
+            "test.btn": {
+                "a": "Test",
+                "b": "Test Services",
+                "c": "Run preset test suites on Saskan services",
+                "state": "inactive",
+                "widget": null}
+        },
+        "display": {
+            "widget": null},
+        "state": "inactive",
+        "status.txt":{
+            "b": "Services Contoller Status",
+            "widget": null},
+        "widget": null},
     "db_editor": {
         "state": "inactive"},
     "diagram": {
