@@ -62,13 +62,16 @@ class ControlsWidget(QWidget):
 
     def make_controls_buttons(self):
         """Create the buttons associated with the Service Controller."""
-        ctl_btn_hbox = QHBoxLayout()
+        hbox = QHBoxLayout()
+        hbox.LeftToRight
+        hbox.addStretch()
+        hbox.addSpacing(30)
         for btn_id, button in self.controls["buttons"].items():
             btn = SS.set_button_style(QPushButton(button["a"]))
             self.controls["buttons"][btn_id]["state"] = "active"
             self.controls["buttons"][btn_id]["widget"] = btn
-            ctl_btn_hbox.addWidget(btn)
-        return(ctl_btn_hbox)
+            hbox.addWidget(btn)
+        return(hbox)
 
     def define_button_actions(self):
         """Set actions for Service Controller buttons."""

@@ -762,3 +762,46 @@ Connection ended.
  '"net.genuinemerit.schema", "store": "redis", "channel": "redis_io", "topic": '
  '"ontology_file", "plan_ty": "put", "service_ty": "request"}}')
 Connection ended.
+Traceback (most recent call last):
+  File "/home/dave/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema/redis_response.py", line 99, in <module>
+    asyncio.run(main(parser.parse_args()))
+  File "/usr/lib/python3.9/asyncio/runners.py", line 44, in run
+    return loop.run_until_complete(main)
+  File "/usr/lib/python3.9/asyncio/base_events.py", line 642, in run_until_complete
+    return future.result()
+  File "/home/dave/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema/redis_response.py", line 39, in main
+    reader, writer = await asyncio.open_connection(
+  File "/usr/lib/python3.9/asyncio/streams.py", line 52, in open_connection
+    transport, _ = await loop.create_connection(
+  File "/usr/lib/python3.9/asyncio/base_events.py", line 1056, in create_connection
+    raise exceptions[0]
+  File "/usr/lib/python3.9/asyncio/base_events.py", line 1041, in create_connection
+    sock = await self._connect_sock(
+  File "/usr/lib/python3.9/asyncio/base_events.py", line 955, in _connect_sock
+    await self.sock_connect(sock, address)
+  File "/usr/lib/python3.9/asyncio/selector_events.py", line 502, in sock_connect
+    return await fut
+  File "/usr/lib/python3.9/asyncio/selector_events.py", line 537, in _sock_connect_cb
+    raise OSError(err, f'Connect call failed {address}')
+ConnectionRefusedError: [Errno 111] Connect call failed ('127.0.1.1', 52020)
+Requestor: redis_io_requestor_41adbffc | Socket: ('127.0.0.1', 52126) | Host: curwen:52020
+Remote ('127.0.0.1', 52126) subscribed to b'/null'
+Sending to b'/queue/redis_io_services': b'Msg 0 from redis_io'...
+Sending to b'/queue/redis_io_services': b'Msg 1 from redis_io'...
+Connection ended.
+('data sent to bow_serde: ',
+ {'fields': {'channel': 'redis_io',
+             'namespace': 'net.genuinemerit.schema',
+             'plan_ty': 'remove',
+             'service_ty': 'request',
+             'store': 'redis',
+             'topic': 'ontology_file'},
+  'name': 'redis.schema.put.request',
+  'namespace': 'net.genuinemerit.schema',
+  'type': 'record'})
+('js version of msg: ',
+ '{"type": "record", "name": "redis.schema.put.request", "namespace": '
+ '"net.genuinemerit.schema", "fields": {"namespace": '
+ '"net.genuinemerit.schema", "store": "redis", "channel": "redis_io", "topic": '
+ '"ontology_file", "plan_ty": "remove", "service_ty": "request"}}')
+Connection ended.

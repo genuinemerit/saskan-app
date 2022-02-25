@@ -1,4 +1,131 @@
 {
+    "about": {
+        "app": {"a": "Saskan Eyes",
+            "b": "About Saskan Eyes",
+            "c": "Control, Monitor, Test and Edit the Saskan Services.\n\n Version: 0.0.1"},
+        "qt": {"a": "About Qt"}
+    },
+
+    "cursor": {"b": "cursor/result summary"},
+    "dbe_status": {"a": "Database Editor Status"},
+    "edit": {"a": "Edit Record"},
+    "find": {"a": "Find Record(s)"},
+    "key": {"b": "lower case letters, underbars, colons only"},
+    "keys": {"a": "Key Fields"},
+    "max_more": {"c": "Cannot add fields to list. Max reached."},
+    "min_fewer": {"c": "Cannot remove fields from list. Min reached."},
+    "pending": {"b": "pending changes"},
+    "types": {"a": "Select Record Type"},
+    "values": {"a": "Value Fields"},
+
+    "activator_log": {
+        "a": "Activator Events (Log DB)",
+        "c": "Log records for service activator events."
+    },
+    "add_btn": {
+        "a": "Add",
+        "c": "Create a new record of the selected type."
+    },
+    "cancel_btn": {
+        "a": "Cancel",
+        "c": "Purge pending edits and close current editor without saving."
+    },
+    "configs": {
+        "a": "Config Records (Basement DB)",
+        "c": "Records defining config data structures."
+    },
+    "delete_btn": {
+        "a": "Delete",
+        "c": "Mark currently selected record for removal."
+    },
+    "expire_rules": {
+        "a": "Expiration Rules (Basement DB)",
+        "c": "Records holding record expiration rules."
+    },
+    "fewer_btn": {
+        "a": "-",
+        "c": "Remove an input field."
+    },
+    "find_btn": {
+        "a": "Find",
+        "c": "Find keys matching search pattern. Select all keys if no text entered."
+    },
+    "more_btn": {
+        "a": "+",
+        "c": "Add another input field."
+    },
+    "next_btn": {
+        "a": "Next",
+        "c": "Retrieve next record from cursor IO result."
+    },
+    "plans": {
+        "a": "Plan Records (Schema DB)",
+        "c": "Records holding service plan definitions."
+    },
+    "prev_btn": {
+        "a": "Prev",
+        "c": "Retrieve previous record from cursor IO result."
+    },
+    "queues": {
+        "a": "Queue Records (Harvest DB)",
+        "c": "Records holding temporary lists."
+    },
+    "redo_btn": {
+        "a": "Redo",
+        "c": "Re-apply the most recently undone edit (Ctrl+Y)."
+    },
+    "request_log": {
+        "a": "Request Events (Log DB)",
+        "c": "Log records for service request/sub events."
+    },
+    "requests_monitor": {
+        "a": "Requests Monitor (Monitor DB)",
+        "c": "Summary records for request/sub events."
+    },
+    "response": {
+        "a": "Response Records (Harvest DB)",
+        "c": "Records holding request responses and pubs."
+    },
+    "response_log": {
+        "a": "Response Events (Log DB)",
+        "c": "Log records for service response/pub events."
+    },
+    "responses_monitor": {
+        "a": "Responses Monitor (Monitor DB)",
+        "c": "Summary records for response/pub events."
+    },
+    "retry_rules": {
+        "a": "Retry Rules (Basement DB)",
+        "c": "Records holding message retry rules."
+    },
+    "save_btn": {
+        "a": "Save",
+        "c": "Commit all pending changes."
+    },
+    "schemas": {
+        "a": "Schema Records (Schema DB)",
+        "c": "Records holding service schema definitions."
+    },
+    "server_monitor": {
+        "a": "Server/Channel Monitor (Monitor DB)",
+        "c": "Summary records for server/channel loads."
+    },
+    "services": {
+        "a": "Service Records (Schema DB)",
+        "c": "Records holding service definitions."
+    },
+    "status": {
+        "a": "Status Flag Records (Basement DB)",
+        "c": "Records defining status data structures."
+    },
+    "topics": {
+        "a": "Topic Records (Schema DB)",
+        "c": "Records holding service topic definitions."
+    },
+    "undo_btn": {
+        "a": "Undo",
+        "c": "Reverse the most recent edit (Ctrl+Z)."
+    }, 
     "controls": {
         "a": "Services Controller",
         "buttons":{
@@ -31,15 +158,89 @@
             "widget": null},
         "state": "inactive",
         "status.txt":{
-            "b": "Services Contoller Status",
+            "b": "Services Controller Status",
             "widget": null},
         "widget": null},
     "db_editor": {
-        "state": "inactive"},
+        "a": "Database Editor",
+        "state": "inactive",
+        "status.txt":{
+            "b": "Database Editor Status",
+            "widget": null},
+        "widget": null,
+        "boxes": {
+            "get.box": {
+                "a": "Find and Get Records",
+                "buttons": {
+                    "find.btn": {
+                        "a": "Find",
+                        "state": "inactive",
+                        "widget": null},
+                    "next.btn": {
+                        "a": "Next",
+                        "state": "inactive",
+                        "widget": null},
+                    "prev.btn": {
+                        "a": "Prev",
+                        "state": "inactive",
+                        "widget": null}
+                },
+                "input": {
+                    "b": "Key Pattern",
+                    "c": "Record key or key pattern to search for.",
+                    "state": "inactive",
+                    "widget": null},
+                "widget": null
+            },
+            "edit.box": {
+                "a": "Edit Records",
+                "buttons": {
+                    "add.btn": {
+                        "a": "Add",
+                        "state": "inactive",
+                        "widget": null},
+                    "delete.btn": {
+                        "a": "Delete",
+                        "state": "inactive",
+                        "widget": null},
+                    "save.btn": {
+                        "a": "Save",
+                        "state": "inactive",
+                        "widget": null},
+                    "more.btn": {
+                        "a": "More",
+                        "state": "inactive",
+                        "widget": null},
+                    "fewer.btn": {
+                        "a": "Fewer",
+                        "state": "inactive",
+                        "widget": null},
+                    "undo.btn": {
+                        "a": "UNdo",
+                        "state": "inactive",
+                        "widget": null},
+                    "redo.btn": {
+                        "a": "Redo",
+                        "state": "inactive",
+                        "widget": null},
+                    "cancel.btn": {
+                        "a": "Cancel",
+                        "state": "inactive",
+                        "widget": null}
+                },
+                "widget": null
+            }
+        }
+    },
     "diagram": {
         "state": "inactive"},
     "help": {
-        "state": "inactive"},
+        "a": "Saskan Help",
+        "display": {
+            "widget": null},
+        "state": "inactive",
+        "widget": null
+    },
     "menus": {
         "menu": {
             "file": {
@@ -55,9 +256,61 @@
             "object": null},
         "state": "inactive"},
     "monitor": {
+        "a": "Services Monitor",
+        "buttons":{
+            "summary.btn": {
+                "a": "Summary",
+                "b": "Services summary",
+                "c": "Show summary info for running and registered services.",
+                "state": "inactive",
+                "widget": null},
+            "top.btn": {
+                "a": "Top",
+                "b": "Show top of Services log",
+                "c": "Display oldest entries in services log.",
+                "state": "inactive",
+                "widget": null},
+            "tail.btn": {
+                "a": "Tail",
+                "b": "Show bottom of Services log",
+                "c": "Display latest entries in services log.",
+                "state": "inactive",
+                "widget": null},
+            "full.btn": {
+                "a": "Full",
+                "b": "Show entire Services log",
+                "c": "Display all entries in services log.",
+                "state": "inactive",
+                "widget": null},
+            "requests.btn": {
+                "a": "Requests",
+                "b": "Show log for active Requests",
+                "c": "Display requests currently in queue or executing.",
+                "state": "inactive",
+                "widget": null},
+            "fails.btn": {
+                "a": "Fails",
+                "b": "Show log for failed Requests",
+                "c": "Display requests which failed or were refused.",
+                "state": "inactive",
+                "widget": null},
+            "pressure.btn": {
+                "a": "Pressure",
+                "b": "Show Services Pressure",
+                "c": "Display analysis of current load on each service.",
+                "state": "inactive",
+                "widget": null}},
+        "display": {
+            "widget": null},
+        "state": "inactive",
+        "status.txt":{
+            "b": "Services Monitor Status",
+            "widget": null},
+        "widget": null},
+    "record_io": {
         "state": "inactive"},
     "tools": {
-        "control.tool": {
+        "controls.tool": {
             "a": "Control",
             "b": "Services Controller",
             "c": "Start, stop, manage services",
@@ -73,7 +326,7 @@
             "cmd": "Ctrl+Alt+M",
             "state": "inactive",
             "widget": null},
-        "editor.tool": {
+        "db_editor.tool": {
             "a": "Editor",
             "b": "Service Databases Editor",
             "c": "Edit the services databases",

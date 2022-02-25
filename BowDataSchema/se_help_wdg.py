@@ -32,13 +32,46 @@ class HelpWidget(QWidget):
     Define/enable the help functions widget.
     For now, it has no actions or slots, just the display.
     """
-    def __init__(self, parent: QWidget):
+    def __init__(self,
+                 parent: QWidget,
+                 wdg_meta: dict):
         """super() call is required."""
         super().__init__(parent)
+        self.helper = wdg_meta
         self.APP = path.join(UT.get_home(), 'saskan')
         self.RES = path.join(self.APP, 'res')
         self.make_help_widget()
 
+    def get_tools(self):
+        """Return modified metadata"""
+        return(self.helper)
+
+    def make_title_lbl(self):
+        """Create a status text widget."""
+        title = QLabel(self.helper["a"])
+        title.setStyleSheet(SS.get_style('title'))
+        return(title)
+
+    def make_help_display(self):
+        """Create web page widget to display help html."""
+        self.help_page = QWebEngineView()
+        self.helper["display"]["widget"] = self.help_page
+        return(self.help_page)
+
+    def make_help_widget(self):
+        """Define components of the Help widget.
+        """
+        # Controls container
+        self.setGeometry(20, 630, 600, 240)
+        help_layout = QVBoxLayout()
+        self.setLayout(help_layout)
+        help_layout.addWidget(self.make_title_lbl())
+        help_layout.addWidget(self.make_help_display())
+        self.hide()
+        self.helper["widget"] = self
+
+    # Help Page slot and helper functions
+    # ==================================
     def set_content(self, p_html_file_nm: str):
         """Refresh the help page contents.
 
@@ -52,20 +85,4 @@ class HelpWidget(QWidget):
         html_path = path.join(self.RES, p_html_file_nm)
         ok, msg, _ = FI.get_file(html_path)
         if ok:
-            self.help.setUrl(f"file://{html_path}")
-
-    def make_help_widget(self):
-        """Define components of the Help widget.
-        """
-        # Controls container
-        self.setGeometry(20, 630, 600, 240)
-        help_layout = QVBoxLayout()
-        self.setLayout(help_layout)
-        # Title
-        # Ideally, this would be set based on modes metadata "Title"
-        title = QLabel("Help")
-        title.setStyleSheet(SS.get_style('title'))
-        help_layout.addWidget(title)
-        # Display area
-        self.help = QWebEngineView()
-        help_layout.addWidget(self.help)
+            self.help_page.setUrl(f"file://{html_path}")

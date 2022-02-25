@@ -31,49 +31,64 @@ class MonitorWidget(QWidget):
     log data.
     - Summary, Top, Tail, Full, Requests, Fails, Pressure
     """
-    def __init__(self, parent: QWidget):
+    def __init__(self,
+                 parent: QWidget,
+                 wdg_meta: dict):
         """super() call is required."""
         super().__init__(parent)
+        self.monitor = wdg_meta
         self.acts: dict = dict()
-        self.set_monitor_actions()
         self.make_monitor_widget()
 
-    def set_monitor_actions(self):
-        """Define metadata for Service Monitor actions.
-        """
-        acts_template = {
-            "title": str(),
-            "caption": str(),
-            "keycmd": str(),
-            "active": True,
-            "widget": object}
-        acts = {"Summary":
-                {"title": "Services Summary",
-                 "caption": "Show summary info for running " +
-                            "and registered services"},
-                "Top":
-                {"title": "Show top of Services log",
-                 "caption": "Display oldest entries in the services log"},
-                "Tail":
-                {"title": "Show tail of Services log",
-                 "caption": "Display newest entries in the services log"},
-                "Full":
-                {"title": "Show full Services log",
-                 "caption": "Display all entries in the services log"},
-                "Requests":
-                {"title": "Show active Requests",
-                 "caption": "Display requests currently in the queue" +
-                            " or in progress"},
-                "Fails":
-                {"title": "Show failed Requests",
-                 "caption": "Display requests which failed or were refused"},
-                "Pressure":
-                {"title": "Show Services Pressure",
-                 "caption": "Display current load on each service"}}
-        for key in acts.keys():
-            self.acts[key] = acts_template.copy()
-            for this, do_it in acts[key].items():
-                self.acts[key][this] = do_it
+    def get_tools(self):
+        """Return modified metadata"""
+        return(self.monitor)
+
+    def make_title_lbl(self):
+        """Create a status text widget."""
+        title = QLabel(self.monitor["a"])
+        title.setStyleSheet(SS.get_style('title'))
+        return(title)
+
+    def make_display_wdg(self):
+        """Create the main monitor display window."""
+        mon = QTextEdit()
+        mon.setReadOnly(True)
+        mon.setStyleSheet(SS.get_style('active_editor'))
+        self.monitor["display"]["widget"] = mon
+        return(mon)
+
+    def make_mon_buttons(self):
+        """Create the buttons associated with Service Monitor."""
+        hbox = QHBoxLayout()
+        hbox.LeftToRight
+        hbox.addStretch()
+        hbox.addSpacing(30)
+        for btn_id, button in self.monitor["buttons"].items():
+            btn = SS.set_button_style(QPushButton(button["a"]))
+            self.monitor["buttons"][btn_id]["state"] = "active"
+            self.monitor["buttons"][btn_id]["widget"] = btn
+            hbox.addWidget(btn)
+        return(hbox)
+
+    def define_button_actions(self):
+        """Set actions associated with Service Monitor buttons."""
+        for key, act in {
+                "summary.btn": self.mon_summary,
+                "top.btn": self.mon_top,
+                "tail.btn": self.mon_tail,
+                "full.btn": self.mon_full,
+                "requests.btn": self.mon_requests,
+                "fails.btn": self.mon_fails,
+                "pressure.btn": self.mon_pressure}.items():
+            self.monitor["buttons"][key]["widget"].clicked.connect(act)
+
+    def make_status_lbl(self):
+        """Create a status label widget."""
+        status_wdg = SS.set_status_style(
+            QLabel(self.monitor["status.txt"]["b"]))
+        self.monitor["status.txt"]["widget"] = status_wdg
+        return(status_wdg)
 
     def make_monitor_widget(self):
         """Define components of the Service Monitor widget."""
@@ -81,20 +96,58 @@ class MonitorWidget(QWidget):
         self.setGeometry(20, 330, 600, 300)
         mon_layout = QVBoxLayout()
         self.setLayout(mon_layout)
-        # Title
-        # Ideally, this would be set based on modes metadata "Title"
-        title = QLabel("Service Monitor")
-        title.setStyleSheet(SS.get_style('title'))
-        mon_layout.addWidget(title)
-        # Display area
-        self.mon_display = QTextEdit()
-        self.mon_display.setReadOnly(True)
-        self.mon_display.setStyleSheet(SS.get_style('active_editor'))
-        mon_layout.addWidget(self.mon_display)
-        # Service Control buttons
-        mon_btn_hbox = QHBoxLayout()
-        for btn_id in self.acts.keys():
-            btn = SS.set_button_style(QPushButton(btn_id))
-            self.acts[btn_id]["widget"] = btn
-            mon_btn_hbox.addWidget(btn)
-        mon_layout.addLayout(mon_btn_hbox)
+        mon_layout.addWidget(self.make_title_lbl())
+        mon_layout.addWidget(self.make_display_wdg())
+        mon_layout.addLayout(self.make_mon_buttons())
+        self.define_button_actions()
+        mon_layout.addWidget(self.make_status_lbl())
+        self.hide()
+        self.monitor["widget"] = self
+
+    # Service Monitor slot and helper methods
+    # ==============================================================
+    def set_status_text(self, p_text: str):
+        """Set text in the Services Monitor status bar."""
+        self.monitor["status.txt"]["widget"].setText(p_text)
+
+    def mon_summary(self):
+        """Slot for Monitor Summary button click action"""
+        btn = self.monitor["buttons"]["summary.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
+
+    def mon_top(self):
+        """Slot for Monitor Top button click action"""
+        btn = self.monitor["buttons"]["top.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
+
+    def mon_tail(self):
+        """Slot for Monitor Tail button click action"""
+        btn = self.monitor["buttons"]["tail.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
+
+    def mon_full(self):
+        """Slot for Monitor Full button click action"""
+        btn = self.monitor["buttons"]["full.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
+
+    def mon_requests(self):
+        """Slot for Monitor Requests button click action"""
+        btn = self.monitor["buttons"]["requests.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
+
+    def mon_fails(self):
+        """Slot for Monitor Fails button click action"""
+        btn = self.monitor["buttons"]["fails.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
+
+    def mon_pressure(self):
+        """Slot for Monitor Pressure button click action"""
+        btn = self.monitor["buttons"]["pressure.btn"]
+        if btn["state"] == "active":
+            self.set_status_text(btn["c"])
