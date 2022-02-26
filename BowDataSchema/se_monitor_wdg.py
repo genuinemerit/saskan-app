@@ -55,7 +55,7 @@ class MonitorWidget(QWidget):
         mon = QTextEdit()
         mon.setReadOnly(True)
         mon.setStyleSheet(SS.get_style('active_editor'))
-        self.monitor["display"]["widget"] = mon
+        self.monitor["disp.txt"]["w"] = mon
         return(mon)
 
     def make_mon_buttons(self):
@@ -64,10 +64,10 @@ class MonitorWidget(QWidget):
         hbox.LeftToRight
         hbox.addStretch()
         hbox.addSpacing(30)
-        for btn_id, button in self.monitor["buttons"].items():
+        for btn_id, button in self.monitor["bn"].items():
             btn = SS.set_button_style(QPushButton(button["a"]))
-            self.monitor["buttons"][btn_id]["state"] = "active"
-            self.monitor["buttons"][btn_id]["widget"] = btn
+            self.monitor["bn"][btn_id]["s"] = "active"
+            self.monitor["bn"][btn_id]["w"] = btn
             hbox.addWidget(btn)
         return(hbox)
 
@@ -81,13 +81,13 @@ class MonitorWidget(QWidget):
                 "requests.btn": self.mon_requests,
                 "fails.btn": self.mon_fails,
                 "pressure.btn": self.mon_pressure}.items():
-            self.monitor["buttons"][key]["widget"].clicked.connect(act)
+            self.monitor["bn"][key]["w"].clicked.connect(act)
 
     def make_status_lbl(self):
         """Create a status label widget."""
         status_wdg = SS.set_status_style(
             QLabel(self.monitor["status.txt"]["b"]))
-        self.monitor["status.txt"]["widget"] = status_wdg
+        self.monitor["status.txt"]["w"] = status_wdg
         return(status_wdg)
 
     def make_monitor_widget(self):
@@ -102,52 +102,52 @@ class MonitorWidget(QWidget):
         self.define_button_actions()
         mon_layout.addWidget(self.make_status_lbl())
         self.hide()
-        self.monitor["widget"] = self
+        self.monitor["w"] = self
 
     # Service Monitor slot and helper methods
     # ==============================================================
     def set_status_text(self, p_text: str):
         """Set text in the Services Monitor status bar."""
-        self.monitor["status.txt"]["widget"].setText(p_text)
+        self.monitor["status.txt"]["w"].setText(p_text)
 
     def mon_summary(self):
         """Slot for Monitor Summary button click action"""
-        btn = self.monitor["buttons"]["summary.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["summary.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
 
     def mon_top(self):
         """Slot for Monitor Top button click action"""
-        btn = self.monitor["buttons"]["top.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["top.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
 
     def mon_tail(self):
         """Slot for Monitor Tail button click action"""
-        btn = self.monitor["buttons"]["tail.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["tail.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
 
     def mon_full(self):
         """Slot for Monitor Full button click action"""
-        btn = self.monitor["buttons"]["full.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["full.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
 
     def mon_requests(self):
         """Slot for Monitor Requests button click action"""
-        btn = self.monitor["buttons"]["requests.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["requests.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
 
     def mon_fails(self):
         """Slot for Monitor Fails button click action"""
-        btn = self.monitor["buttons"]["fails.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["fails.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
 
     def mon_pressure(self):
         """Slot for Monitor Pressure button click action"""
-        btn = self.monitor["buttons"]["pressure.btn"]
-        if btn["state"] == "active":
+        btn = self.monitor["bn"]["pressure.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])

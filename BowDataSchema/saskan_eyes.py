@@ -96,7 +96,6 @@ class SaskanEyes(QMainWindow):
                 else:
                     RI.do_insert(db, record)
 
-        set_configs(load_cfg_file(BT.file_texts), "text")
         set_configs(load_cfg_file(BT.file_widgets), "widget")
 
     # Load and save texts and widget metadata
@@ -117,19 +116,22 @@ class SaskanEyes(QMainWindow):
                   p_qt_wdg):
         """Update Basement DB with modified widget record"""
         db = "basement"
-        self.WDG[p_wdg_catg]["widget"]["name"] = p_qt_wdg.objectName()
-        self.WDG[p_wdg_catg]["state"] = "active"
+        self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
+        self.WDG[p_wdg_catg]["s"] = "active"
         record = {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]
         record, _ = \
             RI.set_audit_values(db, record, p_include_hash=True)
         RI.do_update(db, record)
-        self.WDG[p_wdg_catg]["widget"]["object"] = p_qt_wdg
+        self.WDG[p_wdg_catg]["w"]["object"] = p_qt_wdg
 
     # GUI / Main App handlers
     # ==============================================================
     def initialize_UI(self):
         """Set window size and name. Show the window."""
         self.setGeometry(100, 100, 1200, 900)
+
+        pp(("self.WDG", self.WDG))
+
         self.setWindowTitle(self.WDG['about']['app']['a'])
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
@@ -139,9 +141,9 @@ class SaskanEyes(QMainWindow):
         self.make_modes_toolbox()
         self.make_svc_control_wdg()
         self.make_svc_monitor_wdg()
-        self.make_db_editor_wdg()
         self.make_help_widget()
-        self.make_graph_diagram_wdg()
+        self.make_db_editor_wdg()
+        # self.make_graph_diagram_wdg()
         # ==============================================================
         self.show()   # <== main window
 
@@ -225,7 +227,7 @@ class SaskanEyes(QMainWindow):
                 "monitor.tool": self.monitor_mode_tool_click,
                 "db_editor.tool": self.editor_mode_tool_click,
                 "help.tool": self.help_mode_tool_click}.items():
-            self.WDG["tools"][tk]["widget"].triggered.connect(action)
+            self.WDG["tools"][tk]["w"].triggered.connect(action)
         self.tbx_modes.move(935, 0)
 
     # Modes toolbox actions and helpers
@@ -244,18 +246,16 @@ class SaskanEyes(QMainWindow):
         """
         tool = self.WDG["tools"][f"{p_tool_nm}.tool"]
         self.set_statusbar_text(tool["c"])
-        pp(("BEFORE self.WDG[p_tool_nm]", self.WDG[p_tool_nm]))
-        if self.WDG[p_tool_nm]["state"] == "inactive":
-            self.WDG[p_tool_nm]["widget"].show()     # type: ignore
-            self.WDG[p_tool_nm]["state"] = "active"
+        if self.WDG[p_tool_nm]["s"] == "inactive":
+            self.WDG[p_tool_nm]["w"].show()     # type: ignore
+            self.WDG[p_tool_nm]["s"] = "active"
             if p_help_pg is not None:
                 self.helper.set_content(
                     path.join(BT.path_res, p_help_pg))
                 self.helper.show()
         else:
-            self.WDG[p_tool_nm]["widget"].hide()     # type: ignore
-            self.WDG[p_tool_nm]["state"] = "inactive"
-        pp(("AFTER self.WDG[p_tool_nm]", self.WDG[p_tool_nm]))
+            self.WDG[p_tool_nm]["w"].hide()     # type: ignore
+            self.WDG[p_tool_nm]["s"] = "inactive"
 
     def controls_mode_tool_click(self):
         """Slot for Controls Mode tool click action"""
@@ -293,19 +293,6 @@ class SaskanEyes(QMainWindow):
         monitor = MonitorWidget(self, self.WDG["monitor"])
         self.WDG["monitor"] = monitor.get_tools()
 
-    # Make Database Editor and Record Management widgets
-    # ==============================================================
-    def make_db_editor_wdg(self):
-        """Create DB Editor and Records Mgmt widgets.
-
-        All their actions are handled in the 2 class modules.
-        """
-        pass
-        # editor = DBEditorWidget(self, self.WDG["db_editor"])
-        # self.WDG["db_editor"] = editor.get_tools()
-        # recordio = RecordMgmt(self, editor, self.WDG["record_io"])
-        # self.WDG["record_io"] = recordio.get_tools()
-
     # Make Help widget (web pages) display
     # ==============================================================
     def make_help_widget(self):
@@ -314,21 +301,32 @@ class SaskanEyes(QMainWindow):
         self.helper = HelpWidget(self, self.WDG["help"])
         self.WDG["help"] = self.helper.get_tools()
 
+    # Make Database Editor and Record Management widgets
+    # ==============================================================
+    def make_db_editor_wdg(self):
+        """Create DB Editor and Records Mgmt widgets.
+
+        All their actions are handled in the 2 class modules.
+        """
+        editor = DBEditorWidget(self, self.WDG["db_editor"])
+        self.WDG["db_editor"] = editor.get_tools()
+        # recordio = RecordMgmt(self, editor, self.WDG["record_io"])
+        # self.WDG["record_io"] = recordio.get_tools()
+
     # Make widget to display networkx graph diagrams
     # ==============================================================
     def make_graph_diagram_wdg(self):
         """Generate a Graph Diagram.
         """
-        self.network = DiagramWidget()
-        # By default, creates a test diagram.
-        # See DiagramWidget class method "set_content()" for more details.
+        self.netx = DiagramWidget(self.WDG["diagram"])
+        self.WDG["diagram"] = self.netx.get_tools()
 
     # Graph diagram slots and helper functions
     # May be able to move these into the DiagramWidget class.
     # ==============================================================
     def show_graph_diagram(self):
         """Slot for Graph Diagram show action"""
-        if self.WDG["diagram"]["state"] == "inactive":
+        if self.WDG["diagram"]["s"] == "inactive":
             try:
                 img = self.network.get_image_path()
                 with open(img):
@@ -339,15 +337,15 @@ class SaskanEyes(QMainWindow):
                     self.diagram_wdg.setStyleSheet(SS.get_style("canvas"))
                     # self.diagram_wdg.move(625, 650)
                     self.diagram_wdg.show()
-                    self.WDG["diagram"]["state"] == "active"
+                    self.WDG["diagram"]["s"] == "active"
             except FileNotFoundError:
                 print("User image file not found:" + img)
 
     def hide_graph_diagram(self):
         """Slot for Graph Diagram hide action"""
-        if self.WDG["diagram"]["state"] == "active":
+        if self.WDG["diagram"]["s"] == "active":
             self.diagram_wdg.hide()
-            self.WDG["diagram"]["state"] == "inactive"
+            self.WDG["diagram"]["s"] == "inactive"
 
 
 # Run program

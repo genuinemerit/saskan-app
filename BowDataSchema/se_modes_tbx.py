@@ -60,11 +60,11 @@ class ModesToolbox(QToolBar):      # noqa: F821
         """
         for tk, tool in self.tools.items():
             icon = QIcon(path.join(BT.path_res, tool['i']))
-            self.tools[tk]["widget"] = QAction(icon, tool['a'], self)
-            self.tools[tk]["widget"].setObjectName(tk)
-            self.tools[tk]["widget"].setToolTip(tool['c'])
-            self.tools[tk]["widget"].setShortcut(tool['cmd'])
-            self.tools[tk]["state"] = "active"
+            self.tools[tk]["w"] = QAction(icon, tool['a'], self)
+            self.tools[tk]["w"].setObjectName(tk)
+            self.tools[tk]["w"].setToolTip(tool['c'])
+            self.tools[tk]["w"].setShortcut(tool['cmd'])
+            self.tools[tk]["s"] = "active"
             tool_btn = SS.set_tool_style(QToolButton(self))
-            tool_btn.setDefaultAction(self.tools[tk]["widget"])
+            tool_btn.setDefaultAction(self.tools[tk]["w"])
             self.addWidget(tool_btn)

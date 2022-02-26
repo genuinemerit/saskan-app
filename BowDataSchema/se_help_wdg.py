@@ -55,7 +55,7 @@ class HelpWidget(QWidget):
     def make_help_display(self):
         """Create web page widget to display help html."""
         self.help_page = QWebEngineView()
-        self.helper["display"]["widget"] = self.help_page
+        self.helper["disp.txt"]["w"] = self.help_page
         return(self.help_page)
 
     def make_help_widget(self):
@@ -68,7 +68,7 @@ class HelpWidget(QWidget):
         help_layout.addWidget(self.make_title_lbl())
         help_layout.addWidget(self.make_help_display())
         self.hide()
-        self.helper["widget"] = self
+        self.helper["w"] = self
 
     # Help Page slot and helper functions
     # ==================================

@@ -128,118 +128,128 @@
     }, 
     "controls": {
         "a": "Services Controller",
-        "buttons":{
+        "bn":{
             "start.btn": {
                 "a": "Start",
                 "b": "Start Services",
                 "c": "Start up (Run) Saskan services",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "stop.btn": {
                 "a": "Stop",
                 "b": "Stop Services",
                 "c": "Kill all running Saskan services",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "show.btn": {
                 "a": "Show",
                 "b": "Show Services Status",
                 "c": "Show current status of Saskan services",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "test.btn": {
                 "a": "Test",
                 "b": "Test Services",
                 "c": "Run preset test suites on Saskan services",
-                "state": "inactive",
-                "widget": null}
+                "s": "inactive",
+                "w": null}
         },
-        "display": {
-            "widget": null},
-        "state": "inactive",
+        "disp.txt": {
+            "w": null},
+        "s": "inactive",
         "status.txt":{
             "b": "Services Controller Status",
-            "widget": null},
-        "widget": null},
+            "w": null},
+        "w": null},
     "db_editor": {
         "a": "Database Editor",
-        "state": "inactive",
+        "s": "inactive",
         "status.txt":{
             "b": "Database Editor Status",
-            "widget": null},
-        "widget": null,
-        "boxes": {
+            "w": null},
+        "w": null,
+        "bx": {
             "get.box": {
                 "a": "Find and Get Records",
-                "buttons": {
+                "bn": {
                     "find.btn": {
                         "a": "Find",
-                        "state": "inactive",
-                        "widget": null},
+                        "s": "inactive",
+                        "w": null},
                     "next.btn": {
                         "a": "Next",
-                        "state": "inactive",
-                        "widget": null},
+                        "s": "inactive",
+                        "w": null},
                     "prev.btn": {
                         "a": "Prev",
-                        "state": "inactive",
-                        "widget": null}
+                        "s": "inactive",
+                        "w": null}
                 },
                 "input": {
                     "b": "Key Pattern",
                     "c": "Record key or key pattern to search for.",
-                    "state": "inactive",
-                    "widget": null},
-                "widget": null
+                    "s": "inactive",
+                    "w": null},
+                "w": null
             },
             "edit.box": {
                 "a": "Edit Records",
-                "buttons": {
+                "bn": {
                     "add.btn": {
                         "a": "Add",
-                        "state": "inactive",
-                        "widget": null},
+                        "s": "inactive",
+                        "w": null},
                     "delete.btn": {
-                        "a": "Delete",
-                        "state": "inactive",
-                        "widget": null},
+                        "a": "Del",
+                        "s": "inactive",
+                        "w": null},
                     "save.btn": {
                         "a": "Save",
-                        "state": "inactive",
-                        "widget": null},
+                        "s": "inactive",
+                        "w": null},
                     "more.btn": {
                         "a": "More",
-                        "state": "inactive",
-                        "widget": null},
+                        "c": "Add another row to list.",
+                        "lim": "No more rows can be added.",
+                        "s": "inactive",
+                        "w": null},
                     "fewer.btn": {
-                        "a": "Fewer",
-                        "state": "inactive",
-                        "widget": null},
+                        "a": "Less",
+                        "c": "Remove a row from list.",
+                        "lim": "No more rows can be removed.",
+                        "s": "inactive",
+                        "w": null},
                     "undo.btn": {
-                        "a": "UNdo",
-                        "state": "inactive",
-                        "widget": null},
+                        "a": "Undo",
+                        "s": "inactive",
+                        "w": null},
                     "redo.btn": {
                         "a": "Redo",
-                        "state": "inactive",
-                        "widget": null},
+                        "s": "inactive",
+                        "w": null},
                     "cancel.btn": {
-                        "a": "Cancel",
-                        "state": "inactive",
-                        "widget": null}
+                        "a": "Stop",
+                        "c": "Kill any pending activities and close editor.",
+                        "s": "inactive",
+                        "w": null}
                 },
-                "widget": null
+                "w": null
             }
         }
     },
     "diagram": {
-        "state": "inactive"},
+        "a": "Data Diagram",
+        "s": "inactive",
+        "w": null,
+        "disp.txt": {
+            "w": null}
+    },
     "help": {
         "a": "Saskan Help",
-        "display": {
-            "widget": null},
-        "state": "inactive",
-        "widget": null
+        "disp.txt": {
+            "w": null},
+        "s": "inactive",
+        "w": null
     },
     "menus": {
         "menu": {
@@ -251,64 +261,64 @@
                 "name": "Help",
                 "items": {"app_help": {"name": "About Saskan Eyes"},
                         "qt_help": {"name": "About Qt"}}}},
-        "widget": {
+        "w": {
             "name": null,
             "object": null},
-        "state": "inactive"},
+        "s": "inactive"},
     "monitor": {
         "a": "Services Monitor",
-        "buttons":{
+        "bn":{
             "summary.btn": {
                 "a": "Summary",
                 "b": "Services summary",
                 "c": "Show summary info for running and registered services.",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "top.btn": {
                 "a": "Top",
                 "b": "Show top of Services log",
                 "c": "Display oldest entries in services log.",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "tail.btn": {
                 "a": "Tail",
                 "b": "Show bottom of Services log",
                 "c": "Display latest entries in services log.",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "full.btn": {
                 "a": "Full",
                 "b": "Show entire Services log",
                 "c": "Display all entries in services log.",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "requests.btn": {
                 "a": "Requests",
                 "b": "Show log for active Requests",
                 "c": "Display requests currently in queue or executing.",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "fails.btn": {
                 "a": "Fails",
                 "b": "Show log for failed Requests",
                 "c": "Display requests which failed or were refused.",
-                "state": "inactive",
-                "widget": null},
+                "s": "inactive",
+                "w": null},
             "pressure.btn": {
                 "a": "Pressure",
                 "b": "Show Services Pressure",
                 "c": "Display analysis of current load on each service.",
-                "state": "inactive",
-                "widget": null}},
-        "display": {
-            "widget": null},
-        "state": "inactive",
+                "s": "inactive",
+                "w": null}},
+        "disp.txt": {
+            "w": null},
+        "s": "inactive",
         "status.txt":{
             "b": "Services Monitor Status",
-            "widget": null},
-        "widget": null},
+            "w": null},
+        "w": null},
     "record_io": {
-        "state": "inactive"},
+        "s": "inactive"},
     "tools": {
         "controls.tool": {
             "a": "Control",
@@ -316,31 +326,31 @@
             "c": "Start, stop, manage services",
             "i": "controls.jpg",
             "cmd": "Ctrl+Alt+C",
-            "state": "inactive",
-            "widget": null},
+            "s": "inactive",
+            "w": null},
         "monitor.tool": {
             "a": "Monitor",
             "b": "Services Monitor",
             "c": "Monitor running servers and services",
             "i": "monitor.jpg",
             "cmd": "Ctrl+Alt+M",
-            "state": "inactive",
-            "widget": null},
+            "s": "inactive",
+            "w": null},
         "db_editor.tool": {
             "a": "Editor",
             "b": "Service Databases Editor",
             "c": "Edit the services databases",
             "i": "editor.jpg",
             "cmd": "Ctrl+Alt+D",
-            "state": "inactive",
-            "widget": null},
+            "s": "inactive",
+            "w": null},
         "help.tool": {
             "a": "Help",
             "b": "Application Help",
             "c": "Show context-sensitive help",
             "i": "help.jpg",
             "cmd": "Ctrl+Alt+H",
-            "state": "inactive",
-            "widget": null}
+            "s": "inactive",
+            "w": null}
         }
 }

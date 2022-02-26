@@ -14,6 +14,14 @@ networkx. It has no Qt or other GUI elements. The figure is
 generated and then saved to a file in the local App /cache directory.
 
 It is up to the calling class to display the figure.
+
+
+@DEV
+    For now, not putting int a box container since I
+    had problems getting it to display properly.
+
+    May want to configure it as kind of a sub-class of the Editor,
+    sort of like the RecordManager object.
 """
 
 import matplotlib.pyplot as plt         # type: ignore
@@ -37,8 +45,9 @@ class DiagramWidget(object):
 
     Define/enable the Networkx functions widget.
     """
-    def __init__(self):
+    def __init__(self, wdg_meta: dict):
         """Set up a portal for displaying graphs."""
+        self.netx = wdg_meta
         self.APP = path.join(UT.get_home(), 'saskan')
         self.CACHE = path.join(self.APP, TX.db.sask_cache)
         self.img_file_nm = str()

@@ -264,16 +264,16 @@ class SaskanStyles(object):
 
     def set_button_style(self,
                          btn: QPushButton,
-                         active: bool = True):      # type: ignore
+                         p_active: bool = True):      # type: ignore
         """Set push button style font size and style.
 
         :Args:
             btn: a QT push button object
-            active: bool, optional. If False, make it inactive.
+            p_active: bool, optional. If False, make it inactive.
         :Returns:
             btn: the modified object
         """
-        if active:
+        if p_active:
             btn.setStyleSheet(SaskanStyles.get_style('button'))
         else:
             btn.setStyleSheet(SaskanStyles.get_style('inactive_button'))
@@ -282,16 +282,16 @@ class SaskanStyles(object):
 
     def set_line_edit_style(self,
                             edt: QLineEdit,
-                            active: bool = True):      # type: ignore
+                            p_active: bool = True):      # type: ignore
         """Set line editor style font size and style.
 
         :Args:
             edt: a QT line editor object
-            active: bool, optional. If False, make it inactive.
+            p_active: bool, optional. If False, make it inactive.
         :Returns:
             edt: the modified object
         """
-        if active:
+        if p_active:
             edt.setStyleSheet(SaskanStyles.get_style('editor'))
         else:
             edt.setStyleSheet(SaskanStyles.get_style('inactive_editor'))
@@ -337,5 +337,5 @@ class SaskanStyles(object):
             lbl: the modified object
         """
         lbl.setStyleSheet(SaskanStyles.get_style('subtitle'))
-        lbl.setFont(QFont('Arial', 11))
+        lbl.setFont(QFont('Arial', 9))
         return lbl

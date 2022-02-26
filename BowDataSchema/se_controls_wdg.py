@@ -57,7 +57,7 @@ class ControlsWidget(QWidget):
         controller = QTextEdit()
         controller.setReadOnly(True)
         controller.setStyleSheet(SS.get_style('active_editor'))
-        self.controls["display"]["widget"] = controller
+        self.controls["disp.txt"]["w"] = controller
         return(controller)
 
     def make_controls_buttons(self):
@@ -66,10 +66,10 @@ class ControlsWidget(QWidget):
         hbox.LeftToRight
         hbox.addStretch()
         hbox.addSpacing(30)
-        for btn_id, button in self.controls["buttons"].items():
+        for btn_id, button in self.controls["bn"].items():
             btn = SS.set_button_style(QPushButton(button["a"]))
-            self.controls["buttons"][btn_id]["state"] = "active"
-            self.controls["buttons"][btn_id]["widget"] = btn
+            self.controls["bn"][btn_id]["s"] = "active"
+            self.controls["bn"][btn_id]["w"] = btn
             hbox.addWidget(btn)
         return(hbox)
 
@@ -80,13 +80,13 @@ class ControlsWidget(QWidget):
                 "stop.btn": self.stop_services,
                 "show.btn": self.show_services,
                 "test.btn": self.test_services}.items():
-            self.controls["buttons"][key]["widget"].clicked.connect(act)
+            self.controls["bn"][key]["w"].clicked.connect(act)
 
     def make_status_lbl(self):
         """Create a status label widget."""
         status_wdg = SS.set_status_style(
             QLabel(self.controls["status.txt"]["b"]))
-        self.controls["status.txt"]["widget"] = status_wdg
+        self.controls["status.txt"]["w"] = status_wdg
         return(status_wdg)
 
     def make_controls_widget(self):
@@ -100,41 +100,41 @@ class ControlsWidget(QWidget):
         self.define_button_actions()
         ctl_layout.addWidget(self.make_status_lbl())
         self.hide()
-        self.controls["widget"] = self
+        self.controls["w"] = self
 
     # Service Controls slot and helper methods
     # ==============================================================
     def set_status_text(self, p_text: str):
         """Set text in the Services Controller status bar."""
-        self.controls["status.txt"]["widget"].setText(p_text)
+        self.controls["status.txt"]["w"].setText(p_text)
 
     def start_services(self):
         """Slot for Start Services action"""
-        btn = self.controls["buttons"]["start.btn"]
-        if btn["state"] == "active":
+        btn = self.controls["bn"]["start.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
             status, msg = CS.start_services(p_service_nm='redis')
-            self.controls["display"]["widget"].setText(msg)
+            self.controls["disp.txt"]["w"].setText(msg)
 
     def stop_services(self):
         """Slot for Stop Services action"""
-        btn = self.controls["buttons"]["stop.btn"]
-        if btn["state"] == "active":
+        btn = self.controls["bn"]["stop.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
             status, msg = CS.stop_running_services(p_service_nm='redis')
-            self.controls["display"]["widget"].setText(msg)
+            self.controls["disp.txt"]["w"].setText(msg)
 
     def show_services(self):
         """Slot for Show Services action"""
-        btn = self.controls["buttons"]["show.btn"]
-        if btn["state"] == "active":
+        btn = self.controls["bn"]["show.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
             status, msg = CS.check_running_services(p_service_nm='redis')
-            self.controls["display"]["widget"].setText(msg)
+            self.controls["disp.txt"]["w"].setText(msg)
 
     def test_services(self):
         """Slot for Test Services action"""
-        btn = self.controls["buttons"]["test.btn"]
-        if btn["state"] == "active":
+        btn = self.controls["bn"]["test.btn"]
+        if btn["s"] == "active":
             self.set_status_text(btn["c"])
-            self.controls["display"]["widget"].setText("")
+            self.controls["disp.txt"]["w"].setText("")

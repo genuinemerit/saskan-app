@@ -40,15 +40,14 @@ class DBEditorWidget(QWidget):
         """
         super().__init__(parent)
         self.editor = wdg_meta
-        pp(("self.editor", self.editor))
-        # self.set_texts_meta()
-        # self.set_buttons_meta()
         self.make_db_editor_wdg()
 
     def get_tools(self):
         """Return modified metadata"""
         return(self.editor)
 
+    # Database Editor Widget make functions
+    # ============================================================
     def make_title_lbl(self):
         """Create a status text widget."""
         title = QLabel(self.editor["a"])
@@ -56,223 +55,145 @@ class DBEditorWidget(QWidget):
         return(title)
 
     def make_editor_buttons(self,
-                            p_box_key: str):
+                            p_box: str):
         """Create the buttons defined by the metadata.
 
         :args:
-            p_box_key: str - key to Box meta w/ button defs
+            p_box: str - key to Box meta w/ button defs
         """
         hbox = QHBoxLayout()
         hbox.LeftToRight
         hbox.addStretch()
         hbox.addSpacing(30)
-        buttons = self.editor["boxes"][p_box_key]["buttons"]
-        for btn_id, button in buttons.items():
-            btn = SS.set_button_style(QPushButton(button["a"]))
-            buttons[btn_id]["state"] = "inactive"
-            buttons[btn_id]["widget"] = btn
+        buttons = self.editor["bx"][p_box]["bn"]
+        for btnid, button in buttons.items():
+            btn = SS.set_button_style(QPushButton(button["a"]), p_active=False)
+            btn.setEnabled(False)
+            self.editor["bx"][p_box]["bn"][btnid]["s"] = \
+                "inactive"
+            self.editor["bx"][p_box]["bn"][btnid]["w"] = \
+                btn
+            hbox.addWidget(btn)
         return (hbox)
 
     def make_text_input(self,
-                        p_box_key: str):
-        """Create text input widget defined for a box.
+                        p_box: str):
+        """Create a text input widget defined for a box.
 
         :args:
             p_text_key: str - name of the text input
         :returns: QLineEdit object
         """
-        input_text = self.editor["boxes"][p_box_key]["input"]
-        txt_wdg = SS.set_line_edit_style(QLineEdit(), False)
+        input_text = self.editor["bx"][p_box]["input"]
+        txt_wdg = SS.set_line_edit_style(QLineEdit(), p_active=False)
         txt_wdg.setPlaceholderText(input_text["b"])
         txt_wdg.setToolTip(input_text["c"])
         txt_wdg.setReadOnly(True)
-        txt_wdg.setEnabled(True)
-        input_text["state"] = "inactive"
-        input_text["widget"] = txt_wdg
+        txt_wdg.setEnabled(False)
+        input_text["s"] = "inactive"
+        input_text["w"] = txt_wdg
         return (txt_wdg)
 
     def make_box_group(self,
-                       p_box_key: str):
-        """Make box containers. Put config'd buttons, texts in them.
+                       p_box: str):
+        """Make box containers. Put config'd buttons, text in them.
 
         :args:
-            p_box_key: str - name of the button group
+            p_box: str - name of the button group
         :returns: QVBoxLayout object
         """
         vbox = QVBoxLayout()
-        lbl = QLabel(self.editor["boxes"][p_box_key]["a"])
-        vbox.addWidget(SS.set_subtitle_style(QLabel(lbl)))
-        if "buttons" in self.editor["boxes"][p_box_key]:
-            vbox.addLayout(self.make_editor_buttons(p_box_key))
-        if "input" in self.editor["boxes"][p_box_key]:
-            vbox.addWidget(self.make_text_input(p_box_key))
+        lbl = QLabel(self.editor["bx"][p_box]["a"])
+        vbox.addWidget(SS.set_subtitle_style(lbl))
+        if "bn" in self.editor["bx"][p_box]:
+            vbox.addLayout(self.make_editor_buttons(p_box))
+        if "input" in self.editor["bx"][p_box]:
+            vbox.addWidget(self.make_text_input(p_box))
         return (vbox)
 
     def make_status_lbl(self):
-        """Create a status label widget."""
+        """Create the Editor's status label."""
         status_wdg = SS.set_status_style(
             QLabel(self.editor["status.txt"]["b"]))
-        self.editor["status.txt"]["widget"] = status_wdg
+        self.editor["status.txt"]["w"] = status_wdg
         return(status_wdg)
 
-    # Text widgets make functions
-    # ============================================================
+    def make_db_editor_wdg(self):
+        """Create all components of Data Base Editor widget.
 
-    def make_text_status_wdg(self, p_text_key: str):
-        """Create a status/info text widget. Save it with metadata.
-
-        :args: p_text_key: str - key to text metadata
-        :returns: QLabel object
+        Except for the Record Type forms.
+        They are added in a call to RecordMgmt from main app.
         """
-        sta = SS.set_status_style(
-            QLabel(self.texts[p_text_key]["display"]))
-        self.texts[p_text_key]["active"] = True
-        self.texts[p_text_key]["widget"] = sta
-        return (sta)
+        self.setGeometry(620, 40, 550, 840)
+        dbe_layout = QVBoxLayout()
+        dbe_layout.setAlignment(Qt.AlignTop)
+        self.setLayout(dbe_layout)
+        dbe_layout.addWidget(self.make_title_lbl())
+        dbe_layout.addLayout(self.make_box_group("get.box"))
+        self.activate_buttons("get.box", ["find.btn"])
+        self.activate_texts("get.box")
+        dbe_layout.addLayout(self.make_box_group("edit.box"))
+        dbe_layout.addWidget(self.make_status_lbl())
+        self.hide()
+        self.editor["w"] = self
 
-    # Helper and Slot Actions for Text Widgets
+    # Action slots and helper methods
     # ==============================================================
-    def activate_texts(self, p_txts: list):
-        """Activate selected set of input text widgets."""
-        for inp_nm in p_txts:
-            inp = self.texts[inp_nm]
-            inp["widget"].setStyleSheet(SS.get_style("active_editor"))
-            inp["widget"].setEnabled(True)
-            inp["active"] = True
+    def set_dbe_status(self, p_status: str):
+        """Set the status text of the DB Editor."""
+        self.editor["status.txt"]["w"].setText(p_status)
+
+    def activate_texts(self,
+                       p_box: str,
+                       p_inputs: list = []):
+        """Activate selected set of input text widgets.
+
+        :args:
+            p_box: str - name of the box containing text widgets
+            p_txts: list - list of text keys to activate. Optional.
+             If only only one input in the box, use it.
+
+        @DEV
+            Probably tweak the metadata so there is always a list of inputs
+        """
+        if "input" in self.editor["bx"][p_box]:
+            widget = self.editor["bx"][p_box]["input"]["w"]
+            widget.setStyleSheet(SS.get_style("active_editor"))
+            widget.setEnabled(True)
+            widget.setReadOnly(False)
+            self.editor["bx"][p_box]["input"]["s"] = "active"
+        else:
+            for inpid in p_inputs:
+                widget = self.editor["bx"][p_box]["input"][inpid]["w"]
+                widget.setStyleSheet(SS.get_style("active_editor"))
+                widget.setEnabled(True)
+                widget.setReadOnly(False)
+                self.editor["bx"][p_box]["inputs"][inpid]["s"] = \
+                    "active"
+
+    def activate_buttons(self,
+                         p_box: str,
+                         p_btns: list):
+        """Activate selected set of push buttons
+
+        :args:
+            p_box: name of box containing buttons
+            p_btns: list of button names in box to activate
+        """
+        for btnid in p_btns:
+            btn = self.editor["bx"][p_box]["bn"][btnid]
+            btn["w"].setStyleSheet(SS.get_style("active_button"))
+            btn["w"].setEnabled(True)
+            self.editor["bx"][p_box]["bn"][btnid]["s"] = \
+                "active"
 
     def deactivate_texts(self, p_txts: list):
         """Deactivate specified set of input text widgets."""
         for inp_nm in p_txts:
             inp = self.texts[inp_nm]
-            inp["widget"].setStyleSheet(SS.get_style("inactive_editor"))
-            inp["widget"].setEnabled(False)
+            inp["w"].setStyleSheet(SS.get_style("inactive_editor"))
+            inp["w"].setEnabled(False)
             inp["active"] = False
-
-    def get_hint(self, p_text_key: str) -> str:
-        """Return the hint (placeholder) value for a text item.
-
-        :args: p_text_key: str - key to the text metadata
-        :returns: str - the hint value
-        """
-        return (self.texts[p_text_key]["hint"])
-
-    def set_dbe_status(self,
-                       p_text_nm: str = "",
-                       p_text: str = ""):
-        """Display text in dbe status bar text relevant to event.
-        """
-        if p_text_nm not in (None, "") \
-            and p_text_nm in self.texts \
-            and ("caption" in self.texts[p_text_nm] or
-                 "display" in self.texts[p_text_nm]):
-            if "caption" in self.texts[p_text_nm]:
-                self.texts["dbe_status"]["widget"].setText(
-                    self.texts[p_text_nm]["caption"])
-            else:
-                self.texts["dbe_status"]["widget"].setText(
-                    self.texts[p_text_nm]["display"])
-        else:
-            self.texts["dbe_status"]["widget"].setText(p_text)
-
-    def prep_editor_action(self,
-                           p_action_nm: str):
-        """Common functions used by DB Editor actions
-
-        :args: p_action_nm - name of button or other widget that
-            triggered the actione)
-        """
-        self.set_dbe_status(p_action_nm)
-        self.set_dbe_status()
-
-    # Push-Button Widget Creation
-    # ============================================================
-
-    def set_buttons_meta(self):
-        """Define metadata for DB Editor button actions.
-
-        Buttons are organized into groups, which facilitates
-        containing into V and H boxes.  Help texts associated
-        with buttons are defined in texts metadata.
-
-        @DEV:
-        - Could be further abstracted via BowQuiver.saskan_buttons.
-        - Could add icons
-        - Maybe can do some action slots here? E.g., if they
-          can be handled entirely within the scope of this class.
-        """
-        self.buttons: dict = dict()
-        button_template = {
-            "icon": None,
-            "keycmd": str(),
-            "active": True,
-            "action": None,
-            "widget": None}
-        self.buttons = {
-            "Get": {"Find": {},
-                    "Next": {},
-                    "Prev": {}},
-            "Edit": {"Add": {},
-                     "Delete": {},
-                     "Save": {},
-                     "Undo": {},
-                     "Redo": {},
-                     "Cancel": {"action": self.push_cancel}},
-            "List": {"More": {"action": self.add_row_to_list},
-                     "Fewer": {"action": self.remove_row_from_list}}}
-        for grp in self.buttons.keys():
-            for btn_nm in self.buttons[grp].keys():
-                for item in button_template.keys():
-                    if item not in self.buttons[grp][btn_nm].keys():
-                        self.buttons[grp][btn_nm][item] = button_template[item]
-
-    # Push-button helper functions
-    # ============================================================
-
-    def make_push_button_wdg(self,
-                             p_grp: str,
-                             p_btn_name: str,
-                             p_list_name: str = None):
-        """Instantiate a push button object.
-
-        By default, they are set up in an inactive state.
-
-        :args:
-            p_grp - metadata group for the button
-            p_btn_name - metadata key / button name
-            p_list_name - field_name for repeat-lists, add to button name
-        :returns: QPushButton object
-        """
-        btn_text = p_btn_name
-        list_nm = (":" + p_list_name) if p_list_name is not None else ""
-        if p_btn_name in self.texts and \
-            "display" in self.texts[p_btn_name] and \
-                self.texts[p_btn_name]["display"] not in (None, "", [], {}):
-            btn_text = self.texts[p_btn_name]["display"]
-        btn = SS.set_button_style(QPushButton(btn_text), False)
-        btn.setObjectName(f"{p_grp}.{p_btn_name}{list_nm}.btn")
-        btn.setEnabled(False)
-        if self.buttons[p_grp][p_btn_name]["action"] is not None:
-            btn.clicked.connect(self.buttons[p_grp][p_btn_name]["action"])
-        self.buttons[p_grp][p_btn_name]["widget"] = btn
-        self.buttons[p_grp][p_btn_name]["active"] = False
-        return (btn)
-
-    # Push-button action slots and related helper methods
-    # ============================================================
-    def activate_buttons(self,
-                         p_grp: str,
-                         p_btns: list):
-        """Activate selected set of push buttons
-
-        :args:
-            p_grp: str name of button group
-            p_btns: list of button names in group
-        """
-        for btn_nm in p_btns:
-            btn = self.buttons[p_grp][btn_nm]
-            btn["widget"].setStyleSheet(SS.get_style("active_button"))
-            btn["widget"].setEnabled(True)
-            btn["active"] = True
 
     def deactivate_buttons(self,
                            p_grp: str,
@@ -285,13 +206,14 @@ class DBEditorWidget(QWidget):
         """
         for btn_nm in p_btns:
             btn = self.buttons[p_grp][btn_nm]
-            btn["widget"].setStyleSheet(SS.get_style("inactive_button"))
-            btn["widget"].setEnabled(False)
+            btn["w"].setStyleSheet(SS.get_style("inactive_button"))
+            btn["w"].setEnabled(False)
             btn["active"] = False
 
     def push_cancel(self):
         """Slot for Editor Edit Push Button --> Cancel"""
-        self.set_dbe_status("Cancel")
+        button = self.editor["bx"]["edit.box"]["bn"]["cancel.btn"]
+        self.set_dbe_status(button["c"])
         self.deactivate_rectyp()
 
     def add_row_to_list(self):
@@ -301,9 +223,11 @@ class DBEditorWidget(QWidget):
         list_values, list_form = self.get_list_fields(list_nm)
         rowcnt = len(list_values)
         if rowcnt > 4:
-            self.set_dbe_status("Max More")
+            button = self.editor["bx"]["edit.box"]["bn"]["fewer.btn"]
+            self.set_dbe_status(button["c"])
         else:
-            self.set_dbe_status("More")
+            button = self.editor["bx"]["edit.box"]["bn"]["more.btn"]
+            self.set_dbe_status(button["c"])
             db, rectyp = self.get_active_db_rectyp()
             edit_rules = [fld[1] for fld in
                           self.rectyps[db][rectyp]["value_fields"]
@@ -319,28 +243,9 @@ class DBEditorWidget(QWidget):
         list_values, list_form = self.get_list_fields(list_nm)
         rowcnt = len(list_values)
         if rowcnt < 2:
-            self.set_dbe_status("Min Fewer")
+            button = self.editor["bx"]["edit.box"]["bn"]["fewer.btn"]
+            self.set_dbe_status(button["lim"])
         else:
-            self.set_dbe_status("Fewer")
+            button = self.editor["bx"]["edit.box"]["bn"]["more.btn"]
+            self.set_dbe_status(button["lim"])
             list_form.removeRow(rowcnt - 1)
-
-    # Database Editor Widget make function
-    # ============================================================
-
-    def make_db_editor_wdg(self):
-        """Create all components of Data Base Editor widget.
-
-        Except for the Record Type forms.
-        They are added in a call to RecordMgmt from main app.
-        """
-        self.setGeometry(620, 40, 550, 840)
-        dbe_layout = QVBoxLayout()
-        dbe_layout.setAlignment(Qt.AlignTop)
-        self.setLayout(dbe_layout)
-        dbe_layout.addWidget(self.make_title_lbl())
-        dbe_layout.addLayout(self.make_box_group("get.box"))
-        dbe_layout.addLayout(self.make_box_group("edit.box"))
-        dbe_layout.addWidget(self.make_status_lbl())
-        # self.hide()
-        self.show()
-        self.editor["widget"] = self
