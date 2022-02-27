@@ -83,7 +83,7 @@ class SaskanEyes(QMainWindow):
 
         def set_configs(p_config_data: dict,
                         p_catg: str):
-            """Set basement db text and widget metadata records"""
+            """Set text and widget metadata records on Basement DB."""
             db = "basement"
             for k, values in p_config_data.items():
                 key = RI.UT.clean_redis_key(f"{p_catg}:{k}")
@@ -129,9 +129,6 @@ class SaskanEyes(QMainWindow):
     def initialize_UI(self):
         """Set window size and name. Show the window."""
         self.setGeometry(100, 100, 1200, 900)
-
-        pp(("self.WDG", self.WDG))
-
         self.setWindowTitle(self.WDG['about']['app']['a'])
         self.setStyleSheet(SS.get_style('base'))
         self.setFont(QFont('Arial', 16))
@@ -243,6 +240,9 @@ class SaskanEyes(QMainWindow):
                 key to metadata for the tool.
             p_help_pg:
                 Name of the help page to show.
+        
+        @DEV
+        - Check isVisible() on the widget instead of using flags
         """
         tool = self.WDG["tools"][f"{p_tool_nm}.tool"]
         self.set_statusbar_text(tool["c"])
@@ -310,8 +310,8 @@ class SaskanEyes(QMainWindow):
         """
         editor = DBEditorWidget(self, self.WDG["db_editor"])
         self.WDG["db_editor"] = editor.get_tools()
-        # recordio = RecordMgmt(self, editor, self.WDG["record_io"])
-        # self.WDG["record_io"] = recordio.get_tools()
+        recordio = RecordMgmt(self, self.WDG["record_io"], editor)
+        self.WDG["record_io"] = recordio.get_tools()
 
     # Make widget to display networkx graph diagrams
     # ==============================================================

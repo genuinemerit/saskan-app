@@ -5,127 +5,6 @@
             "c": "Control, Monitor, Test and Edit the Saskan Services.\n\n Version: 0.0.1"},
         "qt": {"a": "About Qt"}
     },
-
-    "cursor": {"b": "cursor/result summary"},
-    "dbe_status": {"a": "Database Editor Status"},
-    "edit": {"a": "Edit Record"},
-    "find": {"a": "Find Record(s)"},
-    "key": {"b": "lower case letters, underbars, colons only"},
-    "keys": {"a": "Key Fields"},
-    "max_more": {"c": "Cannot add fields to list. Max reached."},
-    "min_fewer": {"c": "Cannot remove fields from list. Min reached."},
-    "pending": {"b": "pending changes"},
-    "types": {"a": "Select Record Type"},
-    "values": {"a": "Value Fields"},
-
-    "activator_log": {
-        "a": "Activator Events (Log DB)",
-        "c": "Log records for service activator events."
-    },
-    "add_btn": {
-        "a": "Add",
-        "c": "Create a new record of the selected type."
-    },
-    "cancel_btn": {
-        "a": "Cancel",
-        "c": "Purge pending edits and close current editor without saving."
-    },
-    "configs": {
-        "a": "Config Records (Basement DB)",
-        "c": "Records defining config data structures."
-    },
-    "delete_btn": {
-        "a": "Delete",
-        "c": "Mark currently selected record for removal."
-    },
-    "expire_rules": {
-        "a": "Expiration Rules (Basement DB)",
-        "c": "Records holding record expiration rules."
-    },
-    "fewer_btn": {
-        "a": "-",
-        "c": "Remove an input field."
-    },
-    "find_btn": {
-        "a": "Find",
-        "c": "Find keys matching search pattern. Select all keys if no text entered."
-    },
-    "more_btn": {
-        "a": "+",
-        "c": "Add another input field."
-    },
-    "next_btn": {
-        "a": "Next",
-        "c": "Retrieve next record from cursor IO result."
-    },
-    "plans": {
-        "a": "Plan Records (Schema DB)",
-        "c": "Records holding service plan definitions."
-    },
-    "prev_btn": {
-        "a": "Prev",
-        "c": "Retrieve previous record from cursor IO result."
-    },
-    "queues": {
-        "a": "Queue Records (Harvest DB)",
-        "c": "Records holding temporary lists."
-    },
-    "redo_btn": {
-        "a": "Redo",
-        "c": "Re-apply the most recently undone edit (Ctrl+Y)."
-    },
-    "request_log": {
-        "a": "Request Events (Log DB)",
-        "c": "Log records for service request/sub events."
-    },
-    "requests_monitor": {
-        "a": "Requests Monitor (Monitor DB)",
-        "c": "Summary records for request/sub events."
-    },
-    "response": {
-        "a": "Response Records (Harvest DB)",
-        "c": "Records holding request responses and pubs."
-    },
-    "response_log": {
-        "a": "Response Events (Log DB)",
-        "c": "Log records for service response/pub events."
-    },
-    "responses_monitor": {
-        "a": "Responses Monitor (Monitor DB)",
-        "c": "Summary records for response/pub events."
-    },
-    "retry_rules": {
-        "a": "Retry Rules (Basement DB)",
-        "c": "Records holding message retry rules."
-    },
-    "save_btn": {
-        "a": "Save",
-        "c": "Commit all pending changes."
-    },
-    "schemas": {
-        "a": "Schema Records (Schema DB)",
-        "c": "Records holding service schema definitions."
-    },
-    "server_monitor": {
-        "a": "Server/Channel Monitor (Monitor DB)",
-        "c": "Summary records for server/channel loads."
-    },
-    "services": {
-        "a": "Service Records (Schema DB)",
-        "c": "Records holding service definitions."
-    },
-    "status": {
-        "a": "Status Flag Records (Basement DB)",
-        "c": "Records defining status data structures."
-    },
-    "topics": {
-        "a": "Topic Records (Schema DB)",
-        "c": "Records holding service topic definitions."
-    },
-    "undo_btn": {
-        "a": "Undo",
-        "c": "Reverse the most recent edit (Ctrl+Z)."
-    }, 
     "controls": {
         "a": "Services Controller",
         "bn":{
@@ -160,7 +39,8 @@
         "status.txt":{
             "b": "Services Controller Status",
             "w": null},
-        "w": null},
+        "w": null
+    },
     "db_editor": {
         "a": "Database Editor",
         "s": "inactive",
@@ -170,67 +50,87 @@
         "w": null,
         "bx": {
             "get.box": {
-                "a": "Find and Get Records",
+                "a": "Find and Get Records:",
                 "bn": {
                     "find.btn": {
                         "a": "Find",
+                        "c": "Find keys matching search pattern. Select all keys if no text entered.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "next.btn": {
                         "a": "Next",
+                        "c": "Retrieve next record from cursor IO result.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "prev.btn": {
                         "a": "Prev",
+                        "c": "Retrieve previous record from cursor IO result.",
                         "s": "inactive",
+                        "action": null,
                         "w": null}
                 },
-                "input": {
-                    "b": "Key Pattern",
-                    "c": "Record key or key pattern to search for.",
-                    "s": "inactive",
-                    "w": null},
+                "inp": {
+                    "find.inp": {
+                        "b": "Key Pattern",
+                        "c": "Record key or key pattern to search for.",
+                        "s": "inactive",
+                        "w": null}},
                 "w": null
             },
             "edit.box": {
-                "a": "Edit Records",
+                "a": "Edit Records:",
                 "bn": {
                     "add.btn": {
                         "a": "Add",
+                        "c": "Create a new record of the selected type.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "delete.btn": {
                         "a": "Del",
+                        "c": "Mark currently selected record for removal.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "save.btn": {
                         "a": "Save",
+                        "c": "Commit all pending changes.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "more.btn": {
                         "a": "More",
                         "c": "Add another row to list.",
                         "lim": "No more rows can be added.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "fewer.btn": {
                         "a": "Less",
                         "c": "Remove a row from list.",
                         "lim": "No more rows can be removed.",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "undo.btn": {
                         "a": "Undo",
+                        "c": "Reverse the most recent edit (Ctrl+Z).",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "redo.btn": {
                         "a": "Redo",
+                        "c": "Re-apply the most recently undone edit (Ctrl+Y).",
                         "s": "inactive",
+                        "action": null,
                         "w": null},
                     "cancel.btn": {
                         "a": "Stop",
-                        "c": "Kill any pending activities and close editor.",
+                        "c": "Kill pending activities. Close editor without saving.",
                         "s": "inactive",
+                        "action": null,
                         "w": null}
                 },
                 "w": null
@@ -264,7 +164,8 @@
         "w": {
             "name": null,
             "object": null},
-        "s": "inactive"},
+        "s": "inactive"
+    },
     "monitor": {
         "a": "Services Monitor",
         "bn":{
@@ -316,9 +217,8 @@
         "status.txt":{
             "b": "Services Monitor Status",
             "w": null},
-        "w": null},
-    "record_io": {
-        "s": "inactive"},
+        "w": null
+    },
     "tools": {
         "controls.tool": {
             "a": "Control",
@@ -352,5 +252,271 @@
             "cmd": "Ctrl+Alt+H",
             "s": "inactive",
             "w": null}
+    },
+    "record_io": {
+        "w": null,
+        "bx": {
+            "select.box": {
+                "a": "Select Record Type:"
+                }
+        },
+        "db": {
+            "audit": {
+                "ns": null,
+                "name": "Audit",
+                "dm": {
+                    "audit": {
+                        "rec": {
+                            "fields" : {
+                                "exp_tm": {
+                                    "name": "Expires",
+                                    "ed": ["auto", "datetime"]},
+                                "hash_id": {
+                                    "name": "Hash ID",
+                                    "ed": ["auto"]},
+                                "last_upd": {
+                                    "name": "Last Modified",
+                                    "ed": ["auto", "datetime"]},
+                                "ver": {
+                                    "name": "Version",
+                                    "ed": ["auto"]}}}}}
+            },
+           "basement.db": {
+               "ns": 0,
+               "name": "Configs",
+               "dm": {
+                   "configs": {
+                        "a": "Configs",
+                        "c": "Records defining config data structures.",
+                        "action": null,
+                        "w": null,
+                        "rec": {
+                            "keys": {
+                                "catg": {
+                                    "name": "Category",
+                                    "ed": ["notnull"]},
+                                "id": {
+                                    "name": "ID",
+                                    "ed": ["notnull"]}},
+                            "vals": {
+                                "name": {
+                                    "name": "Name",
+                                    "ed": ["notnull"]},
+                                "val": {
+                                    "name": "Value",
+                                    "ed": ["notnull"]}}}
+                   },
+                   "status": {
+                        "a": "Status Flags",
+                        "c": "Records defining status data structures.",
+                        "action": null,
+                        "w": null,
+                        "rec": {
+                            "keys": {
+                                "catg": {
+                                    "name": "Category",
+                                    "ed": ["notnull"]},
+                                "id": {
+                                    "name": "ID",
+                                    "ed": ["notnull"]}},
+                            "vals": {
+                                "name": {
+                                    "name": "Name",
+                                    "ed": ["notnull"]},
+                                "val": {
+                                    "name": "Value",
+                                    "ed": ["notnull"]}}}
+                   },
+                   "widget": {
+                        "a": "Widgets Meta",
+                        "c": "Records defining application objects.",
+                        "action": null,
+                        "w": null,
+                        "rec": {
+                            "keys": {
+                                "key": {
+                                    "name": "Key",
+                                    "ed": ["notnull"]}},
+                            "vals": {
+                                "val": {
+                                    "name": "Value",
+                                    "ed": ["notnull"]}}}
+                    },
+                   "expire": {
+                        "a": "Expire Rules",
+                        "c": "Records holding record expiration rules.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                   },
+                   "retry": {
+                       "a": "Retry Rules",
+                        "c": "Records holding message retry rules.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                   }
+                }
+           },
+           "schema.db": {
+                "ns": 1,
+                "name": "Schema",
+                "dm": {
+                    "topics": {
+                        "a": "Topics",
+                        "c": "Records holding service topic definitions.",
+                        "action": null,
+                        "w": null,
+                        "rec": {
+                            "keys": {
+                                "catg": {
+                                    "name": "Category",
+                                    "ed": ["notnull"]},
+                                "id": {
+                                    "name": "ID",
+                                    "ed": ["notnull"]}},
+                            "vals": {
+                                "host": {
+                                    "name": "Host",
+                                    "ed": ["notnull", "hostlist"]},
+                                "port": {
+                                        "name": "Host",
+                                        "ed": ["notnull", "posint"]},
+                                "chan": {
+                                        "name": "Channel ID",
+                                        "ed": ["notnull"]},
+                                "cap": {
+                                        "name": "Caption",
+                                        "ed": []},
+                                "desc": {
+                                        "name": "Description",
+                                        "ed": []},
+                                "plans": {
+                                    "name": "Plans",
+                                    "ed": ["notnull", "link", "list"]}}
+                        }
+                    },
+                    "plans": {
+                        "a": "Plans",
+                        "c": "Records holding service plan definitions.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "services": {
+                        "a": "Services",
+                        "c": "Records holding service definitions.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "schemas": {
+                        "a": "Schemas",
+                        "c": "Records holding service schema definitions.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    }
+                }
+            },
+           "harvest.db": {
+                "ns": 2,
+                "name": "Harvest",
+                "dm": {
+                    "queues": {
+                        "a": "Queues",
+                        "c": "Records storing temporary lists.",
+                        "action": null,
+                        "w": null,
+                        "rec": {
+                            "keys": {
+                                "key": {
+                                    "name": "Key",
+                                    "ed": ["notnull"]}},
+                            "vals": {
+                                "val": {
+                                    "name": "Value",
+                                    "ed": ["notnull"]}}}
+                    },
+                    "responses": {
+                        "a": "Responses",
+                        "c": "Records holding request response and pub content.",
+                        "action": null,
+                        "w": null,
+                        "rec": {
+                            "keys": {
+                                "hash": {
+                                    "name": "Hash ID",
+                                    "ed": ["auto"]}},
+                            "vals": {
+                                "val": {
+                                    "name": "Queue Value",
+                                    "ed": ["auto", "list"]}}
+                        }
+                    }
+                }
+            },
+           "log.db": {
+                "ns": 3,
+                "name": "Logger",
+                "dm": {
+                    "controller": {
+                        "a": "Control Log",
+                        "c": "Log records for service controller events.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "requests": {
+                        "a": "Request Log",
+                        "c": "Log records for service request and sub events.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "responses": {
+                        "a": "Response Log",
+                        "c": "Log records for service response and pub events.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    }
+                }
+            },
+            "monitor.db": {
+                "ns": 4,
+                "name": "Monitor",
+                "dm": {
+                    "controller": {
+                        "a": "Channel",
+                        "c": "Summary records for server channel loads.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "hosts": {
+                        "a": "Host Machines",
+                        "c": "Summary records for physical server loads.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "requests": {
+                        "a": "Requests",
+                        "c": "Summary records for request/sub events.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    },
+                    "responses": {
+                        "a": "Responses",
+                        "c": "Summary records for response/pub events.",
+                        "action": null,
+                        "w": null,
+                        "rec": {}
+                    }
+                }
+            }
         }
+    }
 }

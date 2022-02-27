@@ -69,8 +69,6 @@ class BootTexts(object):
         self.path_log: str = path.join(self.path_app, self.dir_log)
         self.path_res: str = path.join(self.path_app, self.dir_res)
 
-        self.file_texts: str = path.join(
-            self.path_res, 'config_texts.json')
         self.file_widgets: str = path.join(
             self.path_res, 'config_widgets.json')
 

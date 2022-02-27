@@ -12,6 +12,7 @@ from PySide2.QtGui import QRegExpValidator
 from PySide2.QtGui import QIntValidator
 from PySide2.QtWidgets import QFormLayout
 from PySide2.QtWidgets import QHBoxLayout
+from PySide2.QtWidgets import QLabel
 from PySide2.QtWidgets import QLineEdit
 from PySide2.QtWidgets import QRadioButton
 from PySide2.QtWidgets import QVBoxLayout
@@ -30,17 +31,42 @@ class RecordMgmt(QWidget):
     """Handle set-up, set, get for predefined record types.
 
     Closely related to the DB Editor Widget Class.
+
+    Values for Audit fields are auto-generated, so there
+        are not any edit rules for them and they cannot be changed
+        by manual edits.
+
+    - Metadata-defined edit rules are:
+        auto -- field is populated by system, cannot be edited
+        date -- Input mask or regex YYYYMMDD
+        datetime -- Input mask or regex YYYYMMDDHHMMSS.SSS
+        link -- must follow rules for key values
+        list -- may occur 1 to x times
+        notnull -- cannot be empty set or all spaces
+        number -- can be pos, neg or zero real
+        posint -- positive integer
+        posreal -- positive real number
+
+    @DEV:
+    - Work on ordering editor boxes using indexes
     """
-    def __init__(self, parent: QWidget, DBE: object):
+    def __init__(self,
+                 parent: QWidget,
+                 wdg_meta: dict,
+                 db_editor: object):
         """super() call is required.
 
         The DB editor widget is also passed in.
         """
         super().__init__(parent)
-        self.DBE = DBE
+        self.recs = wdg_meta
+        self.editor = db_editor
         self.set_edits_meta()
-        self.set_rectyp_meta()
-        self.make_db_editor_wdg()
+        self.extend_db_editor_wdg()
+
+    def get_tools(self):
+        """Return modified metadata"""
+        return(self.recs)
 
     def set_edits_meta(self):
         """To use when applying edits and auto-corrects.
@@ -89,209 +115,47 @@ class RecordMgmt(QWidget):
         self.edit = {"redis_key": bump_redis_key,
                      "hostlist": verify_host}
 
-    # Record Type Editor Widget Creation
-    # ============================================================
-
-    def set_rectyp_meta(self):
-        """Define metadata for the DB Editors for each Record Type.
-
-        The 'rectyp' widget is a container for input rows and buttons
-        for each Record Type. This metadata is used to generate both
-        the editor widget and items in a radio button group to select
-        which rectyp to edit.
-
-        Each 'rectyp' widget holds one or more form widgets and may
-        also have some buttons, subtitles and other objects.
-
-        Each form widget holds one or more input rows.
-        In some cases, the number of input rows may be variable,
-        per user inputs.
-
-        There are edit rules for each input line.
-
-        Some are hard-coded at the field-group (form layout) level.
-
-        Key values are required, must be lower case,
-        must not contain blanks, must contain a record type name in
-        the first instance, only punctuation allowed in colon.
-        These get auto-corrected.
-
-        Values for Config and Status records are required.
-
-        Values for Audit fields are auto-generated, so there
-        are not any edit rules for them and they cannot be changed
-        by manual edits. The structure of Audit fields is defined
-        in this Class, but separately from the record types.
-
-        @DEV:
-        - Consider advantages/disadvantages of breaking out
-          the meta into a separate json or other config file.
-
-        Metadata edit rules are defined on value_fields forms only,
-        as follows:
-
-        - If no meta-data-driven rules are needed, then each value field
-          is a list containiing only a string defining label content. Like:
-            "value_fields": [["Field Name"], ["Field Value"]],
-
-        - If meta-data-driven rules are needed, then the value field is
-          defined as a list of two items, the label text and a set of
-          1 to n rule names. Like:
-            "value_fields":
-            [["Host", ("notnull")],
-             ["Port", ("notnull", "posint")]]
-
-        - If meta-data-driven rule is complex in the sense that a particular
-          input mask or regex is used, then there will be a rule name
-          associated with that edit. Like:
-            "audit_fields":
-            [["Last Updated", ("datetime")]]
-
-        - This also applies to values that take only values from an
-          enumerated list. Like:
-            "value_fields":
-            [["Host", ("notnull", "hostlist")]]
-
-        - Metadata-defined edit rules are:
-            auto -- field is populated by system, cannot be edited
-            date -- Input mask or regex YYYYMMDD
-            datetime -- Input mask or regex YYYYMMDDHHMMSS.SSS
-            link -- must follow rules for key values
-            list -- may occur 1 to x times
-            notnull -- cannot be empty set or all spaces
-            number -- can be pos, neg or zero real
-            posint -- positive integer
-            posreal -- positive real number
-        """
-        rectyp_template = {
-            "db": str(),
-            "key_fields": None,
-            "value_fields": None,
-            "active": False,
-            "selector": None,
-            "select_action": None,
-            "widget": None}
-        self.rectyps = {
-            "Basement": {
-                "Configs": {
-                    "key_fields":
-                    [["Config Category", ("notnull")],
-                     ["Config ID", ("notnull")]],
-                    "value_fields":
-                    [["Field Name", ("notnull")],
-                     ["Field Value", ("notnull")]],
-                    "select_action": self.select_configs},
-                "Status": {
-                    "key_fields":
-                    [["Status Category", ("notnull")],
-                     ["Status ID", ("notnull")]],
-                    "value_fields":
-                    [["Field Name", ("notnull")],
-                     ["Field Value", ("notnull")]],
-                    "select_action": self.select_status},
-                "Expire Rules": {},
-                "Retry Rules": {}},
-            "Schema":  {
-                "Topics": {
-                    "key_fields":
-                    [["Topic Category", ("notnull")],
-                     ["Topic ID", ("notnull")]],
-                    "value_fields":
-                    [["Host", ("notnull", "hostlist")],
-                     ["Port", ("notnull", "posint")],
-                     ["Channel ID", ("notnull")],
-                     ["Caption"],
-                     ["Description"],
-                     ["Plans", ("notnull", "link", "list")]],
-                    "select_action": self.select_topics},
-                "Plans": {},
-                "Services": {},
-                "Schemas": {}},
-            "Harvest": {
-                "Queues": {
-                    "key_fields":
-                    [["Hash ID", ("auto")]],
-                    "value_fields":
-                    [["Queue Value", ("auto", "list")]],
-                    "select_action": self.select_queues},
-                "Response": {}},
-            "Log": {
-                "Activator Log": {},
-                "Request Log": {},
-                "Response Log": {}},
-            "Monitor": {
-                "Server Monitor": {},
-                "Requests Monitor": {},
-                "Responses Monitor": {}}}
-        for key in self.rectyps.keys():
-            for rectyp in self.rectyps[key].keys():
-                for field, value in rectyp_template.items():
-                    if field not in self.rectyps[key][rectyp].keys():
-                        self.rectyps[key][rectyp][field] = value
-
-        self.audit_fields = [
-            ["Expiry Time", ("auto", "datetime")],
-            ["Hash ID", ("auto")],
-            ["Last Updated", ("auto", "datetime")],
-            ["Version", ("auto")]
-        ]
-
     # Record Type Selector Widgets make functions
     # ============================================================
-
-    def make_rectyp_selectors(self):
+    def make_selectors(self):
         """Return collection(s) of radio buttons for selecting rectyp.
 
         :returns: QVBoxLayout object
         """
         vbox = QVBoxLayout()
-        vbox.addWidget(self.DBE.make_text_subttl_wdg("Types"))
-        for db in self.rectyps.keys():
+        lbl = QLabel(self.recs["bx"]["select.box"]["a"])
+        vbox.addWidget(SS.set_subtitle_style(lbl))
+        for dbk, db in self.recs["db"].items():
+            if dbk == "audit":
+                continue
             hbox = QHBoxLayout()
             hbox.LeftToRight
-            for rectyp in self.rectyps[db].keys():
-                rdo_btn = SS.set_radiobtn_style(QRadioButton(rectyp))
-                if self.rectyps[db][rectyp]["select_action"] is not None:
-                    rdo_btn.clicked.connect(
-                        self.rectyps[db][rectyp]["select_action"])
+            lbl = QLabel(self.recs["db"][dbk]["name"])
+            hbox.addWidget(SS.set_subtitle_style(lbl))
+            for dmk, dm in self.recs["db"][dbk]["dm"].items():
+                rdo_btn = SS.set_radiobtn_style(QRadioButton(dm["a"]))
+                self.recs["db"][dbk]["dm"][dmk]["w"] = rdo_btn
                 hbox.addWidget(rdo_btn)
-                self.rectyps[db][rectyp]["selector"] = rdo_btn
+                action = None
+                if dbk == "basement.db":
+                    if dmk == "configs":
+                        action = self.select_configs
+                    elif dmk == "status":
+                        action = self.select_status
+                elif dbk == "schema.db":
+                    if dmk == "topics":
+                        action = self.select_topics
+                elif dbk == "harvest.db":
+                    if dmk == "queues":
+                        action = self.select_queues
+                self.recs["db"][dbk]["dm"][dmk]["action"] = action
+                rdo_btn.clicked.connect(action)
             hbox.addStretch(1)
             vbox.addLayout(hbox)
         return (vbox)
 
-    # Record Type Selector helper and slot functions
+    # Record Type Editor Form Widget make functions
     # ============================================================
-
-    def select_record_type(self, p_rectyp_nm: str):
-        """Generic function for record type selection actions.
-
-        :args:
-            p_rectyp_nm: name of selected record type"""
-        print(f"Activating {p_rectyp_nm}")
-        self.activate_rectyp(p_rectyp_nm)
-        self.DBE.set_dbe_status(p_rectyp_nm)        # type: ignore
-
-    def select_configs(self):
-        """Slot for Editor Select Configs radio check action"""
-        print("Select Configs")
-        self.select_record_type("Configs")
-
-    def select_status(self):
-        """Slot for Editor Select Status Flags radio check action"""
-        self.select_record_type("Status")
-
-    def select_topics(self):
-        """Slot for Editor Select Topics radio check action"""
-        self.select_record_type("Topics")
-
-    def select_queues(self):
-        """Slot for Editor Select Queues radio check action"""
-        self.select_record_type("Queues")
-
-    # Record Type Editor Widget make functions
-    # ============================================================
-
     def apply_pre_edits(self,
                         p_edit_rules: set,
                         p_edit_wdg: QLineEdit):
@@ -315,31 +179,43 @@ class RecordMgmt(QWidget):
             edit_wdg.setValidator(QIntValidator(edit_wdg))
             hint += " positive integer"
         if "link" in p_edit_rules:
-            hint += f" {self.DBE.texts['Key']['hint']}"  # type: ignore
+            hint += f" {self.editor.texts['Key']['hint']}"  # type: ignore
         if hint != "":
             edit_wdg.setPlaceholderText(hint)
             edit_wdg.setToolTip(hint)
         return (edit_wdg)
 
-    def make_rectyp_wdg(self,
-                        db_nm: str,
-                        rectyp_nm: str):
-        """Return a container widget for selected db+record type.
+    def make_edit_form(self,
+                       p_dbk: str,
+                       p_dmk: str):
+        """Return a form widget for a specific db+domain rec type.
 
         :returns: QWidget object containing a QVBoxLayout object
                   containing several Label widgets (sub-titles),
                   specialized edit buttons (like for list length),
                   and Form layouts (rows of related edit fields).
+
+        @DEV
+        - So the form layout has to be "set" in a widget.
+        - Only need another box if going to put more stuff in it.
+        - Might need a box for +/- buttons on lists.
         """
-        rectyp_wdg = QWidget()
-        rectyp_layout = QVBoxLayout()
-        rectyp_layout.addWidget(
-            self.DBE.make_text_subttl_wdg(rectyp_nm))  # type: ignore
+        wdg = QWidget()
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignRight)
+        for fk, fields in self.recs["db"][p_dbk]["dm"][p_dmk]["rec"].items():
+            # Use some kind of styling to indicate key fields
+            for fnm, fld in fields.items():
+                edit_wdg = SS.set_line_edit_style(QLineEdit())
+                form.addRow(fld["name"], edit_wdg)
+        wdg.setLayout(form)
+        return(wdg)
+        """
         for f_grp in ["key_fields", "value_fields"]:
             if self.rectyps[db_nm][rectyp_nm][f_grp] is not None:
                 # Add sub-title for group of fields
                 rectyp_layout.addWidget(
-                    self.DBE.make_text_subttl_wdg(f_grp))  # type: ignore
+                    self.editor.make_text_subttl_wdg(f_grp))  # type: ignore
                 form = QFormLayout()
                 form_nm = f"{db_nm}:{rectyp_nm}:{f_grp}.frm"
                 form.setObjectName(form_nm)
@@ -364,7 +240,7 @@ class RecordMgmt(QWidget):
                         # provide add/remove buttons
                         if "auto" not in edit_rules:
                             list_vbox.addLayout(
-                                self.DBE.make_button_group_wdg(  # type: ignore
+                                self.editor.make_button_group_wdg(
                                     "List", field_nm, False, True))
                         form.addRow(list_vbox)
                     else:
@@ -376,9 +252,99 @@ class RecordMgmt(QWidget):
         self.rectyps[db_nm][rectyp_nm]["widget"] = rectyp_wdg
         rectyp_wdg.hide()
         return (rectyp_wdg)
+        """
+
+    # Database Editor Widget extend function
+    # ============================================================
+    def extend_db_editor_wdg(self):
+        """Create record type forms for the Data Base Editor widget.
+
+        And create selector checkboxes for record types.
+        """
+        self.editor.dbe.addLayout(self.make_selectors())
+        for dbk, db in self.recs["db"].items():
+            if dbk == "audit":
+                continue
+            for dmk, dm in db["dm"].items():
+                recwdg = QWidget()
+                vbox = QVBoxLayout()
+                txt = (self.recs["db"][dbk]["name"] + ": " +
+                       self.recs["db"][dbk]["dm"][dmk]["a"])
+                vbox.addWidget(SS.set_subtitle_style(QLabel(txt)))
+                vbox.addWidget(self.make_edit_form(dbk, dmk))
+                recwdg.setLayout(vbox)
+                recwdg.hide()
+                self.recs["db"][dbk]["dm"][dmk]["w"] = recwdg
+                self.editor.dbe.addWidget(recwdg)
+        """
+        # Enable rec mgmt related button actions
+        for key, act in {
+                ("Edit", "Add"): self.add_record_to_db,
+                ("Get", "Find"): self.find_record_keys}.items():
+            # Refactor these to use a dict
+            wdg = self.editor.buttons[key[0]][key[1]]["widget"]
+            wdg.clicked.connect(act)
+        """
+
+    # Record Type Selector helper and slot functions
+    # ============================================================
+    def select_record_type(self,
+                           p_dbk: str,
+                           p_dmk: str):
+        """Generic function for record type selection actions.
+
+        :args:
+            p_dmk: name of selected database type
+            p_dmk: name of selected record type
+        """
+        txt = self.recs["db"][p_dbk]["dm"][p_dmk]["a"]
+        self.editor.set_dbe_status(txt)        # type: ignore
+        self.show_rectype(p_dbk, p_dmk)
+
+    def select_configs(self):
+        """Slot for Editor Select Configs radio check action"""
+        self.select_record_type("basement.db", "configs")
+
+    def select_status(self):
+        """Slot for Editor Select Status Flags radio check action"""
+        self.select_record_type("basement.db", "status")
+
+    def select_topics(self):
+        """Slot for Editor Select Topics radio check action"""
+        self.select_record_type("schema.db", "topics")
+
+    def select_queues(self):
+        """Slot for Editor Select Queues radio check action"""
+        self.select_record_type("harvest.db", "queues")
 
     # Record Type Editor Widget helper functions
     # ============================================================
+    def hide_rectype(self):
+        """Deactivate any showing Record Type Edit Form."""
+        for db in self.recs["db"].keys():
+            if db != "audit":
+                for dm in self.recs["db"][db]["dm"].keys():
+                    if self.recs["db"][db]["dm"][dm]["w"].isVisible():
+                        self.recs["db"][db]["dm"][dm]["w"].hide()
+        self.editor.disable_buttons("get.box", ["find.btn"])  # type: ignore
+        self.editor.disable_texts("get.box", ["find.inp"])    # type: ignore
+        self.editor.disable_buttons("edit.box", ["cancel.btn"])  # type: ignore
+
+    def show_rectype(self,
+                     p_dbk: str,
+                     p_dmk: str):
+        """Activate a Record Type Edit Form.
+
+        :args:
+            p_dbk: key of database
+            p_dmk: key of record (domain) type
+        """
+        self.hide_rectype()
+        rec = self.recs["db"][p_dbk]["dm"][p_dmk]
+        rec["w"].show()
+        self.editor.enable_buttons("get.box", ["find.btn"])  # type: ignore
+        self.editor.enable_texts("get.box", ["find.inp"])    # type: ignore
+        self.editor.enable_buttons("edit.box", ["cancel.btn"])  # type: ignore
 
     def get_active_db_rectyp(self):
         """Identify active db and record type.
@@ -530,51 +496,6 @@ class RecordMgmt(QWidget):
             record[name] = value
         return (db.lower(), record)
 
-    def activate_rectyp(self,
-                        p_rec: str):
-        """Deactivate a Record Type Edit widget.
-
-        :args: p_rec: str name of record type editor widget to activate.
-        """
-        done = False
-        self.deactivate_rectyp()
-        for db in self.rectyps.keys():
-            for rectyp, attrs in self.rectyps[db].items():
-                if rectyp == p_rec and attrs["active"] is False:
-                    attrs["active"] = True
-                    attrs["widget"].show()
-                    self.DBE.activate_buttons(      # type: ignore
-                        "Edit", ["Add", "Cancel"])
-                    self.DBE.activate_buttons(      # type: ignore
-                        "Get", ["Find"])
-                    self.DBE.activate_texts(        # type: ignore
-                        ["Key", "Cursor"])
-                    self.DBE.prep_editor_action(p_rec)  # type: ignore
-                    done = True
-                    break
-            if done:
-                break
-
-    def deactivate_rectyp(self):
-        """Deactivate the active Record Type Edit widget."""
-        done = False
-        for db in self.rectyps.keys():
-            for rectyp, attrs in self.rectyps[db].items():
-                if attrs["active"]:
-                    attrs["active"] = False
-                    attrs["selector"].setChecked(False)
-                    attrs["widget"].hide()
-                    self.DBE.deactivate_buttons(
-                        "Edit", ["Add", "Delete", "Save",
-                                 "Undo", "Redo", "Cancel"])
-                    self.DBE.deactivate_buttons(
-                        "Get", ["Find", "Next", "Prev"])
-                    self.DBE.deactivate_texts(["Key", "Cursor"])
-                    done = True
-                    break
-            if done:
-                break
-
     def run_rectyp_edits(self) -> bool:
         """Run the edits associated with the active record type.
 
@@ -602,30 +523,9 @@ class RecordMgmt(QWidget):
                         edits_passed = False
                         break
             if not edits_passed:
-                self.DBE.set_dbe_status("", error_msg)  # type: ignore
+                self.editor.set_dbe_status("", error_msg)  # type: ignore
                 break
         return (edits_passed)
-
-    # Database Editor Widget make function
-    # ============================================================
-
-    def make_db_editor_wdg(self):
-        """Create record type forms for the Data Base Editor widget.
-
-        And create selector checkboxes for record types.
-        """
-        self.DBE.dbe_layout.addLayout(self.make_rectyp_selectors())
-        for db, rectyps in self.rectyps.items():
-            for rectyp in rectyps.keys():
-                self.DBE.dbe_layout.addWidget(
-                    self.make_rectyp_wdg(db, rectyp))
-        # Enable rec mgmt related button actions
-        for key, act in {
-                ("Edit", "Add"): self.add_record_to_db,
-                ("Get", "Find"): self.find_record_keys}.items():
-            # Refactor these to use a dict
-            wdg = self.DBE.buttons[key[0]][key[1]]["widget"]
-            wdg.clicked.connect(act)
 
     # Edit Trigger Actions
     # =====================
@@ -644,7 +544,7 @@ class RecordMgmt(QWidget):
             search key value modified for use on redis)
         """
         search_key = \
-            self.DBE.texts["Key"]["widget"].text().strip()  # type: ignore
+            self.editor.texts["Key"]["widget"].text().strip()  # type: ignore
         rectyp_nm = p_rectyp.lower()
         search_key = self.edit["redis_key"](search_key)
         if f"{rectyp_nm}:" not in search_key:
@@ -667,7 +567,7 @@ class RecordMgmt(QWidget):
         """
         result = RI.get_record(p_db_nm, p_select_key)
         if result is None:
-            self.DBE.set_dbe_status(  # type: ignore
+            self.editor.set_dbe_status(  # type: ignore
                 "",
                 f"No records found with key like '{p_select_key}'")
         else:
@@ -697,7 +597,7 @@ class RecordMgmt(QWidget):
                     link_rec = self.find_redis_keys(
                         p_db_nm, p_rectyp, link_key, p_load_1st_rec=False)
                     if link_rec in (None, {}, []):
-                        self.DBE.set_dbe_status(  # type: ignore
+                        self.editor.set_dbe_status(  # type: ignore
                             "",
                             f"No record found with key '{link_key}'")
                         return False
@@ -727,7 +627,7 @@ class RecordMgmt(QWidget):
         :returns: (bool) True if record was added, False if not
         """
         manual_add = True
-        self.DBE.prep_editor_action("Add")                  # type: ignore
+        self.editor.prep_editor_action("Add")                  # type: ignore
         if p_db_nm is None or p_rectyp_nm is None:
             db, rectyp = self.get_active_db_rectyp()
             _, record = self.get_all_fields()
@@ -754,7 +654,7 @@ class RecordMgmt(QWidget):
                 RI.do_insert(db, record)
                 return True
         else:
-            self.DBE.set_dbe_status(   # type: ignore
+            self.editor.set_dbe_status(   # type: ignore
                 "",
                 "Insert rejected. Record already exists.")
             return False
@@ -777,7 +677,7 @@ class RecordMgmt(QWidget):
         result_b = RI.find_keys(db, p_key_pattern)
         result: list = []
         if result_b in (None, [], {}):
-            self.DBE.set_dbe_status(   # type: ignore
+            self.editor.set_dbe_status(   # type: ignore
                 "",
                 f"No record found with key like '{p_key_pattern}'")
         else:
@@ -786,7 +686,7 @@ class RecordMgmt(QWidget):
             result = sorted(result)
             rcnt = len(result)
             rword = "record" if rcnt == 1 else "records"
-            self.DBE.set_dbe_status(   # type: ignore
+            self.editor.set_dbe_status(   # type: ignore
                 "",
                 f"{rcnt} {rword} found with key like '{p_key_pattern}'")
             if p_load_1st_rec:
@@ -795,10 +695,10 @@ class RecordMgmt(QWidget):
                 _ = self.get_redis_record(db, result[0])
                 # If more than one key was found,
                 if len(result) > 1:
-                    self.DBE.activate_buttons(   # type: ignore
+                    self.editor.activate_buttons(   # type: ignore
                         "Get", ["Next", "Prev"])
                 else:
-                    self.DBE.deactivate_buttons(   # type: ignore
+                    self.editor.deactivate_buttons(   # type: ignore
                         "Get", ["Next", "Prev"])
                 # To load from db record to editor form(s), use functions
                 # in the DB Editor class:
@@ -873,7 +773,7 @@ class RecordMgmt(QWidget):
 
     def find_record_keys(self):
         """Slot for DB Editor Find push button click action."""
-        self.DBE.prep_editor_action("Find")
+        self.editor.prep_editor_action("Find")
         db, rectyp = self.get_active_db_rectyp()
         search_key = self.get_searchkey_value(rectyp)
         _ = self.find_redis_keys(
