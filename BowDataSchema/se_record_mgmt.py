@@ -18,13 +18,13 @@ from PySide2.QtWidgets import QRadioButton
 from PySide2.QtWidgets import QVBoxLayout
 from PySide2.QtWidgets import QWidget
 
-from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
+from boot_texts import BootTexts                # type: ignore
 from redis_io import RedisIO                    # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
 
+BT = BootTexts()
 RI = RedisIO()
 SS = SaskanStyles()
-TX = SaskanTexts()
 
 
 class RecordMgmt(QWidget):
@@ -61,6 +61,7 @@ class RecordMgmt(QWidget):
         super().__init__(parent)
         self.recs = wdg_meta
         self.editor = db_editor
+        self.ed_meta = db_editor.get_tools()  # type: ignore
         self.set_edits_meta()
         self.extend_db_editor_wdg()
 
@@ -91,17 +92,17 @@ class RecordMgmt(QWidget):
                 r_str = r_str[1:]
             return r_str
 
-        def bump_redis_key(text: str):
+        def bump_redis_key(p_text: str):
             """Convert anything not a letter or colon to underbar.
             And make it lowercase.
             """
-            r_str = text
+            r_str = p_text.strip()
             for char in r_str:
                 if not char.isalpha() and \
                    not char.isdigit() and \
                    not char == ":":
                     r_str = r_str.replace(char, "_")
-            return bump_underbars(r_str)
+            return bump_underbars(r_str.lower())
 
         def verify_host(p_value: str):
             """Validate value against enumerated list."""
@@ -205,8 +206,11 @@ class RecordMgmt(QWidget):
         form.setLabelAlignment(Qt.AlignRight)
         for fk, fields in self.recs["db"][p_dbk]["dm"][p_dmk]["rec"].items():
             # Use some kind of styling to indicate key fields
+            # Unicode characters for picture of a key: 🔑
             for fnm, fld in fields.items():
                 edit_wdg = SS.set_line_edit_style(QLineEdit())
+                if "hint" in fld.keys():
+                    edit_wdg.setPlaceholderText(fld["hint"])
                 form.addRow(fld["name"], edit_wdg)
         wdg.setLayout(form)
         return(wdg)
@@ -254,6 +258,15 @@ class RecordMgmt(QWidget):
         return (rectyp_wdg)
         """
 
+    def set_button_actions(self):
+        """Assign actions to button slots.
+
+        Other button actions are assigned in DBEditor class.
+        """
+        # Find-keys Button
+        self.ed_meta["bx"]["get.box"]["bn"]["find.btn"]["w"].clicked.connect(
+            self.push_find_keys)
+
     # Database Editor Widget extend function
     # ============================================================
     def extend_db_editor_wdg(self):
@@ -261,6 +274,7 @@ class RecordMgmt(QWidget):
 
         And create selector checkboxes for record types.
         """
+        self.set_button_actions()
         self.editor.dbe.addLayout(self.make_selectors())
         for dbk, db in self.recs["db"].items():
             if dbk == "audit":
@@ -285,6 +299,55 @@ class RecordMgmt(QWidget):
             wdg = self.editor.buttons[key[0]][key[1]]["widget"]
             wdg.clicked.connect(act)
         """
+
+    # Editor Button helper and slot functions
+    # ============================================================
+
+    def get_active_search(self,
+                          dom: str):
+        """Return value of search-key text input widget...
+
+        ..adjusted to work as a wildcard on keys in the active domain.
+
+        :args:
+            dom (str) name of active domain
+
+        :returns: (str) search value modified for use on redis db
+        """
+        wdg = self.ed_meta["bx"]["get.box"]["inp"]["find.inp"]["w"]  # type: ignore
+        search = self.edit["redis_key"](wdg.text())
+        if f"{dom.lower()}:" not in search:
+            search = f"{dom.lower()}:{search}"
+        if search[:1] != "*":
+            search = "*" + search
+        if search[-1:] != "*":
+            search += "*"
+        return (search.lower())
+
+    def get_active_domain(self):
+        """Identify the currently active db and domain (rectype).
+
+        :returns: tuple (db name key, domain/record type key)
+        """
+        db = None
+        rectyp = None
+        dbs = [dbk for dbk in self.recs["db"].keys() if dbk != "audit"]
+        for dbk in dbs:
+            domk = [dmk for dmk, dom in self.recs["db"][dbk]["dm"].items()
+                    if dom["w"].isVisible()]
+            if len(domk) > 0:
+                db = dbk
+                rectyp = domk[0]
+                break
+        return (db, rectyp)
+
+    def push_find_keys(self):
+        """Slot for DB Editor Find push button click action."""
+        # self.editor.prep_editor_action("Find")
+        db, rectyp = self.get_active_domain()
+        search = self.get_active_search(rectyp)
+        _ = self.find_redis_keys(
+            db.lower(), rectyp, search, p_load_1st_rec=True)
 
     # Record Type Selector helper and slot functions
     # ============================================================
@@ -346,25 +409,6 @@ class RecordMgmt(QWidget):
         self.editor.enable_texts("get.box", ["find.inp"])    # type: ignore
         self.editor.enable_buttons("edit.box", ["cancel.btn"])  # type: ignore
 
-    def get_active_db_rectyp(self):
-        """Identify active db and record type.
-
-        :returns: tuple (db name key, rectyp type key)
-        """
-        db_nm = None
-        rectyp_nm = None
-        done = False
-        for db in self.rectyps.keys():
-            for rectyp, attrs in self.rectyps[db].items():
-                if attrs["active"]:
-                    db_nm = db
-                    rectyp_nm = rectyp
-                    done = True
-                    break
-            if done:
-                break
-        return (db_nm, rectyp_nm)
-
     def get_key_fields(self,
                        p_db_nm: str = None,
                        p_rectyp_nm: str = None):
@@ -378,7 +422,7 @@ class RecordMgmt(QWidget):
             key value as used on database)
         """
         if p_db_nm is None or p_rectyp_nm is None:
-            db, rectyp = self.get_active_db_rectyp()
+            db, rectyp = self.get_active_domain()
         else:
             db = p_db_nm
             rectyp = p_rectyp_nm
@@ -416,7 +460,7 @@ class RecordMgmt(QWidget):
             QFormLayout object)
         """
         if p_db_nm is None or p_rectyp_nm is None:
-            db, rectyp = self.get_active_db_rectyp()
+            db, rectyp = self.get_active_domain()
         else:
             db = p_db_nm
             rectyp = p_rectyp_nm
@@ -483,7 +527,7 @@ class RecordMgmt(QWidget):
               dict {field name:field value, ...} in db record format)
         """
         if p_db_nm is None:
-            db, rectyp = self.get_active_db_rectyp()
+            db, rectyp = self.get_active_domain()
         else:
             db = p_db_nm
             rectyp = p_rectyp_nm
@@ -503,7 +547,7 @@ class RecordMgmt(QWidget):
 
         :returns: (bool) True if all edits pass else False
         """
-        db, rectyp = self.get_active_db_rectyp()
+        db, rectyp = self.get_active_domain()
         form_keys, _ = self.get_key_fields(db, rectyp)
         form_values = form_keys | self.get_value_fields(db, rectyp)
         edits_passed = True
@@ -527,34 +571,6 @@ class RecordMgmt(QWidget):
                 break
         return (edits_passed)
 
-    # Edit Trigger Actions
-    # =====================
-    def get_searchkey_value(self,
-                            p_rectyp: str):
-        """Return value of the search/find text input widget.
-
-        The search is for key values only.
-        Adjust it to work as a wildcard by
-          preceding and ending with asterisks.
-        Add rectyp name in the search text.
-        Cast to lower case.
-
-        :returns: tuple (
-            db name cast lower for use on redis,
-            search key value modified for use on redis)
-        """
-        search_key = \
-            self.editor.texts["Key"]["widget"].text().strip()  # type: ignore
-        rectyp_nm = p_rectyp.lower()
-        search_key = self.edit["redis_key"](search_key)
-        if f"{rectyp_nm}:" not in search_key:
-            search_key = f"{rectyp_nm}:{search_key}"
-        if search_key[:1] != "*":
-            search_key = "*" + search_key
-        if search_key[-1:] != "*":
-            search_key += "*"
-        return (search_key.lower())
-
     # IO Meta Functions
     # ==============================================================
     def get_redis_record(self,
@@ -568,138 +584,51 @@ class RecordMgmt(QWidget):
         result = RI.get_record(p_db_nm, p_select_key)
         if result is None:
             self.editor.set_dbe_status(  # type: ignore
-                "",
-                f"No records found with key like '{p_select_key}'")
+                f"{BT.txt.no_key}{p_select_key}'")
         else:
             print(f"GET Result: {result}")
             # put the values into the editor
             pass
         return (result)
 
-    def validate_links(self,
-                       p_db_nm: str,
-                       p_rectyp: str,
-                       p_record: dict):
-        """Validate foreign key values before writing to DB.
-
-        :args:
-            p_db_nm - name of db containing the record type
-            p_rectyp - record type
-            p_record - record to be written to DB
-        """
-        links = self.get_value_fields(p_db_nm, p_rectyp, True)
-        if links != {}:
-            for link_nm, link_values in links.items():
-                for link_ix, link_val in enumerate(link_values):
-                    link_key = \
-                        self.edit["redis_key"](link_val)
-                    p_record[link_nm][link_ix] = link_key
-                    link_rec = self.find_redis_keys(
-                        p_db_nm, p_rectyp, link_key, p_load_1st_rec=False)
-                    if link_rec in (None, {}, []):
-                        self.editor.set_dbe_status(  # type: ignore
-                            "",
-                            f"No record found with key '{link_key}'")
-                        return False
-        return True
-
-    def add_record_to_db(self,
-                         p_is_auto: bool = False,
-                         p_db_nm: str = None,
-                         p_rectyp_nm: str = None):
-        """Add a record to the DB per active record type in Editor.
-
-        Acts as slot for DB Editor Edit/Add push button click action.
-        Or if based on parameters, does automated record-add logic.
-
-        Get all values from active edit form.
-        Check to see if record w/key already exists on DB.
-        Reject Add if rec already exists.
-
-        :args:
-            p_is_auto - True if this is an auto-add,
-                        False if Add button was clicked
-            p_db_nm - name of the DB to add the record to,
-                      defaults to None for Add button clicks.
-            p_rectyp_nm - name of the record type to add,
-                      defaults to None for Add button clicks.
-
-        :returns: (bool) True if record was added, False if not
-        """
-        manual_add = True
-        self.editor.prep_editor_action("Add")                  # type: ignore
-        if p_db_nm is None or p_rectyp_nm is None:
-            db, rectyp = self.get_active_db_rectyp()
-            _, record = self.get_all_fields()
-        else:
-            db = p_db_nm
-            rectyp = p_rectyp_nm
-            # It is an auto-generated record.
-            # Need to specify the DB and record type.
-            # Would we still use a Form widget to CREATE the record?
-            # hmmm... probably not? But would it be doable? Why not?
-            manual_add = False
-            values = self.get_value_fields(db, rectyp)
-            key = f"{rectyp.lower()}:{RI.UT.get_hash(str(values))}"
-            record = {"name": key} | values
-        result = self.get_redis_record(db, record["name"])
-        if result in (None, [], {}):
-            if self.run_rectyp_edits():
-                if not self.validate_links(db, rectyp, record):
-                    return False
-                if manual_add:
-                    record = RI.set_audit_values(record, p_include_hash=True)
-                else:
-                    record = RI.set_audit_values(record, p_include_hash=False)
-                RI.do_insert(db, record)
-                return True
-        else:
-            self.editor.set_dbe_status(   # type: ignore
-                "",
-                "Insert rejected. Record already exists.")
-            return False
-
     def find_redis_keys(self,
                         p_db_nm: str,
                         p_rectyp: str,
-                        p_key_pattern: str,
+                        p_search: str,
                         p_load_1st_rec: bool = True):
         """Get a list of keys for selected DB matching the pattern.
 
         :args:
             p_db_nm - name of the database to search
             p_rectyp - record type to search
-            p_key_pattern - pattern to match for keys
+            p_search - pattern to match for keys
             p_load_1st_rec - load 1st record found into editor
         :returns: list of keys that match the pattern or None
         """
         db = p_db_nm
-        result_b = RI.find_keys(db, p_key_pattern)
+        result_b = RI.find_keys(db.replace(".db", ""), p_search)
         result: list = []
         if result_b in (None, [], {}):
             self.editor.set_dbe_status(   # type: ignore
-                "",
-                f"No record found with key like '{p_key_pattern}'")
+                f"{BT.txt.no_key} '{p_search}'")
         else:
             for res in result_b:
                 result.append(res.decode("utf-8"))
             result = sorted(result)
-            rcnt = len(result)
-            rword = "record" if rcnt == 1 else "records"
-            self.editor.set_dbe_status(   # type: ignore
-                "",
-                f"{rcnt} {rword} found with key like '{p_key_pattern}'")
+            if len(result) == 1:
+                self.editor.set_dbe_status(   # type: ignore
+                    f"{len(result)} {BT.txt.record_found}{p_search}")
+            else:
+                self.editor.set_dbe_status(   # type: ignore
+                    f"{len(result)} {BT.txt.records_found}{p_search}")
             if p_load_1st_rec:
-                # Get first record from find key list, display in editor
-                # Select first record in the set of found keys.
-                _ = self.get_redis_record(db, result[0])
-                # If more than one key was found,
-                if len(result) > 1:
-                    self.editor.activate_buttons(   # type: ignore
-                        "Get", ["Next", "Prev"])
+                records = self.get_redis_record(db, result[0])
+                if len(records) > 1:
+                    self.editor.enable_buttons(   # type: ignore
+                        "get.box", ["Next"])
                 else:
-                    self.editor.deactivate_buttons(   # type: ignore
-                        "Get", ["Next", "Prev"])
+                    self.editor.disable_buttons(   # type: ignore
+                        "get.box", ["Next", "Prev"])
                 # To load from db record to editor form(s), use functions
                 # in the DB Editor class:
                 #  db_editor.set_key_fields(record)
@@ -771,10 +700,85 @@ class RecordMgmt(QWidget):
 
         return (result)
 
-    def find_record_keys(self):
-        """Slot for DB Editor Find push button click action."""
-        self.editor.prep_editor_action("Find")
-        db, rectyp = self.get_active_db_rectyp()
-        search_key = self.get_searchkey_value(rectyp)
-        _ = self.find_redis_keys(
-            db.lower(), rectyp, search_key, p_load_1st_rec=True)
+    def validate_links(self,
+                       p_db_nm: str,
+                       p_rectyp: str,
+                       p_record: dict):
+        """Validate foreign key values before writing to DB.
+
+        :args:
+            p_db_nm - name of db containing the record type
+            p_rectyp - record type
+            p_record - record to be written to DB
+        """
+        links = self.get_value_fields(p_db_nm, p_rectyp, True)
+        if links != {}:
+            for link_nm, link_values in links.items():
+                for link_ix, link_val in enumerate(link_values):
+                    link_key = \
+                        self.edit["redis_key"](link_val)
+                    p_record[link_nm][link_ix] = link_key
+                    link_rec = self.find_redis_keys(
+                        p_db_nm, p_rectyp, link_key, p_load_1st_rec=False)
+                    if link_rec in (None, {}, []):
+                        self.editor.set_dbe_status(  # type: ignore
+                            "",
+                            f"No record found with key '{link_key}'")
+                        return False
+        return True
+
+    def add_record_to_db(self,
+                         p_is_auto: bool = False,
+                         p_db_nm: str = None,
+                         p_rectyp_nm: str = None):
+        """Add a record to the DB per active record type in Editor.
+
+        Acts as slot for DB Editor Edit/Add push button click action.
+        Or if based on parameters, does automated record-add logic.
+
+        Get all values from active edit form.
+        Check to see if record w/key already exists on DB.
+        Reject Add if rec already exists.
+
+        :args:
+            p_is_auto - True if this is an auto-add,
+                        False if Add button was clicked
+            p_db_nm - name of the DB to add the record to,
+                      defaults to None for Add button clicks.
+            p_rectyp_nm - name of the record type to add,
+                      defaults to None for Add button clicks.
+
+        :returns: (bool) True if record was added, False if not
+        """
+        manual_add = True
+        self.editor.prep_editor_action("Add")                  # type: ignore
+        if p_db_nm is None or p_rectyp_nm is None:
+            db, rectyp = self.get_active_domain()
+            _, record = self.get_all_fields()
+        else:
+            db = p_db_nm
+            rectyp = p_rectyp_nm
+            # It is an auto-generated record.
+            # Need to specify the DB and record type.
+            # Would we still use a Form widget to CREATE the record?
+            # hmmm... probably not? But would it be doable? Why not?
+            manual_add = False
+            values = self.get_value_fields(db, rectyp)
+            key = f"{rectyp.lower()}:{RI.UT.get_hash(str(values))}"
+            record = {"name": key} | values
+        result = self.get_redis_record(db, record["name"])
+        if result in (None, [], {}):
+            if self.run_rectyp_edits():
+                if not self.validate_links(db, rectyp, record):
+                    return False
+                if manual_add:
+                    record = RI.set_audit_values(record, p_include_hash=True)
+                else:
+                    record = RI.set_audit_values(record, p_include_hash=False)
+                RI.do_insert(db, record)
+                return True
+        else:
+            self.editor.set_dbe_status(   # type: ignore
+                "",
+                "Insert rejected. Record already exists.")
+            return False

@@ -270,15 +270,19 @@
                             "fields" : {
                                 "exp_tm": {
                                     "name": "Expires",
+                                    "hint": "🔏",
                                     "ed": ["auto", "datetime"]},
                                 "hash_id": {
                                     "name": "Hash ID",
+                                    "hint": "🔏",
                                     "ed": ["auto"]},
                                 "last_upd": {
                                     "name": "Last Modified",
+                                    "hint": "🔏",
                                     "ed": ["auto", "datetime"]},
                                 "ver": {
                                     "name": "Version",
+                                    "hint": "🔏",
                                     "ed": ["auto"]}}}}}
             },
            "basement.db": {
@@ -294,16 +298,20 @@
                             "keys": {
                                 "catg": {
                                     "name": "Category",
+                                    "hint": "🔑",
                                     "ed": ["notnull"]},
                                 "id": {
                                     "name": "ID",
+                                    "hint": "🔑",
                                     "ed": ["notnull"]}},
                             "vals": {
                                 "name": {
                                     "name": "Name",
+                                    "hint": "🖊",
                                     "ed": ["notnull"]},
                                 "val": {
                                     "name": "Value",
+                                    "hint": "🖊",
                                     "ed": ["notnull"]}}}
                    },
                    "status": {
@@ -315,16 +323,20 @@
                             "keys": {
                                 "catg": {
                                     "name": "Category",
+                                    "hint": "🔑",
                                     "ed": ["notnull"]},
                                 "id": {
                                     "name": "ID",
+                                    "hint": "🔑",
                                     "ed": ["notnull"]}},
                             "vals": {
                                 "name": {
                                     "name": "Name",
+                                    "hint": "🖊",
                                     "ed": ["notnull"]},
                                 "val": {
                                     "name": "Value",
+                                    "hint": "🖊",
                                     "ed": ["notnull"]}}}
                    },
                    "widget": {
@@ -336,11 +348,13 @@
                             "keys": {
                                 "key": {
                                     "name": "Key",
-                                    "ed": ["notnull"]}},
+                                    "hint": "🔐",
+                                    "ed": ["auto"]}},
                             "vals": {
                                 "val": {
                                     "name": "Value",
-                                    "ed": ["notnull"]}}}
+                                    "hint": "🔏",
+                                    "ed": ["auto"]}}}
                     },
                    "expire": {
                         "a": "Expire Rules",
@@ -371,19 +385,24 @@
                             "keys": {
                                 "catg": {
                                     "name": "Category",
+                                    "hint": "🔑",
                                     "ed": ["notnull"]},
                                 "id": {
                                     "name": "ID",
+                                    "hint": "🔑",
                                     "ed": ["notnull"]}},
                             "vals": {
                                 "host": {
                                     "name": "Host",
+                                    "hint": "🖊 📏",
                                     "ed": ["notnull", "hostlist"]},
                                 "port": {
-                                        "name": "Host",
+                                        "name": "Port",
+                                        "hint": "🖊 Z^+",
                                         "ed": ["notnull", "posint"]},
                                 "chan": {
                                         "name": "Channel ID",
+                                        "hint": "🖊",
                                         "ed": ["notnull"]},
                                 "cap": {
                                         "name": "Caption",
@@ -393,6 +412,7 @@
                                         "ed": []},
                                 "plans": {
                                     "name": "Plans",
+                                    "hint": "🖊 🔗 📜",
                                     "ed": ["notnull", "link", "list"]}}
                         }
                     },
@@ -432,11 +452,13 @@
                             "keys": {
                                 "key": {
                                     "name": "Key",
-                                    "ed": ["notnull"]}},
+                                    "hint": "🔐",
+                                    "ed": ["auto"]}},
                             "vals": {
                                 "val": {
                                     "name": "Value",
-                                    "ed": ["notnull"]}}}
+                                    "hint": "🔏",
+                                    "ed": ["auto"]}}}
                     },
                     "responses": {
                         "a": "Responses",
@@ -447,10 +469,12 @@
                             "keys": {
                                 "hash": {
                                     "name": "Hash ID",
+                                    "hint": "🔐",
                                     "ed": ["auto"]}},
                             "vals": {
                                 "val": {
                                     "name": "Queue Value",
+                                    "hint": "🔏 📜",
                                     "ed": ["auto", "list"]}}
                         }
                     }

@@ -75,6 +75,9 @@ class BootTexts(object):
     @dataclass
     class txt:
         """Errors, warnings, Help, caption, descriptions"""
-        no_file: str = 'File not found: '
         app_desc: str = 'Saskan Eyes - Admin GUI for the whole Ball of Wax'
+        no_key: str = 'No key matches: '
+        no_file: str = 'File not found: '
+        record_found: str = ' record found with key like: '
+        records_found: str = ' records found with key like: '
         refresh_desc: str = 'Force refresh of Basement DB from config files'

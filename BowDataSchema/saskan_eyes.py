@@ -240,7 +240,7 @@ class SaskanEyes(QMainWindow):
                 key to metadata for the tool.
             p_help_pg:
                 Name of the help page to show.
-        
+
         @DEV
         - Check isVisible() on the widget instead of using flags
         """

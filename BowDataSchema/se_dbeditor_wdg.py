@@ -122,14 +122,17 @@ class DBEditorWidget(QWidget):
         return(status_wdg)
 
     def set_button_actions(self):
-        """Assign actions to button slots
+        """Assign actions to button slots.
+
+        Other button actions are assigned in RecordMgmt class.
 
         @DEV:
         - Refactor: Are "action" and "s" (status) meta needed?
           Let's see if we can do without them.
         """
         # Cancel / Stop Button
-        self.editor["bx"]["edit.box"]["bn"]["cancel.btn"]["w"].clicked.connect(self.push_cancel)  # noqa: E501
+        self.editor["bx"]["edit.box"]["bn"]["cancel.btn"]["w"].clicked.connect(
+            self.push_cancel)
 
     def make_db_editor_wdg(self):
         """Create all components of Data Base Editor widget.
