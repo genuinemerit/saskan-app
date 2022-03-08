@@ -228,37 +228,3 @@ class DBEditorWidget(QWidget):
         self.set_dbe_status(button["c"])
         # Add logic here to clear queues and reset widgets
         self.hide()
-
-    def add_row_to_list(self):
-        """Add an input row to form for list of fields.
-        """
-        list_nm = self.sender().objectName().split(":")[1].split(".")[0]
-        list_values, list_form = self.get_list_fields(list_nm)
-        rowcnt = len(list_values)
-        if rowcnt > 4:
-            button = self.editor["bx"]["edit.box"]["bn"]["fewer.btn"]
-            self.set_dbe_status(button["c"])
-        else:
-            button = self.editor["bx"]["edit.box"]["bn"]["more.btn"]
-            self.set_dbe_status(button["c"])
-            db, rectyp = self.get_active_db_rectyp()
-            edit_rules = [fld[1] for fld in
-                          self.rectyps[db][rectyp]["value_fields"]
-                          if fld[0] == list_nm][0]
-            edit_wdg = SS.set_line_edit_style(QLineEdit())
-            edit_wdg = self.apply_pre_edits(edit_rules, edit_wdg)
-            list_form.insertRow(rowcnt, list_nm, edit_wdg)
-
-    def remove_row_from_list(self):
-        """Remove one input row from the form for list of field.
-        """
-        list_nm = self.sender().objectName().split(":")[1].split(".")[0]
-        list_values, list_form = self.get_list_fields(list_nm)
-        rowcnt = len(list_values)
-        if rowcnt < 2:
-            button = self.editor["bx"]["edit.box"]["bn"]["fewer.btn"]
-            self.set_dbe_status(button["lim"])
-        else:
-            button = self.editor["bx"]["edit.box"]["bn"]["more.btn"]
-            self.set_dbe_status(button["lim"])
-            list_form.removeRow(rowcnt - 1)

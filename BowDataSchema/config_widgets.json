@@ -271,19 +271,23 @@
                                 "exp_tm": {
                                     "name": "Expires",
                                     "hint": "🔏",
-                                    "ed": ["auto", "datetime"]},
+                                    "ed": ["auto", "datetime"],
+                                    "id": null},
                                 "hash_id": {
                                     "name": "Hash ID",
                                     "hint": "🔏",
-                                    "ed": ["auto"]},
+                                    "ed": ["auto"],
+                                    "id": null},
                                 "last_upd": {
                                     "name": "Last Modified",
                                     "hint": "🔏",
-                                    "ed": ["auto", "datetime"]},
+                                    "ed": ["auto", "datetime"],
+                                    "id": null},
                                 "ver": {
                                     "name": "Version",
                                     "hint": "🔏",
-                                    "ed": ["auto"]}}}}}
+                                    "ed": ["auto"],
+                                    "id": null}}}}}
             },
            "basement.db": {
                "ns": 0,
@@ -299,20 +303,24 @@
                                 "catg": {
                                     "name": "Category",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]},
+                                    "ed": ["notnull"],
+                                    "id": null},
                                 "id": {
                                     "name": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]}},
+                                    "ed": ["notnull"],
+                                    "id": null}},
                             "vals": {
                                 "name": {
                                     "name": "Name",
                                     "hint": "🖊",
-                                    "ed": ["notnull"]},
+                                    "ed": ["notnull"],
+                                    "id": null},
                                 "val": {
                                     "name": "Value",
                                     "hint": "🖊",
-                                    "ed": ["notnull"]}}}
+                                    "ed": ["notnull"],
+                                    "id": null}}}
                    },
                    "status": {
                         "a": "Status Flags",
@@ -324,20 +332,24 @@
                                 "catg": {
                                     "name": "Category",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]},
+                                    "ed": ["notnull"],
+                                    "id": null},
                                 "id": {
                                     "name": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]}},
+                                    "ed": ["notnull"],
+                                    "id": null}},
                             "vals": {
                                 "name": {
                                     "name": "Name",
                                     "hint": "🖊",
-                                    "ed": ["notnull"]},
+                                    "ed": ["notnull"],
+                                    "id": null},
                                 "val": {
                                     "name": "Value",
                                     "hint": "🖊",
-                                    "ed": ["notnull"]}}}
+                                    "ed": ["notnull"],
+                                    "id": null}}}
                    },
                    "widget": {
                         "a": "Widgets Meta",
@@ -349,12 +361,14 @@
                                 "key": {
                                     "name": "Key",
                                     "hint": "🔐",
-                                    "ed": ["auto"]}},
+                                    "ed": ["auto"],
+                                    "id": null}},
                             "vals": {
                                 "val": {
                                     "name": "Value",
                                     "hint": "🔏",
-                                    "ed": ["auto"]}}}
+                                    "ed": ["auto"],
+                                    "id": null}}}
                     },
                    "expire": {
                         "a": "Expire Rules",
@@ -386,34 +400,43 @@
                                 "catg": {
                                     "name": "Category",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]},
+                                    "ed": ["notnull"],
+                                    "id": null},
                                 "id": {
                                     "name": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]}},
+                                    "ed": ["notnull"],
+                                    "id": null}},
                             "vals": {
                                 "host": {
                                     "name": "Host",
                                     "hint": "🖊 📏",
-                                    "ed": ["notnull", "hostlist"]},
+                                    "ed": ["notnull", "hostlist"],
+                                    "id": null},
                                 "port": {
-                                        "name": "Port",
-                                        "hint": "🖊 Z^+",
-                                        "ed": ["notnull", "posint"]},
+                                    "name": "Port",
+                                    "hint": "🖊 Z^+",
+                                    "ed": ["notnull", "posint"],
+                                    "id": null},
                                 "chan": {
-                                        "name": "Channel ID",
-                                        "hint": "🖊",
-                                        "ed": ["notnull"]},
+                                    "name": "Channel ID",
+                                    "hint": "🖊",
+                                    "ed": ["notnull"],
+                                    "id": null},
                                 "cap": {
-                                        "name": "Caption",
-                                        "ed": []},
+                                    "name": "Caption",
+                                    "ed": [],
+                                    "id": null},
                                 "desc": {
-                                        "name": "Description",
-                                        "ed": []},
-                                "plans": {
-                                    "name": "Plans",
+                                    "name": "Description",
+                                    "ed": [],
+                                    "id": null},
+                                "plan": {
+                                    "name": "Plan ID",
                                     "hint": "🖊 🔗 📜",
-                                    "ed": ["notnull", "link", "list"]}}
+                                    "ed": ["notnull", "link", "list"],
+                                    "maxix": 0,
+                                    "id": null}}
                         }
                     },
                     "plans": {
@@ -453,12 +476,14 @@
                                 "key": {
                                     "name": "Key",
                                     "hint": "🔐",
-                                    "ed": ["auto"]}},
+                                    "ed": ["auto"],
+                                    "id": null}},
                             "vals": {
                                 "val": {
                                     "name": "Value",
                                     "hint": "🔏",
-                                    "ed": ["auto"]}}}
+                                    "ed": ["auto"],
+                                    "id": null}}}
                     },
                     "responses": {
                         "a": "Responses",
@@ -470,12 +495,14 @@
                                 "hash": {
                                     "name": "Hash ID",
                                     "hint": "🔐",
-                                    "ed": ["auto"]}},
+                                    "ed": ["auto"],
+                                    "id": null}},
                             "vals": {
                                 "val": {
                                     "name": "Queue Value",
                                     "hint": "🔏 📜",
-                                    "ed": ["auto", "list"]}}
+                                    "ed": ["auto", "list"],
+                                    "id": null}}
                         }
                     }
                 }
