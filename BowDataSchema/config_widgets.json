@@ -254,41 +254,36 @@
             "w": null}
     },
     "record_io": {
-        "w": null,
         "bx": {
             "select.box": {
                 "a": "Select Record Type:"
                 }
         },
-        "db": {
-            "audit": {
-                "ns": null,
-                "name": "Audit",
-                "dm": {
-                    "audit": {
-                        "rec": {
-                            "fields" : {
-                                "exp_tm": {
-                                    "name": "Expires",
-                                    "hint": "🔏",
-                                    "ed": ["auto", "datetime"],
-                                    "id": null},
-                                "hash_id": {
-                                    "name": "Hash ID",
-                                    "hint": "🔏",
-                                    "ed": ["auto"],
-                                    "id": null},
-                                "last_upd": {
-                                    "name": "Last Modified",
-                                    "hint": "🔏",
-                                    "ed": ["auto", "datetime"],
-                                    "id": null},
-                                "ver": {
-                                    "name": "Version",
-                                    "hint": "🔏",
-                                    "ed": ["auto"],
-                                    "id": null}}}}}
+        "audit": {
+            "ns": null,
+            "name": "Audit",
+            "dm": {
+                "audit": {
+                    "rec": {
+                        "fields" : {
+                            "exp_tm": {
+                                "title": "Expires",
+                                "hint": "🔏",
+                                "ed": ["auto", "datetime"]},
+                            "hash_id": {
+                                "title": "Hash ID",
+                                "hint": "🔏",
+                                "ed": ["auto"]},
+                            "last_upd": {
+                                "title": "Last Modified",
+                                "hint": "🔏",
+                                "ed": ["auto", "datetime"]},
+                            "ver": {
+                                "title": "Version",
+                                "hint": "🔏",
+                                "ed": ["auto"]}}}}}
             },
+        "db": {
            "basement.db": {
                "ns": 0,
                "name": "Configs",
@@ -297,91 +292,86 @@
                         "a": "Configs",
                         "c": "Records defining config data structures.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {
                             "keys": {
                                 "catg": {
-                                    "name": "Category",
+                                    "title": "Category",
                                     "hint": "🔑",
-                                    "ed": ["notnull"],
-                                    "id": null},
+                                    "ed": ["notnull"]},
                                 "id": {
-                                    "name": "ID",
+                                    "title": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"],
-                                    "id": null}},
+                                    "ed": ["notnull"]}},
                             "vals": {
                                 "name": {
-                                    "name": "Name",
+                                    "title": "Name",
                                     "hint": "🖊",
-                                    "ed": ["notnull"],
-                                    "id": null},
+                                    "ed": ["notnull"]},
                                 "val": {
-                                    "name": "Value",
+                                    "title": "Value",
                                     "hint": "🖊",
-                                    "ed": ["notnull"],
-                                    "id": null}}}
+                                    "ed": ["notnull"]}}}
                    },
                    "status": {
                         "a": "Status Flags",
                         "c": "Records defining status data structures.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {
                             "keys": {
                                 "catg": {
-                                    "name": "Category",
+                                    "title": "Category",
                                     "hint": "🔑",
-                                    "ed": ["notnull"],
-                                    "id": null},
+                                    "ed": ["notnull"]},
                                 "id": {
-                                    "name": "ID",
+                                    "title": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"],
-                                    "id": null}},
+                                    "ed": ["notnull"]}},
                             "vals": {
                                 "name": {
-                                    "name": "Name",
+                                    "title": "Name",
                                     "hint": "🖊",
-                                    "ed": ["notnull"],
-                                    "id": null},
+                                    "ed": ["notnull"]},
                                 "val": {
-                                    "name": "Value",
+                                    "title": "Value",
                                     "hint": "🖊",
-                                    "ed": ["notnull"],
-                                    "id": null}}}
+                                    "ed": ["notnull"]}}}
                    },
                    "widget": {
                         "a": "Widgets Meta",
                         "c": "Records defining application objects.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {
                             "keys": {
                                 "key": {
-                                    "name": "Key",
+                                    "title": "Key",
                                     "hint": "🔐",
-                                    "ed": ["auto"],
-                                    "id": null}},
+                                    "ed": ["auto"]}},
                             "vals": {
                                 "val": {
-                                    "name": "Value",
+                                    "title": "Value",
                                     "hint": "🔏",
-                                    "ed": ["auto"],
-                                    "id": null}}}
+                                    "ed": ["auto"]}}}
                     },
                    "expire": {
                         "a": "Expire Rules",
                         "c": "Records holding record expiration rules.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                    },
                    "retry": {
                        "a": "Retry Rules",
                         "c": "Records holding message retry rules.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                    }
                 }
@@ -394,70 +384,65 @@
                         "a": "Topics",
                         "c": "Records holding service topic definitions.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {
                             "keys": {
                                 "catg": {
-                                    "name": "Category",
+                                    "title": "Category",
                                     "hint": "🔑",
-                                    "ed": ["notnull"],
-                                    "id": null},
+                                    "ed": ["notnull"]},
                                 "id": {
-                                    "name": "ID",
+                                    "title": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"],
-                                    "id": null}},
+                                    "ed": ["notnull"]}},
                             "vals": {
                                 "host": {
-                                    "name": "Host",
+                                    "title": "Host",
                                     "hint": "🖊 📏",
-                                    "ed": ["notnull", "hostlist"],
-                                    "id": null},
+                                    "ed": ["notnull", "hostlist"]},
                                 "port": {
-                                    "name": "Port",
+                                    "title": "Port",
                                     "hint": "🖊 Z^+",
-                                    "ed": ["notnull", "posint"],
-                                    "id": null},
+                                    "ed": ["notnull", "posint"]},
                                 "chan": {
-                                    "name": "Channel ID",
+                                    "title": "Channel ID",
                                     "hint": "🖊",
-                                    "ed": ["notnull"],
-                                    "id": null},
+                                    "ed": ["notnull"]},
                                 "cap": {
-                                    "name": "Caption",
-                                    "ed": [],
-                                    "id": null},
+                                    "title": "Caption",
+                                    "ed": []},
                                 "desc": {
-                                    "name": "Description",
-                                    "ed": [],
-                                    "id": null},
+                                    "title": "Description",
+                                    "ed": []},
                                 "plan": {
-                                    "name": "Plan ID",
+                                    "title": "Plan ID",
                                     "hint": "🖊 🔗 📜",
-                                    "ed": ["notnull", "link", "list"],
-                                    "maxix": 0,
-                                    "id": null}}
+                                    "ed": ["notnull", "link", "list"]}}
                         }
                     },
                     "plans": {
                         "a": "Plans",
                         "c": "Records holding service plan definitions.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "services": {
                         "a": "Services",
                         "c": "Records holding service definitions.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "schemas": {
                         "a": "Schemas",
                         "c": "Records holding service schema definitions.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     }
                 }
@@ -470,39 +455,37 @@
                         "a": "Queues",
                         "c": "Records storing temporary lists.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {
                             "keys": {
                                 "key": {
-                                    "name": "Key",
+                                    "title": "Key",
                                     "hint": "🔐",
-                                    "ed": ["auto"],
-                                    "id": null}},
+                                    "ed": ["auto"]}},
                             "vals": {
                                 "val": {
-                                    "name": "Value",
+                                    "title": "Value",
                                     "hint": "🔏",
-                                    "ed": ["auto"],
-                                    "id": null}}}
+                                    "ed": ["auto"]}}}
                     },
                     "responses": {
                         "a": "Responses",
                         "c": "Records holding request response and pub content.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {
                             "keys": {
                                 "hash": {
-                                    "name": "Hash ID",
+                                    "title": "Hash ID",
                                     "hint": "🔐",
-                                    "ed": ["auto"],
-                                    "id": null}},
+                                    "ed": ["auto"]}},
                             "vals": {
                                 "val": {
-                                    "name": "Queue Value",
+                                    "title": "Queue Value",
                                     "hint": "🔏 📜",
-                                    "ed": ["auto", "list"],
-                                    "id": null}}
+                                    "ed": ["auto", "list"]}}
                         }
                     }
                 }
@@ -515,21 +498,24 @@
                         "a": "Control Log",
                         "c": "Log records for service controller events.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "requests": {
                         "a": "Request Log",
                         "c": "Log records for service request and sub events.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "responses": {
                         "a": "Response Log",
                         "c": "Log records for service response and pub events.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     }
                 }
@@ -542,28 +528,32 @@
                         "a": "Channel",
                         "c": "Summary records for server channel loads.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "hosts": {
                         "a": "Host Machines",
                         "c": "Summary records for physical server loads.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "requests": {
                         "a": "Requests",
                         "c": "Summary records for request/sub events.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     },
                     "responses": {
                         "a": "Responses",
                         "c": "Summary records for response/pub events.",
                         "action": null,
-                        "w": null,
+                        "w_sel": null,
+                        "w_dom": null,
                         "rec": {}
                     }
                 }
