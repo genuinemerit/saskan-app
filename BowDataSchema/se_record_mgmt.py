@@ -199,40 +199,26 @@ class RecordMgmt(QWidget):
         be the case when the domain widget has not yet been completed,
         so the line-edit child-widget is not found.
         In either case, put one empty value in the list.
+
+        :return:
+            (list) List of values for the field
         """
         flix = 1
         ffnd = True
         list_values = []
-
-        print("DEBUG: get_list_values()")
-
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
-
-        pp(("dom_wdg", dom_wdg))
-
         while ffnd:
             try:
                 flid = f"{db}:{dm}:{ftag}-{str(flix)}.ed"
-
-                print(f"Looking for flid: {flid}...")
-
                 list_values.append(
                     dom_wdg.findChild(QLineEdit, flid).text())
                 flix += 1
-
-                print("found")
-
             except Exception as err:  # noqa F841
                 ffnd = False
 
-                print("NOT found")
-
         if list_values == []:
-
-            print("Setting list_values to a single empty value...")
-
             list_values = [""]
-        return (list_values)
+        return list_values
 
     def get_field_values(self,
                          db: str,
@@ -247,28 +233,37 @@ class RecordMgmt(QWidget):
         """
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         frec: dict = {db: {dm: meta}}
-        dbkey: str = ""  # redis key, "name" value on redis record
         dbrec: dict = {db: {"name": {}, "values": {}, "audit": {}}}
+        dbkey: str = ""  # redis key = "name" value on redis record
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
         for fgrp, fields in meta.items():
-            if fgrp == "keys":
-                dbkey += fgrp + ":"
             for ftag, rec in fields.items():
                 # Set all rec values based on current form fields
                 frec[db][dm][fgrp][ftag]["value"] = []
                 flid = f"{db}:{dm}:{ftag}.ed"
+
                 if "list" in rec["ed"]:
+
+                    print(f"LIST flid: {flid}")
+
                     frec[db][dm][fgrp][ftag]["value"] = \
                         self.get_list_values(db, dm, fgrp, ftag)
                 else:
-                    frec[db][dm][fgrp][ftag]["value"].append(
-                        dom_wdg.findChild(QLineEdit, flid).text())
+
+                    print(f"SINGLETON flid: {flid}")
+
+                    value = dom_wdg.findChild(QLineEdit, flid).text()
+                    frec[db][dm][fgrp][ftag]["value"].append(value)
+                    if fgrp == "keys":
+                        dbkey += f"{value}:"
+        dbkey = dbkey[:-1]
         if dm not in dbkey:
             dbkey = dm + ":" + dbkey
         dbrec[db]["name"] = self.edit["dbkey"](dbkey)
         for fgrp, mrec in frec[db][dm].items():
+            dbrec[db][fgrp] = {}
             for flix, rec in mrec.items():
-                dbrec[db]["values"][fgrp] = rec["value"]
+                dbrec[db][fgrp][flix] = rec["value"]
 
         pp(("frec", frec))
         pp(("dbrec", dbrec))
@@ -302,9 +297,6 @@ class RecordMgmt(QWidget):
             ew.setObjectName(f"{db}:{dm}:{ftag}-{str(flix)}.ed")
         else:
             ew.setObjectName(f"{db}:{dm}:{ftag}.ed")
-
-        print(f"New line edit name={ew.objectName()}\n")
-
         if "hint" in rec.keys():
             ew.setPlaceholderText(rec["hint"])
             ew.setToolTip(rec["hint"])
@@ -330,27 +322,25 @@ class RecordMgmt(QWidget):
         """
         def add_list_btn(p_btn_txt: str,
                          p_btn_nm: str,
-                         p_btn_action):
+                         p_action):
             """Add a button to add or remove a new list item."""
             btn = SS.set_button_style(QPushButton(p_btn_txt), p_active=True)
-            btn.setEnabled(True)
             list_values = self.get_list_values(db, dm, fgrp, ftag)
             flix = len(list_values)
             if p_add_row:
                 flix += 1
             btn.setObjectName(
                 f"{db}_{dm}_{fgrp}_{ftag}-{str(flix)}_{p_btn_nm}")
-
-            print(f"Added a button named: {btn.objectName()}")
-
-            btn.clicked.connect(p_btn_action)
+            btn.clicked.connect(p_action)
             return (btn)
 
         hbox = QHBoxLayout()
         rec = self.recs["db"][db]["dm"][dm]["rec"][fgrp][ftag]
         hbox.addWidget(self.set_line_edit(db, dm, fgrp, ftag, rec, p_add_row))
-        hbox.addWidget(add_list_btn("+", "add.btn", self.add_row_to_list))
-        hbox.addWidget(add_list_btn("-", "rmv.btn", self.remove_row_from_list))
+        hbox.addWidget(add_list_btn(
+                "+", "add.btn", self.add_row_to_list))
+        hbox.addWidget(add_list_btn(
+                "-", "rmv.btn", self.remove_row_from_list))
         return (hbox)
 
     def make_edit_form(self,
@@ -383,6 +373,47 @@ class RecordMgmt(QWidget):
         frm_wdg.setLayout(form)
         return(frm_wdg)
 
+    def init_list_button_visiblity(self):
+        """Set initial visiblity state for list-type edit item buttons"""
+        for dbk, db in self.recs["db"].items():
+            for dmk, dm in db["dm"].items():
+                dom_wdg = self.recs["db"][dbk]["dm"][dmk]["w_dom"]
+                for fgrp, recs in dm["rec"].items():
+                    for ftag, rec in recs.items():
+                        if "list" in rec["ed"]:
+                            tag = f"{dbk}_{dmk}_{fgrp}_{ftag}-1_"
+                            dom_wdg.findChild(
+                                QPushButton, tag+"add.btn").setVisible(True)
+                            dom_wdg.findChild(
+                                QPushButton, tag+"rmv.btn").setVisible(False)
+
+    def set_list_button_visiblity(self,
+                                  db,
+                                  dm,
+                                  fgrp,
+                                  ftag):
+        """Set the visibility of the add/remove list button."""
+        list_values = self.get_list_values(db, dm, fgrp, ftag)
+        dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
+        max_flix = len(list_values)
+        for flix in range(1, max_flix + 1):
+            add_btn = f"{db}_{dm}_{fgrp}_{ftag}-{str(flix)}_add.btn"
+            rmv_btn = f"{db}_{dm}_{fgrp}_{ftag}-{str(flix)}_rmv.btn"
+            if flix < max_flix:
+                dom_wdg.findChild(
+                    QPushButton, add_btn).setVisible(False)
+                dom_wdg.findChild(
+                    QPushButton, rmv_btn).setVisible(False)
+            else:
+                dom_wdg.findChild(
+                    QPushButton, add_btn).setVisible(True)
+                if max_flix > 1:
+                    dom_wdg.findChild(
+                        QPushButton, rmv_btn).setVisible(True)
+                else:
+                    dom_wdg.findChild(
+                        QPushButton, rmv_btn).setVisible(False)
+
     def add_row_to_list(self):
         """Add an input row to form for list of fields.
 
@@ -399,7 +430,9 @@ class RecordMgmt(QWidget):
         form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
             QFormLayout, f"{db}:{dm}.frm")
         form_wdg.addRow(rec["title"],
-                        self.set_list_row(db, dm, fgrp, ftag, rec, p_add_row=True))
+                        self.set_list_row(
+                            db, dm, fgrp, ftag, rec, p_add_row=True))
+        self.set_list_button_visiblity(db, dm, fgrp, ftag)
 
     def remove_row_from_list(self):
         """Remove one input row from the form for list of fields.
@@ -407,20 +440,31 @@ class RecordMgmt(QWidget):
         Remove '_rmv.btn' to derive the object ID of the line edit,
         then split on '_' (if any) and take first part to get the
         original meta field tag and the index of the selected edit line.
+
+        Since values are collected from the form, don't need to manage
+        any storage of values, e.g., removing a value.  However, we do
+        need to do something to handle numbering (flix) of list items.
+        And that gets tricky. So we will restrict adding and removing buttons
+        to appear only on the LAST item in a list.
+
+        Keep in mind that the rowCount() on the Form Layout includes ALL of
+        the fields presently on the form, not only the List fields. Another
+        reason it is easier to manipulate only the last field in the List.
+
+        This may also be a good reason to allow only one List-type field per
+        domain. At least until I can figure out a nicer way to manage the adds
+        and removals. I think it can be done passing in the actual widget (or
+        maybe its ID?) to be removed, but keep in mind that that is a Layout
+        (a HBox) and not a LineEdit widget.
         """
         db, dm, fgrp, flid = tuple(
             self.sender().objectName().replace("_rmv.btn", "").split("_"))
         frec, dbrec = self.get_field_values(db, dm)
-        ftag, flix = tuple(flid.split("-"))
-        # Remove a row from the form widget, based on selected flix
+        ftag = flid.split("-")[0]
         form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
             QFormLayout, f"{db}:{dm}.frm")
-
-        pp(("form_wdg:", form_wdg))
-        print(f"Removing row index {flix} from list field w/ meta-tag: {ftag}")
-
-        # form_wdg.removeRow(flix - 1)
-        # then also remove values from meta and reduce the fix count
+        form_wdg.removeRow(form_wdg.rowCount() - 1)
+        self.set_list_button_visiblity(db, dm, fgrp, ftag)
 
     def set_ed_button_actions(self):
         """Assign actions to button slots defined in the DBEditor class.
@@ -458,6 +502,7 @@ class RecordMgmt(QWidget):
                 dom_wdg.hide()
                 self.recs["db"][dbk]["dm"][dmk]["w_dom"] = dom_wdg
                 self.editor.dbe.addWidget(dom_wdg)
+        self.init_list_button_visiblity()
         self.set_ed_button_actions()
 
     # Editor Button helper and slot functions
@@ -609,17 +654,11 @@ class RecordMgmt(QWidget):
         rectyp = p_rectyp_nm
         form_values: dict = {}
 
-        all_rows = self.rectyps[db][rectyp]["widget"].findChild(
-                QFormLayout)
-        pp(("values... all_rows", all_rows))
-
         fields_nm = "value_fields"
         form_nm = f"{db}:{rectyp}:{fields_nm}.frm"
         form_rows = \
             self.rectyps[db][rectyp]["widget"].findChild(
                 QFormLayout, f"{db}:{rectyp}:{form_nm}")
-        pp(("values... form_nm", form_nm))
-        pp(("values... form_rows", all_rows))
 
         for val_idx, val in enumerate(
                 self.rectyps[db][rectyp][fields_nm]):
