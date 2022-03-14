@@ -68,7 +68,6 @@ class ControlsWidget(QWidget):
         hbox.addSpacing(30)
         for btn_id, button in self.controls["bn"].items():
             btn = SS.set_button_style(QPushButton(button["a"]))
-            self.controls["bn"][btn_id]["s"] = "active"
             self.controls["bn"][btn_id]["w"] = btn
             hbox.addWidget(btn)
         return(hbox)
@@ -111,30 +110,26 @@ class ControlsWidget(QWidget):
     def start_services(self):
         """Slot for Start Services action"""
         btn = self.controls["bn"]["start.btn"]
-        if btn["s"] == "active":
-            self.set_status_text(btn["c"])
-            status, msg = CS.start_services(p_service_nm='redis')
-            self.controls["disp.txt"]["w"].setText(msg)
+        self.set_status_text(btn["c"])
+        status, msg = CS.start_services(p_service_nm='redis')
+        self.controls["disp.txt"]["w"].setText(msg)
 
     def stop_services(self):
         """Slot for Stop Services action"""
         btn = self.controls["bn"]["stop.btn"]
-        if btn["s"] == "active":
-            self.set_status_text(btn["c"])
-            status, msg = CS.stop_running_services(p_service_nm='redis')
-            self.controls["disp.txt"]["w"].setText(msg)
+        self.set_status_text(btn["c"])
+        status, msg = CS.stop_running_services(p_service_nm='redis')
+        self.controls["disp.txt"]["w"].setText(msg)
 
     def show_services(self):
         """Slot for Show Services action"""
         btn = self.controls["bn"]["show.btn"]
-        if btn["s"] == "active":
-            self.set_status_text(btn["c"])
-            status, msg = CS.check_running_services(p_service_nm='redis')
-            self.controls["disp.txt"]["w"].setText(msg)
+        self.set_status_text(btn["c"])
+        status, msg = CS.check_running_services(p_service_nm='redis')
+        self.controls["disp.txt"]["w"].setText(msg)
 
     def test_services(self):
         """Slot for Test Services action"""
         btn = self.controls["bn"]["test.btn"]
-        if btn["s"] == "active":
-            self.set_status_text(btn["c"])
-            self.controls["disp.txt"]["w"].setText("")
+        self.set_status_text(btn["c"])
+        self.controls["disp.txt"]["w"].setText("")

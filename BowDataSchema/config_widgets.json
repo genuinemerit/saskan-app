@@ -12,30 +12,25 @@
                 "a": "Start",
                 "b": "Start Services",
                 "c": "Start up (Run) Saskan services",
-                "s": "inactive",
                 "w": null},
             "stop.btn": {
                 "a": "Stop",
                 "b": "Stop Services",
                 "c": "Kill all running Saskan services",
-                "s": "inactive",
                 "w": null},
             "show.btn": {
                 "a": "Show",
                 "b": "Show Services Status",
                 "c": "Show current status of Saskan services",
-                "s": "inactive",
                 "w": null},
             "test.btn": {
                 "a": "Test",
                 "b": "Test Services",
                 "c": "Run preset test suites on Saskan services",
-                "s": "inactive",
                 "w": null}
         },
         "disp.txt": {
             "w": null},
-        "s": "inactive",
         "status.txt":{
             "b": "Services Controller Status",
             "w": null},
@@ -43,7 +38,6 @@
     },
     "db_editor": {
         "a": "Database Editor",
-        "s": "inactive",
         "status.txt":{
             "b": "Database Editor Status",
             "w": null},
@@ -55,27 +49,20 @@
                     "find.btn": {
                         "a": "Find",
                         "c": "Find keys matching search pattern. Select all keys if no text entered.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "next.btn": {
                         "a": "Next",
                         "c": "Retrieve next record from cursor IO result.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "prev.btn": {
                         "a": "Prev",
                         "c": "Retrieve previous record from cursor IO result.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null}
                 },
                 "inp": {
                     "find.inp": {
                         "b": "Key Pattern",
                         "c": "Record key or key pattern to search for.",
-                        "s": "inactive",
                         "w": null}},
                 "w": null
             },
@@ -85,52 +72,36 @@
                     "add.btn": {
                         "a": "Add",
                         "c": "Create a new record of the selected type.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "delete.btn": {
                         "a": "Del",
                         "c": "Mark currently selected record for removal.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "save.btn": {
                         "a": "Save",
                         "c": "Commit all pending changes.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "more.btn": {
                         "a": "More",
                         "c": "Add another row to list.",
                         "lim": "No more rows can be added.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "fewer.btn": {
                         "a": "Less",
                         "c": "Remove a row from list.",
                         "lim": "No more rows can be removed.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "undo.btn": {
                         "a": "Undo",
                         "c": "Reverse the most recent edit (Ctrl+Z).",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "redo.btn": {
                         "a": "Redo",
                         "c": "Re-apply the most recently undone edit (Ctrl+Y).",
-                        "s": "inactive",
-                        "action": null,
                         "w": null},
                     "cancel.btn": {
                         "a": "Stop",
                         "c": "Kill pending activities. Close editor without saving.",
-                        "s": "inactive",
-                        "action": null,
                         "w": null}
                 },
                 "w": null
@@ -139,7 +110,6 @@
     },
     "diagram": {
         "a": "Data Diagram",
-        "s": "inactive",
         "w": null,
         "disp.txt": {
             "w": null}
@@ -148,7 +118,6 @@
         "a": "Saskan Help",
         "disp.txt": {
             "w": null},
-        "s": "inactive",
         "w": null
     },
     "menus": {
@@ -163,8 +132,7 @@
                         "qt_help": {"name": "About Qt"}}}},
         "w": {
             "name": null,
-            "object": null},
-        "s": "inactive"
+            "object": null}
     },
     "monitor": {
         "a": "Services Monitor",
@@ -173,47 +141,39 @@
                 "a": "Summary",
                 "b": "Services summary",
                 "c": "Show summary info for running and registered services.",
-                "s": "inactive",
                 "w": null},
             "top.btn": {
                 "a": "Top",
                 "b": "Show top of Services log",
                 "c": "Display oldest entries in services log.",
-                "s": "inactive",
                 "w": null},
             "tail.btn": {
                 "a": "Tail",
                 "b": "Show bottom of Services log",
                 "c": "Display latest entries in services log.",
-                "s": "inactive",
                 "w": null},
             "full.btn": {
                 "a": "Full",
                 "b": "Show entire Services log",
                 "c": "Display all entries in services log.",
-                "s": "inactive",
                 "w": null},
             "requests.btn": {
                 "a": "Requests",
                 "b": "Show log for active Requests",
                 "c": "Display requests currently in queue or executing.",
-                "s": "inactive",
                 "w": null},
             "fails.btn": {
                 "a": "Fails",
                 "b": "Show log for failed Requests",
                 "c": "Display requests which failed or were refused.",
-                "s": "inactive",
                 "w": null},
             "pressure.btn": {
                 "a": "Pressure",
                 "b": "Show Services Pressure",
                 "c": "Display analysis of current load on each service.",
-                "s": "inactive",
                 "w": null}},
         "disp.txt": {
             "w": null},
-        "s": "inactive",
         "status.txt":{
             "b": "Services Monitor Status",
             "w": null},
@@ -226,7 +186,6 @@
             "c": "Start, stop, manage services",
             "i": "controls.jpg",
             "cmd": "Ctrl+Alt+C",
-            "s": "inactive",
             "w": null},
         "monitor.tool": {
             "a": "Monitor",
@@ -234,7 +193,6 @@
             "c": "Monitor running servers and services",
             "i": "monitor.jpg",
             "cmd": "Ctrl+Alt+M",
-            "s": "inactive",
             "w": null},
         "db_editor.tool": {
             "a": "Editor",
@@ -242,7 +200,6 @@
             "c": "Edit the services databases",
             "i": "editor.jpg",
             "cmd": "Ctrl+Alt+D",
-            "s": "inactive",
             "w": null},
         "help.tool": {
             "a": "Help",
@@ -250,13 +207,31 @@
             "c": "Show context-sensitive help",
             "i": "help.jpg",
             "cmd": "Ctrl+Alt+H",
-            "s": "inactive",
             "w": null}
     },
     "record_io": {
         "bx": {
             "select.box": {
                 "a": "Select Record Type:"
+                }
+        },
+        "msg": {
+            "rec_exists": {
+                "a": "DB error.",
+                "b": "Unable to insert record.",
+                "c": "Key already exists."
+                },
+            "link_bad": {
+                "a": "Edit error.",
+                "b": "Invalid link key."
+                },
+            "value_bad": {
+                "a": "Edit error.",
+                "b": "Invalid value."
+                },
+            "value_req": {
+                "a": "Edit error.",
+                "b": "Value required."
                 }
         },
         "audit": {
@@ -291,7 +266,6 @@
                    "configs": {
                         "a": "Configs",
                         "c": "Records defining config data structures.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -317,7 +291,6 @@
                    "status": {
                         "a": "Status Flags",
                         "c": "Records defining status data structures.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -343,7 +316,6 @@
                    "widget": {
                         "a": "Widgets Meta",
                         "c": "Records defining application objects.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -361,7 +333,6 @@
                    "expire": {
                         "a": "Expire Rules",
                         "c": "Records holding record expiration rules.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -369,7 +340,6 @@
                    "retry": {
                        "a": "Retry Rules",
                         "c": "Records holding message retry rules.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -383,7 +353,6 @@
                     "topics": {
                         "a": "Topics",
                         "c": "Records holding service topic definitions.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -424,7 +393,6 @@
                     "plans": {
                         "a": "Plans",
                         "c": "Records holding service plan definitions.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -432,7 +400,6 @@
                     "services": {
                         "a": "Services",
                         "c": "Records holding service definitions.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -440,7 +407,6 @@
                     "schemas": {
                         "a": "Schemas",
                         "c": "Records holding service schema definitions.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -454,7 +420,6 @@
                     "queues": {
                         "a": "Queues",
                         "c": "Records storing temporary lists.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -472,7 +437,6 @@
                     "responses": {
                         "a": "Responses",
                         "c": "Records holding request response and pub content.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -497,7 +461,6 @@
                     "controller": {
                         "a": "Control Log",
                         "c": "Log records for service controller events.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -505,7 +468,6 @@
                     "requests": {
                         "a": "Request Log",
                         "c": "Log records for service request and sub events.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -513,7 +475,6 @@
                     "responses": {
                         "a": "Response Log",
                         "c": "Log records for service response and pub events.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -527,7 +488,6 @@
                     "controller": {
                         "a": "Channel",
                         "c": "Summary records for server channel loads.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -535,7 +495,6 @@
                     "hosts": {
                         "a": "Host Machines",
                         "c": "Summary records for physical server loads.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -543,7 +502,6 @@
                     "requests": {
                         "a": "Requests",
                         "c": "Summary records for request/sub events.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}
@@ -551,7 +509,6 @@
                     "responses": {
                         "a": "Responses",
                         "c": "Summary records for response/pub events.",
-                        "action": null,
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {}

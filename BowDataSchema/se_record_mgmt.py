@@ -150,7 +150,6 @@ class RecordMgmt(QWidget):
                 elif dbk == "harvest.db":
                     if dmk == "queues":
                         action = self.select_queues
-                self.recs["db"][dbk]["dm"][dmk]["action"] = action
                 rdo_btn.clicked.connect(action)
             hbox.addStretch(1)
             vbox.addLayout(hbox)
@@ -233,40 +232,34 @@ class RecordMgmt(QWidget):
         """
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         frec: dict = {db: {dm: meta}}
-        dbrec: dict = {db: {"name": {}, "values": {}, "audit": {}}}
+        ns = db.replace(".db", "")
+        dbrec: dict = {ns: {"key": {}, "values": {}, "audit": {}}}
         dbkey: str = ""  # redis key = "name" value on redis record
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
         for fgrp, fields in meta.items():
             for ftag, rec in fields.items():
                 # Set all rec values based on current form fields
-                frec[db][dm][fgrp][ftag]["value"] = []
+                frec[db][dm][fgrp][ftag]["values"] = []
                 flid = f"{db}:{dm}:{ftag}.ed"
-
                 if "list" in rec["ed"]:
-
-                    print(f"LIST flid: {flid}")
-
-                    frec[db][dm][fgrp][ftag]["value"] = \
+                    frec[db][dm][fgrp][ftag]["values"] = \
                         self.get_list_values(db, dm, fgrp, ftag)
                 else:
-
-                    print(f"SINGLETON flid: {flid}")
-
                     value = dom_wdg.findChild(QLineEdit, flid).text()
-                    frec[db][dm][fgrp][ftag]["value"].append(value)
+                    frec[db][dm][fgrp][ftag]["values"].append(value)
                     if fgrp == "keys":
                         dbkey += f"{value}:"
         dbkey = dbkey[:-1]
         if dm not in dbkey:
             dbkey = dm + ":" + dbkey
-        dbrec[db]["name"] = self.edit["dbkey"](dbkey)
-        for fgrp, mrec in frec[db][dm].items():
-            dbrec[db][fgrp] = {}
-            for flix, rec in mrec.items():
-                dbrec[db][fgrp][flix] = rec["value"]
+        dbrec[ns]["name"] = self.edit["dbkey"](dbkey)
+        for ftag, rec in frec[db][dm]["keys"].items():
+            dbrec[ns]["values"][ftag] = rec["values"]
+        for ftag, rec in frec[db][dm]["vals"].items():
+            dbrec[ns]["values"][ftag] = rec["values"]
 
-        pp(("frec", frec))
-        pp(("dbrec", dbrec))
+        # pp(("frec", frec))
+        # pp(("dbrec", dbrec))
 
         return (frec, dbrec)
 
@@ -405,14 +398,18 @@ class RecordMgmt(QWidget):
                 dom_wdg.findChild(
                     QPushButton, rmv_btn).setVisible(False)
             else:
-                dom_wdg.findChild(
-                    QPushButton, add_btn).setVisible(True)
-                if max_flix > 1:
-                    dom_wdg.findChild(
-                        QPushButton, rmv_btn).setVisible(True)
-                else:
+                if max_flix == 1:
                     dom_wdg.findChild(
                         QPushButton, rmv_btn).setVisible(False)
+                else:
+                    dom_wdg.findChild(
+                        QPushButton, rmv_btn).setVisible(True)
+                if max_flix == 10:
+                    dom_wdg.findChild(
+                        QPushButton, add_btn).setVisible(False)
+                else:
+                    dom_wdg.findChild(
+                        QPushButton, add_btn).setVisible(True)
 
     def add_row_to_list(self):
         """Add an input row to form for list of fields.
@@ -423,8 +420,8 @@ class RecordMgmt(QWidget):
         """
         db, dm, fgrp, flid = tuple(
             self.sender().objectName().replace("_add.btn", "").split("_"))
+        ftag, flix = tuple(flid.split("-"))
         frec, dbrec = self.get_field_values(db, dm)
-        ftag = flid.split("-")[0]
         rec = frec[db][dm][fgrp][ftag]
         # Add rows to the form widget
         form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
@@ -474,6 +471,9 @@ class RecordMgmt(QWidget):
         # Find-keys Button
         self.ed_meta["bx"]["get.box"]["bn"]["find.btn"]["w"].clicked.connect(
             self.push_find_keys)
+        # Edit Buttons
+        self.ed_meta["bx"]["edit.box"]["bn"]["add.btn"]["w"].clicked.connect(
+            self.add_db_record)
 
     # Database Editor Widget extend function
     # ============================================================
@@ -508,27 +508,27 @@ class RecordMgmt(QWidget):
     # Editor Button helper and slot functions
     # ============================================================
 
-    def get_active_search(self,
-                          dom: str):
+    def get_search_value(self,
+                         dm: str):
         """Return value of search-key text input widget...
 
         ..adjusted to work as a wildcard on keys in the active domain.
 
         :args:
-            dom (str) name of active domain
+            dm (str) name of active domain
 
         :returns: (str) search value modified for use on redis db
         """
         wdg = \
             self.ed_meta["bx"]["get.box"]["inp"]["find.inp"]["w"]
-        search = self.edit["dbkey"](wdg.text())
-        if f"{dom.lower()}:" not in search:
-            search = f"{dom.lower()}:{search}"
-        if search[:1] != "*":
-            search = "*" + search
-        if search[-1:] != "*":
-            search += "*"
-        return (search.lower())
+        sval = self.edit["dbkey"](wdg.text())
+        if f"{dm.lower()}:" not in sval:
+            sval = f"{dm.lower()}:{sval}"
+        if sval[:1] != "*":
+            sval = "*" + sval
+        if sval[-1:] != "*":
+            sval += "*"
+        return (sval.lower())
 
     def get_active_domain(self):
         """Identify the currently active db and domain (rectype).
@@ -536,23 +536,27 @@ class RecordMgmt(QWidget):
         :returns: tuple (db name key, domain/record type key)
         """
         db = None
-        rectyp = None
+        dm = None
         for dbk in self.recs["db"].keys():
             domk = [dmk for dmk, dom in self.recs["db"][dbk]["dm"].items()
                     if dom["w_dom"].isVisible()]
             if len(domk) > 0:
                 db = dbk
-                rectyp = domk[0]
+                dm = domk[0]
                 break
-        return (db, rectyp)
+        return (db, dm)
 
     def push_find_keys(self):
-        """Slot for DB Editor Find push button click action."""
-        # self.editor.prep_editor_action("Find")
-        db, rectyp = self.get_active_domain()
-        search = self.get_active_search(rectyp)
+        """Slot for DB Editor Find push button click action.
+
+        @DEV:
+        - This is more or less working for now.
+        - Come back to it later, when needed.
+        """
+        db, dm = self.get_active_domain()
+        search = self.get_search_value(dm)
         _ = self.find_redis_keys(
-            db.lower(), rectyp, search, p_load_1st_rec=True)
+            db.lower(), dm, search, p_load_1st_rec=True)
 
     # Record Type Selector helper and slot functions
     # ============================================================
@@ -595,7 +599,8 @@ class RecordMgmt(QWidget):
                     self.recs["db"][db]["dm"][dm]["w_dom"].hide()
         self.editor.disable_buttons("get.box", ["find.btn"])  # type: ignore
         self.editor.disable_texts("get.box", ["find.inp"])    # type: ignore
-        self.editor.disable_buttons("edit.box", ["cancel.btn"])  # type: ignore
+        self.editor.disable_buttons("edit.box",               # type: ignore
+                                    ["add.btn", "cancel.btn"])
 
     def show_domain(self,
                     p_dbk: str,
@@ -610,112 +615,66 @@ class RecordMgmt(QWidget):
         self.recs["db"][p_dbk]["dm"][p_dmk]["w_dom"].show()
         self.editor.enable_buttons("get.box", ["find.btn"])  # type: ignore
         self.editor.enable_texts("get.box", ["find.inp"])    # type: ignore
-        self.editor.enable_buttons("edit.box", ["cancel.btn"])  # type: ignore
+        self.editor.enable_buttons("edit.box",               # type: ignore
+                                   ["add.btn", "cancel.btn"])
 
-    def get_list_fields(self,
-                        p_field_nm: str,
-                        p_db_nm: str = None,
-                        p_rectyp_nm: str = None):
-        """Get specified list form for the active record type.
-
-        And for the requested list-of-values field name.
-        If db or rectype not specified, use active db and rectype.
-
-        :returns: tuple (
-            list of field values,
-            QFormLayout object)
-        """
-        if p_db_nm is None or p_rectyp_nm is None:
-            db, rectyp = self.get_active_domain()
-        else:
-            db = p_db_nm
-            rectyp = p_rectyp_nm
-        list_form = None
-        list_values = []
-        list_form = \
-            self.rectyps[db][rectyp]["widget"].findChild(
-                QFormLayout, f"{db}:{rectyp}:{p_field_nm}.frm")
-        for link_idx in range(list_form.rowCount()):
-            value = list_form.itemAt(
-                link_idx, QFormLayout.FieldRole).widget().text()
-            list_values.append(value)
-        return (list_values, list_form)
-
-    def get_value_fields(self,
-                         p_db_nm: str = None,
-                         p_rectyp_nm: str = None,
-                         p_links_only: bool = False,):
-        """Get name and value from all fields on all sub-forms,
-        excluding the Keys forms, for the active record type.
-
-        If db or rectype not specified, use active db and rectype.
-        """
-        db = p_db_nm
-        rectyp = p_rectyp_nm
-        form_values: dict = {}
-
-        fields_nm = "value_fields"
-        form_nm = f"{db}:{rectyp}:{fields_nm}.frm"
-        form_rows = \
-            self.rectyps[db][rectyp]["widget"].findChild(
-                QFormLayout, f"{db}:{rectyp}:{form_nm}")
-
-        for val_idx, val in enumerate(
-                self.rectyps[db][rectyp][fields_nm]):
-            edit_rules = val[1] if len(val) > 1 else ()
-            if "list" in edit_rules:
-                name = val[0]
-                value, _ = self.get_list_fields(name, db, rectyp)
-            else:
-                name = form_rows.itemAt(
-                    val_idx, QFormLayout.LabelRole).widget().text()
-                value = form_rows.itemAt(
-                    val_idx, QFormLayout.FieldRole).widget().text()
-            if (not p_links_only) or (p_links_only and "link" in edit_rules):
-                form_values[name] = value
-        return (form_values)
-
-    def run_rectyp_edits(self) -> bool:
+    def run_domain_edits(self) -> bool:
         """Run the edits associated with the active record type.
 
         These are executed when an Add or Save button is pressed.
 
         :returns: (bool) True if all edits pass else False
         """
-        db, rectyp = self.get_active_domain()
-        form_values = self.get_value_fields(db, rectyp)
-        edits_passed = True
-        error_msg = ""
-        for f_grp in ["key_fields", "value_fields"]:
-            for field in self.rectyps[db][rectyp][f_grp]:
-                field_nm = field[0]
-                edit_rules = field[1] if len(field) > 1 else ()
-                if "notnull" in edit_rules:
-                    if form_values[field_nm] in (None, "", [], {}):
-                        error_msg = f"{field_nm} is required. "
-                        edits_passed = False
-                        break
-                if "hostlist" in edit_rules:
-                    if not (self.edit["hostlist"](form_values[field_nm])):
-                        error_msg = "Invalid host name. "
-                        edits_passed = False
-                        break
-            if not edits_passed:
-                self.editor.set_dbe_status("", error_msg)  # type: ignore
+        db, dm = self.get_active_domain()
+        frec, _ = self.get_field_values(db, dm)
+        err = ""
+
+        pp(("frec", frec))
+
+        for fgrp, mrec in frec[db][dm].items():
+            for ftag, rec in mrec.items():
+                rules = rec["ed"]
+                if 'notnull' in rules and \
+                        rec["values"] in (None, [], "", ['']):
+                    txt = self.recs["msg"]["value_req"]
+                    err = f"{txt['a']}  <{rec['title']}> {txt['b']}"
+                    break
+                if 'posint' in rules:
+                    for vix, val in enumerate(rec["values"]):
+                        if not val.isnumeric() or int(val) < 1:
+                            txt = self.recs["msg"]["value_bad"]
+                            txtix = "" \
+                                if len(rec["values"]) == 1 else f"[{vix + 1}]"
+                            err = (f"{txt['a']}  <{rec['title']}{txtix}> " +
+                                   f"{txt['b']}")
+                            break
+                if 'hostlist' in rules:
+                    for vix, val in enumerate(rec["values"]):
+                        if not (self.edit["hostlist"](val)):
+                            txt = self.recs["msg"]["value_bad"]
+                            txtix = "" \
+                                if len(rec["values"]) == 1 else f"[{vix + 1}]"
+                            err = (f"{txt['a']} <{rec['title']}{txtix}> " +
+                                   f"{txt['b']}")
+                            break
+                        if err != "":
+                            break
+            if err != "":
+                self.editor.set_dbe_status(err)  # type: ignore
                 break
-        return (edits_passed)
+        return (True if err == "" else False)
 
     # IO Meta Functions
     # ==============================================================
     def get_redis_record(self,
-                         p_db_nm: str,
+                         p_db: str,
                          p_select_key: str):
         """Get a record from Redis DB
-        :args: p_db_nm - name of Redis DB
+        :args: p_db - name of Redis DB
                 p_select_key - key of record to be retrieved
         :returns: records as a dict or None
         """
-        result = RI.get_record(p_db_nm, p_select_key)
+        result = RI.get_record(p_db, p_select_key)
         if result is None:
             self.editor.set_dbe_status(  # type: ignore
                 f"{BT.txt.no_key}{p_select_key}'")
@@ -727,20 +686,29 @@ class RecordMgmt(QWidget):
         return (result)
 
     def find_redis_keys(self,
-                        p_db_nm: str,
-                        p_rectyp: str,
+                        p_db: str,
+                        p_dm: str,
                         p_search: str,
                         p_load_1st_rec: bool = True):
         """Get a list of keys for selected DB matching the pattern.
 
         :args:
-            p_db_nm - name of the database to search
-            p_rectyp - record type to search
+            p_db - name of the database to search
+            p_dm - record type to search
             p_search - pattern to match for keys
             p_load_1st_rec - load 1st record found into editor
         :returns: list of keys that match the pattern or None
+
+        @DEV:
+        - Pick it up here...
+        - Why doesn't it find a key when I give it a valid one like "widget:tools"?
+        - Change the texts to use config instead of "boot texts" and remove any from
+          boot texts that are not being used. Reduce "boot" for use only with the 
+          force-refresh parameters, and possibly other param-based actions in future.
+        - Review the long notes from where I left off. Don't get TOO hung up on the
+          queue business.  As noted, first work on displaying the found record(s).
         """
-        db = p_db_nm
+        db = p_db
         result_b = RI.find_keys(db.replace(".db", ""), p_search)
         result: list = []
         if result_b in (None, [], {}):
@@ -784,7 +752,7 @@ class RecordMgmt(QWidget):
                 #  Widget stored at:
                 #    self.rectyps[db_nm][rectyp_nm]["widget"] = rectyp_wdg
                 #  Name of the entire form:
-                #    f"{db_nm}:{rectyp_nm}:{f_grp}.frm"
+                #    f"{db_nm}:{rectyp_nm}:{fgrp}.frm"
                 #  Name of the list forms, if any:
                 #    f"{db_nm}:{rectyp_nm}:{field_nm}.frm"
 
@@ -836,86 +804,94 @@ class RecordMgmt(QWidget):
         return (result)
 
     def validate_links(self,
-                       p_db_nm: str,
-                       p_rectyp: str,
-                       p_record: dict):
+                       db: str,
+                       dm: str,
+                       frec: dict):
         """Validate foreign key values before writing to DB.
 
         :args:
-            p_db_nm - name of db containing the record type
-            p_rectyp - record type
-            p_record - record to be written to DB
+            db - name of db meta tag
+            dm - doamin meta tag
+            frec - form record values
+        :returns: True if all links are valid, False if not
         """
-        links = self.get_value_fields(p_db_nm, p_rectyp, True)
-        if links != {}:
-            for link_nm, link_values in links.items():
-                for link_ix, link_val in enumerate(link_values):
-                    link_key = \
-                        self.edit["dbkey"](link_val)
-                    p_record[link_nm][link_ix] = link_key
-                    link_rec = self.find_redis_keys(
-                        p_db_nm, p_rectyp, link_key, p_load_1st_rec=False)
-                    if link_rec in (None, {}, []):
-                        self.editor.set_dbe_status(  # type: ignore
-                            "",
-                            f"No record found with key '{link_key}'")
-                        return False
+        for fgrp, mrec in frec[db][dm].items():
+            for ftag, rec in mrec.items():
+                if "link" in rec["ed"]:
+                    for vix, val in enumerate(rec["values"]):
+                        link = self.edit["dbkey"](val)
+
+                        print(f"Editing link: {link}[{vix}]")
+
+                        link_rec = self.find_redis_keys(
+                            db, dm, link, p_load_1st_rec=False)
+                        if link_rec in (None, {}, []):
+                            txt = self.recs["msg"]["link_bad"]
+                            txtix = "" \
+                                if len(rec["values"]) == 1 else f"[{vix + 1}]"
+                            err = (f"{txt['a']} <{rec['title']}{txtix}> " +
+                                   f"{txt['b']}")
+                            self.editor.set_dbe_status(err)  # type: ignore
+                            return False
         return True
 
-    def add_record_to_db(self,
-                         p_is_auto: bool = False,
-                         p_db_nm: str = None,
-                         p_rectyp_nm: str = None):
-        """Add a record to the DB per active record type in Editor.
+    def auto_add_db_record(self):
+        """Overlay for add_db_record to use with auto-adds."""
+        pass
 
-        Acts as slot for DB Editor Edit/Add push button click action.
-        Or if based on parameters, does automated record-add logic.
+    def add_db_record(self,
+                      p_auto: bool = False,
+                      p_db: str = None,
+                      p_dm: str = None):
+        """Add a record to the DB
 
-        Get all values from active edit form.
+        Slot for DB Editor Edit/Add push button click action.
+        Also can be based on parameters provided for auto-add logic.
+
+        Get values from active edit form.
         Check to see if record w/key already exists on DB.
-        Reject Add if rec already exists.
-
-        On Redis records, the key value is referenced as the "name".
+        Rejectif rec already exists with Redis key.
+        The Redis key value is referenced as the "name".
 
         :args:
-            p_is_auto - True if this is an auto-add,
-                        False if Add button was clicked
-            p_db_nm - name of the DB to add the record to,
-                      defaults to None for Add button clicks.
-            p_rectyp_nm - name of the record type to add,
-                      defaults to None for Add button clicks.
+            p_auto - True if this is an auto-add,
+                     Default = False if Add button was clicked
+            p_db - meta tag of DB to add the record to,
+                   Default = None for Add button clicks.
+            p_dm - meta tag of domain (record type) to add,
+                   Default = None for Add button clicks.
 
         :returns: (bool) True if record was added, False if not
         """
         manual_add = True
-        self.editor.prep_editor_action("Add")                  # type: ignore
-        if p_db_nm is None or p_rectyp_nm is None:
-            db, rectyp = self.get_active_domain()
-            _, record = self.get_field_values(db, rectyp)
+        if p_db is None or p_dm is None:
+            db, dm = self.get_active_domain()
+            dbnm = db.replace(".db", "")
+            frec, dbrec = self.get_field_values(db, dm)
         else:
-            db = p_db_nm
-            rectyp = p_rectyp_nm
             # It is an auto-generated record.
             # Need to specify the DB and record type.
             # Would we still use a Form widget to CREATE the record?
             # hmmm... probably not? But would it be doable? Why not?
+            dbnm = p_db.replace(".db", "")
+            dm = p_dm
             manual_add = False
-            values = self.get_value_fields(db, rectyp)
-            key = f"{rectyp.lower()}:{RI.UT.get_hash(str(values))}"
-            record = {"name": key} | values
-        result = self.get_redis_record(db, record["name"])
+            values = self.get_field_values(db, dm)  # how is this set?
+            key = f"{dm.lower()}:{RI.UT.get_hash(str(values))}"
+            dbrec = {dbnm: {"name": key, "values": values}}
+        result = self.get_redis_record(dbnm, dbrec[dbnm]["name"])
         if result in (None, [], {}):
-            if self.run_rectyp_edits():
-                if not self.validate_links(db, rectyp, record):
+            if self.run_domain_edits():
+                if not self.validate_links(db, dm, frec):
                     return False
                 if manual_add:
-                    record = RI.set_audit_values(record, p_include_hash=True)
+                    dbrec = RI.set_audit_values(dbrec, p_include_hash=True)
                 else:
-                    record = RI.set_audit_values(record, p_include_hash=False)
-                RI.do_insert(db, record)
+                    dbrec = RI.set_audit_values(dbrec, p_include_hash=False)
+                RI.do_insert(db, dbrec)
                 return True
         else:
+            txt = self.recs["msg"]["rec_exists"]
             self.editor.set_dbe_status(   # type: ignore
-                "",
-                "Insert rejected. Record already exists.")
+                txt['a'] + "  " + txt['b'] + " " + txt['c'])
             return False

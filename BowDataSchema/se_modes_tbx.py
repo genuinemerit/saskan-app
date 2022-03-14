@@ -64,7 +64,6 @@ class ModesToolbox(QToolBar):      # noqa: F821
             self.tools[tk]["w"].setObjectName(tk)
             self.tools[tk]["w"].setToolTip(tool['c'])
             self.tools[tk]["w"].setShortcut(tool['cmd'])
-            self.tools[tk]["s"] = "active"
             tool_btn = SS.set_tool_style(QToolButton(self))
             tool_btn.setDefaultAction(self.tools[tk]["w"])
             self.addWidget(tool_btn)

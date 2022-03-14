@@ -117,7 +117,6 @@ class SaskanEyes(QMainWindow):
         """Update Basement DB with modified widget record"""
         db = "basement"
         self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
-        self.WDG[p_wdg_catg]["s"] = "active"
         record = {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]
         record, _ = \
             RI.set_audit_values(db, record, p_include_hash=True)
@@ -240,22 +239,17 @@ class SaskanEyes(QMainWindow):
                 key to metadata for the tool.
             p_help_pg:
                 Name of the help page to show.
-
-        @DEV
-        - Check isVisible() on the widget instead of using flags
         """
         tool = self.WDG["tools"][f"{p_tool_nm}.tool"]
         self.set_statusbar_text(tool["c"])
-        if self.WDG[p_tool_nm]["s"] == "inactive":
+        if self.WDG[p_tool_nm]["w"].isVisible():
+            self.WDG[p_tool_nm]["w"].hide()     # type: ignore
+        else:
             self.WDG[p_tool_nm]["w"].show()     # type: ignore
-            self.WDG[p_tool_nm]["s"] = "active"
             if p_help_pg is not None:
                 self.helper.set_content(
                     path.join(BT.path_res, p_help_pg))
                 self.helper.show()
-        else:
-            self.WDG[p_tool_nm]["w"].hide()     # type: ignore
-            self.WDG[p_tool_nm]["s"] = "inactive"
 
     def controls_mode_tool_click(self):
         """Slot for Controls Mode tool click action"""
@@ -326,26 +320,23 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def show_graph_diagram(self):
         """Slot for Graph Diagram show action"""
-        if self.WDG["diagram"]["s"] == "inactive":
-            try:
-                img = self.network.get_image_path()
-                with open(img):
-                    self.diagram_wdg = QLabel(self)
-                    self.diagram_wdg.setGeometry(20, 650, 550, 200)
-                    pixmap = QPixmap(img)
-                    self.diagram_wdg.setPixmap(pixmap)
-                    self.diagram_wdg.setStyleSheet(SS.get_style("canvas"))
-                    # self.diagram_wdg.move(625, 650)
-                    self.diagram_wdg.show()
-                    self.WDG["diagram"]["s"] == "active"
-            except FileNotFoundError:
-                print("User image file not found:" + img)
+        try:
+            img = self.network.get_image_path()
+            with open(img):
+                self.diagram_wdg = QLabel(self)
+                self.diagram_wdg.setGeometry(20, 650, 550, 200)
+                pixmap = QPixmap(img)
+                self.diagram_wdg.setPixmap(pixmap)
+                self.diagram_wdg.setStyleSheet(SS.get_style("canvas"))
+                # self.diagram_wdg.move(625, 650)
+                self.diagram_wdg.show()
+        except FileNotFoundError:
+            print("User image file not found:" + img)
 
     def hide_graph_diagram(self):
         """Slot for Graph Diagram hide action"""
-        if self.WDG["diagram"]["s"] == "active":
+        if self.WDG["diagram"]["w"].isVisible():
             self.diagram_wdg.hide()
-            self.WDG["diagram"]["s"] == "inactive"
 
 
 # Run program
