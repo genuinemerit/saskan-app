@@ -235,18 +235,22 @@ class RedisIO(object):
     # DML functions
     # =======================================
     def set_audit_values(self,
-                         p_db: str,
-                         p_rec: dict,
+                         p_dbrec: dict,
                          p_include_hash: bool = True) -> tuple:
         """Set audit values for a record.
 
+        :args:
+            p_dbrec: dict - Record to set audit values for
+            p_include_hash: bool - Include hash of record in audit values
+
         :returns: (
             dict - record with audit values set or modified,
-            bool - indicates to do update (True) or insert (False))
+            bool - indicates whether to do update (True) or insert (False))
         """
         r_update = False
-        rec = p_rec
-        exists = self.get_record(p_db, p_rec["name"])
+        db = list(p_dbrec.keys())[0]
+        rec = list(p_dbrec.values())[0]
+        exists = self.get_record(db, rec["name"])
         if exists is not None and 'audit' in exists:
             audit = exists["audit"]
             audit["version"] = self.UT.set_version(audit["version"], "minor")

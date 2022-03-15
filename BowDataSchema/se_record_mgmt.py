@@ -233,7 +233,7 @@ class RecordMgmt(QWidget):
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         frec: dict = {db: {dm: meta}}
         ns = db.replace(".db", "")
-        dbrec: dict = {ns: {"key": {}, "values": {}, "audit": {}}}
+        dbrec: dict = {ns: {"name": {}, "values": {}, "audit": {}}}
         dbkey: str = ""  # redis key = "name" value on redis record
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
         for fgrp, fields in meta.items():
@@ -257,10 +257,6 @@ class RecordMgmt(QWidget):
             dbrec[ns]["values"][ftag] = rec["values"]
         for ftag, rec in frec[db][dm]["vals"].items():
             dbrec[ns]["values"][ftag] = rec["values"]
-
-        # pp(("frec", frec))
-        # pp(("dbrec", dbrec))
-
         return (frec, dbrec)
 
     def set_line_edit(self,
@@ -628,9 +624,6 @@ class RecordMgmt(QWidget):
         db, dm = self.get_active_domain()
         frec, _ = self.get_field_values(db, dm)
         err = ""
-
-        pp(("frec", frec))
-
         for fgrp, mrec in frec[db][dm].items():
             for ftag, rec in mrec.items():
                 rules = rec["ed"]
@@ -676,8 +669,9 @@ class RecordMgmt(QWidget):
         """
         result = RI.get_record(p_db, p_select_key)
         if result is None:
+            txt = self.recs["msg"]["rec_not_exist"]
             self.editor.set_dbe_status(  # type: ignore
-                f"{BT.txt.no_key}{p_select_key}'")
+                f"{txt['a']} {txt['b']} {txt['c']} <{p_select_key}>")
         else:
             print(f"GET Result: {result}")
             # put the values into the editor
@@ -701,29 +695,27 @@ class RecordMgmt(QWidget):
 
         @DEV:
         - Pick it up here...
-        - Why doesn't it find a key when I give it a valid one like "widget:tools"?
-        - Change the texts to use config instead of "boot texts" and remove any from
-          boot texts that are not being used. Reduce "boot" for use only with the 
-          force-refresh parameters, and possibly other param-based actions in future.
-        - Review the long notes from where I left off. Don't get TOO hung up on the
-          queue business.  As noted, first work on displaying the found record(s).
+        - Why find fails on a valid key like "widget:tools"?
+          It is because I don't have the "widget" domain set up yet.
+          Try testing by creating some config records first.
+        - Review notes from where I left off.
+          Don't get TOO hung up on the queue business.
+          First work on displaying the found record(s).
         """
         db = p_db
         result_b = RI.find_keys(db.replace(".db", ""), p_search)
         result: list = []
         if result_b in (None, [], {}):
+            txt = self.recs["msg"]["rec_not_exist"]
             self.editor.set_dbe_status(   # type: ignore
-                f"{BT.txt.no_key} '{p_search}'")
+                f"{txt['a']} {txt['b']} {txt['c']} <{p_search}>")
         else:
             for res in result_b:
                 result.append(res.decode("utf-8"))
             result = sorted(result)
-            if len(result) == 1:
-                self.editor.set_dbe_status(   # type: ignore
-                    f"{len(result)} {BT.txt.record_found}{p_search}")
-            else:
-                self.editor.set_dbe_status(   # type: ignore
-                    f"{len(result)} {BT.txt.records_found}{p_search}")
+            txt = self.recs["msg"]["rec_exists"]
+            self.editor.set_dbe_status(   # type: ignore
+                f"{txt['a']} {txt['b']} {txt['c']} <{p_search}>")
             if p_load_1st_rec:
                 records = self.get_redis_record(db, result[0])
                 if len(records) > 1:
@@ -820,9 +812,6 @@ class RecordMgmt(QWidget):
                 if "link" in rec["ed"]:
                     for vix, val in enumerate(rec["values"]):
                         link = self.edit["dbkey"](val)
-
-                        print(f"Editing link: {link}[{vix}]")
-
                         link_rec = self.find_redis_keys(
                             db, dm, link, p_load_1st_rec=False)
                         if link_rec in (None, {}, []):
@@ -885,10 +874,13 @@ class RecordMgmt(QWidget):
                 if not self.validate_links(db, dm, frec):
                     return False
                 if manual_add:
-                    dbrec = RI.set_audit_values(dbrec, p_include_hash=True)
+                    dbrec, _ = RI.set_audit_values(dbrec, p_include_hash=True)
                 else:
-                    dbrec = RI.set_audit_values(dbrec, p_include_hash=False)
-                RI.do_insert(db, dbrec)
+                    dbrec, _ = RI.set_audit_values(dbrec, p_include_hash=False)
+                RI.do_insert(dbnm, dbrec)
+                txt = self.recs["msg"]["rec_inserted"]
+                self.editor.set_dbe_status(   # type: ignore
+                    f"{txt['a']} {txt['b']} {txt['c']} <{dbrec['name']}>")
                 return True
         else:
             txt = self.recs["msg"]["rec_exists"]

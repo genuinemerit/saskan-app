@@ -217,20 +217,30 @@
         },
         "msg": {
             "rec_exists": {
-                "a": "DB error.",
-                "b": "Unable to insert record.",
-                "c": "Key already exists."
+                "a": "DB response.",
+                "b": "Mod or Delete possible. Unable to insert record.",
+                "c": "Key already exists"
+                },
+            "rec_inserted": {
+                "a": "DB response.",
+                "b": "Insert action successful.",
+                "c": "New key created."
+                },
+            "rec_not_exist": {
+                "a": "DB response.",
+                "b": "Insert action possible.",
+                "c": "No records found with key like"
                 },
             "link_bad": {
-                "a": "Edit error.",
+                "a": "Edit response.",
                 "b": "Invalid link key."
                 },
             "value_bad": {
-                "a": "Edit error.",
+                "a": "Edit response.",
                 "b": "Invalid value."
                 },
             "value_req": {
-                "a": "Edit error.",
+                "a": "Edit response.",
                 "b": "Value required."
                 }
         },

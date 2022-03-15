@@ -87,9 +87,9 @@ class SaskanEyes(QMainWindow):
             db = "basement"
             for k, values in p_config_data.items():
                 key = RI.UT.clean_redis_key(f"{p_catg}:{k}")
-                record = {"name": key} | values
+                record = {db: {"name": key} | values}
                 record, update = \
-                    RI.set_audit_values(db, record, p_include_hash=True)
+                    RI.set_audit_values(record, p_include_hash=True)
                 key = record["name"]
                 if update:
                     RI.do_update(db, record)
@@ -117,9 +117,10 @@ class SaskanEyes(QMainWindow):
         """Update Basement DB with modified widget record"""
         db = "basement"
         self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
-        record = {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]
+        record = {"basement":
+                  {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]}
         record, _ = \
-            RI.set_audit_values(db, record, p_include_hash=True)
+            RI.set_audit_values(record, p_include_hash=True)
         RI.do_update(db, record)
         self.WDG[p_wdg_catg]["w"]["object"] = p_qt_wdg
 
