@@ -64,6 +64,7 @@ class RecordMgmt(QWidget):
         self.editor = db_editor
         self.ed_meta = db_editor.get_tools()  # type: ignore
         self.set_edits_meta()
+        self.set_edits_cache()
         self.extend_db_editor_wdg()
 
     def get_tools(self):
@@ -118,6 +119,14 @@ class RecordMgmt(QWidget):
                      "lower": "<"}
         self.edit = {"dbkey": set_redis_key,
                      "hostlist": verify_host}
+
+    def set_edits_cache(self):
+        """For values shared between autonomous functions.
+
+        These may eventually be stored as queues in the Harvest db.
+        """
+        self.KEYS = []
+        self.active_key_ix = 0
 
     # Record Type Selector Widgets make functions
     # ============================================================
@@ -258,6 +267,46 @@ class RecordMgmt(QWidget):
         for ftag, rec in frec[db][dm]["vals"].items():
             dbrec[ns]["values"][ftag] = rec["values"]
         return (frec, dbrec)
+
+    def set_form_values(self):
+        """Set form field values based on Redis record values.
+
+        @DEV:
+        - Display list values properly
+        - Display audit values as read-only fields or labels
+        - Think about handling of key fields. If they are edited,
+          then the action would be a (logical) delete + an insert,
+          not just an insert. But then, of course, we always do a 
+          logical delete + an insert, so maybe it is not important,
+          or perhaps a notification or warning.
+        - Enable the "delete" button.
+        - Track if a change has been made. If so, enable the "Save" button
+          and something like a "dirty" flag. Another to think it is to put
+          the pending change on a queue.
+        - The more I think about queuing up record contetns, the less I
+          like it. At least theoretically, other users could be modifying
+          a given record while it is "in the queue". I'd rather not have to
+          manage locks if I can avoid it.
+
+        Example dbrec
+            {'name': 'configs:test_catg:test_id', 'values': {'catg': ['test_catg'], 'id': ['test_id'], 'name': ['test_name'], 'val': ['test_val']}, 'audit': {'version': '1.0.0', 'modified': '2022-03-15T00:16:59.149677+00:00', 'hash': '69f8d7fa5ca6f0e233ee3315e0d39afb35d1758a28b1de9ee7ed07c7eba19283d8c0d1fa71ff4b84711263f979a15f1b5240571f9c21a2f59f267c8bb751140b'}}
+        """
+        db, dm = self.get_active_domain()
+        nsid = db.replace(".db", "")
+        key = self.KEYS[self.active_key_ix]
+        dbrec = self.get_redis_record(nsid, key)
+        meta = self.recs["db"][db]["dm"][dm]["rec"]
+        dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
+        for fgrp, fields in meta.items():
+            for ftag, rec in fields.items():
+                flid = f"{db}:{dm}:{ftag}.ed"
+                if "list" in rec["ed"]:
+                    pass
+                elif ftag in dbrec["values"]:
+                    dom_wdg.findChild(QLineEdit, flid).setText(
+                        dbrec["values"][ftag][0])
+                else:
+                    dom_wdg.findChild(QLineEdit, flid).setText("")
 
     def set_line_edit(self,
                       db: str,
@@ -466,7 +515,11 @@ class RecordMgmt(QWidget):
         """
         # Find-keys Button
         self.ed_meta["bx"]["get.box"]["bn"]["find.btn"]["w"].clicked.connect(
-            self.push_find_keys)
+            self.push_find_button)
+        self.ed_meta["bx"]["get.box"]["bn"]["next.btn"]["w"].clicked.connect(
+            self.push_next_button)
+        self.ed_meta["bx"]["get.box"]["bn"]["prev.btn"]["w"].clicked.connect(
+            self.push_prev_button)
         # Edit Buttons
         self.ed_meta["bx"]["edit.box"]["bn"]["add.btn"]["w"].clicked.connect(
             self.add_db_record)
@@ -542,17 +595,39 @@ class RecordMgmt(QWidget):
                 break
         return (db, dm)
 
-    def push_find_keys(self):
+    def push_find_button(self):
         """Slot for DB Editor Find push button click action.
 
         @DEV:
         - This is more or less working for now.
-        - Come back to it later, when needed.
+        - Come back to it later, as needed.
         """
         db, dm = self.get_active_domain()
         search = self.get_search_value(dm)
         _ = self.find_redis_keys(
             db.lower(), dm, search, p_load_1st_rec=True)
+
+    def push_next_button(self):
+        """Slot for DB Editor Next push button click action.
+        """
+        self.active_key_ix += 1
+        self.editor.enable_buttons(   # type: ignore
+            "get.box", ["prev.btn"])
+        if len(self.KEYS) == (self.active_key_ix + 1):
+            self.editor.disable_buttons(  # type: ignore
+                "get.box", ["next.btn"])
+        self.set_form_values()
+
+    def push_prev_button(self):
+        """Slot for DB Editor Next push button click action.
+        """
+        self.active_key_ix -= 1
+        self.editor.enable_buttons(   # type: ignore
+            "get.box", ["next.btn"])
+        if self.active_key_ix == 0:
+            self.editor.disable_buttons(  # type: ignore
+                "get.box", ["prev.btn"])
+        self.set_form_values()
 
     # Record Type Selector helper and slot functions
     # ============================================================
@@ -660,20 +735,20 @@ class RecordMgmt(QWidget):
     # IO Meta Functions
     # ==============================================================
     def get_redis_record(self,
-                         p_db: str,
-                         p_select_key: str):
+                         p_ns: str,
+                         p_key: str):
         """Get a record from Redis DB
-        :args: p_db - name of Redis DB
-                p_select_key - key of record to be retrieved
+        :args: p_ns - name of Redis DB (namespace)
+               p_key - key of record to be retrieved
         :returns: records as a dict or None
         """
-        result = RI.get_record(p_db, p_select_key)
+        result = RI.get_record(p_ns, p_key)
         if result is None:
             txt = self.recs["msg"]["rec_not_exist"]
             self.editor.set_dbe_status(  # type: ignore
-                f"{txt['a']} {txt['b']} {txt['c']} <{p_select_key}>")
+                f"{txt['a']} {txt['b']} {txt['c']} <{p_key}>")
         else:
-            print(f"GET Result: {result}")
+            print(f"get_redis_record() Result: {result}")
             # put the values into the editor
             # see notes below
             pass
@@ -687,46 +762,31 @@ class RecordMgmt(QWidget):
         """Get a list of keys for selected DB matching the pattern.
 
         :args:
-            p_db - name of the database to search
-            p_dm - record type to search
-            p_search - pattern to match for keys
+            p_db - name (meta tag) of database
+            p_dm - record type (domain) to search
+            p_search - pattern (wildcard) to match for keys
             p_load_1st_rec - load 1st record found into editor
-        :returns: list of keys that match the pattern or None
+                       or not. For example, when validating links,
+                       we don't want to actually disply the
+                       linked record.
+        :returns: list of keys that match the pattern, or []
 
         @DEV:
         - Pick it up here...
-        - Why find fails on a valid key like "widget:tools"?
-          It is because I don't have the "widget" domain set up yet.
-          Try testing by creating some config records first.
         - Review notes from where I left off.
           Don't get TOO hung up on the queue business.
           First work on displaying the found record(s).
-        """
-        db = p_db
-        result_b = RI.find_keys(db.replace(".db", ""), p_search)
-        result: list = []
-        if result_b in (None, [], {}):
-            txt = self.recs["msg"]["rec_not_exist"]
-            self.editor.set_dbe_status(   # type: ignore
-                f"{txt['a']} {txt['b']} {txt['c']} <{p_search}>")
-        else:
-            for res in result_b:
-                result.append(res.decode("utf-8"))
-            result = sorted(result)
-            txt = self.recs["msg"]["rec_exists"]
-            self.editor.set_dbe_status(   # type: ignore
-                f"{txt['a']} {txt['b']} {txt['c']} <{p_search}>")
-            if p_load_1st_rec:
-                records = self.get_redis_record(db, result[0])
-                if len(records) > 1:
-                    self.editor.enable_buttons(   # type: ignore
-                        "get.box", ["Next"])
-                else:
-                    self.editor.disable_buttons(   # type: ignore
-                        "get.box", ["Next", "Prev"])
 
                 # Let's work first on displaying the 1st record returned,
                 # then on expiry time stamps & rules, then on queue recs.
+
+                # As soon as the Find button is pressed, we should wipe
+                # out the editor form. If any changes are pending, ask if
+                # they want to save them. Speaking of which, may want to
+                # diagram out the process of state management for pending
+                # db events. What do I mean by a "pending" event? To put
+                # it another way, when should the "Save" button be enabled
+                # or disabled?
 
                 # To load from db record to editor form(s), use functions
                 # in the DB Editor class:
@@ -748,6 +808,7 @@ class RecordMgmt(QWidget):
                 #  Name of the list forms, if any:
                 #    f"{db_nm}:{rectyp_nm}:{field_nm}.frm"
 
+                # LATER.. maybe..
                 # Create a Harvest Queue record with the keyset result.
                 # Store list of found keys in the queue for use with
                 #  Next and Prev buttons.
@@ -792,8 +853,29 @@ class RecordMgmt(QWidget):
                 #    PEXPIRETIME <key> <-- Unix timestamp in ms
                 # I am thinking to set a rule in a Basement:Config record for
                 #   each DB/record type. That will drive the expiry time.
+        """
+        nsid = p_db.replace(".db", "")
+        keys_b = RI.find_keys(nsid, p_search)
+        keys: list = []
+        if keys_b in (None, [], {}):
+            txt = self.recs["msg"]["rec_not_exist"]
+            self.editor.set_dbe_status(   # type: ignore
+                f"{txt['a']} {txt['b']} {txt['c']} <{p_search}>")
+        else:
+            for res in keys_b:
+                keys.append(res.decode("utf-8"))
+            self.KEYS = sorted(keys)
+            txt = self.recs["msg"]["recs_found"]
+            self.editor.set_dbe_status(   # type: ignore
+                f"{txt['a']} {txt['b']} <{len(keys)}> {txt['c']} <{p_search}>")
+            if p_load_1st_rec:
+                self.active_key_ix = 0
+                if len(self.KEYS) > 1:
+                    self.editor.enable_buttons(   # type: ignore
+                        "get.box", ["next.btn"])
+                self.set_form_values()
 
-        return (result)
+        return (keys)
 
     def validate_links(self,
                        db: str,

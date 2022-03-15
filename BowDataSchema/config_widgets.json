@@ -218,18 +218,23 @@
         "msg": {
             "rec_exists": {
                 "a": "DB response.",
-                "b": "Mod or Delete possible. Unable to insert record.",
-                "c": "Key already exists"
+                "b": "Mod or Delete OK.",
+                "c": "Cannot insert record. Key exists"
                 },
             "rec_inserted": {
                 "a": "DB response.",
                 "b": "Insert action successful.",
-                "c": "New key created."
+                "c": "New key created"
                 },
             "rec_not_exist": {
                 "a": "DB response.",
-                "b": "Insert action possible.",
+                "b": "Insert action OK.",
                 "c": "No records found with key like"
+                },
+            "recs_found": {
+                "a": "DB response.",
+                "b": "Number of records found:",
+                "c": "for key"
                 },
             "link_bad": {
                 "a": "Edit response.",

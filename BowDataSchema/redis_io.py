@@ -219,7 +219,12 @@ class RedisIO(object):
     def get_record(self,
                    p_db: str,
                    p_key_val: str):
-        """Return existing record if one exists for a specified key."""
+        """Return existing record if one exists for a specified key.
+
+        @DEV:
+        - Q: Can this function return more than one record? In other
+             words, can I pass in a Redis "wildcard" key?
+        """
         rec = None
         if self.RNS[p_db].exists(p_key_val):               # type: ignore
             redis_result = self.RNS[p_db].get(p_key_val)
