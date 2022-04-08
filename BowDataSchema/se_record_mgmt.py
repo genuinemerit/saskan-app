@@ -270,26 +270,34 @@ class RecordMgmt(QWidget):
 
     def set_form_values(self):
         """Set form field values based on Redis record values.
+           Only call this function if it had been determined
+           that one or more records were found with a key
+           matching the search.
 
         @DEV:
-        - Display list values properly
-        - Display audit values as read-only fields or labels
-        - Think about handling of key fields. If they are edited,
-          then the action would be a (logical) delete + an insert,
-          not just an insert. But then, of course, we always do a 
-          logical delete + an insert, so maybe it is not important,
-          or perhaps a notification or warning.
+        - Display list values properly.
+            - On return from a find, make sure appropriate
+              number of list elements/fields are defined, shown.
+        - Display audit values as read-only fields or labels.
         - Enable the "delete" button.
-        - Track if a change has been made. If so, enable the "Save" button
-          and something like a "dirty" flag. Another to think it is to put
-          the pending change on a queue.
-        - The more I think about queuing up record contetns, the less I
-          like it. At least theoretically, other users could be modifying
-          a given record while it is "in the queue". I'd rather not have to
-          manage locks if I can avoid it.
+        - Enable some kind of display of permitted enum values.
 
-        Example dbrec
-            {'name': 'configs:test_catg:test_id', 'values': {'catg': ['test_catg'], 'id': ['test_id'], 'name': ['test_name'], 'val': ['test_val']}, 'audit': {'version': '1.0.0', 'modified': '2022-03-15T00:16:59.149677+00:00', 'hash': '69f8d7fa5ca6f0e233ee3315e0d39afb35d1758a28b1de9ee7ed07c7eba19283d8c0d1fa71ff4b84711263f979a15f1b5240571f9c21a2f59f267c8bb751140b'}}
+        - If key fields are edited, action is a (logical) delete + an insert,
+          not just an insert. But we always do a logical delete + an insert
+        - Treat key field edits like any others,
+          but include a warning or notification.
+
+        - BUT? Check for the use of a key field as a link value?
+           - IF another record is using key value as a link, do we not
+             allow an update (or delete). Do we modify the other record(s)?
+
+          - Should we track link relationships in a way
+            that will make them easier to find?  Two-way links (no)?
+            Association tables (yes)?
+
+        - Track if a change has been made. If so, enable the "Save" button
+          and something like a "dirty" flag.
+        - Use a queue structure to store pending changes?
         """
         db, dm = self.get_active_domain()
         nsid = db.replace(".db", "")
@@ -302,6 +310,7 @@ class RecordMgmt(QWidget):
                 flid = f"{db}:{dm}:{ftag}.ed"
                 if "list" in rec["ed"]:
                     pass
+                    # Need to do something here?
                 elif ftag in dbrec["values"]:
                     dom_wdg.findChild(QLineEdit, flid).setText(
                         dbrec["values"][ftag][0])
@@ -378,7 +387,7 @@ class RecordMgmt(QWidget):
         hbox.addWidget(add_list_btn(
                 "+", "add.btn", self.add_row_to_list))
         hbox.addWidget(add_list_btn(
-                "-", "rmv.btn", self.remove_row_from_list))
+                "-", "rmv.btn", self.push_remove_row_button))
         return (hbox)
 
     def make_edit_form(self,
@@ -476,12 +485,12 @@ class RecordMgmt(QWidget):
                             db, dm, fgrp, ftag, rec, p_add_row=True))
         self.set_list_button_visiblity(db, dm, fgrp, ftag)
 
-    def remove_row_from_list(self):
+    def remove_row_from_list(self,
+                             db,
+                             dm,
+                             fgrp,
+                             flid):
         """Remove one input row from the form for list of fields.
-
-        Remove '_rmv.btn' to derive the object ID of the line edit,
-        then split on '_' (if any) and take first part to get the
-        original meta field tag and the index of the selected edit line.
 
         Since values are collected from the form, don't need to manage
         any storage of values, e.g., removing a value.  However, we do
@@ -499,8 +508,6 @@ class RecordMgmt(QWidget):
         maybe its ID?) to be removed, but keep in mind that that is a Layout
         (a HBox) and not a LineEdit widget.
         """
-        db, dm, fgrp, flid = tuple(
-            self.sender().objectName().replace("_rmv.btn", "").split("_"))
         frec, dbrec = self.get_field_values(db, dm)
         ftag = flid.split("-")[0]
         form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
@@ -522,7 +529,9 @@ class RecordMgmt(QWidget):
             self.push_prev_button)
         # Edit Buttons
         self.ed_meta["bx"]["edit.box"]["bn"]["add.btn"]["w"].clicked.connect(
-            self.add_db_record)
+            self.push_add_button)
+        self.ed_meta["bx"]["edit.box"]["bn"]["clear.btn"]["w"].clicked.connect(
+            self.push_clear_button)
 
     # Database Editor Widget extend function
     # ============================================================
@@ -595,40 +604,6 @@ class RecordMgmt(QWidget):
                 break
         return (db, dm)
 
-    def push_find_button(self):
-        """Slot for DB Editor Find push button click action.
-
-        @DEV:
-        - This is more or less working for now.
-        - Come back to it later, as needed.
-        """
-        db, dm = self.get_active_domain()
-        search = self.get_search_value(dm)
-        _ = self.find_redis_keys(
-            db.lower(), dm, search, p_load_1st_rec=True)
-
-    def push_next_button(self):
-        """Slot for DB Editor Next push button click action.
-        """
-        self.active_key_ix += 1
-        self.editor.enable_buttons(   # type: ignore
-            "get.box", ["prev.btn"])
-        if len(self.KEYS) == (self.active_key_ix + 1):
-            self.editor.disable_buttons(  # type: ignore
-                "get.box", ["next.btn"])
-        self.set_form_values()
-
-    def push_prev_button(self):
-        """Slot for DB Editor Next push button click action.
-        """
-        self.active_key_ix -= 1
-        self.editor.enable_buttons(   # type: ignore
-            "get.box", ["next.btn"])
-        if self.active_key_ix == 0:
-            self.editor.disable_buttons(  # type: ignore
-                "get.box", ["prev.btn"])
-        self.set_form_values()
-
     # Record Type Selector helper and slot functions
     # ============================================================
     def select_domain(self,
@@ -671,7 +646,7 @@ class RecordMgmt(QWidget):
         self.editor.disable_buttons("get.box", ["find.btn"])  # type: ignore
         self.editor.disable_texts("get.box", ["find.inp"])    # type: ignore
         self.editor.disable_buttons("edit.box",               # type: ignore
-                                    ["add.btn", "cancel.btn"])
+                                    ["add.btn", "clear.btn", "cancel.btn"])
 
     def show_domain(self,
                     p_dbk: str,
@@ -687,7 +662,7 @@ class RecordMgmt(QWidget):
         self.editor.enable_buttons("get.box", ["find.btn"])  # type: ignore
         self.editor.enable_texts("get.box", ["find.inp"])    # type: ignore
         self.editor.enable_buttons("edit.box",               # type: ignore
-                                   ["add.btn", "cancel.btn"])
+                                   ["add.btn", "clear.btn", "cancel.btn"])
 
     def run_domain_edits(self) -> bool:
         """Run the edits associated with the active record type.
@@ -767,92 +742,30 @@ class RecordMgmt(QWidget):
             p_search - pattern (wildcard) to match for keys
             p_load_1st_rec - load 1st record found into editor
                        or not. For example, when validating links,
-                       we don't want to actually disply the
+                       we don't want to actually display the
                        linked record.
         :returns: list of keys that match the pattern, or []
 
         @DEV:
-        - Pick it up here...
-        - Review notes from where I left off.
-          Don't get TOO hung up on the queue business.
-          First work on displaying the found record(s).
+        - If any changes are pending, enable the Save button, else disable.
+          Diagram the process of state management for pending db events.
+          What is a "pending" event?
 
-                # Let's work first on displaying the 1st record returned,
-                # then on expiry time stamps & rules, then on queue recs.
+        - Learn about setting expiry rules.
+          Consider how to display expiry times. Should be an Audit field.
 
-                # As soon as the Find button is pressed, we should wipe
-                # out the editor form. If any changes are pending, ask if
-                # they want to save them. Speaking of which, may want to
-                # diagram out the process of state management for pending
-                # db events. What do I mean by a "pending" event? To put
-                # it another way, when should the "Save" button be enabled
-                # or disabled?
-
-                # To load from db record to editor form(s), use functions
-                # in the DB Editor class:
-                #  db_editor.set_key_fields(record)
-                #  db_editor.set_value_fields(record)
-                #   sub-function: db_editor.set_list_field(field, value)
-                #  consider whether to display audit and expiry values?
-                #    I am thinking yes. Why not? Just can't edit them.
-
-                # Populate the rectyp editor widget and forms for first record.
-                # Define functions like:
-                #  set_key_fields()
-                #  set_value_fields()
-                #    and a sub-function probably for set_list_fields()
-                #  Widget stored at:
-                #    self.rectyps[db_nm][rectyp_nm]["widget"] = rectyp_wdg
-                #  Name of the entire form:
-                #    f"{db_nm}:{rectyp_nm}:{fgrp}.frm"
-                #  Name of the list forms, if any:
-                #    f"{db_nm}:{rectyp_nm}:{field_nm}.frm"
-
-                # LATER.. maybe..
-                # Create a Harvest Queue record with the keyset result.
-                # Store list of found keys in the queue for use with
-                #  Next and Prev buttons.
-                # Use a Redis queue (a list) for this. On Harvest Queues.
-                # Still need to store the hash/key locally and keep track
-                # of which record in the list is being displayed/edited.
-                # For adds:
-                #   Store auto-generated Queue record in the Qt form first.
-                #   Store the list of found keys as a single field value.
-                #   Then call the Add record function.
-                # Put it into the Harvest/Queue editor widget form(s),
-                #  but don't display it.
-                #
-                # Should be able to find/display the queue record.
-                # If the Queue record itself is target of a Find commend,
-                #  then full list of keys needs to be displayed in
-                #  individual "list"-type fields in the editor form.
-                #  Queue records should not be edited manually.
-
-                # This is an opportunity to learn setting expiry rules.
-                # Consider how to display expiry times. Thinking that
-                # should be an Audit field.
-
-                # Don't create a queue if the find result is empty or has
-                # only one record. Do expire the queue record after a short
-                # time. Maybe expire the previous queue record if the Find
-                # button is clicked again?
-
-                # The record displayed in the editor is the first one
-                # found by the Find. It may or may not be a Queue record.
-                # It could be any kind of record on any database.
-
-                # Expire time can be set 4 ways:
-                #    EXPIRE <key> <seconds> <-- from now
-                #    EXPIREAT <key> <timestamp> <-- Unix timestamp
-                #    PEXPIRE <key> <milliseconds> <-- from now
-                #    PEXPIREAT <key> <milliseconds-timestamp> <-- Unix ts in ms
-                #  Get expire time 4 ways:
-                #    TTL <key> <-- get time to live in seconds
-                #    PTTL <key> <-- get time to live in ms
-                #    EXPIRETIME <key> <-- Unix timestamp
-                #    PEXPIRETIME <key> <-- Unix timestamp in ms
-                # I am thinking to set a rule in a Basement:Config record for
-                #   each DB/record type. That will drive the expiry time.
+        # Expire time can be set 4 ways:
+        #    EXPIRE <key> <seconds> <-- from now
+        #    EXPIREAT <key> <timestamp> <-- Unix timestamp
+        #    PEXPIRE <key> <milliseconds> <-- from now
+        #    PEXPIREAT <key> <milliseconds-timestamp> <-- Unix ts in ms
+        #  Get expire time 4 ways:
+        #    TTL <key> <-- get time to live in seconds
+        #    PTTL <key> <-- get time to live in ms
+        #    EXPIRETIME <key> <-- Unix timestamp
+        #    PEXPIRETIME <key> <-- Unix timestamp in ms
+        # Set a rule in a Basement:Config record for each DB/record type
+        #   to drive its expiry time.
         """
         nsid = p_db.replace(".db", "")
         keys_b = RI.find_keys(nsid, p_search)
@@ -861,6 +774,7 @@ class RecordMgmt(QWidget):
             txt = self.recs["msg"]["rec_not_exist"]
             self.editor.set_dbe_status(   # type: ignore
                 f"{txt['a']} {txt['b']} {txt['c']} <{p_search}>")
+            self.push_clear_button()
         else:
             for res in keys_b:
                 keys.append(res.decode("utf-8"))
@@ -906,14 +820,57 @@ class RecordMgmt(QWidget):
                             return False
         return True
 
-    def auto_add_db_record(self):
-        """Overlay for add_db_record to use with auto-adds."""
+    def push_remove_row_button(self):
+        """Click the '-' button on last item in an edit list.
+
+        Use '_rmv.btn' to derive the ID of the line edit object.
+        """
+        db, dm, fgrp, flid = tuple(
+            self.sender().objectName().replace("_rmv.btn", "").split("_"))
+        self.remove_row_from_list(db, dm, fgrp, flid)
+
+    def push_find_button(self):
+        """Slot for DB Editor Find push button click action.
+
+        @DEV:
+        - This is more or less working for now.
+        - Come back to it later, as needed.
+        """
+        db, dm = self.get_active_domain()
+        search = self.get_search_value(dm)
+        _ = self.find_redis_keys(
+            db.lower(), dm, search, p_load_1st_rec=True)
+
+    def push_next_button(self):
+        """Slot for DB Editor Next push button click action.
+        """
+        self.active_key_ix += 1
+        self.editor.enable_buttons(   # type: ignore
+            "get.box", ["prev.btn"])
+        if len(self.KEYS) == (self.active_key_ix + 1):
+            self.editor.disable_buttons(  # type: ignore
+                "get.box", ["next.btn"])
+        self.set_form_values()
+
+    def push_prev_button(self):
+        """Slot for DB Editor Next push button click action.
+        """
+        self.active_key_ix -= 1
+        self.editor.enable_buttons(   # type: ignore
+            "get.box", ["next.btn"])
+        if self.active_key_ix == 0:
+            self.editor.disable_buttons(  # type: ignore
+                "get.box", ["prev.btn"])
+        self.set_form_values()
+
+    def auto_push_add_button(self):
+        """Overlay for push_add_button to use with auto-adds."""
         pass
 
-    def add_db_record(self,
-                      p_auto: bool = False,
-                      p_db: str = None,
-                      p_dm: str = None):
+    def push_add_button(self,
+                        p_auto: bool = False,
+                        p_db: str = None,
+                        p_dm: str = None):
         """Add a record to the DB
 
         Slot for DB Editor Edit/Add push button click action.
@@ -969,3 +926,26 @@ class RecordMgmt(QWidget):
             self.editor.set_dbe_status(   # type: ignore
                 txt['a'] + "  " + txt['b'] + " " + txt['c'])
             return False
+
+    def push_clear_button(self):
+        """Clear values from the current dom editor form.
+
+        @DEV:
+        - Handle list fields properly. Remove values and reduce list length.
+        """
+        db, dm = self.get_active_domain()
+        meta = self.recs["db"][db]["dm"][dm]["rec"]
+        dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
+        for fgrp, fields in meta.items():
+            for ftag, rec in fields.items():
+                flid = f"{db}:{dm}:{ftag}.ed"
+                if "list" in rec["ed"]:
+                    pp((fgrp, flid, ftag, rec))
+                    # need to modify flid to be the specific list item (Row)?
+                    # if "values" in rec:
+                    #    for _ in range(1, len(rec["values"])):
+                    #        self.remove_row_from_list(db, dm, fgrp, flid)
+                    #    # rec["values"].pop()
+                    pass
+                else:
+                    dom_wdg.findChild(QLineEdit, flid).setText("")

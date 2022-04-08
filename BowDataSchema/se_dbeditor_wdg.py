@@ -125,10 +125,6 @@ class DBEditorWidget(QWidget):
         """Assign actions to button slots.
 
         Other button actions are assigned in RecordMgmt class.
-
-        @DEV:
-        - Refactor: Are "action" and "s" (status) meta needed?
-          Let's see if we can do without them.
         """
         # Cancel / Stop Button
         self.editor["bx"]["edit.box"]["bn"]["cancel.btn"]["w"].clicked.connect(

@@ -99,6 +99,10 @@
                         "a": "Redo",
                         "c": "Re-apply the most recently undone edit (Ctrl+Y).",
                         "w": null},
+                    "clear.btn": {
+                        "a": "Clear",
+                        "c": "Clear value from the current editor without saving.",
+                        "w": null},
                     "cancel.btn": {
                         "a": "Stop",
                         "c": "Kill pending activities. Close editor without saving.",
