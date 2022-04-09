@@ -37,19 +37,24 @@ class RecordMgmt(QWidget):
         are not any edit rules for them and they cannot be changed
         by manual edits.
 
-    - Metadata-defined edit rules are:
+    - Possible metadata-defined edit rules and masks might want to use...
         auto -- field is populated by system, cannot be edited
-        date -- Input mask or regex YYYYMMDD
+        date -- set format to YYYY-MM-DD
         datetime -- Input mask or regex YYYYMMDDHHMMSS.SSS
+        dbkey -- convert to valid Redis key format
+        hostname -- must be a valid hostname
         link -- must follow rules for key values
         list -- may occur 1 to x times
+        lower -- convert values to lower-case
+        nameval -- must follow rules for a named value
         notnull -- cannot be empty set or all spaces
         number -- can be pos, neg or zero real
         posint -- positive integer
         posreal -- positive real number
+        yesno -- value must be "yes" or "no"
 
     @DEV:
-    - Work on ordering editor boxes using indexes
+    - Work on ordering editor boxes using indexes?
     """
     def __init__(self,
                  parent: QWidget,
@@ -108,8 +113,24 @@ class RecordMgmt(QWidget):
             return set_underbars(r_str.lower())
 
         def verify_host(p_value: str):
-            """Validate value against an enumerated list."""
+            """Validate value against list of valid host names."""
             if p_value in ["localhost", "curwen"]:
+                return True
+            else:
+                return False
+
+        def verify_yes_or_no(p_value: str):
+            """Validate value in in (yes, no)."""
+            if p_value.lower() in ["yes", "no"]:
+                return True
+            else:
+                return False
+
+        def verify_named_value(p_value: str):
+            """Validate value has format like x:y."""
+            if (len(p_value) > 2 and
+                    p_value.count(":") == 1 and
+                    p_value.find(":") > 0):
                 return True
             else:
                 return False
@@ -118,7 +139,9 @@ class RecordMgmt(QWidget):
         self.mask = {"date": "0000-00-00",
                      "lower": "<"}
         self.edit = {"dbkey": set_redis_key,
-                     "hostlist": verify_host}
+                     "hostlist": verify_host,
+                     "namedval": verify_named_value,
+                     "yesno": verify_yes_or_no}
 
     def set_edits_cache(self):
         """For values shared between autonomous functions.
@@ -126,12 +149,12 @@ class RecordMgmt(QWidget):
         These may eventually be stored as queues in the Harvest db.
         """
         self.KEYS = []
-        self.active_key_ix = 0
+        self.ACTIVE_KEY_IX = 0
 
     # Record Type Selector Widgets make functions
     # ============================================================
     def make_selectors(self):
-        """Return collection(s) of radio buttons for selecting rectyp.
+        """Return collection(s) of radio buttons for selecting domain (rec type).
 
         :returns: QVBoxLayout object
         """
@@ -156,6 +179,12 @@ class RecordMgmt(QWidget):
                 elif dbk == "schema.db":
                     if dmk == "topics":
                         action = self.select_topics
+                    elif dmk == "plans":
+                        action = self.select_plans
+                    elif dmk == "services":
+                        action = self.select_services
+                    elif dmk == "schemas":
+                        action = self.select_schemas
                 elif dbk == "harvest.db":
                     if dmk == "queues":
                         action = self.select_queues
@@ -170,6 +199,8 @@ class RecordMgmt(QWidget):
                         p_edit_rules: set,
                         p_edit_wdg: QLineEdit):
         """Format edit attributes of form line edit item
+
+        This f is not being used yet.
 
         :args:
             (Qt object) The edit item widget
@@ -259,8 +290,15 @@ class RecordMgmt(QWidget):
                     if fgrp == "keys":
                         dbkey += f"{value}:"
         dbkey = dbkey[:-1]
-        if dm not in dbkey:
+
+        pp(("dm", dm, "dbkey before", dbkey))
+
+        key_prefix = dbkey.split(":")[0]
+        if key_prefix != dm:
             dbkey = dm + ":" + dbkey
+
+        pp(("dbkey after", dbkey))
+
         dbrec[ns]["name"] = self.edit["dbkey"](dbkey)
         for ftag, rec in frec[db][dm]["keys"].items():
             dbrec[ns]["values"][ftag] = rec["values"]
@@ -301,7 +339,7 @@ class RecordMgmt(QWidget):
         """
         db, dm = self.get_active_domain()
         nsid = db.replace(".db", "")
-        key = self.KEYS[self.active_key_ix]
+        key = self.KEYS[self.ACTIVE_KEY_IX]
         dbrec = self.get_redis_record(nsid, key)
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
@@ -421,7 +459,7 @@ class RecordMgmt(QWidget):
         return(frm_wdg)
 
     def init_list_button_visiblity(self):
-        """Set initial visiblity state for list-type edit item buttons"""
+        """Set initial visibility state for list-type edit item buttons"""
         for dbk, db in self.recs["db"].items():
             for dmk, dm in db["dm"].items():
                 dom_wdg = self.recs["db"][dbk]["dm"][dmk]["w_dom"]
@@ -631,6 +669,18 @@ class RecordMgmt(QWidget):
         """Slot for Editor Select Topics radio check action"""
         self.select_domain("schema.db", "topics")
 
+    def select_plans(self):
+        """Slot for Editor Select Plans radio check action"""
+        self.select_domain("schema.db", "plans")
+
+    def select_services(self):
+        """Slot for Editor Select Services radio check action"""
+        self.select_domain("schema.db", "services")
+
+    def select_schemas(self):
+        """Slot for Editor Select Schemas radio check action"""
+        self.select_domain("schema.db", "schemas")
+
     def select_queues(self):
         """Slot for Editor Select Queues radio check action"""
         self.select_domain("harvest.db", "queues")
@@ -691,15 +741,19 @@ class RecordMgmt(QWidget):
                             err = (f"{txt['a']}  <{rec['title']}{txtix}> " +
                                    f"{txt['b']}")
                             break
-                if 'hostlist' in rules:
-                    for vix, val in enumerate(rec["values"]):
-                        if not (self.edit["hostlist"](val)):
-                            txt = self.recs["msg"]["value_bad"]
-                            txtix = "" \
-                                if len(rec["values"]) == 1 else f"[{vix + 1}]"
-                            err = (f"{txt['a']} <{rec['title']}{txtix}> " +
-                                   f"{txt['b']}")
-                            break
+                for edit_rule in ('hostlist', 'yesno', 'namedval'):
+                    if edit_rule in rules:
+                        for vix, val in enumerate(rec["values"]):
+                            if not (self.edit[edit_rule](val)):
+                                txt = self.recs["msg"]["value_bad"]
+                                txtix = "" \
+                                    if len(rec["values"]) == 1 \
+                                        else f"[{vix + 1}]"
+                                err = (f"{txt['a']} <{rec['title']}{txtix}> " +
+                                       f"{txt['b']}")
+                                break
+                            if err != "":
+                                break
                         if err != "":
                             break
             if err != "":
@@ -783,7 +837,7 @@ class RecordMgmt(QWidget):
             self.editor.set_dbe_status(   # type: ignore
                 f"{txt['a']} {txt['b']} <{len(keys)}> {txt['c']} <{p_search}>")
             if p_load_1st_rec:
-                self.active_key_ix = 0
+                self.ACTIVE_KEY_IX = 0
                 if len(self.KEYS) > 1:
                     self.editor.enable_buttons(   # type: ignore
                         "get.box", ["next.btn"])
@@ -808,16 +862,18 @@ class RecordMgmt(QWidget):
                 if "link" in rec["ed"]:
                     for vix, val in enumerate(rec["values"]):
                         link = self.edit["dbkey"](val)
-                        link_rec = self.find_redis_keys(
-                            db, dm, link, p_load_1st_rec=False)
-                        if link_rec in (None, {}, []):
-                            txt = self.recs["msg"]["link_bad"]
-                            txtix = "" \
-                                if len(rec["values"]) == 1 else f"[{vix + 1}]"
-                            err = (f"{txt['a']} <{rec['title']}{txtix}> " +
-                                   f"{txt['b']}")
-                            self.editor.set_dbe_status(err)  # type: ignore
-                            return False
+                        if link not in (None, [], (), ""):
+                            link_rec = self.find_redis_keys(
+                                db, dm, link, p_load_1st_rec=False)
+                            if link_rec in (None, {}, []):
+                                txt = self.recs["msg"]["link_bad"]
+                                txtix = "" \
+                                    if len(rec["values"]) == 1 \
+                                        else f"[{vix + 1}]"
+                                err = (f"{txt['a']} <{rec['title']}{txtix}> " +
+                                       f"{txt['b']}")
+                                self.editor.set_dbe_status(err)  # type: ignore
+                                return False
         return True
 
     def push_remove_row_button(self):
@@ -844,10 +900,10 @@ class RecordMgmt(QWidget):
     def push_next_button(self):
         """Slot for DB Editor Next push button click action.
         """
-        self.active_key_ix += 1
+        self.ACTIVE_KEY_IX += 1
         self.editor.enable_buttons(   # type: ignore
             "get.box", ["prev.btn"])
-        if len(self.KEYS) == (self.active_key_ix + 1):
+        if len(self.KEYS) == (self.ACTIVE_KEY_IX + 1):
             self.editor.disable_buttons(  # type: ignore
                 "get.box", ["next.btn"])
         self.set_form_values()
@@ -855,10 +911,10 @@ class RecordMgmt(QWidget):
     def push_prev_button(self):
         """Slot for DB Editor Next push button click action.
         """
-        self.active_key_ix -= 1
+        self.ACTIVE_KEY_IX -= 1
         self.editor.enable_buttons(   # type: ignore
             "get.box", ["next.btn"])
-        if self.active_key_ix == 0:
+        if self.ACTIVE_KEY_IX == 0:
             self.editor.disable_buttons(  # type: ignore
                 "get.box", ["prev.btn"])
         self.set_form_values()

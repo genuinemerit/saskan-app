@@ -371,7 +371,7 @@
                 "dm": {
                     "topics": {
                         "a": "Topics",
-                        "c": "Records holding service topic definitions.",
+                        "c": "Define a subject handled by a channel.",
                         "w_sel": null,
                         "w_dom": null,
                         "rec": {
@@ -383,7 +383,8 @@
                                 "id": {
                                     "title": "ID",
                                     "hint": "🔑",
-                                    "ed": ["notnull"]}},
+                                    "ed": ["notnull"]}
+                            },
                             "vals": {
                                 "host": {
                                     "title": "Host",
@@ -405,30 +406,131 @@
                                     "ed": []},
                                 "plan": {
                                     "title": "Plan ID",
-                                    "hint": "🖊 🔗 📜",
-                                    "ed": ["notnull", "link", "list"]}}
+                                    "hint": "🔗 📜",
+                                    "ed": ["link", "list"]}}
                         }
                     },
                     "plans": {
                         "a": "Plans",
-                        "c": "Records holding service plan definitions.",
+                        "c": "Identify list of services for a topic.",
                         "w_sel": null,
                         "w_dom": null,
-                        "rec": {}
+                        "rec": {
+                            "keys": {
+                                "catg": {
+                                    "title": "Category",
+                                    "hint": "🔑",
+                                    "ed": ["notnull"]},
+                                "id": {
+                                    "title": "ID",
+                                    "hint": "🔑",
+                                    "ed": ["notnull"]}
+                            },
+                            "vals": {
+                                "topic_id": {
+                                    "title": "Topic ID",
+                                    "hint": "🔗",
+                                    "ed": ["link"]},
+                                "cap": {
+                                    "title": "Caption",
+                                    "ed": []},
+                                "desc": {
+                                    "title": "Description",
+                                    "ed": []},
+                                "service": {
+                                    "title": "Service ID",
+                                    "hint": "🔗 📜",
+                                    "ed": ["link", "list"]}
+                            }
+                        }
                     },
                     "services": {
                         "a": "Services",
-                        "c": "Records holding service definitions.",
+                        "c": "Define set of related messages.",
                         "w_sel": null,
                         "w_dom": null,
-                        "rec": {}
+                        "rec": {
+                            "keys": {
+                                "catg": {
+                                    "title": "Category",
+                                    "hint": "🔑",
+                                    "ed": ["notnull"]},
+                                "id": {
+                                    "title": "ID",
+                                    "hint": "🔑",
+                                    "ed": ["notnull"]}
+                                },
+                                "vals": {
+                                    "plan_id": {
+                                        "title": "Plan ID",
+                                        "hint": "🔗",
+                                        "ed": ["link"]},
+                                    "is_request_reply": {
+                                        "title": "Request-Reply",
+                                        "hint": "🖊 yes | no",
+                                        "ed": ["yesno"]},
+                                    "is_publish_subscribe": {
+                                        "title": "Publish-Subscribe",
+                                        "hint": "🖊 yes | no",
+                                        "ed": ["yesno"]},
+                                    "is_recipient_list": {
+                                        "title": "Recipient List",
+                                        "hint": "🖊 yes | no",
+                                        "ed": ["yesno"]},
+                                    "is_data_channel": {
+                                        "title": "Data Channel",
+                                        "hint": "🖊 yes | no",
+                                        "ed": ["yesno"]},
+                                    "is_invalid_msg_channel": {
+                                        "title": "Invalid Msg Channel",
+                                        "hint": "🖊 yes | no",
+                                        "ed": ["yesno"]},
+                                    "cap": {
+                                        "title": "Caption",
+                                        "ed": []},
+                                    "desc": {
+                                        "title": "Description",
+                                        "ed": []},
+                                    "schema": {
+                                        "title": "Schema ID",
+                                        "hint": "🔗 📜",
+                                        "ed": ["link", "list"]}
+                                }
+                        }
                     },
                     "schemas": {
                         "a": "Schemas",
-                        "c": "Records holding service schema definitions.",
+                        "c": "Define format of a specific message.",
                         "w_sel": null,
                         "w_dom": null,
-                        "rec": {}
+                        "rec": {
+                            "keys": {
+                                "catg": {
+                                    "title": "Category",
+                                    "hint": "🔑",
+                                    "ed": ["notnull"]},
+                                "id": {
+                                    "title": "ID",
+                                    "hint": "🔑",
+                                    "ed": ["notnull"]}
+                                },
+                                "vals": {
+                                    "service_id": {
+                                        "title": "Service ID",
+                                        "hint": "🔗",
+                                        "ed": ["link"]},
+                                    "cap": {
+                                        "title": "Caption",
+                                        "ed": []},
+                                    "desc": {
+                                        "title": "Description",
+                                        "ed": []},
+                                    "named_val": {
+                                        "title": "Named Value",
+                                        "hint": "🖊 🔰 📜",
+                                        "ed": ["notnull", "namedval", "list"]}
+                                }
+                        }
                     }
                 }
             },
