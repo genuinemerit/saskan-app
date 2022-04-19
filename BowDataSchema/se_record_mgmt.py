@@ -5,7 +5,8 @@
 :author:    GM (genuinemerit @ pm.me)
 """
 
-from pprint import pprint as pp     # noqa: F401
+from pprint import pformat as pf     # noqa: F401
+from pprint import pprint as pp      # noqa: F401
 from PySide2.QtCore import Qt
 from PySide2.QtCore import QRegExp
 from PySide2.QtGui import QRegExpValidator
@@ -22,21 +23,20 @@ from PySide2.QtWidgets import QWidget
 from boot_texts import BootTexts                # type: ignore
 from redis_io import RedisIO                    # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
+from wire_tap import WireTap                    # type: ignore
 
 BT = BootTexts()
 RI = RedisIO()
 SS = SaskanStyles()
+WT = WireTap()
 
 
 class RecordMgmt(QWidget):
     """Handle set-up, set, get for predefined record types.
-
     Closely related to the DB Editor Widget Class.
-
-    Values for Audit fields are auto-generated, so there
-        are not any edit rules for them and they cannot be changed
-        by manual edits.
-
+    Values for Audit fields are auto-generated, 
+    No edit rules for them. They cannot be changed manually.
+    @DEV:
     - Possible metadata-defined edit rules and masks might want to use...
         auto -- field is populated by system, cannot be edited
         date -- set format to YYYY-MM-DD
@@ -52,8 +52,6 @@ class RecordMgmt(QWidget):
         posint -- positive integer
         posreal -- positive real number
         yesno -- value must be "yes" or "no"
-
-    @DEV:
     - Work on ordering editor boxes using indexes?
     """
     def __init__(self,
@@ -61,9 +59,8 @@ class RecordMgmt(QWidget):
                  wdg_meta: dict,
                  db_editor: object):
         """super() call is required.
-
-        The DB editor widget is also passed in.
-        """
+        The DB editor widget is also passed in."""
+        WT.log_module(__file__, __name__, self.__class__, self)
         super().__init__(parent)
         self.recs = wdg_meta
         self.editor = db_editor
@@ -73,23 +70,22 @@ class RecordMgmt(QWidget):
         self.extend_db_editor_wdg()
 
     def get_tools(self):
-        """Return modified metadata"""
+        """Return modified metadata
+        @public"""
+        WT.log_function(self.get_tools, p_class=self.__class__)
         return(self.recs)
 
     def set_edits_meta(self):
         """To use when applying edits and auto-corrects.
-
         This includes:
         - named enum lists
         - input masks
-        - specialized functions
-        """
+        - specialized functions"""
         def set_underbars(text):
             """Remove stray underbars
-
             - Remove leading or trailing underbars.
-            - Reduce multiple underbars to single underbars.
-            """
+            - Reduce multiple underbars to single underbars."""
+            WT.log_function(set_underbars, p_is_sub=True)
             r_str = text
             while "__" in r_str:
                 r_str = r_str.replace("__", "_")
@@ -101,9 +97,8 @@ class RecordMgmt(QWidget):
 
         def set_redis_key(p_text: str):
             """Convert anything not a letter or colon to underbar.
-
-               And make it lowercase.
-            """
+               And make it lowercase."""
+            WT.log_function(set_redis_key, p_is_sub=True)
             r_str = p_text.strip()
             for char in r_str:
                 if not char.isalpha() and \
@@ -114,6 +109,7 @@ class RecordMgmt(QWidget):
 
         def verify_host(p_value: str):
             """Validate value against list of valid host names."""
+            WT.log_function(verify_host, p_is_sub=True)
             if p_value in ["localhost", "curwen"]:
                 return True
             else:
@@ -121,6 +117,7 @@ class RecordMgmt(QWidget):
 
         def verify_yes_or_no(p_value: str):
             """Validate value in in (yes, no)."""
+            WT.log_function(verify_yes_or_no, p_is_sub=True)
             if p_value.lower() in ["yes", "no"]:
                 return True
             else:
@@ -128,6 +125,7 @@ class RecordMgmt(QWidget):
 
         def verify_named_value(p_value: str):
             """Validate value has format like x:y."""
+            WT.log_function(verify_named_value, p_is_sub=True)
             if (len(p_value) > 2 and
                     p_value.count(":") == 1 and
                     p_value.find(":") > 0):
@@ -136,6 +134,7 @@ class RecordMgmt(QWidget):
                 return False
 
         # exposed edit methods
+        WT.log_function(self.set_edits_meta)
         self.mask = {"date": "0000-00-00",
                      "lower": "<"}
         self.edit = {"dbkey": set_redis_key,
@@ -145,9 +144,8 @@ class RecordMgmt(QWidget):
 
     def set_edits_cache(self):
         """For values shared between autonomous functions.
-
-        These may eventually be stored as queues in the Harvest db.
-        """
+        These may eventually be stored as queues in the Harvest db."""
+        WT.log_function(self.set_edits_cache)
         self.KEYS = []
         self.ACTIVE_KEY_IX = 0
 
@@ -155,9 +153,8 @@ class RecordMgmt(QWidget):
     # ============================================================
     def make_selectors(self):
         """Return collection(s) of radio buttons for selecting domain (rec type).
-
-        :returns: QVBoxLayout object
-        """
+        :returns: QVBoxLayout object"""
+        WT.log_function(self.make_selectors)
         vbox = QVBoxLayout()
         lbl = QLabel(self.recs["bx"]["select.box"]["a"])
         vbox.addWidget(SS.set_subtitle_style(lbl))
@@ -199,14 +196,12 @@ class RecordMgmt(QWidget):
                         p_edit_rules: set,
                         p_edit_wdg: QLineEdit):
         """Format edit attributes of form line edit item
-
         This f is not being used yet.
-
         :args:
             (Qt object) The edit item widget
             (set) Names of edit rules for the edit item
-        :returns: Modified edit widget
-        """
+        :returns: Modified edit widget"""
+        WT.log_function(self.apply_pre_edits)
         edit_wdg = p_edit_wdg
         hint = ""
         if "auto" in p_edit_rules:
@@ -229,19 +224,17 @@ class RecordMgmt(QWidget):
     def get_list_values(self,
                         db: str,
                         dm: str,
-                        fgrp: str,
                         ftag: str):
-        """Find all list field values for designated field meta tag.
-
+        """Get list values from the form.
+        Find all list field values for designated field meta tag.
         If it comes back empty, that means no values have been assigned
-        yet to an list-type edit line widget. This can also
+        yet to a list-type edit line widget. This can also
         be the case when the domain widget has not yet been completed,
         so the line-edit child-widget is not found.
         In either case, put one empty value in the list.
-
         :return:
-            (list) List of values for the field
-        """
+            (list) List of values for the field"""
+        WT.log_function(self.get_list_values)
         flix = 1
         ffnd = True
         list_values = []
@@ -252,7 +245,7 @@ class RecordMgmt(QWidget):
                 list_values.append(
                     dom_wdg.findChild(QLineEdit, flid).text())
                 flix += 1
-            except Exception as err:  # noqa F841
+            except Exception as _:  # noqa F841
                 ffnd = False
 
         if list_values == []:
@@ -263,13 +256,11 @@ class RecordMgmt(QWidget):
                          db: str,
                          dm: str):
         """Get all field meta, names and edit values (if any) for specified domain.
-
         Note that findChild() method only works on Widgets, not on Forms
-
         :returns: (tuple)
             ( frec = dict in edit form format,
-              dbrec = dict in redis db format )
-        """
+              dbrec = dict in redis db format )"""
+        WT.log_function(self.get_field_values)
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         frec: dict = {db: {dm: meta}}
         ns = db.replace(".db", "")
@@ -283,7 +274,7 @@ class RecordMgmt(QWidget):
                 flid = f"{db}:{dm}:{ftag}.ed"
                 if "list" in rec["ed"]:
                     frec[db][dm][fgrp][ftag]["values"] = \
-                        self.get_list_values(db, dm, fgrp, ftag)
+                        self.get_list_values(db, dm, ftag)
                 else:
                     value = dom_wdg.findChild(QLineEdit, flid).text()
                     frec[db][dm][fgrp][ftag]["values"].append(value)
@@ -291,13 +282,13 @@ class RecordMgmt(QWidget):
                         dbkey += f"{value}:"
         dbkey = dbkey[:-1]
 
-        pp(("dm", dm, "dbkey before", dbkey))
+        WT.log_msg(pf(("dm", dm, "dbkey before", dbkey)), p_debug=True)
 
         key_prefix = dbkey.split(":")[0]
         if key_prefix != dm:
             dbkey = dm + ":" + dbkey
 
-        pp(("dbkey after", dbkey))
+        WT.log_msg(pf(("dbkey after", dbkey)), p_debug=True)
 
         dbrec[ns]["name"] = self.edit["dbkey"](dbkey)
         for ftag, rec in frec[db][dm]["keys"].items():
@@ -311,7 +302,6 @@ class RecordMgmt(QWidget):
            Only call this function if it had been determined
            that one or more records were found with a key
            matching the search.
-
         @DEV:
         - Display list values properly.
             - On return from a find, make sure appropriate
@@ -319,36 +309,66 @@ class RecordMgmt(QWidget):
         - Display audit values as read-only fields or labels.
         - Enable the "delete" button.
         - Enable some kind of display of permitted enum values.
-
         - If key fields are edited, action is a (logical) delete + an insert,
           not just an insert. But we always do a logical delete + an insert
         - Treat key field edits like any others,
           but include a warning or notification.
-
         - BUT? Check for the use of a key field as a link value?
            - IF another record is using key value as a link, do we not
              allow an update (or delete). Do we modify the other record(s)?
-
           - Should we track link relationships in a way
             that will make them easier to find?  Two-way links (no)?
             Association tables (yes)?
-
         - Track if a change has been made. If so, enable the "Save" button
           and something like a "dirty" flag.
-        - Use a queue structure to store pending changes?
-        """
+        - Use a queue structure to store pending changes?"""
         db, dm = self.get_active_domain()
         nsid = db.replace(".db", "")
         key = self.KEYS[self.ACTIVE_KEY_IX]
         dbrec = self.get_redis_record(nsid, key)
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
-        for fgrp, fields in meta.items():
+        print("\n\nSetting form values...")
+        pp(("dbrec", dbrec))
+        pp(("meta", meta))
+        for _, fields in meta.items():
             for ftag, rec in fields.items():
                 flid = f"{db}:{dm}:{ftag}.ed"
                 if "list" in rec["ed"]:
-                    pass
-                    # Need to do something here?
+                    for flix, lval in enumerate(dbrec["values"][ftag]):
+                        print(f"flix # {flix}")
+                        print(f"Value # {flix + 1}: {lval}")
+                        if lval not in (None, ""):
+                            print("Value is not empty")
+                            flid = f"{db}:{dm}:{ftag}-{str(flix + 1)}.ed"
+                            print(f"Field ID: {flid}")
+                            if flix > 0:
+                                print("Value index > 1 (flix > 0")
+                                # unable to do an addWidget here
+                                # why not? what is different from
+                                #  when setting up form initially?
+                                # generally, widgets are added to a box
+                                # or to the self.editor.dbe  object.
+                                # set_list_row() returns an hbox. It needs
+                                # to be added to form object using addRow(), like:
+                                # form.addRow(rec["title"],
+                                #   self.set_list_row(db, dm, fgrp, ftag, rec)
+                                # That form object then gets put in a box and
+                                # attached to the dom_wdg.
+                                # See how the form widget is retrieved in:
+                                # remove_row_from_list()...
+                                # ftag = flid.split("-")[0]
+                                # form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
+                                #   QFormLayout, f"{db}:{dm}.frm")
+                                # form_wdg.removeRow(form_wdg.rowCount() - 1)
+                                #   self.set_list_button_visiblity(db, dm, fgrp, ftag)
+                                form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
+                                   QFormLayout, f"{db}:{dm}.frm")
+                                pp(("form_wdg", form_wdg))
+                                form_wdg.addRow(rec["title"],
+                                    self.set_list_row(db, dm, "vals", ftag, meta,
+                                                      p_add_row=True))
+                            dom_wdg.findChild(QLineEdit, flid).setText(lval)
                 elif ftag in dbrec["values"]:
                     dom_wdg.findChild(QLineEdit, flid).setText(
                         dbrec["values"][ftag][0])
@@ -358,9 +378,8 @@ class RecordMgmt(QWidget):
     def set_line_edit(self,
                       db: str,
                       dm: str,
-                      fgrp: str,
                       ftag: str,
-                      rec: dict,
+                      meta: dict,
                       p_add_row: bool = False):
         """Return an edit widget that can be added to form.
 
@@ -369,22 +388,36 @@ class RecordMgmt(QWidget):
             dm (str) Tag of domain in meta catalog
             fgrp (str) Name of field group (keys or vals)
             ftag (str) Tag of edit line field in meta catalog
-            rec (dict) Record meta data for this field
+            meta (dict) Record meta data for this field
             p_add_row (bool) True if this is a not the first row in a list
         :returns: (QWidget) line edit
         """
         ew = SS.set_line_edit_style(QLineEdit())
-        if "list" in rec["ed"]:
-            list_values = self.get_list_values(db, dm, fgrp, ftag)
+
+        # We are not even getting to here when loading data from DB
+        pp(('meta["ed"]', meta["ed"]))
+
+        if "list" in meta["ed"]:
+
+            print("Creating line edit item to append to list")
+
+            # This assumes we want to get list values from the form
+            # Is that true if we are popultating it from the database?
+
+            list_values = self.get_list_values(db, dm, ftag)
             flix = len(list_values)
             if p_add_row:
                 flix += 1
-            ew.setObjectName(f"{db}:{dm}:{ftag}-{str(flix)}.ed")
+            list_line_edit_nm = f"{db}:{dm}:{ftag}-{str(flix)}.ed"
+            ew.setObjectName(list_line_edit_nm)
+
+            print(f"Added list item named: {list_line_edit_nm}")
+
         else:
             ew.setObjectName(f"{db}:{dm}:{ftag}.ed")
-        if "hint" in rec.keys():
-            ew.setPlaceholderText(rec["hint"])
-            ew.setToolTip(rec["hint"])
+        if "hint" in meta.keys():
+            ew.setPlaceholderText(meta["hint"])
+            ew.setToolTip(meta["hint"])
         return (ew)
 
     def set_list_row(self,
@@ -392,7 +425,7 @@ class RecordMgmt(QWidget):
                      dm: str,
                      fgrp: str,
                      ftag: str,
-                     rec: dict,
+                     meta: dict,
                      p_add_row: bool = False):
         """Return a box widget containing next row in a list.
 
@@ -401,7 +434,7 @@ class RecordMgmt(QWidget):
             dm (str) Name (meta index) of domain
             fgrp (str) Name of group ('keys' or 'vals')
             ftag (str) Name (meta index) of field
-            rec (dict) Field meta data
+            meta (dict) Field meta data
             p_add_row (bool) True if this is a not the first row in a list
         :returns: (QWidget) hbox containting edit field and button
         """
@@ -410,7 +443,7 @@ class RecordMgmt(QWidget):
                          p_action):
             """Add a button to add or remove a new list item."""
             btn = SS.set_button_style(QPushButton(p_btn_txt), p_active=True)
-            list_values = self.get_list_values(db, dm, fgrp, ftag)
+            list_values = self.get_list_values(db, dm, ftag)
             flix = len(list_values)
             if p_add_row:
                 flix += 1
@@ -420,8 +453,13 @@ class RecordMgmt(QWidget):
             return (btn)
 
         hbox = QHBoxLayout()
-        rec = self.recs["db"][db]["dm"][dm]["rec"][fgrp][ftag]
-        hbox.addWidget(self.set_line_edit(db, dm, fgrp, ftag, rec, p_add_row))
+        # meta = self.recs["db"][db]["dm"][dm]["rec"][fgrp][ftag]
+
+        # We are not getting to here when loading data from DB
+        print("Setting a list row")
+        pp(("meta", meta))
+
+        hbox.addWidget(self.set_line_edit(db, dm, ftag, meta, p_add_row))
         hbox.addWidget(add_list_btn(
                 "+", "add.btn", self.add_row_to_list))
         hbox.addWidget(add_list_btn(
@@ -454,7 +492,7 @@ class RecordMgmt(QWidget):
                                 self.set_list_row(db, dm, fgrp, ftag, rec))
                 else:
                     form.addRow(rec["title"],
-                                self.set_line_edit(db, dm, fgrp, ftag, rec))
+                                self.set_line_edit(db, dm, ftag, rec))
         frm_wdg.setLayout(form)
         return(frm_wdg)
 
@@ -478,7 +516,7 @@ class RecordMgmt(QWidget):
                                   fgrp,
                                   ftag):
         """Set the visibility of the add/remove list button."""
-        list_values = self.get_list_values(db, dm, fgrp, ftag)
+        list_values = self.get_list_values(db, dm, ftag)
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
         max_flix = len(list_values)
         for flix in range(1, max_flix + 1):
@@ -535,18 +573,16 @@ class RecordMgmt(QWidget):
         need to do something to handle numbering (flix) of list items.
         And that gets tricky. So we will restrict adding and removing buttons
         to appear only on the LAST item in a list.
-
         Keep in mind that the rowCount() on the Form Layout includes ALL of
         the fields presently on the form, not only the List fields. Another
         reason it is easier to manipulate only the last field in the List.
-
         This may also be a good reason to allow only one List-type field per
         domain. At least until I can figure out a nicer way to manage the adds
         and removals. I think it can be done passing in the actual widget (or
         maybe its ID?) to be removed, but keep in mind that that is a Layout
         (a HBox) and not a LineEdit widget.
         """
-        frec, dbrec = self.get_field_values(db, dm)
+        # frec, dbrec = self.get_field_values(db, dm)
         ftag = flid.split("-")[0]
         form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
             QFormLayout, f"{db}:{dm}.frm")

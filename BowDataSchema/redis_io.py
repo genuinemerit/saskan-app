@@ -69,9 +69,22 @@ from copy import copy
 from pprint import pprint as pp  # noqa: F401
 
 
-class RedisIOUtils(object):
-    """Helper functions"""
+class RedisIO(object):
+    """Generic Redis handling."""
+    
+    def __init__(self):
+        """Initialize Redis connections."""
+        self.HOST = '127.0.0.1'
+        self.PORT = 6379
+        self.RNS = dict()  # associate DB names to Namespaces, connections
+        for db_no, db_nm in enumerate(
+                ["basement", "schema", "harvest", "log", "monitor"]):
+            self.RNS[db_nm] = redis.Redis(
+                host=self.HOST, port=self.PORT, db=db_no)
+            self.RNS[db_nm].client_setname(db_nm)
 
+    # Helper functions
+    # =========================================================================
     @classmethod
     def convert_dict_to_bytes(self,
                               p_msg: dict) -> object:
@@ -168,24 +181,8 @@ class RedisIOUtils(object):
                 r_str = r_str.replace(char, "_")
         return self.bump_underbars(r_str).lower()
 
-
-class RedisIO(object):
-    """Generic Redis handling."""
-
     # DBA functions
     # =========================================================================
-    def __init__(self):
-        """Initialize Redis connections."""
-        self.UT = RedisIOUtils()
-        self.HOST = '127.0.0.1'
-        self.PORT = 6379
-        self.RNS = dict()  # associate DB names to Namespaces, connections
-        for db_no, db_nm in enumerate(
-                ["basement", "schema", "harvest", "log", "monitor"]):
-            self.RNS[db_nm] = redis.Redis(
-                host=self.HOST, port=self.PORT, db=db_no)
-            self.RNS[db_nm].client_setname(db_nm)
-
     def list_dbs(self) -> str:
         """Return number and name of the Redis namespaces (DB's).
 
@@ -228,7 +225,7 @@ class RedisIO(object):
         rec = None
         if self.RNS[p_db].exists(p_key_val):               # type: ignore
             redis_result = self.RNS[p_db].get(p_key_val)
-            rec = self.UT.convert_bytes_to_dict(redis_result)
+            rec = self.convert_bytes_to_dict(redis_result)
         return rec
 
     def get_values(self, record):
@@ -258,14 +255,14 @@ class RedisIO(object):
         exists = self.get_record(db, rec["name"])
         if exists is not None and 'audit' in exists:
             audit = exists["audit"]
-            audit["version"] = self.UT.set_version(audit["version"], "minor")
+            audit["version"] = self.set_version(audit["version"], "minor")
             rec["audit"] = audit
             r_update = True
         else:
             audit = {"version": "1.0.0"}
-        audit["modified"] = self.UT.get_timestamp()
+        audit["modified"] = self.get_timestamp()
         if p_include_hash:
-            audit["hash"] = self.UT.get_hash(str(rec))
+            audit["hash"] = self.get_hash(str(rec))
         rec["audit"] = audit
         return (rec, r_update)
 
@@ -275,10 +272,11 @@ class RedisIO(object):
         """Insert a record to Redis"""
         try:
             key = p_rec["name"]
-            values = self.UT.convert_dict_to_bytes(p_rec)
+            values = self.convert_dict_to_bytes(p_rec)
             self.RNS[p_db].set(key, values, nx=True)
         except redis.exceptions.ResponseError as e:
-            # Write to log instead of raise exception
+            # Write to log instead of raise exception?
+            # But.. have to watch out for catch-22 if log is on Redis! :-) 
             print(f"\nRedis error: {e}")
             print(f"\nRecord: {p_rec}")
             print(f"\nRecord name: {p_rec['name']}")
@@ -290,7 +288,7 @@ class RedisIO(object):
         """Copy/archive record to `log` namespace."""
         log_rec = p_rec
         log_rec["name"] = "archive:" + p_rec["name"] + \
-            ":" + self.UT.get_timestamp()
+            ":" + self.get_timestamp()
         self.do_insert("log", log_rec)
 
     def do_update(self,
@@ -301,7 +299,7 @@ class RedisIO(object):
         self.do_archive(old_rec)
         try:
             key = p_rec["name"]
-            values = self.UT.convert_dict_to_bytes(p_rec)
+            values = self.convert_dict_to_bytes(p_rec)
             self.RNS[p_db].set(key, values, xx=True)
         except redis.exceptions.ResponseError as e:
             # Write to log instead of raise exception
@@ -367,8 +365,8 @@ class RedisIO(object):
                     p_rec["version"])
         # Set audit values
         rec["hash"] = p_hash
-        rec["token"] = self.UT.get_token()
-        rec["update_ts"] = self.UT.get_timestamp()
+        rec["token"] = self.get_token()
+        rec["update_ts"] = self.get_timestamp()
         return rec
 
     @classmethod

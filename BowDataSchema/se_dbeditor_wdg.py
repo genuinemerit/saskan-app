@@ -16,9 +16,11 @@ from PySide2.QtWidgets import QWidget
 
 from BowQuiver.saskan_texts import SaskanTexts  # type: ignore
 from se_qt_styles import SaskanStyles           # type: ignore
+from wire_tap import WireTap                    # type: ignore
 
 SS = SaskanStyles()
 TX = SaskanTexts()
+WT = WireTap()
 
 
 class DBEditorWidget(QWidget):
@@ -38,18 +40,21 @@ class DBEditorWidget(QWidget):
 
         This class is an instance of the QtPy5/pyside2 QWidget class.
         """
+        WT.log_module(__file__, __name__, self.__class__, self)
         super().__init__(parent)
         self.editor = wdg_meta
         self.make_db_editor_wdg()
 
     def get_tools(self):
         """Return modified metadata"""
+        WT.log_function(self.get_tools, p_class=self.__class__)
         return(self.editor)
 
     # Database Editor Widget make functions
     # ============================================================
     def make_title_lbl(self):
         """Create a status text widget."""
+        WT.log_function(self.make_title_lbl)
         title = QLabel(self.editor["a"])
         title.setStyleSheet(SS.get_style('title'))
         return(title)
@@ -61,6 +66,7 @@ class DBEditorWidget(QWidget):
         :args:
             p_box: str - key to Box meta w/ button defs
         """
+        WT.log_function(self.make_editor_buttons)
         hbox = QHBoxLayout()
         hbox.LeftToRight
         hbox.addStretch()
@@ -79,11 +85,10 @@ class DBEditorWidget(QWidget):
     def make_text_inputs(self,
                          p_box: str):
         """Create text input widgets defined for a box.
-
         :args:
             p_box: str - key to text input container
-        :returns: QLineEdit object
-        """
+        :returns: QLineEdit object"""
+        WT.log_function(self.make_text_inputs)
         vbox = QVBoxLayout()
         inputs = self.editor["bx"][p_box]["inp"]
         for inpk, inp in inputs.items():
@@ -100,11 +105,10 @@ class DBEditorWidget(QWidget):
     def make_box_group(self,
                        p_box: str):
         """Make box containers. Put config'd buttons, text in them.
-
         :args:
             p_box: str - name of the button group
-        :returns: QVBoxLayout object
-        """
+        :returns: QVBoxLayout object"""
+        WT.log_function(self.make_box_group)
         vbox = QVBoxLayout()
         lbl = QLabel(self.editor["bx"][p_box]["a"])
         vbox.addWidget(SS.set_subtitle_style(lbl))
@@ -116,6 +120,7 @@ class DBEditorWidget(QWidget):
 
     def make_status_lbl(self):
         """Create the Editor's status label."""
+        WT.log_function(self.make_status_lbl)
         status_wdg = SS.set_status_style(
             QLabel(self.editor["status.txt"]["b"]))
         self.editor["status.txt"]["w"] = status_wdg
@@ -123,19 +128,17 @@ class DBEditorWidget(QWidget):
 
     def set_button_actions(self):
         """Assign actions to button slots.
-
-        Other button actions are assigned in RecordMgmt class.
-        """
+        Other button actions are assigned in RecordMgmt class."""
+        WT.log_function(self.set_button_actions)
         # Cancel / Stop Button
         self.editor["bx"]["edit.box"]["bn"]["cancel.btn"]["w"].clicked.connect(
             self.push_cancel)
 
     def make_db_editor_wdg(self):
         """Create all components of Data Base Editor widget.
-
         The dbe layout object is exposed so that it can be
-        extended by the RecordsMgmt class.
-        """
+        extended by the RecordsMgmt class."""
+        WT.log_function(self.set_button_actions)
         self.setGeometry(620, 40, 550, 840)
         self.dbe = QVBoxLayout()
         self.dbe.setAlignment(Qt.AlignTop)
@@ -152,17 +155,17 @@ class DBEditorWidget(QWidget):
     # ==============================================================
     def set_dbe_status(self, p_status: str):
         """Set the status text of the DB Editor."""
+        WT.log_function(self.set_dbe_status)
         self.editor["status.txt"]["w"].setText(p_status)
 
     def enable_texts(self,
                      p_box: str,
                      p_inputs: list = []):
         """Activate selected set of input text widgets.
-
         :args:
             p_box: str - name of the box containing text widgets
-            p_inputs: list - list of text keys to activate.
-        """
+            p_inputs: list - list of text keys to activate."""
+        WT.log_function(self.enable_texts)
         inputs = self.editor["bx"][p_box]["inp"]
         for inpk in p_inputs:
             widget = inputs[inpk]["w"]
@@ -174,12 +177,11 @@ class DBEditorWidget(QWidget):
     def enable_buttons(self,
                        p_box: str,
                        p_btns: list):
-        """Activate selected set of push buttons
-
+        """Activate selected set of push buttons.
         :args:
             p_box: name of box containing buttons
-            p_btns: list of button names in box to activate
-        """
+            p_btns: list of button names in box to activate """
+        WT.log_function(self.enable_buttons)
         for btnid in p_btns:
             btn = self.editor["bx"][p_box]["bn"][btnid]
             btn["w"].setStyleSheet(SS.get_style("active_button"))
@@ -189,12 +191,11 @@ class DBEditorWidget(QWidget):
     def disable_buttons(self,
                         p_box: str,
                         p_btns: list):
-        """Deactivate a specified set of push buttons
-
+        """Deactivate a specified set of push buttons.
         :args:
             p_box: str - name of the box containing text widgets
-            p_inputs: list - list of text keys to activate.
-        """
+            p_inputs: list - list of text keys to activate."""
+        WT.log_function(self.disable_buttons)
         for btnid in p_btns:
             btn = self.editor["bx"][p_box]["bn"][btnid]
             btn["w"].setStyleSheet(SS.get_style("inactive_button"))
@@ -205,11 +206,10 @@ class DBEditorWidget(QWidget):
                       p_box: str,
                       p_inputs: list = []):
         """Deactivate specified set of input text widgets.
-
         :args:
             p_box: str - name of the box containing text widgets
-            p_inputs: list - list of text keys to activate.
-        """
+            p_inputs: list - list of text keys to activate."""
+        WT.log_function(self.disable_texts)
         inputs = self.editor["bx"][p_box]["inp"]
         for inpk in p_inputs:
             widget = inputs[inpk]["w"]
@@ -220,6 +220,7 @@ class DBEditorWidget(QWidget):
 
     def push_cancel(self):
         """Slot for Editor Edit Push Button --> Cancel"""
+        WT.log_function(self.push_cancel)
         button = self.editor["bx"]["edit.box"]["bn"]["cancel.btn"]
         self.set_dbe_status(button["c"])
         # Add logic here to clear queues and reset widgets
