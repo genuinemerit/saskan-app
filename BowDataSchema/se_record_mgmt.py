@@ -60,7 +60,7 @@ class RecordMgmt(QWidget):
                  db_editor: object):
         """super() call is required.
         The DB editor widget is also passed in."""
-        WT.log_module(__file__, __name__, self.__class__, self)
+        WT.log_module(__file__, __name__, self)
         super().__init__(parent)
         self.recs = wdg_meta
         self.editor = db_editor
@@ -72,7 +72,7 @@ class RecordMgmt(QWidget):
     def get_tools(self):
         """Return modified metadata
         @public"""
-        WT.log_function(self.get_tools, p_class=self.__class__)
+        WT.log_function(self.get_tools, self)
         return(self.recs)
 
     def set_edits_meta(self):
@@ -85,7 +85,7 @@ class RecordMgmt(QWidget):
             """Remove stray underbars
             - Remove leading or trailing underbars.
             - Reduce multiple underbars to single underbars."""
-            WT.log_function(set_underbars, p_is_sub=True)
+            WT.log_function(set_underbars, self, self.set_edits_meta)
             r_str = text
             while "__" in r_str:
                 r_str = r_str.replace("__", "_")
@@ -98,7 +98,7 @@ class RecordMgmt(QWidget):
         def set_redis_key(p_text: str):
             """Convert anything not a letter or colon to underbar.
                And make it lowercase."""
-            WT.log_function(set_redis_key, p_is_sub=True)
+            WT.log_function(set_redis_key, self, self.set_edits_meta)
             r_str = p_text.strip()
             for char in r_str:
                 if not char.isalpha() and \
@@ -109,7 +109,7 @@ class RecordMgmt(QWidget):
 
         def verify_host(p_value: str):
             """Validate value against list of valid host names."""
-            WT.log_function(verify_host, p_is_sub=True)
+            WT.log_function(verify_host, self, self.set_edits_meta)
             if p_value in ["localhost", "curwen"]:
                 return True
             else:
@@ -117,7 +117,7 @@ class RecordMgmt(QWidget):
 
         def verify_yes_or_no(p_value: str):
             """Validate value in in (yes, no)."""
-            WT.log_function(verify_yes_or_no, p_is_sub=True)
+            WT.log_function(verify_yes_or_no, self, self.set_edits_meta)
             if p_value.lower() in ["yes", "no"]:
                 return True
             else:
@@ -125,7 +125,7 @@ class RecordMgmt(QWidget):
 
         def verify_named_value(p_value: str):
             """Validate value has format like x:y."""
-            WT.log_function(verify_named_value, p_is_sub=True)
+            WT.log_function(verify_named_value, self, self.set_edits_meta)
             if (len(p_value) > 2 and
                     p_value.count(":") == 1 and
                     p_value.find(":") > 0):
@@ -134,7 +134,7 @@ class RecordMgmt(QWidget):
                 return False
 
         # exposed edit methods
-        WT.log_function(self.set_edits_meta)
+        WT.log_function(self.set_edits_meta, self)
         self.mask = {"date": "0000-00-00",
                      "lower": "<"}
         self.edit = {"dbkey": set_redis_key,
@@ -145,7 +145,7 @@ class RecordMgmt(QWidget):
     def set_edits_cache(self):
         """For values shared between autonomous functions.
         These may eventually be stored as queues in the Harvest db."""
-        WT.log_function(self.set_edits_cache)
+        WT.log_function(self.set_edits_cache, self)
         self.KEYS = []
         self.ACTIVE_KEY_IX = 0
 
@@ -154,7 +154,7 @@ class RecordMgmt(QWidget):
     def make_selectors(self):
         """Return collection(s) of radio buttons for selecting domain (rec type).
         :returns: QVBoxLayout object"""
-        WT.log_function(self.make_selectors)
+        WT.log_function(self.make_selectors, self)
         vbox = QVBoxLayout()
         lbl = QLabel(self.recs["bx"]["select.box"]["a"])
         vbox.addWidget(SS.set_subtitle_style(lbl))
@@ -201,7 +201,7 @@ class RecordMgmt(QWidget):
             (Qt object) The edit item widget
             (set) Names of edit rules for the edit item
         :returns: Modified edit widget"""
-        WT.log_function(self.apply_pre_edits)
+        WT.log_function(self.apply_pre_edits, self)
         edit_wdg = p_edit_wdg
         hint = ""
         if "auto" in p_edit_rules:
@@ -234,7 +234,7 @@ class RecordMgmt(QWidget):
         In either case, put one empty value in the list.
         :return:
             (list) List of values for the field"""
-        WT.log_function(self.get_list_values)
+        WT.log_function(self.get_list_values, self)
         flix = 1
         ffnd = True
         list_values = []
@@ -260,7 +260,7 @@ class RecordMgmt(QWidget):
         :returns: (tuple)
             ( frec = dict in edit form format,
               dbrec = dict in redis db format )"""
-        WT.log_function(self.get_field_values)
+        WT.log_function(self.get_field_values, self)
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         frec: dict = {db: {dm: meta}}
         ns = db.replace(".db", "")
@@ -282,13 +282,13 @@ class RecordMgmt(QWidget):
                         dbkey += f"{value}:"
         dbkey = dbkey[:-1]
 
-        WT.log_msg(pf(("dm", dm, "dbkey before", dbkey)), p_debug=True)
+        WT.log_msg("DEBUG", pf(("dm", dm, "dbkey before", dbkey)))
 
         key_prefix = dbkey.split(":")[0]
         if key_prefix != dm:
             dbkey = dm + ":" + dbkey
 
-        WT.log_msg(pf(("dbkey after", dbkey)), p_debug=True)
+        WT.log_msg("DEBUG", pf(("dbkey after", dbkey)))
 
         dbrec[ns]["name"] = self.edit["dbkey"](dbkey)
         for ftag, rec in frec[db][dm]["keys"].items():
@@ -322,28 +322,38 @@ class RecordMgmt(QWidget):
         - Track if a change has been made. If so, enable the "Save" button
           and something like a "dirty" flag.
         - Use a queue structure to store pending changes?"""
+        WT.log_function(self.set_form_values, self)
         db, dm = self.get_active_domain()
         nsid = db.replace(".db", "")
         key = self.KEYS[self.ACTIVE_KEY_IX]
         dbrec = self.get_redis_record(nsid, key)
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
-        print("\n\nSetting form values...")
-        pp(("dbrec", dbrec))
-        pp(("meta", meta))
+        
+        WT.log_msg("DEBUG", pf(("dbrec", dbrec)))
+        WT.log_msg("DEBUG", pf(("meta", meta)))
+
         for _, fields in meta.items():
             for ftag, rec in fields.items():
                 flid = f"{db}:{dm}:{ftag}.ed"
                 if "list" in rec["ed"]:
                     for flix, lval in enumerate(dbrec["values"][ftag]):
-                        print(f"flix # {flix}")
-                        print(f"Value # {flix + 1}: {lval}")
+                        
+                        WT.log_msg("DEBUG", f"flix # {flix}")
+                        WT.log_msg("DEBUG", f"Value # {flix + 1}: {lval}")
+
                         if lval not in (None, ""):
-                            print("Value is not empty")
+
+                            WT.log_msg("DEBUG", "Value is not empty")
+
                             flid = f"{db}:{dm}:{ftag}-{str(flix + 1)}.ed"
-                            print(f"Field ID: {flid}")
+
+                            WT.log_msg("DEBUG", f"Field ID: {flid}")
+
                             if flix > 0:
-                                print("Value index > 1 (flix > 0")
+
+                                WT.log_msg("DEBUG", "Value index > 1 (flix > 0")
+
                                 # unable to do an addWidget here
                                 # why not? what is different from
                                 #  when setting up form initially?
@@ -364,7 +374,9 @@ class RecordMgmt(QWidget):
                                 #   self.set_list_button_visiblity(db, dm, fgrp, ftag)
                                 form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
                                    QFormLayout, f"{db}:{dm}.frm")
-                                pp(("form_wdg", form_wdg))
+
+                                WT.log_msg("DEBUG", pf(("form_wdg", form_wdg)))
+                                
                                 form_wdg.addRow(rec["title"],
                                     self.set_list_row(db, dm, "vals", ftag, meta,
                                                       p_add_row=True))
@@ -392,14 +404,16 @@ class RecordMgmt(QWidget):
             p_add_row (bool) True if this is a not the first row in a list
         :returns: (QWidget) line edit
         """
+        WT.log_function(self.set_line_edit, self)
         ew = SS.set_line_edit_style(QLineEdit())
 
         # We are not even getting to here when loading data from DB
-        pp(('meta["ed"]', meta["ed"]))
+        
+        WT.log_msg("DEBUG", pf(("meta['ed']", meta["ed"])))
 
         if "list" in meta["ed"]:
 
-            print("Creating line edit item to append to list")
+            WT.log_msg("DEBUG", "Creating line edit item to append to list")
 
             # This assumes we want to get list values from the form
             # Is that true if we are popultating it from the database?
@@ -411,7 +425,7 @@ class RecordMgmt(QWidget):
             list_line_edit_nm = f"{db}:{dm}:{ftag}-{str(flix)}.ed"
             ew.setObjectName(list_line_edit_nm)
 
-            print(f"Added list item named: {list_line_edit_nm}")
+            WT.log_msg("DEBUG", f"Added list item named: {list_line_edit_nm}")
 
         else:
             ew.setObjectName(f"{db}:{dm}:{ftag}.ed")
@@ -442,6 +456,7 @@ class RecordMgmt(QWidget):
                          p_btn_nm: str,
                          p_action):
             """Add a button to add or remove a new list item."""
+            WT.log_function(self.set_list_row, self, add_list_btn)
             btn = SS.set_button_style(QPushButton(p_btn_txt), p_active=True)
             list_values = self.get_list_values(db, dm, ftag)
             flix = len(list_values)
@@ -452,12 +467,13 @@ class RecordMgmt(QWidget):
             btn.clicked.connect(p_action)
             return (btn)
 
+        WT.log_function(self.set_list_row, self)
         hbox = QHBoxLayout()
         # meta = self.recs["db"][db]["dm"][dm]["rec"][fgrp][ftag]
 
         # We are not getting to here when loading data from DB
-        print("Setting a list row")
-        pp(("meta", meta))
+        WT.log_msg("DEBUG", "Setting a list row")
+        WT.log_msg("DEBUG", pf(("meta", meta)))
 
         hbox.addWidget(self.set_line_edit(db, dm, ftag, meta, p_add_row))
         hbox.addWidget(add_list_btn(
@@ -481,6 +497,7 @@ class RecordMgmt(QWidget):
                   like for list length, form layouts/rows of
                   related edit fields.
         """
+        WT.log_function(self.make_edit_form, self)
         frm_wdg = QWidget()
         form = QFormLayout()
         form.setObjectName(f"{db}:{dm}.frm")
@@ -498,6 +515,7 @@ class RecordMgmt(QWidget):
 
     def init_list_button_visiblity(self):
         """Set initial visibility state for list-type edit item buttons"""
+        WT.log_function(self.init_list_button_visiblity, self)
         for dbk, db in self.recs["db"].items():
             for dmk, dm in db["dm"].items():
                 dom_wdg = self.recs["db"][dbk]["dm"][dmk]["w_dom"]
@@ -516,6 +534,7 @@ class RecordMgmt(QWidget):
                                   fgrp,
                                   ftag):
         """Set the visibility of the add/remove list button."""
+        WT.log_function(self.set_list_button_visiblity, self)
         list_values = self.get_list_values(db, dm, ftag)
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]
         max_flix = len(list_values)
@@ -548,6 +567,7 @@ class RecordMgmt(QWidget):
         then split on '_' (if any) and take first part to get the
         original meta field tag.
         """
+        WT.log_function(self.add_row_to_list, self)
         db, dm, fgrp, flid = tuple(
             self.sender().objectName().replace("_add.btn", "").split("_"))
         ftag, flix = tuple(flid.split("-"))
@@ -582,7 +602,7 @@ class RecordMgmt(QWidget):
         maybe its ID?) to be removed, but keep in mind that that is a Layout
         (a HBox) and not a LineEdit widget.
         """
-        # frec, dbrec = self.get_field_values(db, dm)
+        WT.log_function(self.remove_row_from_list, self)
         ftag = flid.split("-")[0]
         form_wdg = self.recs["db"][db]["dm"][dm]["w_dom"].findChild(
             QFormLayout, f"{db}:{dm}.frm")
@@ -591,9 +611,9 @@ class RecordMgmt(QWidget):
 
     def set_ed_button_actions(self):
         """Assign actions to button slots defined in the DBEditor class.
-
         Other editor button actions are assigned in the DBEditor class.
         """
+        WT.log_function(self.set_ed_button_actions, self)
         # Find-keys Button
         self.ed_meta["bx"]["get.box"]["bn"]["find.btn"]["w"].clicked.connect(
             self.push_find_button)
@@ -621,6 +641,7 @@ class RecordMgmt(QWidget):
 
         And create selector checkboxes for record types.
         """
+        WT.log_function(self.extend_db_editor_wdg, self)
         self.editor.dbe.addLayout(self.make_selectors())
         for dbk, db in self.recs["db"].items():
             for dmk, dm in db["dm"].items():
@@ -651,6 +672,7 @@ class RecordMgmt(QWidget):
 
         :returns: (str) search value modified for use on redis db
         """
+        WT.log_function(self.get_search_value, self)
         wdg = \
             self.ed_meta["bx"]["get.box"]["inp"]["find.inp"]["w"]
         sval = self.edit["dbkey"](wdg.text())
@@ -667,6 +689,7 @@ class RecordMgmt(QWidget):
 
         :returns: tuple (db name key, domain/record type key)
         """
+        WT.log_function(self.get_active_domain, self)
         db = None
         dm = None
         for dbk in self.recs["db"].keys():
@@ -689,42 +712,51 @@ class RecordMgmt(QWidget):
             p_dbk: name of selected database type
             p_dmk: name of selected record type (domain)
         """
+        WT.log_function(self.select_domain, self)
         txt = self.recs["db"][p_dbk]["dm"][p_dmk]["a"]
         self.editor.set_dbe_status(txt)        # type: ignore
         self.show_domain(p_dbk, p_dmk)
 
     def select_configs(self):
         """Slot for Editor Select Configs radio check action"""
+        WT.log_function(self.select_configs, self)
         self.select_domain("basement.db", "configs")
 
     def select_status(self):
         """Slot for Editor Select Status Flags radio check action"""
+        WT.log_function(self.select_status, self)
         self.select_domain("basement.db", "status")
 
     def select_topics(self):
         """Slot for Editor Select Topics radio check action"""
+        WT.log_function(self.select_topics, self)
         self.select_domain("schema.db", "topics")
 
     def select_plans(self):
         """Slot for Editor Select Plans radio check action"""
+        WT.log_function(self.select_plans, self)
         self.select_domain("schema.db", "plans")
 
     def select_services(self):
         """Slot for Editor Select Services radio check action"""
+        WT.log_function(self.select_services, self)
         self.select_domain("schema.db", "services")
 
     def select_schemas(self):
         """Slot for Editor Select Schemas radio check action"""
+        WT.log_function(self.select_schemas, self)
         self.select_domain("schema.db", "schemas")
 
     def select_queues(self):
         """Slot for Editor Select Queues radio check action"""
+        WT.log_function(self.select_queues, self)
         self.select_domain("harvest.db", "queues")
 
     # Record Type Editor Widget helper functions
     # ============================================================
     def hide_domain(self):
         """Hide any visible Record Type Edit Form."""
+        WT.log_function(self.hide_domain, self)
         for db in self.recs["db"].keys():
             for dm in self.recs["db"][db]["dm"].keys():
                 if self.recs["db"][db]["dm"][dm]["w_dom"].isVisible():
@@ -743,6 +775,7 @@ class RecordMgmt(QWidget):
             p_dbk: key of database
             p_dmk: key of record (domain) type
         """
+        WT.log_function(self.show_domain, self)
         self.hide_domain()
         self.recs["db"][p_dbk]["dm"][p_dmk]["w_dom"].show()
         self.editor.enable_buttons("get.box", ["find.btn"])  # type: ignore
@@ -752,16 +785,15 @@ class RecordMgmt(QWidget):
 
     def run_domain_edits(self) -> bool:
         """Run the edits associated with the active record type.
-
         These are executed when an Add or Save button is pressed.
-
         :returns: (bool) True if all edits pass else False
         """
+        WT.log_function(self.run_domain_edits, self)
         db, dm = self.get_active_domain()
         frec, _ = self.get_field_values(db, dm)
         err = ""
-        for fgrp, mrec in frec[db][dm].items():
-            for ftag, rec in mrec.items():
+        for _, mrec in frec[db][dm].items():
+            for _, rec in mrec.items():
                 rules = rec["ed"]
                 if 'notnull' in rules and \
                         rec["values"] in (None, [], "", ['']):
@@ -807,6 +839,7 @@ class RecordMgmt(QWidget):
                p_key - key of record to be retrieved
         :returns: records as a dict or None
         """
+        WT.log_function(self.get_redis_record, self)
         result = RI.get_record(p_ns, p_key)
         if result is None:
             txt = self.recs["msg"]["rec_not_exist"]
@@ -825,7 +858,6 @@ class RecordMgmt(QWidget):
                         p_search: str,
                         p_load_1st_rec: bool = True):
         """Get a list of keys for selected DB matching the pattern.
-
         :args:
             p_db - name (meta tag) of database
             p_dm - record type (domain) to search
@@ -835,15 +867,12 @@ class RecordMgmt(QWidget):
                        we don't want to actually display the
                        linked record.
         :returns: list of keys that match the pattern, or []
-
         @DEV:
         - If any changes are pending, enable the Save button, else disable.
           Diagram the process of state management for pending db events.
           What is a "pending" event?
-
         - Learn about setting expiry rules.
           Consider how to display expiry times. Should be an Audit field.
-
         # Expire time can be set 4 ways:
         #    EXPIRE <key> <seconds> <-- from now
         #    EXPIREAT <key> <timestamp> <-- Unix timestamp
@@ -857,6 +886,7 @@ class RecordMgmt(QWidget):
         # Set a rule in a Basement:Config record for each DB/record type
         #   to drive its expiry time.
         """
+        WT.log_function(self.find_redis_keys, self)
         nsid = p_db.replace(".db", "")
         keys_b = RI.find_keys(nsid, p_search)
         keys: list = []
@@ -893,8 +923,9 @@ class RecordMgmt(QWidget):
             frec - form record values
         :returns: True if all links are valid, False if not
         """
-        for fgrp, mrec in frec[db][dm].items():
-            for ftag, rec in mrec.items():
+        WT.log_function(self.validate_links, self)
+        for _, mrec in frec[db][dm].items():
+            for _, rec in mrec.items():
                 if "link" in rec["ed"]:
                     for vix, val in enumerate(rec["values"]):
                         link = self.edit["dbkey"](val)
@@ -917,25 +948,26 @@ class RecordMgmt(QWidget):
 
         Use '_rmv.btn' to derive the ID of the line edit object.
         """
+        WT.log_function(self.push_remove_row_button, self)
         db, dm, fgrp, flid = tuple(
             self.sender().objectName().replace("_rmv.btn", "").split("_"))
         self.remove_row_from_list(db, dm, fgrp, flid)
 
     def push_find_button(self):
         """Slot for DB Editor Find push button click action.
-
         @DEV:
         - This is more or less working for now.
         - Come back to it later, as needed.
         """
+        WT.log_function(self.push_find_button, self)
         db, dm = self.get_active_domain()
         search = self.get_search_value(dm)
         _ = self.find_redis_keys(
             db.lower(), dm, search, p_load_1st_rec=True)
 
     def push_next_button(self):
-        """Slot for DB Editor Next push button click action.
-        """
+        """Slot for DB Editor Next push button click action."""
+        WT.log_function(self.push_next_button, self)
         self.ACTIVE_KEY_IX += 1
         self.editor.enable_buttons(   # type: ignore
             "get.box", ["prev.btn"])
@@ -945,8 +977,8 @@ class RecordMgmt(QWidget):
         self.set_form_values()
 
     def push_prev_button(self):
-        """Slot for DB Editor Next push button click action.
-        """
+        """Slot for DB Editor Next push button click action."""
+        WT.log_function(self.push_prev_button, self)
         self.ACTIVE_KEY_IX -= 1
         self.editor.enable_buttons(   # type: ignore
             "get.box", ["next.btn"])
@@ -957,22 +989,19 @@ class RecordMgmt(QWidget):
 
     def auto_push_add_button(self):
         """Overlay for push_add_button to use with auto-adds."""
-        pass
+        WT.log_function(self.auto_push_add_button, self)
 
     def push_add_button(self,
                         p_auto: bool = False,
                         p_db: str = None,
                         p_dm: str = None):
         """Add a record to the DB
-
         Slot for DB Editor Edit/Add push button click action.
         Also can be based on parameters provided for auto-add logic.
-
         Get values from active edit form.
         Check to see if record w/key already exists on DB.
         Rejectif rec already exists with Redis key.
         The Redis key value is referenced as the "name".
-
         :args:
             p_auto - True if this is an auto-add,
                      Default = False if Add button was clicked
@@ -980,9 +1009,9 @@ class RecordMgmt(QWidget):
                    Default = None for Add button clicks.
             p_dm - meta tag of domain (record type) to add,
                    Default = None for Add button clicks.
-
         :returns: (bool) True if record was added, False if not
         """
+        WT.log_function(self.push_add_button, self)
         manual_add = True
         if p_db is None or p_dm is None:
             db, dm = self.get_active_domain()
@@ -1021,10 +1050,10 @@ class RecordMgmt(QWidget):
 
     def push_clear_button(self):
         """Clear values from the current dom editor form.
-
         @DEV:
         - Handle list fields properly. Remove values and reduce list length.
         """
+        WT.log_function(self.push_clear_button, self)
         db, dm = self.get_active_domain()
         meta = self.recs["db"][db]["dm"][dm]["rec"]
         dom_wdg = self.recs["db"][db]["dm"][dm]["w_dom"]

@@ -44,32 +44,84 @@ class SaskanEyes(QMainWindow):
 
     def __init__(self):
         """super() call is required."""
-        WT.log_module(__file__, __name__, self.__class__, self)
+        WT.log_module(__file__, __name__, self)
         super().__init__()
-        self.initialize_CLI()
+        self.ARGS = self.init_configs()
         self.WDG = self.load_meta("widget")
         self.initialize_UI()
-        WT.dump_log()
 
-    # Command line option handlers
+    # Command line argument handlers
     # ==============================================================
-    def initialize_CLI(self):
+    def init_configs(self):
         """Handle command-line arguments."""
-        WT.log_function(self.initialize_CLI)
-        parser = argparse.ArgumentParser(description=BT.txt.app_desc)
-        parser.add_argument(
-            '--force-refresh',
-            action='store_true', help=BT.txt.refresh_desc)
-        args = parser.parse_args()
-        if args.force_refresh:
-            self.refresh_configs()
+
+        def set_arguments():
+            """Define command-line arguments."""
+            parser = argparse.ArgumentParser(description=BT.txt.app_desc)
+            parser.add_argument(
+                '--force-refresh', action='store_true', help=BT.txt.refresh_desc)
+            parser.add_argument(
+                '--info', action='store_true', help=BT.txt.info_desc)
+            parser.add_argument(
+                '--warn', action='store_true', help=BT.txt.warn_desc)
+            parser.add_argument(
+                '--tracef', action='store_true', help=BT.txt.tracef_desc)
+            parser.add_argument(
+                '--traced', action='store_true', help=BT.txt.traced_desc)
+            parser.add_argument(
+                '--debug', action='store_true', help=BT.txt.debug_desc)
+            args = parser.parse_args()
+            return args
+ 
+        def set_defaults():
+            """Set default config file values if not already set."""
+            ok, _, _ = FI.get_file(BT.log_level)
+            if not ok:
+                ok, err = FI.write_file(BT.log_level, BT.txt.error_val)
+            if ok:
+                ok, _, _ = FI.get_file(BT.trace_level)
+                if not ok:
+                    ok, err = FI.write_file(BT.trace_level, BT.txt.notrace_val)
+            if ok:
+                ok, _, _ = FI.get_file(BT.debug_level)
+                if not ok:
+                    ok, err = FI.write_file(BT.debug_level, BT.txt.nodebug_val)
+            if not ok:
+                print(err)
+                exit(1)
+ 
+        def handle_arguments(args):
+            """Get current settings, then assign actions based on arguments."""
+            ok = True
+            if args.traced:
+                ok, err = FI.write_file(BT.trace_level, BT.txt.traced_val)
+            elif args.tracef:
+                ok, err = FI.write_file(BT.trace_level, BT.txt.tracef_val)
+            if args.warn:
+                ok, err = FI.write_file(BT.log_level, BT.txt.warn_val)
+            elif args.info:
+                ok, err = FI.write_file(BT.log_level, BT.txt.info_val)
+            if args.debug:
+                ok, err = FI.write_file(BT.debug_level, BT.txt.debug_val)
+            if not(ok):
+                print(err)
+                exit(1)
+
+            if args.force_refresh:
+                self.refresh_configs()
+
+        args = set_arguments()
+        set_defaults()
+        handle_arguments(args)
+        WT.log_function(self.init_configs, self)
+        return args
 
     def refresh_configs(self):
         """Refresh Basement DB texts, configs from JSON config file."""
 
         def load_cfg_file(p_config_file_path: str):
             """Read data from config file."""
-            WT.log_function(load_cfg_file, p_is_sub=True)
+            WT.log_function(load_cfg_file, self)
             ok, err, configs = FI.get_file(p_config_file_path)
             if not ok:
                 print(f"{BT.txt.err_file} {err}")
@@ -83,7 +135,7 @@ class SaskanEyes(QMainWindow):
         def set_configs(p_config_data: dict,
                         p_catg: str):
             """Set text and widget metadata records on Basement DB."""
-            WT.log_function(set_configs, p_is_sub=True)
+            WT.log_function(set_configs, self)
             db = "basement"
             for k, values in p_config_data.items():
                 key = RI.clean_redis_key(f"{p_catg}:{k}")
@@ -96,14 +148,14 @@ class SaskanEyes(QMainWindow):
                 else:
                     RI.do_insert(db, record)
 
-        WT.log_function(self.refresh_configs)
+        WT.log_function(self.refresh_configs, self)
         set_configs(load_cfg_file(BT.file_widgets), "widget")
 
     # Load and save texts and widget metadata
     # ==============================================================
     def load_meta(self, p_catg):
         """Load configuration data from db to memory."""
-        WT.log_function(self.load_meta)
+        WT.log_function(self.load_meta, self)
         db = "basement"
         keys: list = RI.find_keys(db, f"{p_catg}:*")
         data: dict = {}
@@ -117,7 +169,7 @@ class SaskanEyes(QMainWindow):
                   p_wdg_catg: str,
                   p_qt_wdg):
         """Update Basement DB with modified widget record."""
-        WT.log_function(self.save_meta)
+        WT.log_function(self.save_meta, self)
         db = "basement"
         self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
         record = {"basement":
@@ -131,7 +183,7 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def initialize_UI(self):
         """Set window size and name. Show the window."""
-        WT.log_function(self.initialize_UI)
+        WT.log_function(self.initialize_UI, self)
         self.setGeometry(100, 100, 1200, 900)
         self.setWindowTitle(self.WDG['about']['app']['a'])
         self.setStyleSheet(SS.get_style('base'))
@@ -159,12 +211,12 @@ class SaskanEyes(QMainWindow):
         - Not doing much with menus anyway. Work on it another time.
         - Interestingly, the Ctrl-Q command shortcut works, but the
           menu-items don't display or pop up properly. """
-        WT.log_function(self.make_menus)
+        WT.log_function(self.make_menus, self)
         menu_bar = QMenuBar(self)
         menu_bar.setObjectName("app.menu_bar")
         menu_bar.setGeometry(0, 0, 100, 25)
         menu_bar.setStyleSheet(SS.get_style('menu'))
-        for mkey, menus in self.WDG["menus"]["menu"].items():
+        for _, menus in self.WDG["menus"]["menu"].items():
             mname = menus["name"]
             menu = menu_bar.addMenu(mname)
             for mi_key, m_item in menus["items"].items():
@@ -187,26 +239,26 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def exit_main(self):
         """Handle exit action."""
-        WT.log_function(self.exit_main)
+        WT.log_function(self.exit_main, self)
         self.close()
 
     def show_about(self):
         """Display a message box."""
-        WT.log_function(self.show_about)
+        WT.log_function(self.show_about, self)
         msg = self.WDG['about']['app']['c']
         mbox = QMessageBox()
         mbox.about(self, self.WDG['about']['app']['b'], msg)
 
     def show_about_qt(self):
         """Display a message box about Qt."""
-        WT.log_function(self.show_about_qt)
+        WT.log_function(self.show_about_qt, self)
         QMessageBox.aboutQt(self, self.WDG['about']['qt']['a'])
 
     # Statusbar make method
     # ==============================================================
     def make_statusbar(self):
         """Initialize status bar associated with QMainWindow."""
-        WT.log_function(self.make_statusbar)
+        WT.log_function(self.make_statusbar, self)
         self.statusBar().showMessage(self.WDG['about']['app']['a'])
 
     # Statusbar helper methods
@@ -214,7 +266,7 @@ class SaskanEyes(QMainWindow):
     def set_statusbar_text(self, p_text: str):
         """Display status bar text relevant to events from the main
         app widgets, like the menu or the toolbar."""
-        WT.log_function(self.set_statusbar_text)
+        WT.log_function(self.set_statusbar_text, self)
         self.statusBar().showMessage(p_text)
 
     # Make modes toolbox
@@ -222,7 +274,7 @@ class SaskanEyes(QMainWindow):
     def make_modes_toolbox(self):
         """Create mode toolbar and assign its actions.
         Move toolbox to upper-right corner of the main window."""
-        WT.log_function(self.make_modes_toolbox)
+        WT.log_function(self.make_modes_toolbox, self)
         self.tbx_modes = ModesToolbox(self, self.WDG["tools"])
         self.WDG["tools"] = self.tbx_modes.get_tools()
         for tk, action in {
@@ -243,7 +295,7 @@ class SaskanEyes(QMainWindow):
         :args:
             p_tool_nm: - key to metadata for the tool
             p_help_pg: - name of help page to show"""
-        WT.log_function(self.mode_tool_click)
+        WT.log_function(self.mode_tool_click, self)
         tool = self.WDG["tools"][f"{p_tool_nm}.tool"]
         self.set_statusbar_text(tool["c"])
         if self.WDG[p_tool_nm]["w"].isVisible():
@@ -257,22 +309,22 @@ class SaskanEyes(QMainWindow):
 
     def controls_mode_tool_click(self):
         """Handle Controls Mode tool click."""
-        WT.log_function(self.controls_mode_tool_click)
+        WT.log_function(self.controls_mode_tool_click, self)
         self.mode_tool_click("controls", "svc_activation.html")
 
     def monitor_mode_tool_click(self):
         """Handle Services Monitor mode tool click."""
-        WT.log_function(self.monitor_mode_tool_click)
+        WT.log_function(self.monitor_mode_tool_click, self)
         self.mode_tool_click("monitor", "svc_monitoring.html")
 
     def editor_mode_tool_click(self):
         """Handle DB Editor mode tool click."""
-        WT.log_function(self.editor_mode_tool_click)
+        WT.log_function(self.editor_mode_tool_click, self)
         self.mode_tool_click("db_editor", "db_help.html")
 
     def help_mode_tool_click(self):
         """Handle Help mode tool click."""
-        WT.log_function(self.help_mode_tool_click)
+        WT.log_function(self.help_mode_tool_click, self)
         self.mode_tool_click("help", "saskan_help.html")
 
     # Make Service Controls widget.
@@ -280,7 +332,7 @@ class SaskanEyes(QMainWindow):
     def make_svc_control_wdg(self):
         """Create Service Controls widget.
         Its actions are handled within this class."""
-        WT.log_function(self.make_svc_control_wdg)
+        WT.log_function(self.make_svc_control_wdg, self)
         controls = ControlsWidget(self, self.WDG["controls"])
         self.WDG["controls"] = controls.get_tools()
 
@@ -289,7 +341,7 @@ class SaskanEyes(QMainWindow):
     def make_svc_monitor_wdg(self):
         """Create Service Monitor widget.
         Its actions are handled within this class."""
-        WT.log_function(self.make_svc_monitor_wdg)
+        WT.log_function(self.make_svc_monitor_wdg, self)
         monitor = MonitorWidget(self, self.WDG["monitor"])
         self.WDG["monitor"] = monitor.get_tools()
 
@@ -297,7 +349,7 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def make_help_widget(self):
         """Define help display."""
-        WT.log_function(self.make_help_widget)
+        WT.log_function(self.make_help_widget, self)
         self.helper = HelpWidget(self, self.WDG["help"])
         self.WDG["help"] = self.helper.get_tools()
 
@@ -306,7 +358,7 @@ class SaskanEyes(QMainWindow):
     def make_db_editor_wdg(self):
         """Create DB Editor and Records Mgmt widgets.
         Their actions are handled in their class modules."""
-        WT.log_function(self.make_db_editor_wdg)
+        WT.log_function(self.make_db_editor_wdg, self)
         editor = DBEditorWidget(self, self.WDG["db_editor"])
         self.WDG["db_editor"] = editor.get_tools()
         recordio = RecordMgmt(self, self.WDG["record_io"], editor)
@@ -316,7 +368,7 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def make_graph_diagram_wdg(self):
         """Generate a Graph Diagram."""
-        WT.log_function(self.make_graph_diagram_wdg)
+        WT.log_function(self.make_graph_diagram_wdg, self)
         self.netx = DiagramWidget(self.WDG["diagram"])
         self.WDG["diagram"] = self.netx.get_tools()
 
@@ -325,7 +377,7 @@ class SaskanEyes(QMainWindow):
     # ==============================================================
     def show_graph_diagram(self):
         """Handle Graph Diagram show action."""
-        WT.log_function(self.show_graph_diagram)
+        WT.log_function(self.show_graph_diagram, self)
         try:
             img = self.network.get_image_path()
             with open(img):
@@ -341,7 +393,7 @@ class SaskanEyes(QMainWindow):
 
     def hide_graph_diagram(self):
         """Handle Graph Diagram hide action."""
-        WT.log_function(self.hide_graph_diagram)
+        WT.log_function(self.hide_graph_diagram, self)
         if self.WDG["diagram"]["w"].isVisible():
             self.diagram_wdg.hide()
 
