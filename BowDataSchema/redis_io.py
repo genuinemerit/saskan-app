@@ -57,6 +57,16 @@ Main behaviors:
     - By keys (KEYS pattern), e.g. `KEYS *` --> show all keys
     - Does this specific key exist yet? (EXIST)
     - Show me all the stuff in this hash item (HGETALL hashitemkey)
+    
+- Expire:
+    - Set expiration for a key (EXPIRE k secs) in seconds from now
+    - Set expiration for a key (PEXPIRE k msecs) in milliseconds from now
+    - Set expiration for a key (EXPIREAT k timestamp) at (standard) Unix timestamp (in seconds)
+    - Set expiration for a key (PEXPIREAT k timestamp) at Unix timestamp expressed in milliseconds
+    - Get the expire time for a key
+        - In seconds from now (TTL k) <-- works
+        - In milliseconds from now (PTTL k) <-- works
+        - As a Unix timestamp (EXPIRETIME k) <-- does not seem to work
 """
 import datetime
 import hashlib
@@ -236,6 +246,8 @@ class RedisIO(object):
 
     # DML functions
     # =======================================
+    # TODO - add a "get_expire_time" function
+
     def set_audit_values(self,
                          p_dbrec: dict,
                          p_include_hash: bool = True) -> tuple:
@@ -266,10 +278,24 @@ class RedisIO(object):
         rec["audit"] = audit
         return (rec, r_update)
 
+    def do_expire(self,
+                  p_db: str,
+                  p_key: str,
+                  p_expire: int = 0):
+        """Set expiration seconds for a key."""
+        if p_expire > 0:
+            expire_secs = p_expire * 60 * 60
+            self.RNS[p_db].expire(p_key, expire_secs)
+
     def do_insert(self,
                   p_db: str,
-                  p_rec: dict):
-        """Insert a record to Redis"""
+                  p_rec: dict,
+                  p_expire: int = 0):
+        """Insert a record to Redis.
+           Set its expiration time if specified (> 0).
+           The p_expire value is in hours. Translate to seconds.
+           For now, not allowing anything other than hours.
+        """
         try:
             key = p_rec["name"]
             values = self.convert_dict_to_bytes(p_rec)
@@ -282,6 +308,7 @@ class RedisIO(object):
             print(f"\nRecord name: {p_rec['name']}")
             print(f"\nRecord namespace/db: {p_db}")
             raise e
+        self.do_expire(p_db, key, p_expire)
 
     def do_archive(self,
                    p_rec: dict):

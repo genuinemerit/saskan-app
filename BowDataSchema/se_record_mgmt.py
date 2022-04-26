@@ -85,7 +85,7 @@ class RecordMgmt(QWidget):
             """Remove stray underbars
             - Remove leading or trailing underbars.
             - Reduce multiple underbars to single underbars."""
-            WT.log_function(set_underbars, self, self.set_edits_meta)
+            WT.log_function(set_underbars, self, 24, self.set_edits_meta)
             r_str = text
             while "__" in r_str:
                 r_str = r_str.replace("__", "_")
@@ -98,7 +98,7 @@ class RecordMgmt(QWidget):
         def set_redis_key(p_text: str):
             """Convert anything not a letter or colon to underbar.
                And make it lowercase."""
-            WT.log_function(set_redis_key, self, self.set_edits_meta)
+            WT.log_function(set_redis_key, self, 24, self.set_edits_meta)
             r_str = p_text.strip()
             for char in r_str:
                 if not char.isalpha() and \
@@ -109,7 +109,7 @@ class RecordMgmt(QWidget):
 
         def verify_host(p_value: str):
             """Validate value against list of valid host names."""
-            WT.log_function(verify_host, self, self.set_edits_meta)
+            WT.log_function(verify_host, self, 24, self.set_edits_meta)
             if p_value in ["localhost", "curwen"]:
                 return True
             else:
@@ -117,7 +117,7 @@ class RecordMgmt(QWidget):
 
         def verify_yes_or_no(p_value: str):
             """Validate value in in (yes, no)."""
-            WT.log_function(verify_yes_or_no, self, self.set_edits_meta)
+            WT.log_function(verify_yes_or_no, self, 24, self.set_edits_meta)
             if p_value.lower() in ["yes", "no"]:
                 return True
             else:
@@ -125,7 +125,7 @@ class RecordMgmt(QWidget):
 
         def verify_named_value(p_value: str):
             """Validate value has format like x:y."""
-            WT.log_function(verify_named_value, self, self.set_edits_meta)
+            WT.log_function(verify_named_value, self, 24, self.set_edits_meta)
             if (len(p_value) > 2 and
                     p_value.count(":") == 1 and
                     p_value.find(":") > 0):
@@ -456,7 +456,7 @@ class RecordMgmt(QWidget):
                          p_btn_nm: str,
                          p_action):
             """Add a button to add or remove a new list item."""
-            WT.log_function(self.set_list_row, self, add_list_btn)
+            WT.log_function(self.set_list_row, self, 24, add_list_btn)
             btn = SS.set_button_style(QPushButton(p_btn_txt), p_active=True)
             list_values = self.get_list_values(db, dm, ftag)
             flix = len(list_values)
@@ -1052,6 +1052,7 @@ class RecordMgmt(QWidget):
         """Clear values from the current dom editor form.
         @DEV:
         - Handle list fields properly. Remove values and reduce list length.
+        - Can't I just nuke the object and re-create it?
         """
         WT.log_function(self.push_clear_button, self)
         db, dm = self.get_active_domain()

@@ -121,7 +121,7 @@ class SaskanEyes(QMainWindow):
 
         def load_cfg_file(p_config_file_path: str):
             """Read data from config file."""
-            WT.log_function(load_cfg_file, self)
+            WT.log_function(load_cfg_file, self, 24, self.refresh_configs)
             ok, err, configs = FI.get_file(p_config_file_path)
             if not ok:
                 print(f"{BT.txt.err_file} {err}")
@@ -135,7 +135,7 @@ class SaskanEyes(QMainWindow):
         def set_configs(p_config_data: dict,
                         p_catg: str):
             """Set text and widget metadata records on Basement DB."""
-            WT.log_function(set_configs, self)
+            WT.log_function(set_configs, self, 24, self.refresh_configs)
             db = "basement"
             for k, values in p_config_data.items():
                 key = RI.clean_redis_key(f"{p_catg}:{k}")

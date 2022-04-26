@@ -36,11 +36,14 @@ class WireTap(object):
     def write_log(self,
                      p_log_msg: str,
                      p_expire: int = 0):
-        """Log records have a specific format.
-        Write a record to DB 3 "log"."""
+        """Write a record to DB 3 "log" namespace.
+        Log record format:
+        - `name`: `log:` + {timestamp} is the key
+        - `msg`: labels the log message
+        Default expiration is never."""
         ts = RI.get_timestamp()
         log_rec = {"name": f"log:{ts}", "msg": p_log_msg}
-        RI.do_insert("log", log_rec)
+        RI.do_insert("log", log_rec, p_expire)
 
     def write_to_mon(self,
                      p_mon_rec: dict,
@@ -53,7 +56,8 @@ class WireTap(object):
     def log_module(self, 
                    p_file: object,
                    p_name: object,
-                   p_self: object):
+                   p_self: object,
+                   p_expire: int = 24):
         """Trace module name, class name on log db."""
         if self.trace_level != "NOTRACE":
             log_msg = f"{p_file}"                              # type: ignore
@@ -62,11 +66,12 @@ class WireTap(object):
             log_msg += f"\nclass: {p_self.__class__.__name__}()"   # type: ignore
             if self.trace_level == "DOCS":
                 log_msg += f"\n{p_self.__doc__}"                   # type: ignore
-            self.write_log(log_msg)
+            self.write_log(log_msg, p_expire)
 
     def log_function(self,
                      p_func: object,
                      p_self: object,
+                     p_expire: int = 24,
                      p_parent_func: object = None):
         """Trace function or subfunction on log db."""
         if self.trace_level != "NOTRACE":
@@ -75,24 +80,33 @@ class WireTap(object):
             log_msg = f"{cpfx}{ppfx}{p_func.__name__}()"                          # type: ignore
             if self.trace_level == "DOCS":
                 log_msg += f"\n\t{p_func.__doc__}"                                # type: ignore
-            self.write_log(log_msg)
+            self.write_log(log_msg, p_expire)
 
     def log_msg(self,
                 p_msg_lvl: str,
-                p_msg: str):
-        """Write a regular log message or a debug message to log db."""
+                p_msg: str,
+                p_expire: int = 24):
+        """Write a regular log message or a debug message to log db.
+        :attrs:
+        - p_msg_lvl: str in ("info", "debug", "error", "warn")
+        - p_msg: str is the message to write to log db
+        - p_expire: int is the number of hours to expire the log record
+          (default = 24). If < 1, the record will never expire.
+        """
         log_msg = None
         if p_msg_lvl.lower() == "debug" and self.debug_level == "DEBUG":
             log_msg = f"\tDEBUG: {p_msg}"
-        elif (p_msg_lvl.lower() == "info" and\
+        elif (p_msg_lvl.lower() in ("info", "", None) and\
                     self.log_level in ("INFO", "WARN", "ERROR")) or \
              (p_msg_lvl.lower() == "warn" and\
                     self.log_level in ("WARN", "ERROR")) or \
              (p_msg_lvl.lower() == "error" and\
                     self.log_level == "ERROR"):
                 log_msg = f"\t{self.log_level}: {p_msg}"
+        else:
+            log_msg = f"\tINFO: {p_msg}"
         if log_msg is not None:
-            self.write_log(log_msg)
+            self.write_log(log_msg, p_expire)
 
     def dump_log(self):
         """Dump all log records to console."""
