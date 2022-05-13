@@ -1,6 +1,6 @@
-#!/usr/bin/python3.9
+#!python
 """
-:module:    redis_io.py
+:module:    io_redis.py
 :class:     RedisIO
 
 Handle core Redis IO functions.
@@ -26,7 +26,7 @@ Redis commands: https://redis.io/commands
     similar abstractions (io functions) but for redis instead of files.
 
 - saskan_fileio module has status-file-checking methods that
-    should probably be moved to redis_io.  Store "flag files" in redis.
+    should probably be moved to io_redis.  Store "flag files" in redis.
 
 - Redis Basement should also replace "saskan_texts.py".
 
@@ -57,12 +57,14 @@ Main behaviors:
     - By keys (KEYS pattern), e.g. `KEYS *` --> show all keys
     - Does this specific key exist yet? (EXIST)
     - Show me all the stuff in this hash item (HGETALL hashitemkey)
-    
+
 - Expire:
-    - Set expiration for a key (EXPIRE k secs) in seconds from now
-    - Set expiration for a key (PEXPIRE k msecs) in milliseconds from now
-    - Set expiration for a key (EXPIREAT k timestamp) at (standard) Unix timestamp (in seconds)
-    - Set expiration for a key (PEXPIREAT k timestamp) at Unix timestamp expressed in milliseconds
+    - Set expire for key (EXPIRE k secs) in seconds from now
+    - Set expire for key (PEXPIRE k msecs) in milliseconds from now
+    - Set expire for key (EXPIREAT k timestamp) at (standard) Unix timestamp
+        in seconds
+    - Set expire for key (PEXPIREAT k timestamp) at Unix timestamp
+        in milliseconds
     - Get the expire time for a key
         - In seconds from now (TTL k) <-- works
         - In milliseconds from now (PTTL k) <-- works
@@ -71,7 +73,7 @@ Main behaviors:
 import datetime
 import hashlib
 import json
-import redis
+import redis  # type: ignore
 import secrets
 import uuid
 import zlib
@@ -81,7 +83,7 @@ from pprint import pprint as pp  # noqa: F401
 
 class RedisIO(object):
     """Generic Redis handling."""
-    
+
     def __init__(self):
         """Initialize Redis connections."""
         self.HOST = '127.0.0.1'
@@ -302,7 +304,7 @@ class RedisIO(object):
             self.RNS[p_db].set(key, values, nx=True)
         except redis.exceptions.ResponseError as e:
             # Write to log instead of raise exception?
-            # But.. have to watch out for catch-22 if log is on Redis! :-) 
+            # But.. have to watch out for catch-22 if log is on Redis! :-)
             print(f"\nRedis error: {e}")
             print(f"\nRecord: {p_rec}")
             print(f"\nRecord name: {p_rec['name']}")

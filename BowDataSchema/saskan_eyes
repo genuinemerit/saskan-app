@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+# Be sure to chmod u=rwx,g=rx,o=rx
+
+APP=${HOME}/saskan
+python3 "${APP}/bin/saskan_eyes.py"

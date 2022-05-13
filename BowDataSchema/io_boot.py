@@ -1,4 +1,4 @@
-#!python3.9
+#!python
 """Provision bootstrap text strings for the app.
 
 For internationalization, swap in translated version
@@ -6,7 +6,7 @@ of this Class module.  All other texts are defined in
 a JSON file and loaded into the Redis "Basement" (0)
 database.
 
-module:     boot_texts.py
+module:     io_boot.py
 class:      BootTexts/0
 author:     GM <genuinemerit @ pm.me>
 """
@@ -60,37 +60,46 @@ class BootTexts(object):
 
         self.dir_app: str = 'saskan'
         self.dir_home = home.strip()
-        self.dir_log: str = 'log'
+        self.dir_bin: str = 'bin'
+        self.dir_cfg: str = 'cfg'
         self.dir_res: str = 'res'
-        self.dir_settings: str = 'settings'
 
         self.path_app: str = path.join(self.dir_home, self.dir_app)
-        self.path_log: str = path.join(self.path_app, self.dir_log)
+        self.path_bin: str = path.join(self.path_app, self.dir_bin)
+        self.path_cfg: str = path.join(self.path_app, self.dir_cfg)
         self.path_res: str = path.join(self.path_app, self.dir_res)
-        self.path_settings: str = path.join(self.path_app, self.dir_settings)
+        self.path_usr_bin: str = '/usr/local/bin'
 
-        self.file_widgets: str = path.join(self.path_res, 'config_widgets.json')
-        self.trace_level: str = path.join(self.path_settings, 'trace_level.cfg')
-        self.log_level: str = path.join(self.path_settings, 'log_level.cfg')
-        self.debug_level: str = path.join(self.path_settings, 'debug_level.cfg')
+        self.file_widgets: str = path.join(
+            self.path_res, 'config_widgets.json')
+        self.trace_level: str = path.join(
+            self.path_cfg, 'trace_level.cfg')
+        self.log_level: str = path.join(
+            self.path_cfg, 'log_level.cfg')
+        self.debug_level: str = path.join(
+            self.path_cfg, 'debug_level.cfg')
 
     @dataclass
     class txt:
         """Errors, warnings, help, captions, descriptions, config values"""
-        app_desc: str = 'Saskan Eyes - Admin GUI for the whole Ball of Wax'
-        no_file: str = 'File not found: '
-        err_file: str = 'Error reading config file: '
-        refresh_desc: str = 'Force refresh of Basement DB from config files'
-        info_desc: str = 'Write info, warning, and error messages to log'
-        warn_desc: str = 'Write warning and error messages to log, but not info msgs'
-        tracef_desc: str = 'Write trace-level messages to log, without docstrings'
-        traced_desc: str = 'Write trace-level messages to log, with docstrings'
-        debug_desc: str = 'Write developer debug-level messages to log'
-        info_val: str = 'INFO'
-        warn_val: str = 'WARN'
-        error_val: str = 'ERROR'
-        debug_val: str = 'DEBUG'
-        nodebug_val: str = 'NODEBUG'
-        notrace_val: str = 'NOTRACE'
-        tracef_val: str = 'NODOCS'
-        traced_val: str = 'DOCS'
+        desc_cfg_files: str = 'Configure BoW files, directories, binaries'
+        desc_cfg_meta: str = 'Configure BoW metadata'
+        desc_debug: str = 'Write developer debug-level messages to log'
+        desc_info: str = 'Write info, warning, and error messages to log'
+        desc_refresh: str = 'Force refresh of Basement DB from config files'
+        desc_saskan_eyes: str = 'Saskan Eyes - Admin GUI for whole Ball of Wax'
+        desc_source: str = 'Location of cloned bow-data-schema repo'
+        desc_traced: str = 'Write trace-level msgs to log, w/ docstrings'
+        desc_tracef: str = 'Write trace-level msgs to log, w/o docstrings'
+        desc_warn: str = 'Write warning, error messages to log, not info msgs'
+        file_error: str = 'Bad file or directory: '
+        file_ok: str = 'File or directory exists: '
+        process_error: str = 'Process aborted: '
+        val_debug: str = 'DEBUG'
+        val_error: str = 'ERROR'
+        val_info: str = 'INFO'
+        val_nodebug: str = 'NODEBUG'
+        val_notrace: str = 'NOTRACE'
+        val_traced: str = 'DOCS'
+        val_tracef: str = 'NODOCS'
+        val_warn: str = 'WARN'

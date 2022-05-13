@@ -1,11 +1,8 @@
 #!/usr/bin/python3.9
 """
-:module:    se_controls_shell.py
-
+:module:    io_shell.py
 :author:    GM (genuinemerit @ pm.me)
-
 Service Activator / Deactivator class for Data Schema services.
-
 Not sure if this will work anywhere but Linux. Probably not.
 """
 # import subprocess as shl
@@ -25,7 +22,10 @@ class ControlsShell(object):
     """Run Controller-related commands."""
 
     def __init__(self):
-        """Initialize the object."""
+        """Initialize the object.
+           Move the python modules to an App directory in ConfigFiles.
+           Use metadata to determine locations.
+        """
         self.PYPATH = \
             "/home/dave/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema/"
 
@@ -108,7 +108,7 @@ class ControlsShell(object):
                                p_service_nm: str) -> tuple:
         """Check if a service is running.
 
-        Treid modifying to check for service name that includes
+        Tried modifying to check for service name that includes
         an underbar, but didn't seem to work as desired.
         Perhaps need to explicitly exclude redis-server and
         redis-sentinel.
