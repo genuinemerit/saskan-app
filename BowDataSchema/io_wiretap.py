@@ -19,16 +19,16 @@ RI = RedisIO()
 class WireTap(object):
     """Interface to Log and Monitor Redis databases.
     Call this class to write and read Log or Monitor DBs.
-    Eventually, maybe create services instead of direct calls.
+
+    @DEV:
+    Eventually, create services instead of direct calls.
     """
 
     def __init__(self):
         """Initialize WireTap object.
 
-        Need to do a cleaner job of setting up the app.
-        If files don't exist, create them.
-        Move the init and config logic to a separate module.
-        Take a look at bow_data for examples.
+        Default settings for log, trace, debug configs are set
+        in the ConfigFiles() class, which is executed as part of install.
         """
         ok, msg, self.log_level = FI.get_file(BT.log_level)
         if ok:

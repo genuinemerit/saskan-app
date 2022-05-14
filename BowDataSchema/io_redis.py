@@ -262,6 +262,10 @@ class RedisIO(object):
         :returns: (
             dict - record with audit values set or modified,
             bool - indicates whether to do update (True) or insert (False))
+
+        @DEV
+        - May be cleaner to send namespace as a separate argument?
+        - Probably good to be consistent with other RedisIO functions.
         """
         r_update = False
         db = list(p_dbrec.keys())[0]
@@ -297,6 +301,7 @@ class RedisIO(object):
            Set its expiration time if specified (> 0).
            The p_expire value is in hours. Translate to seconds.
            For now, not allowing anything other than hours.
+           'nx' means overwrite existing key if it exists.
         """
         try:
             key = p_rec["name"]

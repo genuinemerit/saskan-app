@@ -3,19 +3,15 @@
 :module:    io_shell.py
 :author:    GM (genuinemerit @ pm.me)
 Service Activator / Deactivator class for Data Schema services.
+It also has a generic system command runner for cases when
+we do want to get feedback from the shell and not use nohup.
+
 Not sure if this will work anywhere but Linux. Probably not.
 """
-# import subprocess as shl
 import os
 import time
 
-# from pprint import pprint as pp
-
-from BowQuiver.saskan_utils import Utils            # type: ignore
-from BowQuiver.saskan_texts import SaskanTexts      # type: ignore
-
-UT = Utils()
-TX = SaskanTexts()
+import subprocess as shl
 
 
 class ControlsShell(object):
@@ -28,6 +24,34 @@ class ControlsShell(object):
         """
         self.PYPATH = \
             "/home/dave/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema/"
+
+    @classmethod
+    def run_cmd(cls, cmd):
+        """
+        Execute a shell command from Python.
+        Best to execute scripts using `bash` not `touch`, `.` or `sh`
+
+        :Args:  {list} shell command as a string in a list
+
+        :Return: {tuple} ({boolean} success/failure, {bytes} result)
+        """
+        cmd_rc = False
+        cmd_result = b''  # Stores bytes
+
+        if cmd == "" or cmd is None:
+            cmd_rc = False
+        else:
+            # shell=True means cmd param contains a regular cmd string
+            shell = shl.Popen(cmd, shell=True,
+                              stdin=shl.PIPE, stdout=shl.PIPE,
+                              stderr=shl.STDOUT)
+            cmd_result, _ = shell.communicate()
+            if 'failure'.encode('utf-8') in cmd_result or\
+                    'fatal'.encode('utf-8') in cmd_result:
+                cmd_rc = False
+            else:
+                cmd_rc = True
+        return (cmd_rc, cmd_result.decode('utf-8').strip())
 
     def start_services(self,
                        p_service_nm: str) -> tuple:
@@ -92,14 +116,14 @@ class ControlsShell(object):
         if is_running:
             show_msg = f"\nAttempting to kill {p_service_nm}"
             cmd = f'ps -ef | grep -v grep | grep -c "{server_nm}"'
-            _, pid_count = UT.run_cmd(cmd)
+            _, pid_count = self.run_cmd(cmd)
             if (int(pid_count.strip("\n")) > 0):
                 cmd = f"ps -ef | grep -v grep | grep {server_nm} | "
                 cmd += "awk '{print $2}'"
-                _, pid_num = UT.run_cmd(cmd)
+                _, pid_num = self.run_cmd(cmd)
                 pid_num = pid_num.strip("\n")
                 cmd = f"kill -9 {pid_num}"
-                rc, result = UT.run_cmd(cmd)
+                rc, result = self.run_cmd(cmd)
                 time.sleep(0.5)
         is_running, show_msg = self.check_running_services(server_nm)
         return (is_running, show_msg)
@@ -120,7 +144,7 @@ class ControlsShell(object):
         """
         cmd = f"ps -ef | grep -v grep | grep {p_service_nm} "
         cmd += "| grep -wv redis-server | grep -wv redis-sentinel"
-        _, result = UT.run_cmd(cmd)
+        _, result = self.run_cmd(cmd)
         is_running = True if p_service_nm in result else False
         show_msg = f"\nLooked for services like *..{p_service_nm[-32:]}*"
         result = result.strip("\n").strip()
@@ -141,14 +165,14 @@ class ControlsShell(object):
         if is_running:
             show_msg = f"\nAttempting to kill {p_service_nm}"
             cmd = f'ps -ef | grep -v grep | grep -c "{server_nm}"'
-            _, pid_count = UT.run_cmd(cmd)
+            _, pid_count = self.run_cmd(cmd)
             if (int(pid_count.strip("\n")) > 0):
                 cmd = f"ps -ef | grep -v grep | grep {server_nm} | "
                 cmd += "awk '{print $2}'"
-                _, pid_num = UT.run_cmd(cmd)
+                _, pid_num = self.run_cmd(cmd)
                 pid_num = pid_num.strip("\n")
                 cmd = f"kill -9 {pid_num}"
-                rc, result = UT.run_cmd(cmd)
+                rc, result = self.run_cmd(cmd)
                 time.sleep(0.5)
         is_running, show_msg = self.check_running_services(server_nm)
         if is_running:

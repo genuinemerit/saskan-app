@@ -7,11 +7,19 @@ class:     FileIO/0
 author:    GM <genuinemerit @ pm.me>
 
 Add a file delete function.
-Use os.remove() to delete a file.
+Use os.remove(path) to delete a file.
+
+Add a file copy function.
+Use shutil.copy(from_file, to_file) to copy a file.
 """
-# from os import path
-from os import system
+import shutil
+
+from os import remove, system
 from pathlib import Path
+
+from io_shell import ControlsShell       # type: ignore
+
+CS = ControlsShell()
 
 
 class FileIO(object):
@@ -20,6 +28,66 @@ class FileIO(object):
     def __init__(self):
         """Initialize FileIO object."""
         pass
+
+    def make_readable(self,
+                      p_path: str) -> tuple:
+        """Make file at path readable for all.
+
+        Args:
+            p_path (str): File to make readable.
+
+        Returns:
+            (Tuple): (Status (bool), Message (str or None))
+        """
+        try:
+            cmd = f"chmod u=rw,g=r,o=r {p_path}"
+            ok, result = CS.run_cmd(cmd)
+            if ok:
+                return (True, None)
+            else:
+                return (False, result)
+        except Exception as err:
+            return (False, err)
+
+    def make_writable(self,
+                      p_path: str) -> tuple:
+        """Make file at path writable for all.
+
+        Args:
+            p_path (str): File to make writable.
+
+        Returns:
+            (Tuple): (Status (bool), Message (str or None))
+        """
+        try:
+            cmd = f"chmod u=rw,g=rw,o=rw {p_path}"
+            ok, result = CS.run_cmd(cmd)
+            if ok:
+                return (True, None)
+            else:
+                return (False, result)
+        except Exception as err:
+            return (False, err)
+
+    def make_executable(self,
+                        p_path: str) -> tuple:
+        """Make file at path executable for all.
+
+        Args:
+            p_path (str): File to make executable.
+
+        Returns:
+            (Tuple): (Status (bool), Message (str or None))
+        """
+        try:
+            cmd = f"chmod u=rwx,g=rx,o=rx {p_path}"
+            ok, result = CS.run_cmd(cmd)
+            if ok:
+                return (True, None)
+            else:
+                return (False, result)
+        except Exception as err:
+            return (False, err)
 
     def make_dir(self,
                  p_path: str) -> tuple:
@@ -40,15 +108,47 @@ class FileIO(object):
         else:
             return (False, "directory creation failed.")
 
+    def delete_file(self,
+                    p_path: str):
+        """Remove a file.
+
+        Args:
+            p_path (str): Valid path to file to be removed.
+        Returns:
+            (Tuple): (Status (bool), Message (str or None))
+        """
+        try:
+            remove(p_path)
+            return(True, None)
+        except OSError as err:
+            return(False, err)
+
+    def copy_file(self,
+                  p_path_from: str,
+                  p_path_to: str):
+        """Copy a file to a different location.
+
+        Args:
+            p_path_from (str): path of file to be moved
+            p_path_to (str): destination path
+        Returns:
+            (Tuple): (Status (bool), Message (str or None))
+        """
+        try:
+            shutil.copy(p_path_from, p_path_to)
+            return(True, None)
+        except OSError as err:
+            return(False, err)
+
     def append_file(self,
                     p_path: str,
                     p_text: str) -> tuple:
-        """Append text to specified file.
+        """Append text to specified text file.
 
         Create file if it does not already exist.
 
         Args:
-            p_path (str): Legit path to a file location.
+            p_path (str): Legit path to a text file location.
             p_text (str): Text to append to the file.
         Return:
             (tuple): (Status (bool), Message (str or None))
@@ -66,10 +166,9 @@ class FileIO(object):
                    p_path: str,
                    p_data,
                    p_file_type: str = "w+") -> tuple:
-        """Write or overwrite text to specified file.
+        """Write or overwrite data to specified file.
 
         Create file if it does not already exist.
-        Overwrite file if it does already exist.
 
         Args:
             p_path (str): Legit path to a file location.
@@ -77,11 +176,7 @@ class FileIO(object):
             p_file_type (str): default = "w+"
         Return:
             (tuple): (Status (bool), Message (str or None))
-
-        Hmmm... doesn't seem to be overwriting... Not sure why.
-        Make need to check for existing file, then delete it?
         """
-
         try:
             f = open(p_path, p_file_type)
             f.write(p_data)

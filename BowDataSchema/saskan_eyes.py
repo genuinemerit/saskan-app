@@ -6,10 +6,9 @@ BoW Saskan App Admin GUI.  wx version."""
 
 import argparse
 import json
-# import sys
+import platform
 import wx
 
-# from os import path
 from pprint import pprint as pp     # noqa: F401
 
 from io_boot import BootTexts       # type: ignore
@@ -46,6 +45,9 @@ class SaskanEyes(wx.Frame):
         """_Set window size and name. Show the window.
         """
         pnl = wx.Panel(self)
+        py_version = "Python: " + platform.python_version()
+        wx_version = "wxPython: " + wx.version()
+        os_version = "OS: " + platform.platform()
         st = wx.StaticText(pnl, label=BT.txt.desc_saskan_eyes)
         font = st.GetFont()
         font.PointSize += 10
@@ -55,12 +57,17 @@ class SaskanEyes(wx.Frame):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(st, wx.SizerFlags().Center().Border(wx.TOP | wx.LEFT, 25))
+        sizer.Add(wx.StaticText(pnl, label=py_version), 0, wx.ALL, 5)
+        sizer.Add(wx.StaticText(pnl, label=wx_version), 0, wx.ALL, 5)
+        sizer.Add(wx.StaticText(pnl, label=os_version), 0, wx.ALL, 5)
         pnl.SetSizer(sizer)
 
         self.make_menu_bar()
 
         # self.CreateSatatusBar()
         # self.SetStatusText(BT.txt.desc_saskan_eyes)
+
+        self.Show()
 
     def make_menu_bar(self):
         """
@@ -255,6 +262,5 @@ class SaskanEyes(wx.Frame):
 if __name__ == '__main__':
     """Run program."""
     app = wx.App()
-    frm = SaskanEyes(None, title="Saskan Eyes", size=(800, 600))
-    frm.Show()
+    SE = SaskanEyes(None, title="Saskan Eyes", size=(800, 600))
     app.MainLoop()
