@@ -19,25 +19,36 @@ RI = RedisIO()
 class WireTap(object):
     """Interface to Log and Monitor Redis databases.
     Call this class to write and read Log or Monitor DBs.
+    These are proprietary logger functions using Redis,
+    not the standard Python Logging module.
 
     @DEV:
-    Eventually, create services instead of direct calls.
+    - Eventually, create services instead of direct calls.
     """
 
     def __init__(self):
         """Initialize WireTap object.
 
         Default settings for log, trace, debug configs are set
-        in the ConfigFiles() class, which is executed as part of install.
+        as part of saskan_install. Will crash if config files
+        have not been created properly.
+
+        Modify them using options in config_meta.py.
+        @DEV:
+        - Provide a menu item to saskan_eyes do the same.
         """
-        ok, msg, self.log_level = FI.get_file(BT.log_level)
-        if ok:
-            ok, msg, self.trace_level = FI.get_file(BT.trace_level)
-        if ok:
-            ok, msg, self.debug_level = FI.get_file(BT.debug_level)
-        if not ok:
-            print(msg)
-            exit(1)
+        rec = RI.get_record("basement", "config.app_path")
+        self.APP_PATH = rec['values']['app_path']
+        with open(f"{self.APP_PATH}/cfg/debug_level.cfg") as f:
+            self.debug_level: str = f.read
+        with open(f"{self.APP_PATH}/cfg/info_level.cfg") as f:
+            self.info_level: str = f.read
+        with open(f"{self.APP_PATH}/cfg/warn_level.cfg") as f:
+            self.warn_level: str = f.read
+        with open(f"{self.APP_PATH}/cfg/error_level.cfg") as f:
+            self.error_level: str = f.read
+        with open(f"{self.APP_PATH}/cfg/trace_level.cfg") as f:
+            self.trace_level: str = f.read
 
     def write_log(self,
                   p_log_msg: str,
@@ -99,35 +110,35 @@ class WireTap(object):
         - p_msg_lvl: str in ("info", "debug", "error", "warn")
         - p_msg: str is the message to write to log db
         - p_expire: int is the number of hours to expire the log record
-          (default = 24). If < 1, the record will never expire.
+          (default = 24). If < 1, the record will never expire.l.
         """
-        log_msg = None
-        if p_msg_lvl.lower() == "debug" and self.debug_level == "DEBUG":
-            log_msg = f"\tDEBUG: {p_msg}"
-        elif (p_msg_lvl.lower() in ("info", "", None) and
-                self.log_level in ("INFO", "WARN", "ERROR")) or \
-             (p_msg_lvl.lower() == "warn" and
-                self.log_level in ("WARN", "ERROR")) or \
-             (p_msg_lvl.lower() == "error" and
-                self.log_level == "ERROR"):
-                    log_msg = f"\t{self.log_level}: {p_msg}"  # noqa: E117
-        else:
-            log_msg = f"\tINFO: {p_msg}"
-        if log_msg is not None:
+        if ((p_msg_lvl.lower() == "debug" and
+             self.debug_level == BT.txt.val_debug)
+            or (p_msg_lvl.lower() == "info" and
+                self.info_level == BT.txt.val_info)
+            or (p_msg_lvl.lower() == "warn" and
+                self.info_level == BT.txt.val_warn)
+            or (p_msg_lvl.lower() == "error" and
+                self.info_level == BT.txt.val_error)):
+            log_msg = f"\t{self.p_msg_lvl.upper()}: {p_msg}"
             self.write_log(log_msg, p_expire)
 
     def dump_log(self):
         """Dump all log records to console."""
         pass
         log_keys = RI.find_keys("log", "log:*")
-        for k in sorted(log_keys):
-            rec = RI.get_record("log", k)
-            ts = rec['name'].replace('log:', '')
-            if "/home/" in rec['msg']:
-                msg = f"\n\n{ts}\n{rec['msg']}"
-            else:
-                msg = f"{ts}\t{rec['msg']}"               # ts + body of msg
-            print(msg)
+        if len(log_keys) > 0:
+            for k in sorted(log_keys):
+                rec = RI.get_record("log", k)
+                ts = rec['name'].replace('log:', '')
+                # return ts + body of msg
+                if "/home/" in rec['msg']:
+                    msg = f"\n\n{ts}\n{rec['msg']}"
+                else:
+                    msg = f"{ts}\t{rec['msg']}"
+                print(msg)
+        else:
+            print(BT.txt.not_found)
 
 
 if __name__ == '__main__':

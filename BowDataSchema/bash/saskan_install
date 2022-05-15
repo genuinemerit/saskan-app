@@ -1,0 +1,8 @@
+#!/usr/bin/bash
+
+# Be sure to chmod u=rwx,g=rx,o=rx
+# This must be run with sudo permissions
+# @DEV: add logic to verify that the user is root
+
+python3 ~APP_DIR~/config_files.py ~SRC_DIR~ ~TGT_DIR~ 
+

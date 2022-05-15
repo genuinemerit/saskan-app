@@ -230,6 +230,12 @@ class RedisIO(object):
                    p_key_val: str):
         """Return existing record if one exists for a specified key.
 
+        :Args:
+        - p_db (str) name of the Redis namespace
+        - p_key_val (str) key value of the record to retrieve
+        :Returns:
+        - rec (dict) - record data
+
         @DEV:
         - Q: Can this function return more than one record? In other
              words, can I pass in a Redis "wildcard" key?

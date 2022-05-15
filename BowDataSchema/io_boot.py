@@ -15,7 +15,11 @@ from os import path
 
 
 class BootTexts(object):
-    """Static text strings."""
+    """Static text strings.
+
+    @DEV
+    - Consider a single config file instead of discrete ones.
+    """
 
     def __init__(self):
         """Initialize text strings."""
@@ -36,12 +40,12 @@ class BootTexts(object):
 
         self.file_widgets: str = path.join(
             self.path_res, 'config_widgets.json')
-        self.trace_level: str = path.join(
-            self.path_cfg, 'trace_level.cfg')
-        self.log_level: str = path.join(
-            self.path_cfg, 'log_level.cfg')
-        self.debug_level: str = path.join(
-            self.path_cfg, 'debug_level.cfg')
+
+        self.debug_level: str = path.join(self.path_cfg, 'debug_level.cfg')
+        self.info_level: str = path.join(self.path_cfg, 'info_level.cfg')
+        self.warn_level: str = path.join(self.path_cfg, 'warn_level.cfg')
+        self.error_level: str = path.join(self.path_cfg, 'error_level.cfg')
+        self.trace_level: str = path.join(self.path_cfg, 'trace_level.cfg')
 
     @dataclass
     class txt:
@@ -59,6 +63,7 @@ class BootTexts(object):
         desc_warn: str = 'Write warning, error messages to log, not info msgs'
         file_error: str = 'Bad file or directory: '
         file_ok: str = 'ok: '
+        not_found: str = 'No records found'
         ns_db_basement: str = 'basement'
         process_error: str = 'Process aborted: '
         rec_error: str = 'Bad record: '
@@ -67,7 +72,10 @@ class BootTexts(object):
         val_error: str = 'ERROR'
         val_info: str = 'INFO'
         val_nodebug: str = 'NODEBUG'
+        val_noerror: str = 'NOERROR'
+        val_noinfo: str = 'NOINFO'
         val_notrace: str = 'NOTRACE'
+        val_nowarn: str = 'NOWARN'
         val_traced: str = 'DOCS'
         val_tracef: str = 'NODOCS'
         val_warn: str = 'WARN'

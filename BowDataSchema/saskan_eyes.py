@@ -4,22 +4,22 @@
 :author:    GM (genuinemerit @ pm.me)
 BoW Saskan App Admin GUI.  wx version."""
 
-import argparse
-import json
 import platform
 import wx
 
 from pprint import pprint as pp     # noqa: F401
 
+from config_meta import ConfigMeta  # type: ignore
 from io_boot import BootTexts       # type: ignore
 from io_file import FileIO          # type: ignore
 from io_redis import RedisIO        # type: ignore
-# from io_wiretap import WireTap      # type: ignore
+from io_wiretap import WireTap      # type: ignore
 
+CM = ConfigMeta()
 BT = BootTexts()
 FI = FileIO()
 RI = RedisIO()
-# WT = WireTap()
+WT = WireTap()
 
 
 class SaskanEyes(wx.Frame):
@@ -27,16 +27,19 @@ class SaskanEyes(wx.Frame):
 
     Args:
         (object): wx Frame object
+
+    @DEV:
+    - Provide menu item to modify the log/mon config files.
+    - Provide menu item to refresh the redis metadata from JSON file.
+    - This class just focuses on GUI-related code translated from Qt to wx.
     """
 
     def __init__(self, *args, **kwargs):
         """wx refers to the base parent window object as the frame.
         """
         super(SaskanEyes, self).__init__(*args, **kwargs)
-        # WT.log_module(__file__, __name__, self)
-        # Put the initialization code in a discrete class?
-        # self.ARGS = self.init_configs()
-        # self.WDG = self.load_meta("widget")
+        WT.log_module(__file__, __name__, self)
+        self.WDG = CM.load_meta("widget")
         self.initialize_gui()
 
     # GUI / Main App handlers
@@ -126,136 +129,6 @@ class SaskanEyes(wx.Frame):
         wx.MessageBox("This is a wxPython Hello World sample",
                       "About Hello World 2",
                       wx.OK | wx.ICON_INFORMATION)
-
-    # Command line argument handlers
-    # ==============================================================
-    def init_configs(self):
-        """Handle command-line arguments."""
-
-        def set_arguments():
-            """Define command-line arguments."""
-            parser = argparse.ArgumentParser(description=BT.txt.app_desc)
-            parser.add_argument(
-                '--force-refresh', action='store_true',
-                help=BT.txt.refresh_desc)
-            parser.add_argument(
-                '--info', action='store_true', help=BT.txt.info_desc)
-            parser.add_argument(
-                '--warn', action='store_true', help=BT.txt.warn_desc)
-            parser.add_argument(
-                '--tracef', action='store_true', help=BT.txt.tracef_desc)
-            parser.add_argument(
-                '--traced', action='store_true', help=BT.txt.traced_desc)
-            parser.add_argument(
-                '--debug', action='store_true', help=BT.txt.debug_desc)
-            args = parser.parse_args()
-            return args
-
-        def set_defaults():
-            """Set default config file values if not already set."""
-            ok, _, _ = FI.get_file(BT.log_level)
-            if not ok:
-                ok, err = FI.write_file(BT.log_level, BT.txt.error_val)
-            if ok:
-                ok, _, _ = FI.get_file(BT.trace_level)
-                if not ok:
-                    ok, err = FI.write_file(BT.trace_level, BT.txt.notrace_val)
-            if ok:
-                ok, _, _ = FI.get_file(BT.debug_level)
-                if not ok:
-                    ok, err = FI.write_file(BT.debug_level, BT.txt.nodebug_val)
-            if not ok:
-                print(err)
-                exit(1)
-
-        def handle_arguments(args):
-            """Get current settings, then assign actions based on arguments."""
-            ok = True
-            if args.traced:
-                ok, err = FI.write_file(BT.trace_level, BT.txt.traced_val)
-            elif args.tracef:
-                ok, err = FI.write_file(BT.trace_level, BT.txt.tracef_val)
-            if args.warn:
-                ok, err = FI.write_file(BT.log_level, BT.txt.warn_val)
-            elif args.info:
-                ok, err = FI.write_file(BT.log_level, BT.txt.info_val)
-            if args.debug:
-                ok, err = FI.write_file(BT.debug_level, BT.txt.debug_val)
-            if not(ok):
-                print(err)
-                exit(1)
-
-            if args.force_refresh:
-                self.refresh_configs()
-
-        args = set_arguments()
-        set_defaults()
-        handle_arguments(args)
-        WT.log_function(self.init_configs, self)
-        return args
-
-    def refresh_configs(self):
-        """Refresh Basement DB texts, configs from JSON config file."""
-
-        def load_cfg_file(p_config_file_path: str):
-            """Read data from config file."""
-            WT.log_function(load_cfg_file, self, 24, self.refresh_configs)
-            ok, err, configs = FI.get_file(p_config_file_path)
-            if not ok:
-                print(f"{BT.txt.err_file} {err}")
-                exit(1)
-            elif configs is None:
-                print(f"{BT.txt.no_file}{p_config_file_path}")
-                exit(1)
-            config_data = json.loads(configs)
-            return(config_data)
-
-        def set_configs(p_config_data: dict,
-                        p_catg: str):
-            """Set text and widget metadata records on Basement DB."""
-            WT.log_function(set_configs, self, 24, self.refresh_configs)
-            db = "basement"
-            for k, values in p_config_data.items():
-                key = RI.clean_redis_key(f"{p_catg}:{k}")
-                record = {db: {"name": key} | values}
-                record, update = \
-                    RI.set_audit_values(record, p_include_hash=True)
-                key = record["name"]
-                if update:
-                    RI.do_update(db, record)
-                else:
-                    RI.do_insert(db, record)
-
-        WT.log_function(self.refresh_configs, self)
-        set_configs(load_cfg_file(BT.file_widgets), "widget")
-
-    # Load and save texts and widget metadata
-    # ==============================================================
-    def load_meta(self, p_catg):
-        """Load configuration data from db to memory."""
-        WT.log_function(self.load_meta, self)
-        db = "basement"
-        keys: list = RI.find_keys(db, f"{p_catg}:*")
-        data: dict = {}
-        for k in keys:
-            key = k.decode('utf-8').replace(f"{p_catg}:", "")
-            record = RI.get_values(RI.get_record(db, k))
-            data[key] = record
-        return(data)
-
-    def save_meta(self,
-                  p_wdg_catg: str,
-                  p_qt_wdg):
-        """Update Basement DB with modified widget record."""
-        WT.log_function(self.save_meta, self)
-        db = "basement"
-        self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
-        record = {"basement":
-                  {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]}
-        record, _ = \
-            RI.set_audit_values(record, p_include_hash=True)
-        RI.do_update(db, record)
-        self.WDG[p_wdg_catg]["w"]["object"] = p_qt_wdg
 
 
 # Run program

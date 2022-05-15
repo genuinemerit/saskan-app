@@ -4,131 +4,208 @@
 :class:     ConfigMeta/0
 :author:    GM <genuinemerit @ pm.me>
 """
-import sys
+import json
 
 from pprint import pprint as pp   # noqa: F401
 from io_boot import BootTexts     # type: ignore
 from io_file import FileIO        # type: ignore
 from io_redis import RedisIO      # type: ignore
+from io_wiretap import WireTap      # type: ignore
 
 BT = BootTexts()
 FI = FileIO()
 RI = RedisIO()
+WT = WireTap()
 
 
 class ConfigMeta(object):
-    """Interface to Log and Monitor Redis databases.
-    Call this class to write and read Log or Monitor DBs.
-    Eventually, maybe create services instead of direct calls.
+    """Class to manage metadata configuration and loading.
+
+    @DEV
+    - Implement calls to specific functions from saskan_eyes.
+    - May want to set up bash files to call specific sets of
+      functions, like resetting all options to defaults.
     """
-
     def __init__(self):
-        """Initialize WireTap object.
-
-        Need to do a cleaner job of setting up the app.
-        If files don't exist, create them.
-        Move the init and config logic to a separate module.
-        Take a look at bow_data for examples.
+        """Initialize ConfigMeta object.
         """
-        ok, msg, self.log_level = FI.get_file(BT.log_level)
-        if ok:
-            ok, msg, self.trace_level = FI.get_file(BT.trace_level)
-        if ok:
-            ok, msg, self.debug_level = FI.get_file(BT.debug_level)
-        if not ok:
-            print(msg)
+        pass
+
+    # Configuration handlers
+    # ==============================================================
+    def set_info_off():
+        """Do not write informational messages to log namespace."""
+        ok, err = FI.write_file(BT.info_level, BT.txt.val_noinfo)
+        if not(ok):
+            print(err)
             exit(1)
 
-    def write_log(self,
-                  p_log_msg: str,
-                  p_expire: int = 0):
-        """Write a record to DB 3 "log" namespace.
-        Log record format:
-        - `name`: `log:` + {timestamp} is the key
-        - `msg`: labels the log message
-        Default expiration is never."""
-        ts = RI.get_timestamp()
-        log_rec = {"name": f"log:{ts}", "msg": p_log_msg}
-        RI.do_insert("log", log_rec, p_expire)
+    def set_info_on():
+        """Do write informational messages to log namespace."""
+        ok, err = FI.write_file(BT.info_level, BT.txt.val_info)
+        if not(ok):
+            print(err)
+            exit(1)
 
-    def write_to_mon(self,
-                     p_mon_rec: dict,
-                     p_expire: int = 0):
-        """Monitor records have a specific format."""
-        pass
+    def set_warn_off():
+        """Do not write non-fatal warning messages to log namespace."""
+        ok, err = FI.write_file(BT.warn_level, BT.txt.val_nowarn)
+        if not(ok):
+            print(err)
+            exit(1)
 
-    # Logger functions
-    # ==============================================================
-    def log_module(self,
-                   p_file: object,
-                   p_name: object,
-                   p_self: object,
-                   p_expire: int = 24):
-        """Trace module name, class name on log db."""
-        if self.trace_level != "NOTRACE":
-            log_msg = f"{p_file}"                              # type: ignore
-            if self.trace_level == "DOCS":
-                log_msg += f"\n{sys.modules[p_name].__doc__}"  # type: ignore
-            log_msg +=\
-                f"\nclass: {p_self.__class__.__name__}()"      # type: ignore
-            if self.trace_level == "DOCS":
-                log_msg += f"\n{p_self.__doc__}"               # type: ignore
-            self.write_log(log_msg, p_expire)
+    def set_warn_on():
+        """Do write non-fatal warning messages to log namespace."""
+        ok, err = FI.write_file(BT.warn_level, BT.txt.val_warn)
+        if not(ok):
+            print(err)
+            exit(1)
 
-    def log_function(self,
-                     p_func: object,
-                     p_self: object,
-                     p_expire: int = 24,
-                     p_parent_func: object = None):
-        """Trace function or subfunction on log db."""
-        if self.trace_level != "NOTRACE":
-            cpfx = f"{p_self.__class__.__name__}."            # type: ignore
-            ppfx = "" if p_parent_func is None\
-                else f"{p_parent_func.__name__}."             # type: ignore
-            log_msg = f"{cpfx}{ppfx}{p_func.__name__}()"      # type: ignore
-            if self.trace_level == "DOCS":
-                log_msg += f"\n\t{p_func.__doc__}"            # type: ignore
-            self.write_log(log_msg, p_expire)
+    def set_error_off():
+        """Do not write fatal error messages to log namespace."""
+        ok, err = FI.write_file(BT.error_level, BT.txt.val_noerror)
+        if not(ok):
+            print(err)
+            exit(1)
 
-    def log_msg(self,
-                p_msg_lvl: str,
-                p_msg: str,
-                p_expire: int = 24):
-        """Write a regular log message or a debug message to log db.
-        :attrs:
-        - p_msg_lvl: str in ("info", "debug", "error", "warn")
-        - p_msg: str is the message to write to log db
-        - p_expire: int is the number of hours to expire the log record
-          (default = 24). If < 1, the record will never expire.
+    def set_error_on():
+        """Do write fatal error messages to log namespace."""
+        ok, err = FI.write_file(BT.error_level, BT.txt.val_error)
+        if not(ok):
+            print(err)
+            exit(1)
+
+    def set_debug_off():
+        """Do not write debug messages to log namespace."""
+        ok, err = FI.write_file(BT.debug_level, BT.txt.val_nodebug)
+        if not(ok):
+            print(err)
+            exit(1)
+
+    def set_debug_on():
+        """Write debug messages to log namespace."""
+        ok, err = FI.write_file(BT.debug_level, BT.txt.val_debug)
+        if not(ok):
+            print(err)
+            exit(1)
+
+    def set_trace_off():
+        """Do not write trace messages to log namespace."""
+        ok, err = FI.write_file(BT.trace_level, BT.txt.val_notrace)
+        if not(ok):
+            print(err)
+            exit(1)
+
+    def set_trace_functions_on():
+        """Write trace messages to log namespace, naming functions.
+        But not writing the docstrings to the log.
         """
-        log_msg = None
-        if p_msg_lvl.lower() == "debug" and self.debug_level == "DEBUG":
-            log_msg = f"\tDEBUG: {p_msg}"
-        elif (p_msg_lvl.lower() in ("info", "", None) and
-                self.log_level in ("INFO", "WARN", "ERROR")) or \
-             (p_msg_lvl.lower() == "warn" and
-                self.log_level in ("WARN", "ERROR")) or \
-             (p_msg_lvl.lower() == "error" and
-                self.log_level == "ERROR"):
-                    log_msg = f"\t{self.log_level}: {p_msg}"  # noqa: E117
-        else:
-            log_msg = f"\tINFO: {p_msg}"
-        if log_msg is not None:
-            self.write_log(log_msg, p_expire)
+        ok, err = FI.write_file(BT.trace_level, BT.txt.val_notracf)
+        if not(ok):
+            print(err)
+            exit(1)
 
-    def dump_log(self):
-        """Dump all log records to console."""
-        pass
-        log_keys = RI.find_keys("log", "log:*")
-        for k in sorted(log_keys):
-            rec = RI.get_record("log", k)
-            ts = rec['name'].replace('log:', '')
-            if "/home/" in rec['msg']:
-                msg = f"\n\n{ts}\n{rec['msg']}"
-            else:
-                msg = f"{ts}\t{rec['msg']}"               # ts + body of msg
-            print(msg)
+    def set_trace_functions_and_docs_on():
+        """Write trace messages to log namespace, naming functions.
+        And also writing the docstrings to the log.
+        """
+        ok, err = FI.write_file(BT.trace_level, BT.txt.val_notracd)
+        if not(ok):
+            print(err)
+            exit(1)
+
+    # Load and save texts and widget metadata
+    # ==============================================================
+    def load_meta(self, p_catg):
+        """Load configuration data from db to memory."""
+        WT.log_function(self.load_meta, self)
+        db = "basement"
+        keys: list = RI.find_keys(db, f"{p_catg}:*")
+        data: dict = {}
+        for k in keys:
+            key = k.decode('utf-8').replace(f"{p_catg}:", "")
+            record = RI.get_values(RI.get_record(db, k))
+            data[key] = record
+        return(data)
+
+    def refresh_meta(self):
+        """Refresh Basement DB texts, configs from JSON config file."""
+
+        def load_cfg_file(p_config_file_path: str):
+            """Read data from config file."""
+            WT.log_function(load_cfg_file, self, 24, self.refresh_meta)
+            ok, err, configs = FI.get_file(p_config_file_path)
+            if not ok:
+                print(f"{BT.txt.err_file} {err}")
+                exit(1)
+            elif configs is None:
+                print(f"{BT.txt.no_file}{p_config_file_path}")
+                exit(1)
+            config_data = json.loads(configs)
+            return(config_data)
+
+        def set_meta(p_config_data: dict,
+                     p_catg: str):
+            """Set text and widget metadata records on Basement DB."""
+            WT.log_function(set_meta, self, 24, self.refresh_meta)
+            db = "basement"
+            for k, values in p_config_data.items():
+                key = RI.clean_redis_key(f"{p_catg}:{k}")
+                record = {db: {"name": key} | values}
+                record, update = \
+                    RI.set_audit_values(record, p_include_hash=True)
+                key = record["name"]
+                if update:
+                    RI.do_update(db, record)
+                else:
+                    RI.do_insert(db, record)
+
+        WT.log_function(self.refresh_meta, self)
+        set_meta(load_cfg_file(BT.file_widgets), "widget")
+
+    def modify_meta(self,
+                    p_wdg_catg: str,
+                    p_qt_wdg):
+        """Update Basement DB with modified widget record.
+        - In Qt, this was helpful for saving a copy of or name of
+          the instantiated widget object with the metadata.  Not sure
+          if this is doable/desireable with wx. But I hope so.
+        - It is really extending meta more so than updating existing
+          values. Though I suppose that could change with more dynamic
+          options.
+        - When I talk about "meta" I almost always mean stuff that
+          describes qualities of widgets. But we also store text
+          strings in the basement, which are a bit more abstract
+          than a specific widget.
+        """
+        WT.log_function(self.modify_meta, self)
+        db = "basement"
+        self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
+        record = {"basement":
+                  {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]}
+        record, _ = \
+            RI.set_audit_values(record, p_include_hash=True)
+        RI.do_update(db, record)
+        self.WDG[p_wdg_catg]["w"]["object"] = p_qt_wdg
+
+    def dump_meta(self):
+        """Dump records to console.
+        A simpler version of the dbeditor.
+        - All (?) records in Redis DB 0 "basement" namespace.
+        - All (?) records in Redis DB 1 "schema" (meta) namespace.
+        - All (?) records in app_dir "config" directory.
+
+        @DEV
+        - List summary of records available.
+        - Show follow-on commands to drill down.
+        - List record keys or file names
+        - List record values or file contents
+        - Maybe create separate method for each option?
+        """
+        print("DEBUG: Dumping metadata to console...")
 
 
 if __name__ == '__main__':
+    """When executed directly or from bash, it is a fixed report."""
     CM = ConfigMeta()
+    CM.dump_meta()

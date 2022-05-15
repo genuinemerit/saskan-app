@@ -29,23 +29,27 @@ class ConfigFiles(object):
         """Initialize directories and files for saskan_eyes.
         """
         self.SRC_DIR, self.TGT_DIR, self.SRC_FILES = self.init_source_files()
+        ok = False
         if self.SRC_FILES is not None:
-            if not self.init_app_dirs():
-                print(f"{BT.txt.process_error} file deployment")
-            else:
-                ok = self.copy_html_files()
-                if ok:
-                    ok = self.copy_jpg_files()
-                if ok:
-                    ok = self.copy_config_files()
-                if ok:
-                    ok = self.copy_python_files()
-                if ok:
-                    ok = self.write_default_configs()
-                if ok:
-                    ok = self.copy_bash_file()
-                if ok:
-                    ok = self.write_redis_config()
+            ok = self.init_app_dirs()
+        if ok:
+            ok = self.init_bash_dirs()
+        if ok:
+            ok = self.copy_html_files()
+        if ok:
+            ok = self.copy_jpg_files()
+        if ok:
+            ok = self.copy_config_files()
+        if ok:
+            ok = self.copy_python_files()
+        if ok:
+            ok = self.write_default_configs()
+        if ok:
+            ok = self.copy_bash_files()
+        if ok:
+            ok = self.write_redis_config()
+        else:
+            print(f"{BT.txt.process_error} file deployment")
 
     # Command line argument handlers
     # ==============================================================
@@ -83,12 +87,17 @@ class ConfigFiles(object):
                 print(f"{BT.txt.file_ok} {app_dir}")
             else:
                 print(f"{BT.txt.file_error} {app_dir} {err}")
-        # Check user bin path
+        return ok
+
+    def init_bash_dirs(self):
+        """Verify standard bash directory exists.
+        - /usr/local/bin
+        """
         ok, err, _ = FI.get_dir(BT.path_usr_bin)
-        if not(ok):
-            print(f"{BT.txt.file_error} {BT.path_usr_bin} {err}")
-        else:
+        if ok:
             print(f"{BT.txt.file_ok} {BT.path_usr_bin}")
+        else:
+            print(f"{BT.txt.file_error} {BT.path_usr_bin} {err}")
         return ok
 
     def copy_html_files(self):
@@ -140,16 +149,21 @@ class ConfigFiles(object):
         - [SRC]BowDataSchema/config_widgets.json
         - [SRC]BowDataSchema/saskan_ontology_xml.owl
         """
-        for cf_name in ("config_widgets.json", "saskan_ontology_xml.owl"):
-            cfg_file_from = path.join(self.SRC_DIR, cf_name)
-            cfg_file_to = path.join(self.TGT_DIR, BT.path_cfg, cf_name)
-            ok, err = FI.copy_file(p_path_from=cfg_file_from,
-                                   p_path_to=cfg_file_to)
-            if ok:
-                ok, err = FI.make_readable(cfg_file_to)
-                print(f"{BT.txt.file_ok} {cfg_file_to}")
-            else:
-                print(f"{BT.txt.file_error} {cfg_file_to} {err}")
+        cfg_dir = path.join(self.SRC_DIR, "config")
+        ok, err, files = FI.get_dir(cfg_dir)
+        if not(ok):
+            print(f"{BT.txt.file_error} {cfg_dir} {err}")
+        else:
+            for cf in files:
+                cf_name = str(cf).split("/")[-1]
+                cfg_file_to = path.join(self.TGT_DIR, BT.path_cfg, cf_name)
+                ok, err = FI.copy_file(p_path_from=str(cf),
+                                       p_path_to=cfg_file_to)
+                if ok:
+                    ok, err = FI.make_readable(cfg_file_to)
+                    print(f"{BT.txt.file_ok} {cfg_file_to}")
+                else:
+                    print(f"{BT.txt.file_error} {cfg_file_to} {err}")
         return ok
 
     def copy_python_files(self):
@@ -176,9 +190,14 @@ class ConfigFiles(object):
     def write_default_configs(self):
         """Write default confings to control logging and monitoring.
         Write to [TGT]/saskan/cfg/
-        - trace_level.cfg
-        - log_level.cfg
         - debug_level.cfg
+        - trace_level.cfg
+        - info_level.cfg
+        - warn_level.cfg
+        - error_level.cfg
+
+        @DEV:
+        - Consider using a single config file instead.
         """
         for cfg, default_val in ((BT.debug_level, BT.txt.val_nodebug),
                                  (BT.log_level, BT.txt.val_error),
@@ -193,20 +212,39 @@ class ConfigFiles(object):
                 break
         return ok
 
-    def copy_bash_file(self):
+    def copy_bash_files(self):
         """Copy to /usr/local/bin:
         - [SRC]BowDataSchema/saskan_eyes
+        - [SRC]BowDataSchema/saskan_install
+        - [SRC]BowDataSchema/saskan_config
+        - [SRC]BowDataSchema/saskan_log
+
+        Edit these files with app_dir before writing them.
         """
-        bash_name = "saskan_eyes"
-        bash_file_from = path.join(self.SRC_DIR, bash_name)
-        bash_file_to = path.join(BT.path_usr_bin, bash_name)
-        ok, err = FI.copy_file(p_path_from=bash_file_from,
-                               p_path_to=bash_file_to)
-        if ok:
-            ok, err = FI.make_executable(bash_file_to)
-            print(f"{BT.txt.file_ok} {bash_file_to}")
+        bash_dir = path.join(self.SRC_DIR, "bash")
+        bin_dir = path.join(self.TGT_DIR, BT.path_bin)
+        ok, err, files = FI.get_dir(bash_dir)
+        if not(ok):
+            print(f"{BT.txt.file_error} {bash_dir} {err}")
         else:
-            print(f"{BT.txt.file_error} {bash_file_to} {err}")
+            for bf in files:
+                bf_name = str(bf).split("/")[-1]
+                bash_file_to = path.join(BT.path_usr_bin, bf_name)
+                ok, err, bash_file_data = FI.get_file(str(bf))
+                if ok:
+                    bash_file_data =\
+                        bash_file_data.replace("~APP_DIR~", bin_dir)
+                    if bf_name == "saskan_install":
+                        bash_file_data =\
+                            bash_file_data.replace("~SRC_DIR~", self.SRC_DIR)
+                        bash_file_data =\
+                            bash_file_data.replace("~TGT_DIR~", self.TGT_DIR)
+                    ok, err = FI.write_file(p_path=bash_file_to,
+                                            p_data=bash_file_data)
+                    ok, err = FI.make_executable(bash_file_to)
+                    print(f"{BT.txt.file_ok} {bash_file_to}")
+                else:
+                    print(f"{BT.txt.file_error} {bash_file_to} {err}")
         return ok
 
     def write_redis_config(self):
