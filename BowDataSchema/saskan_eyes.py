@@ -9,17 +9,17 @@ import wx
 
 from pprint import pprint as pp     # noqa: F401
 
-from config_meta import ConfigMeta  # type: ignore
-from io_boot import BootTexts       # type: ignore
+from io_boot import BootIO          # type: ignore
 from io_file import FileIO          # type: ignore
 from io_redis import RedisIO        # type: ignore
 from io_wiretap import WireTap      # type: ignore
+from saskan_meta import SaskanMeta  # type: ignore
 
-CM = ConfigMeta()
-BT = BootTexts()
+BI = BootIO()
 FI = FileIO()
 RI = RedisIO()
 WT = WireTap()
+SM = SaskanMeta()
 
 
 class SaskanEyes(wx.Frame):
@@ -32,26 +32,33 @@ class SaskanEyes(wx.Frame):
     - Provide menu item to modify the log/mon config files.
     - Provide menu item to refresh the redis metadata from JSON file.
     - This class just focuses on GUI-related code translated from Qt to wx.
+    - Then go thru systematically, using both previous Qt code and design
+      documents as guides, and translate to wx.  Add functionality as noted
+      above.
+    - Use menus instead of big buttons. Add toolbar buttons later if desired.
     """
-
     def __init__(self, *args, **kwargs):
-        """wx refers to the base parent window object as the frame.
+        """wx refers to the base GUI object as the frame.
+        We inherited frame's init values from __main__ so don't need to make
+        an explicit call to it here other than in the super().
+        The parent window size is set in the Frame constructor.
         """
-        super(SaskanEyes, self).__init__(*args, **kwargs)
         WT.log_module(__file__, __name__, self)
-        self.WDG = CM.load_meta("widget")
+        super(SaskanEyes, self).__init__(*args, **kwargs)
+        self.WDG = SM.load_meta()
         self.initialize_gui()
 
     # GUI / Main App handlers
     # ==============================================================
     def initialize_gui(self):
-        """_Set window size and name. Show the window.
+        """Define panels, boxes, widgets, menus.
+        Show the frame.
         """
         pnl = wx.Panel(self)
         py_version = "Python: " + platform.python_version()
         wx_version = "wxPython: " + wx.version()
         os_version = "OS: " + platform.platform()
-        st = wx.StaticText(pnl, label=BT.txt.desc_saskan_eyes)
+        st = wx.StaticText(pnl, label=BI.txt.desc_saskan_eyes)
         font = st.GetFont()
         font.PointSize += 10
         font.Weight = wx.FONTWEIGHT_BOLD
@@ -68,7 +75,7 @@ class SaskanEyes(wx.Frame):
         self.make_menu_bar()
 
         # self.CreateSatatusBar()
-        # self.SetStatusText(BT.txt.desc_saskan_eyes)
+        # self.SetStatusText(BI.txt.desc_saskan_eyes)
 
         self.Show()
 

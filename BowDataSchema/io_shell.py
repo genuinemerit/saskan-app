@@ -14,7 +14,7 @@ import time
 import subprocess as shl
 
 
-class ControlsShell(object):
+class ShellIO(object):
     """Run Controller-related commands."""
 
     def __init__(self):

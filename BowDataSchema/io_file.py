@@ -17,9 +17,9 @@ import shutil
 from os import remove, system
 from pathlib import Path
 
-from io_shell import ControlsShell       # type: ignore
+from io_shell import ShellIO       # type: ignore
 
-CS = ControlsShell()
+SI = ShellIO()
 
 
 class FileIO(object):
@@ -41,7 +41,7 @@ class FileIO(object):
         """
         try:
             cmd = f"chmod u=rw,g=r,o=r {p_path}"
-            ok, result = CS.run_cmd(cmd)
+            ok, result = SI.run_cmd(cmd)
             if ok:
                 return (True, None)
             else:
@@ -61,7 +61,7 @@ class FileIO(object):
         """
         try:
             cmd = f"chmod u=rw,g=rw,o=rw {p_path}"
-            ok, result = CS.run_cmd(cmd)
+            ok, result = SI.run_cmd(cmd)
             if ok:
                 return (True, None)
             else:
@@ -81,7 +81,7 @@ class FileIO(object):
         """
         try:
             cmd = f"chmod u=rwx,g=rx,o=rx {p_path}"
-            ok, result = CS.run_cmd(cmd)
+            ok, result = SI.run_cmd(cmd)
             if ok:
                 return (True, None)
             else:

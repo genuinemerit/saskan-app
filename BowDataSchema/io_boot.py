@@ -7,14 +7,14 @@ a JSON file and loaded into the Redis "Basement" (0)
 database.
 
 module:     io_boot.py
-class:      BootTexts/0
+class:      BootIO/0
 author:     GM <genuinemerit @ pm.me>
 """
 from dataclasses import dataclass
 from os import path
 
 
-class BootTexts(object):
+class BootIO(object):
     """Static text strings.
 
     @DEV
@@ -27,6 +27,8 @@ class BootTexts(object):
 
     def io(self):
         """Application files, directories, DBs """
+        self.app_path_key: str = "config:app_path"
+
         self.dir_app: str = 'saskan'
         self.dir_bin: str = 'bin'
         self.dir_cfg: str = 'cfg'
@@ -38,8 +40,7 @@ class BootTexts(object):
         self.path_res: str = path.join(self.path_app, self.dir_res)
         self.path_usr_bin: str = '/usr/local/bin'
 
-        self.file_widgets: str = path.join(
-            self.path_res, 'config_widgets.json')
+        self.file_widgets: str = path.join(self.dir_cfg, 'config_widgets.json')
 
         self.debug_level: str = path.join(self.path_cfg, 'debug_level.cfg')
         self.info_level: str = path.join(self.path_cfg, 'info_level.cfg')

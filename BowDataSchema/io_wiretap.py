@@ -7,11 +7,11 @@
 import sys
 
 from pprint import pprint as pp   # noqa: F401
-from io_boot import BootTexts     # type: ignore
+from io_boot import BootIO        # type: ignore
 from io_file import FileIO        # type: ignore
 from io_redis import RedisIO      # type: ignore
 
-BT = BootTexts()
+BI = BootIO()
 FI = FileIO()
 RI = RedisIO()
 
@@ -37,7 +37,7 @@ class WireTap(object):
         @DEV:
         - Provide a menu item to saskan_eyes do the same.
         """
-        rec = RI.get_record("basement", "config.app_path")
+        rec = RI.get_record("basement", BI.app_path_key)
         self.APP_PATH = rec['values']['app_path']
         with open(f"{self.APP_PATH}/cfg/debug_level.cfg") as f:
             self.debug_level: str = f.read
@@ -113,13 +113,13 @@ class WireTap(object):
           (default = 24). If < 1, the record will never expire.l.
         """
         if ((p_msg_lvl.lower() == "debug" and
-             self.debug_level == BT.txt.val_debug)
+             self.debug_level == BI.txt.val_debug)
             or (p_msg_lvl.lower() == "info" and
-                self.info_level == BT.txt.val_info)
+                self.info_level == BI.txt.val_info)
             or (p_msg_lvl.lower() == "warn" and
-                self.info_level == BT.txt.val_warn)
+                self.info_level == BI.txt.val_warn)
             or (p_msg_lvl.lower() == "error" and
-                self.info_level == BT.txt.val_error)):
+                self.info_level == BI.txt.val_error)):
             log_msg = f"\t{self.p_msg_lvl.upper()}: {p_msg}"
             self.write_log(log_msg, p_expire)
 
@@ -138,7 +138,7 @@ class WireTap(object):
                     msg = f"{ts}\t{rec['msg']}"
                 print(msg)
         else:
-            print(BT.txt.not_found)
+            print(BI.txt.not_found)
 
 
 if __name__ == '__main__':
