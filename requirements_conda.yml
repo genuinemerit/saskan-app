@@ -12,6 +12,14 @@ dependencies:
   - requests
   - tzlocal
   - wxpython
+  - matplotlib==2.2.3
+  - networkx
 
-# And:
+# To handle a weird dependency error, had to:
 # sudo apt install libcanberra-gtk-module libcanberra-gtk3-module
+
+# For networkx to work properly with matplotlib had to:
+# pip install --upgrade to get latest version of networkx
+# Then downgrade matplot to 2.2.3
+#  pip install matplotlib==2.2.3
+# Then add a couple of things back in using conda install.

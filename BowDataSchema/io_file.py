@@ -60,7 +60,7 @@ class FileIO(object):
             (Tuple): (Status (bool), Message (str or None))
         """
         try:
-            cmd = f"chmod u=rw,g=rw,o=rw {p_path}"
+            cmd = f"chmod u=rwx,g=rwx,o=rwx {p_path}"
             ok, result = SI.run_cmd(cmd)
             if ok:
                 return (True, None)

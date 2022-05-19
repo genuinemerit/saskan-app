@@ -9,13 +9,13 @@ import wx
 
 from pprint import pprint as pp     # noqa: F401
 
-from io_boot import BootIO          # type: ignore
+from io_config import ConfigIO      # type: ignore
 from io_file import FileIO          # type: ignore
 from io_redis import RedisIO        # type: ignore
 from io_wiretap import WireTap      # type: ignore
 from saskan_meta import SaskanMeta  # type: ignore
 
-BI = BootIO()
+CI = ConfigIO()
 FI = FileIO()
 RI = RedisIO()
 WT = WireTap()
@@ -32,58 +32,134 @@ class SaskanEyes(wx.Frame):
     - Provide menu item to modify the log/mon config files.
     - Provide menu item to refresh the redis metadata from JSON file.
     - This class just focuses on GUI-related code translated from Qt to wx.
-    - Then go thru systematically, using both previous Qt code and design
-      documents as guides, and translate to wx.  Add functionality as noted
-      above.
+    - Go thru systematically, using both previous Qt code and design
+      documents as guides, and translate to wx.
     - Use menus instead of big buttons. Add toolbar buttons later if desired.
+    - It is doable to define menus first, but might want to wait until all
+      panels have been defined so that menu events can be associated with 'em.
     """
     def __init__(self, *args, **kwargs):
-        """wx refers to the base GUI object as the frame.
-        We inherited frame's init values from __main__ so don't need to make
-        an explicit call to it here other than in the super().
-        The parent window size is set in the Frame constructor.
+        """The base GUI object in wx is the frame.
+
+        The syntax for setting frame attributes is to use another __init__
+        on the inherited frame object. Default style is resizabe, with
+        min, max and close buttons.
         """
         WT.log_module(__file__, __name__, self)
-        super(SaskanEyes, self).__init__(*args, **kwargs)
-        self.WDG = SM.load_meta()
-        self.initialize_gui()
+        self.M = SM.load_meta()
+        # Set Frame
+        super(SaskanEyes, self).__init__(
+            None,
+            title=self.M["frame"]["a"],
+            size=wx.Size(self.M["frame"]["s"]["w_px"],
+                         self.M["frame"]["s"]["h_px"]),
+            name=self.M["frame"]["n"])
+        self.set_windows()
+        self.set_menus()
+        self.Show()
 
     # GUI / Main App handlers
     # ==============================================================
-    def initialize_gui(self):
-        """Define panels, boxes, widgets, menus.
-        Show the frame.
+
+    def set_windows(self):
+        """Define status bar, panels, boxes, widgets.
+
+        Panels are described as "windows".
+        Let's see what happens if I have more than one.
+
+        Boxes (called "BoxSizer") work like in Qt. 
+        They have an orientation = HORIZONTAL or VERTICAL
+        Can add spacers.
         """
-        pnl = wx.Panel(self)
+        # Some test texts
         py_version = "Python: " + platform.python_version()
         wx_version = "wxPython: " + wx.version()
         os_version = "OS: " + platform.platform()
-        st = wx.StaticText(pnl, label=BI.txt.desc_saskan_eyes)
+
+        pnl = wx.Panel(self)
+        
+        # What I think of as a "panel" may be a "dialog" in wx?
+
+        # Looks like all StaticTexts have to be associated to pnl.
+        # This is the big header item.
+        st = wx.StaticText(pnl, label=CI.txt.desc_saskan_eyes)
         font = st.GetFont()
         font.PointSize += 10
         font.Weight = wx.FONTWEIGHT_BOLD
         # or.. font = font.Bold()
         st.SetFont(font)
 
-        sizer = wx.BoxSizer(wx.VERTICAL)
-        sizer.Add(st, wx.SizerFlags().Center().Border(wx.TOP | wx.LEFT, 25))
-        sizer.Add(wx.StaticText(pnl, label=py_version), 0, wx.ALL, 5)
-        sizer.Add(wx.StaticText(pnl, label=wx_version), 0, wx.ALL, 5)
-        sizer.Add(wx.StaticText(pnl, label=os_version), 0, wx.ALL, 5)
-        pnl.SetSizer(sizer)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        # the big header
+        # This seems to be a way of positioning the text in the box.
+        # Not sure why they wouldn't just use pos.
+        # The "Add" method does not seem to be well documented.
+        # For vertical boxes, the 2nd attribute of Add is "size"?
+        # For horizontal boxes, the 1st attribute of Add is "size"?
+        # So... that last number is border size.
+        # .Add(object--like a StaticText, 
+        #      horizontally-strechable-or-not (wx.EXPAND),
+        #      make-a-border-all-around (wx.ALL),
+        #      border-size (in px))
+        # )
+        # .Add(
+        #   window, spacer or another sizer,
+        #   proportion, (0 --> child is not resizable),
+        #   flag --> OR combination of flags,
+        #   border (int) if not handled by flags,
+        #   userData (object) for more complex controls
+        # )
+        # Common to add a horization to a vertical, e.g, for a line of buttons.
+        # See:
+        # https://docs.wxpython.org/sizers_overview.html#programming-with-boxsizer
+        # wx.SizerFlags is a kind of (confusing) shortcut for configuring
+        # items in a box. Freaking C++ programmers gone nutzo with "flags".
 
-        self.make_menu_bar()
+        vbox.Add(st, wx.SizerFlags().Center().Border(wx.TOP | wx.LEFT, 25))
+        # the 3 text texts...
+        vbox.Add(wx.StaticText(pnl, label=py_version), 0, wx.ALL, 5)
+        vbox.Add(wx.StaticText(pnl, label=wx_version), 0, wx.ALL, 5)
+        vbox.Add(wx.StaticText(pnl, label=os_version), 0, wx.ALL, 5)
+        pnl.SetSizer(vbox)
 
-        # self.CreateSatatusBar()
-        # self.SetStatusText(BI.txt.desc_saskan_eyes)
+        # stat = wx.StaticText(pnl, label=self.M["frame"]["c"], pos=(10, 300))
+        # Here is a text item I'd use as a status bar.
+        # Crap. These sizers are just all over the place.
+        stat = wx.StaticText(pnl, label=self.M["frame"]["c"])
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        hbox.Add(st, wx.SizerFlags().Center().Border(wx.TOP | wx.LEFT, 25))
+        hbox.Add(stat, 0, wx.ALL, 50)
+        pnl.SetSizer(hbox)
 
-        self.Show()
+        # Another un-boxed text
+        # Like this, it ends up above the firsst unboxed text.
+        # st = wx.StaticText(pnl, label=self.M["frame"]["c"])
 
-    def make_menu_bar(self):
-        """
-        A menu bar is composed of menus, which are composed of menu items.
-        This method builds a set of menus and binds handlers to be called
-        when the menu item is selected.
+        # This approach does not seem to work at all on Linux:
+        # self.CreateSatatusBar(
+        #    1, style=wx.STB_DEFAULT_STYLE, name="frame_status_bar")
+
+        # This creates a status bar but not at the bottom of the frame.
+        # Basically, seems to be just another panel.
+        # status_bar = wx.StatusBar(
+        #    self, wx.ID_ANY,
+        #    style=wx.SB_NORMAL,
+        #    name="frame_status_bar")
+        # status_bar.SetStatusText(self.META["about"]["app"]["c"])
+
+        # This returns None
+        # pp(self.GetStatusBar())
+
+        # When I try it this way, nothing at all shows up.
+        # status_bar = wx.Panel(self, wx.ID_ANY, pos=wx.Point(0, 500))
+        # hbox = wx.BoxSizer(wx.HORIZONTAL)
+        # hbox.Add(
+        #    wx.StaticText(status_bar,
+        #                  label=self.M["frame"]["c"]), 0, wx.ALL, 5)
+        # status_bar.SetSizer(hbox)
+
+    def set_menus(self):
+        """Define menu_bar, menus, menu_items, menu_actions.
         """
 
         # Make a file menu with Hello and Exit items
@@ -142,5 +218,5 @@ class SaskanEyes(wx.Frame):
 if __name__ == '__main__':
     """Run program."""
     app = wx.App()
-    SE = SaskanEyes(None, title="Saskan Eyes", size=(800, 600))
+    SE = SaskanEyes()
     app.MainLoop()

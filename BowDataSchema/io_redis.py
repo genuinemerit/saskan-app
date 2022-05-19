@@ -77,8 +77,13 @@ import redis  # type: ignore
 import secrets
 import uuid
 import zlib
+
 from copy import copy
 from pprint import pprint as pp  # noqa: F401
+
+from io_config import ConfigIO
+
+CI = ConfigIO()
 
 
 class RedisIO(object):
@@ -193,7 +198,7 @@ class RedisIO(object):
                 r_str = r_str.replace(char, "_")
         return self.bump_underbars(r_str).lower()
 
-    # DBA functions
+    # Generic DBA functions
     # =========================================================================
     def list_dbs(self) -> str:
         """Return number and name of the Redis namespaces (DB's).
@@ -210,7 +215,7 @@ class RedisIO(object):
         """List all keys available in specified DB."""
         return self.RNS[p_db_nm].get('KEYS *')
 
-    # DDL functions
+    # Generic DDL functions
     # =========================================================================
     def find_keys(self,
                   p_db: str,
@@ -252,43 +257,39 @@ class RedisIO(object):
         record.pop("audit")
         return record
 
-    # DML functions
+    # Generic DML functions
     # =======================================
     # TODO - add a "get_expire_time" function
 
     def set_audit_values(self,
-                         p_dbrec: dict,
+                         p_db: str,
+                         p_data_rec: dict,
                          p_include_hash: bool = True) -> tuple:
         """Set audit values for a record.
 
         :args:
-            p_dbrec: dict - Record to set audit values for
+            p_data_rec: dict - Record to set audit values for
             p_include_hash: bool - Include hash of record in audit values
 
         :returns: (
             dict - record with audit values set or modified,
             bool - indicates whether to do update (True) or insert (False))
-
-        @DEV
-        - May be cleaner to send namespace as a separate argument?
-        - Probably good to be consistent with other RedisIO functions.
         """
+        data_rec = p_data_rec
         r_update = False
-        db = list(p_dbrec.keys())[0]
-        rec = list(p_dbrec.values())[0]
-        exists = self.get_record(db, rec["name"])
+        exists = self.get_record(p_db, data_rec["name"])
         if exists is not None and 'audit' in exists:
             audit = exists["audit"]
             audit["version"] = self.set_version(audit["version"], "minor")
-            rec["audit"] = audit
+            data_rec["audit"] = audit
             r_update = True
         else:
             audit = {"version": "1.0.0"}
         audit["modified"] = self.get_timestamp()
         if p_include_hash:
-            audit["hash"] = self.get_hash(str(rec))
-        rec["audit"] = audit
-        return (rec, r_update)
+            audit["hash"] = self.get_hash(str(data_rec))
+        data_rec["audit"] = audit
+        return (data_rec, r_update)
 
     def do_expire(self,
                   p_db: str,
@@ -310,9 +311,8 @@ class RedisIO(object):
            'nx' means overwrite existing key if it exists.
         """
         try:
-            key = p_rec["name"]
             values = self.convert_dict_to_bytes(p_rec)
-            self.RNS[p_db].set(key, values, nx=True)
+            self.RNS[p_db].set(p_rec["name"], values, nx=True)
         except redis.exceptions.ResponseError as e:
             # Write to log instead of raise exception?
             # But.. have to watch out for catch-22 if log is on Redis! :-)
@@ -321,7 +321,7 @@ class RedisIO(object):
             print(f"\nRecord name: {p_rec['name']}")
             print(f"\nRecord namespace/db: {p_db}")
             raise e
-        self.do_expire(p_db, key, p_expire)
+        self.do_expire(p_db, p_rec["name"], p_expire)
 
     def do_archive(self,
                    p_rec: dict):
@@ -333,14 +333,14 @@ class RedisIO(object):
 
     def do_update(self,
                   p_db: str,
-                  p_rec: dict):
+                  p_rec: dict,
+                  p_expire: int = 0):
         """Update a record on Redis"""
         old_rec = self.get_record(p_db, p_rec["name"])
         self.do_archive(old_rec)
         try:
-            key = p_rec["name"]
             values = self.convert_dict_to_bytes(p_rec)
-            self.RNS[p_db].set(key, values, xx=True)
+            self.RNS[p_db].set(p_rec["name"], values, xx=True)
         except redis.exceptions.ResponseError as e:
             # Write to log instead of raise exception
             print(f"\nRedis error: {e}")
@@ -348,8 +348,94 @@ class RedisIO(object):
             print(f"\nRecord name: {p_rec['name']}")
             print(f"\nRecord namespace/db: {p_db}")
             raise e
+        self.do_expire(p_db, p_rec["name"], p_expire)
 
     # Bespoke DML-type functions
+    # =======================================
+
+    def write_redis_config(self,
+                           p_name: str,
+                           p_value: str,
+                           p_write_msg: bool = False):
+        """Write config record to Redis Namespace 0 'Basement'
+        - Write full path of locations to Redis Namespace 0 'Basement'
+          as config files.
+        - Config records carry a single name:value pair
+
+        :args:
+        - p_name (str) - Name of config value
+        - p_value (str) - Content of config value
+        - p_write_msg (bool) - Write message to console
+        """
+        db = CI.txt.ns_db_basement
+        db_rec, do_update = self.set_audit_values(
+            db, {"name": "config:" + p_name, p_name: p_value})
+        if do_update:
+            self.do_update(db, db_rec)
+        else:
+            self.do_insert(db, db_rec)
+        if p_write_msg:
+            print(f"{CI.txt.val_ok} " +
+                  f"{CI.txt.ns_db_basement}.{db_rec['name']} " +
+                  f"({db_rec['audit']['version']})")
+
+    def write_redis_meta(self,
+                         p_data: dict):
+        """Set text and widget metadata records on Basement DB.
+        :args:
+        - p_data (dict) - Name of the metadata record, followed by
+                           a collection of name:value pairs.
+                          Example: {"window" : {"hint": "some text", ...}}
+        """
+        db = "basement"
+        for k, values in p_data.items():
+            key = self.clean_redis_key(f"meta:{k}")
+            data_rec = {"name": key} | values
+            db_rec, update = \
+                self.set_audit_values(db, data_rec, p_include_hash=True)
+            if update:
+                self.do_update(db, db_rec)
+            else:
+                self.do_insert(db, db_rec)
+
+    def get_app_path(self):
+        """Return full path of the application as a string."""
+        rec = self.get_record(CI.txt.ns_db_basement,
+                              "config:" + CI.app_path_key)
+        app_path = str(rec["app_path"])
+        return app_path
+
+    def get_config_value(self,
+                         p_config_name: str):
+        """Return value associated with the config key."""
+        rec = self.get_record(CI.txt.ns_db_basement,
+                              "config:" + p_config_name)
+        value = str(rec[p_config_name])
+        return value
+
+    def get_all_configs(self):
+        """Return all config records from Basement"""
+        db = "basement"
+        keys: list = self.find_keys(db, "config:*")
+        data: dict = {}
+        for k in keys:
+            key = k.decode('utf-8').replace("config:", "")
+            record = self.get_values(self.get_record(db, k))
+            data[key] = record
+        return(data)
+
+    def get_all_gui_meta(self):
+        """Return all GUI metadata records from Basement"""
+        db = "basement"
+        keys: list = self.find_keys(db, "meta:*")
+        data: dict = {}
+        for k in keys:
+            key = k.decode('utf-8').replace("meta:", "")
+            record = self.get_values(self.get_record(db, k))
+            data[key] = record
+        return(data)
+
+    # Other possibly bespoke DML-type functions
     # =======================================
 
     # create_prim()
@@ -383,9 +469,28 @@ class RedisIO(object):
     # upsert_monitor()
     # upsert_log()
 
-    # Need refactoring or unlikely to be used..
+    # Need refactoring or more likely obsolete / not needed..
     # =================================================
-    # Not sure any of these are needed...
+
+    def modify_meta(self,
+                    p_wdg_catg: str,
+                    p_qt_wdg):
+        """Update Basement DB with modified widget record.
+
+        - Probably obsolete.
+        - Qt prototype saved a copy of or name of instantiated
+          widget object with the metadata.
+        - If something like this is needed, maybe better to
+          have a caching area rather than modifying the Basement.
+        """
+        db = "basement"
+        self.WDG[p_wdg_catg]["w"]["name"] = p_qt_wdg.objectName()
+        record = {"basement":
+                  {"name": f"widget:{p_wdg_catg}"} | self.WDG[p_wdg_catg]}
+        record, _ = \
+            self.set_audit_values(record, p_include_hash=True)
+        self.do_update(db, record)
+        self.WDG[p_wdg_catg]["w"]["object"] = p_qt_wdg
 
     def set_record_values(self,
                           p_new_rec: dict,

@@ -1,12 +1,29 @@
 {
-    "about": {
-        "app": {"a": "Saskan Eyes",
-            "b": "About Saskan Eyes",
-            "c": "Control, Monitor, Test and Edit the Saskan Services.\n\n Version: 0.0.1"},
-        "qt": {"a": "About Qt"}
+    "frame": {
+        "a": "Saskan Eyes",
+        "b": "About Saskan Eyes",
+        "c": "Control, Monitor, Test and Edit the Saskan Services.\n Version: 0.0.1",
+        "n": "saskan_eyes_frame",
+        "s": {"w_px": 1200, "h_px": 900}
+    },
+    "menus": {
+        "menu": {
+            "file": {
+                "n": "File",
+                "items": {"exit": {"n":"&Quit",
+                                "cmd": "Ctrl+Q"}}}, 
+            "help": {
+                "n": "Help",
+                "items": {"app_help": {"n": "About Saskan Eyes"},
+                          "wx_help": {"n": "About Qt"}}}},
+        "w": {
+            "n": null,
+            "object": null}
     },
     "controls": {
         "a": "Services Controller",
+        "p": {"x_px": 10, "y_px": 10},
+        "s": {"w_px": 500, "h_px": 400},
         "bn":{
             "start.btn": {
                 "a": "Start",
@@ -123,20 +140,6 @@
         "disp.txt": {
             "w": null},
         "w": null
-    },
-    "menus": {
-        "menu": {
-            "file": {
-                "name": "File",
-                "items": {"exit": {"name":"&Quit",
-                                "cmd": "Ctrl+Q"}}}, 
-            "help": {
-                "name": "Help",
-                "items": {"app_help": {"name": "About Saskan Eyes"},
-                        "qt_help": {"name": "About Qt"}}}},
-        "w": {
-            "name": null,
-            "object": null}
     },
     "monitor": {
         "a": "Services Monitor",
@@ -255,7 +258,7 @@
         },
         "audit": {
             "ns": null,
-            "name": "Audit",
+            "n": "Audit",
             "dm": {
                 "audit": {
                     "rec": {
@@ -280,7 +283,7 @@
         "db": {
            "basement.db": {
                "ns": 0,
-               "name": "Configs",
+               "n": "Configs",
                "dm": {
                    "configs": {
                         "a": "Configs",
@@ -298,7 +301,7 @@
                                     "hint": "🔑",
                                     "ed": ["notnull"]}},
                             "vals": {
-                                "name": {
+                                "n": {
                                     "title": "Name",
                                     "hint": "🖊",
                                     "ed": ["notnull"]},
@@ -323,7 +326,7 @@
                                     "hint": "🔑",
                                     "ed": ["notnull"]}},
                             "vals": {
-                                "name": {
+                                "n": {
                                     "title": "Name",
                                     "hint": "🖊",
                                     "ed": ["notnull"]},
@@ -367,7 +370,7 @@
            },
            "schema.db": {
                 "ns": 1,
-                "name": "Schema",
+                "n": "Schema",
                 "dm": {
                     "topics": {
                         "a": "Topics",
@@ -536,7 +539,7 @@
             },
            "harvest.db": {
                 "ns": 2,
-                "name": "Harvest",
+                "n": "Harvest",
                 "dm": {
                     "queues": {
                         "a": "Queues",
@@ -577,7 +580,7 @@
             },
            "log.db": {
                 "ns": 3,
-                "name": "Logger",
+                "n": "Logger",
                 "dm": {
                     "code": {
                         "a": "Code Log",
@@ -620,7 +623,7 @@
             },
             "monitor.db": {
                 "ns": 4,
-                "name": "Monitor",
+                "n": "Monitor",
                 "dm": {
                     "controller": {
                         "a": "Channel",

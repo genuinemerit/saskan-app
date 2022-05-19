@@ -2,5 +2,5 @@
 
 # Be sure to chmod u=rwx,g=rx,o=rx
 
-python3 ~APP_DIR~/io_wiretap.py
+python3 ~APP_DIR~/python/io_wiretap.py
 

@@ -2,51 +2,51 @@
 """Provision bootstrap text strings for the app.
 
 For internationalization, swap in translated version
-of this Class module.  All other texts are defined in
-a JSON file and loaded into the Redis "Basement" (0)
-database.
+of this Class module.
+Other texts are defined in JSON config file and loaded
+into the Redis "Basement" (0) database with "meta:" label.
 
-module:     io_boot.py
-class:      BootIO/0
+module:     io_config.py
+class:      ConfigIO/0
 author:     GM <genuinemerit @ pm.me>
 """
 from dataclasses import dataclass
-from os import path
 
 
-class BootIO(object):
-    """Static text strings.
+class ConfigIO(object):
+    """Static 'internal' strings used by..
+        - saskan_install
+        - saskan_meta
+        - RedisIO
 
-    @DEV
-    - Consider a single config file instead of discrete ones.
+    App-related texts should be stored in the JSON config file.
     """
-
     def __init__(self):
-        """Initialize text strings."""
+        """Initialize infrastructure strings.
+
+        @DEV
+        - Any reason these can't also be a dataclass?
+        """
         self.io()
 
     def io(self):
         """Application files, directories, DBs """
-        self.app_path_key: str = "config:app_path"
-
-        self.dir_app: str = 'saskan'
-        self.dir_bin: str = 'bin'
-        self.dir_cfg: str = 'cfg'
-        self.dir_res: str = 'res'
-
-        self.path_app: str = self.dir_app
-        self.path_bin: str = path.join(self.path_app, self.dir_bin)
-        self.path_cfg: str = path.join(self.path_app, self.dir_cfg)
-        self.path_res: str = path.join(self.path_app, self.dir_res)
         self.path_usr_bin: str = '/usr/local/bin'
-
-        self.file_widgets: str = path.join(self.dir_cfg, 'config_widgets.json')
-
-        self.debug_level: str = path.join(self.path_cfg, 'debug_level.cfg')
-        self.info_level: str = path.join(self.path_cfg, 'info_level.cfg')
-        self.warn_level: str = path.join(self.path_cfg, 'warn_level.cfg')
-        self.error_level: str = path.join(self.path_cfg, 'error_level.cfg')
-        self.trace_level: str = path.join(self.path_cfg, 'trace_level.cfg')
+        self.gui_metadata: str = 'config/gui_metadata.json'
+        self.app_path_key: str = "app_path"
+        self.dir_app: str = 'saskan'
+        self.app_subdirs: list = ['config', 'html', 'images', 'python', 'save']
+        self.log_configs: dict = {
+            'debug': self.txt.val_nodebug,
+            'info':  self.txt.val_noinfo,
+            'warn': self.txt.val_nowarn,
+            'error': self.txt.val_noerror,
+            'trace': self.txt.val_notrace}
+        self.copy_files: dict = {
+            "": "python",
+            "config": "config",
+            "html": "html",
+            "images": "images"}
 
     @dataclass
     class txt:
@@ -62,12 +62,15 @@ class BootIO(object):
         desc_traced: str = 'Write trace-level msgs to log, w/ docstrings'
         desc_tracef: str = 'Write trace-level msgs to log, w/o docstrings'
         desc_warn: str = 'Write warning, error messages to log, not info msgs'
-        file_error: str = 'Bad file or directory: '
-        file_ok: str = 'ok: '
-        not_found: str = 'No records found'
+        err_file: str = 'Bad file or directory: '
+        err_not_found: str = 'No records found'
+        err_process: str = 'Process aborted: '
+        err_record: str = 'Bad record: '
         ns_db_basement: str = 'basement'
-        process_error: str = 'Process aborted: '
-        rec_error: str = 'Bad record: '
+        ns_db_harvest: str = 'harvest'
+        ns_db_log: str = 'log'
+        ns_db_monitor: str = 'monitor'
+        ns_db_schema: str = 'schema'
         rec_ok: str = 'ok: '
         val_debug: str = 'DEBUG'
         val_error: str = 'ERROR'
@@ -77,6 +80,7 @@ class BootIO(object):
         val_noinfo: str = 'NOINFO'
         val_notrace: str = 'NOTRACE'
         val_nowarn: str = 'NOWARN'
+        val_ok: str = 'OK'
         val_traced: str = 'DOCS'
         val_tracef: str = 'NODOCS'
         val_warn: str = 'WARN'
