@@ -65,7 +65,7 @@ class SaskanInstall(object):
                             help=CI.txt.desc_source)
         # Parent directory for target files:
         parser.add_argument('target_dir', metavar='TO', type=str,
-                            help=CI.txt.desc_source)
+                            help=CI.txt.desc_target)
         args = parser.parse_args()
         if "BowDataSchema" not in args.source_dir:
             args.source_dir = args.source_dir + "/BowDataSchema"
@@ -119,14 +119,8 @@ class SaskanInstall(object):
                 if not(ok):
                     ok, err = FI.make_dir(sdir)
                 ok, err = FI.make_executable(sdir)
-
-                pp(("sub_dir", sub_dir))
-
                 if sub_dir == "save":
                     ok, err = FI.make_writable(sdir)
-
-                    print("save sub directory should be writable")
-
                 if ok:
                     RI.write_redis_config(sub_dir + "_path", sub_dir)
                     print(f"{CI.txt.val_ok} {sdir}")

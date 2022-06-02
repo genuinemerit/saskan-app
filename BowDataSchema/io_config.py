@@ -30,7 +30,7 @@ class ConfigIO(object):
         self.io()
 
     def io(self):
-        """Application files, directories, DBs """
+        """Application files, directories, DBs, graph geometry, etc. """
         self.path_usr_bin: str = '/usr/local/bin'
         self.gui_metadata: str = 'config/gui_metadata.json'
         self.app_path_key: str = "app_path"
@@ -47,6 +47,11 @@ class ConfigIO(object):
             "config": "config",
             "html": "html",
             "images": "images"}
+        self.gg_info: dict = {
+            'N': "Nodes",
+            'D2': "Bi-directional Edges",
+            'D1': "Single-directional Edges"}
+        self.gg_static_attrs: set = {'label', 'node_from', 'node_to', 'group'}
 
     @dataclass
     class txt:
@@ -74,6 +79,7 @@ class ConfigIO(object):
         rec_ok: str = 'ok: '
         val_debug: str = 'DEBUG'
         val_error: str = 'ERROR'
+        val_group: str = 'Group'
         val_info: str = 'INFO'
         val_nodebug: str = 'NODEBUG'
         val_noerror: str = 'NOERROR'
@@ -83,4 +89,5 @@ class ConfigIO(object):
         val_ok: str = 'OK'
         val_traced: str = 'DOCS'
         val_tracef: str = 'NODOCS'
+        val_ul: str = '============================================='
         val_warn: str = 'WARN'

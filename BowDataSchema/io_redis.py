@@ -390,7 +390,14 @@ class RedisIO(object):
         db = "basement"
         for k, values in p_data.items():
             key = self.clean_redis_key(f"meta:{k}")
-            data_rec = {"name": key} | values
+            # Unfortunately, the bar ('|') to merge dictionaries,
+            # which is so nice, was introduced in Python 3.9.
+            # If using an older version, then use the 'star-unpacking'
+            # merge method.
+            key_dict = {"name": key}
+            data_rec = {**key_dict, **values}
+            # python3.9 or greater:
+            # data_rec = {"name": key} | values
             db_rec, update = \
                 self.set_audit_values(db, data_rec, p_include_hash=True)
             if update:
