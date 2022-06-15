@@ -51,7 +51,7 @@ class ConfigIO(object):
             'N': "Nodes",
             'D2': "Bi-directional Edges",
             'D1': "Single-directional Edges"}
-        self.gg_static_attrs: set = {'label', 'node_from', 'node_to', 'group'}
+        self.gg_static_attrs: set = {'label', 'node_from', 'node_to', 'topic'}
 
     @dataclass
     class txt:
