@@ -86,12 +86,15 @@ class GraphIO(object):
         """
         pd.options.mode.chained_assignment = None
         self.SHEETS = dict()       # raw dataframes {T: df(S)}
-        self.NODES = dict()        # unique node ID's
-                                   #   {NID: T, L, F1, F2, .., Fn})]
-        self.EDGES = dict()        # unique D1 edges
-                                   #   {(FR, TO): T, L, F1, F2, .., Fn}
-        self.FIELDS = dict()       # attributes / fields [(F1, F2, .., Fn)]
-        self.AFFINITY = dict()     # cleaned, consolidated Affinity-Plus data
+        # unique node ID's {NID: T, L, F: {F1, F2, .., Fn}}
+        self.NODES = dict()
+        # unique edges {(FR, TO): T, L, F: {F1, F2, .., Fn}}
+        self.EDGES = dict()
+        self.FIELDS = dict()       # field names {E|N: {L: (F1, F2, .., Fn)}}
+        # cleaned, consolidated Affinity-Plus data
+        # Is this necessary in addition to NODES and EDGES?
+        # Probably not.
+        self.AFFINITY = dict()
         # Graphing globals
         self.G = nx.Graph()        # Networkx graph object
 
@@ -126,7 +129,7 @@ class GraphIO(object):
         :args:
         - p_file_nm (str): Name of the workbook.
         :sets:
-        - (Class): SHEETS
+        - (class attribute): SHEETS
         """
         file_path =\
             path.join(RI.get_config_value('config_path'), p_file_nm)
@@ -154,19 +157,18 @@ class GraphIO(object):
         else:
             vals = vals[cols].values.tolist()
         vals.sort()
-        pp(("vals", vals))
         return vals
 
     def set_nodes(self,
                   p_topic,
                   s_df):
-        """Fill out Nodes indexes. Reject duplicate node names..
+        """Fill out Nodes indexes. Reject duplicate node names.
 
         :args:
         - p_topic (str): Name of the sheet/topic being processed.
         - s_df (datframe): Raw data dataframe for the sheet.
         :sets:
-        - (Class): NODES
+        - (class attribute): NODES
         """
         nids = s_df.dropna(subset=['n_name'])
         nids = nids.drop_duplicates(subset=['n_name'], keep='first')
@@ -188,7 +190,7 @@ class GraphIO(object):
         - p_topic (str): Name of the sheet/topic being processed.
         - s_df (datframe): Raw data dataframe for the sheet.
         :sets:
-        - (Class): EDGES
+        - (class attribute): EDGES
         """
         def add_edges(edges, p_topic):
             if edges is not None:
@@ -208,16 +210,12 @@ class GraphIO(object):
 
     def set_labels(self,
                    s_df):
-        """Fill out lists of unique labels for Nodes and Edges.
+        """Fill out labels for Nodes and Edges.
 
         :args:
         - s_df (datframe): Raw data dataframe for the sheet.
         :sets:
-        - (Class): LABELS
-
-        @DEV:
-        - Allow for multiple labels per node, per edge.
-        - ["L"] --> list()
+        - (class attribute): NODES, EDGES
         """
         labels = self.get_unique_values(
             s_df, ['n_name', 'n_label'])
@@ -227,86 +225,110 @@ class GraphIO(object):
 
         labels = self.get_unique_values(
             s_df, ['d1_node_from', 'd1_node_to', 'd1_label'])
-        pp(("labels", labels))
         if labels is not None:
             for v_list in labels:
                 self.EDGES[tuple(v_list[:2])]['L'] = v_list[2]
 
-        # Need to update the reverse entry also?
         labels = self.get_unique_values(
             s_df, ['d2_node_from', 'd2_node_to', 'd2_label'])
-        pp(("labels", labels))
         if labels is not None:
             for v_list in labels:
                 self.EDGES[tuple(v_list[:2])]['L'] = v_list[2]
+                self.EDGES[(v_list[1], v_list[0])]['L'] = v_list[2]
 
-    def append_fields(self,
-                      p_N_or_E: str,
-                      p_lbl: str,
-                      p_lbl_df):
-        """Select field names used with the given label.
-           Add them to fields list if not yet there.
-
-        @DEV:
-            Add the fields to the NODES and EDGES lists
-            instead of to the FIELDS list.
-            Similar to how LABELS were handled.
+    def gather_ontologies(self,
+                          n_or_e: str,
+                          p_label: str,
+                          p_fields: list):
+        """Gather ontologies from the label and fields list.
 
         :args:
-        - p_N_or_E (str): "N" or "E" (Node or Edge)
-        - p_lbl (str): Label being processed.
-        - p_lbl_df (dataframe): View of dataframe for Nodes or Edges
-             containing only candidate fields/attributes for the label.
+        - n_or_e (str): "N" or "E" (Node or Edge)
+        - p_label (str): Label being processed.
+        - p_fields (list): List of field names for the label.
+        :sets:
+        - (class attribute): FIELDS
         """
-        if "N" not in self.FIELDS:
-            self.FIELDS["N"] = dict()
-        if "E" not in self.FIELDS:
-            self.FIELDS["E"] = dict()
-        if not p_lbl_df.empty:
-            p_lbl_df = p_lbl_df.dropna(axis=1, how='all')
-            fields = p_lbl_df.columns.values.tolist()
-            if p_lbl in self.FIELDS[p_N_or_E]:
-                for fld in fields:
-                    if fld not in self.FIELDS[p_N_or_E][p_lbl]:
-                        self.FIELDS[p_N_or_E][p_lbl].append(fld)
-            else:
-                self.FIELDS[p_N_or_E][p_lbl] = fields
+        if n_or_e not in self.FIELDS.keys():
+            self.FIELDS[n_or_e] = dict()
+        if p_label not in self.FIELDS[n_or_e].keys():
+            self.FIELDS[n_or_e][p_label] = p_fields
 
-    def gather_node_attrs(self,
-                          node_df,
-                          p_labels):
-        """Gather fields / attributes for Nodes view of sheet.
+    def gather_node_fields(self,
+                           node_df,
+                           p_topic):
+        """Gather field names for Nodes view of Sheet data.
+           Collect field names and field values.
 
         :args:
         - node_df (dataframe): View of dataframe for Nodes.
+        - p_topic (str): Name of the sheet/topic being processed.
+        :sets:
+        - (class attribute): NODES
         """
         node_df = node_df.dropna(subset=['n_name'])
         node_df = node_df.drop_duplicates(subset=['n_name'], keep='first')
-        for lbl in p_labels["N"]:
-            lbl_df = node_df.loc[node_df['n_label'] == lbl]
-            lbl_df.drop(['n_label', 'n_name'], axis=1, inplace=True)
-            self.append_fields("N", lbl, lbl_df)
+        if not node_df.empty:
+            n_lbls = {n_nm: n_info["L"]
+                      for n_nm, n_info in self.NODES.items()
+                      if "L" in n_info.keys() and n_info["T"] == p_topic}
+            for n_nm, n_lbl in n_lbls.items():
+                lbl_df = node_df.loc[node_df['n_label'] == n_lbl]
+                if not lbl_df.empty:
+                    lbl_df.drop(['n_label', 'n_name'], axis=1, inplace=True)
+                    lbl_df = lbl_df.dropna(axis=1, how='all')
+                    if not lbl_df.empty:
+                        fields = lbl_df.columns.values.tolist()
+                        self.gather_ontologies("N", n_lbl, fields)
+                        self.NODES[n_nm]["F"] = dict()
+                        value_row = node_df.loc[node_df['n_name'] == n_nm]
+                        if not value_row.empty:
+                            for fld_nm in fields:
+                                self.NODES[n_nm]["F"][fld_nm] =\
+                                    value_row[fld_nm].values[0]
 
-    def gather_edge_attrs(self,
-                          p_d,
-                          edge_df,
-                          p_labels):
-        """Gather fields/attributes for Edges views of sheet.
+    def gather_edge_fields(self,
+                           p_d,
+                           edge_df,
+                           p_topic):
+        """Gather field names and values for Edges views of Sheet data.
+           Collect field names and field values.
 
         :args:
         - p_d (str): "d1" or "d2" = edge type
         - edge_df (dataframe): View of dataframe for Edges.
+        - p_topic (str): Name of the sheet/topic being processed.
+        :sets:
+        - (class attribute): EDGES
         """
-        for lbl in p_labels["E"]:
-            lbl_df = edge_df.loc[edge_df[f'{p_d}_label'] == lbl]
-            lbl_df.drop(
-                [f'{p_d}_label', f'{p_d}_node_from', f'{p_d}_node_to'],
-                axis=1, inplace=True)
-            self.append_fields("E", lbl, lbl_df)
+        edge_df = edge_df.dropna(subset=[f'{p_d}_node_from', f'{p_d}_node_to'])
+        if not edge_df.empty:
+            e_lbls = {e_nm: e_info["L"]
+                      for e_nm, e_info in self.EDGES.items()
+                      if "L" in e_info.keys() and e_info["T"] == p_topic}
+            for e_nm, e_lbl in e_lbls.items():
+                lbl_df = edge_df.loc[edge_df[f'{p_d}_label'] == e_lbl]
+                if not lbl_df.empty:
+                    lbl_df.drop(
+                        [f'{p_d}_label', f'{p_d}_node_from', f'{p_d}_node_to'],
+                        axis=1, inplace=True)
+                    lbl_df = lbl_df.dropna(axis=1, how='all')
+                    if not lbl_df.empty:
+                        fields = lbl_df.columns.values.tolist()
+                        self.gather_ontologies("E", e_lbl, fields)
+                        self.EDGES[e_nm]["F"] = dict()
+                        value_row = edge_df.loc[
+                            (edge_df[f'{p_d}_label'] == e_lbl) &
+                            (edge_df[f'{p_d}_node_from'] == e_nm[0]) &
+                            (edge_df[f'{p_d}_node_to'] == e_nm[1])]
+                        if not value_row.empty:
+                            for fld_nm in fields:
+                                self.EDGES[e_nm]["F"][fld_nm] =\
+                                    value_row[fld_nm].values[0]
 
     def set_fields(self,
-                   s_df,
-                   p_labels):
+                   p_topic,
+                   s_df):
         """Fill out the FIELDS dictionary.
            - For each section (N, D1, D2) of the sheet,
              identify non-name, non-label field/attribute columns.
@@ -315,24 +337,22 @@ class GraphIO(object):
            - Accumulate fields across topics as needed for each LABEL.
 
             :args:
+            - p_topic (str): Name of sheet
             - s_df (dataframe): Raw sheet dataframe.
             :sets:
-            - (Class): FIELDS
-        """
-        self.gather_node_attrs(s_df.iloc[:, s_df.columns.get_loc('N') + 1:
-                                         s_df.columns.get_loc('D2')],
-                               p_labels)
-        self.gather_edge_attrs('d1',
-                               s_df.iloc[:, s_df.columns.get_loc('D1') + 1:],
-                               p_labels)
-        self.gather_edge_attrs('d2',
-                               s_df.iloc[:, s_df.columns.get_loc('D2') + 1:
-                                         s_df.columns.get_loc('D1')],
-                               p_labels)
+            - (class attribute): FIELDS
 
-    def set_affinity_matrix(self):
-        """Fill out the AFFINITY matrix."""
-        self.AFFINITY = {node: {"topic": topic} for node, topic in self.NODES}
+        """
+        self.gather_node_fields(s_df.iloc[:, s_df.columns.get_loc('N') + 1:
+                                          s_df.columns.get_loc('D2')],
+                                p_topic)
+        self.gather_edge_fields('d1',
+                                s_df.iloc[:, s_df.columns.get_loc('D1') + 1:],
+                                p_topic)
+        self.gather_edge_fields('d2',
+                                s_df.iloc[:, s_df.columns.get_loc('D2') + 1:
+                                          s_df.columns.get_loc('D1')],
+                                p_topic)
 
     def set_affinity_data(self,
                           p_file_nm: str):
@@ -347,165 +367,18 @@ class GraphIO(object):
            - Load the Affinity dictionary
 
         @DEV:
-           - Create the (A) affinity dataframe.
+           - Create an (A) affinity dataframe if needed
            - Create the (G) graph.
 
         Args:
             p_file_nm (str): Name of spreadsheet in /config.
         """
         self.get_raw_dataframes(p_file_nm)
-        labels: dict = {"N": dict(), "E": dict()}
         for topic, s_df in self.SHEETS.items():
             self.set_nodes(topic, s_df)
             self.set_edges(topic, s_df)
             self.set_labels(s_df)
-            self.set_fields(s_df, labels)
-        self.set_affinity_matrix()
-
-    def scrub_places_data(self):
-        """Organize Places data into cleaned frames.
-
-        - Break out sheet data into 3 dataframes: N, D2, D1.
-        - Add a column for the group (sheet) name to each dataframe.
-        - Rename columns to remove prefixes.
-        - Remove rows with no value in `label` column.
-        - Derive and store ontology info from non-static column names.
-
-        - Process properly for multiple sheets.
-        - Minimize redundant metadata.
-        """
-        def get_geometry_col_indexes():
-            """Determine what columns belong to which geometries."""
-            colix_dict = {
-                'n': self.SHEETS.columns.get_loc('N'),
-                'd2': self.SHEETS.columns.get_loc('D2'),
-                'd1': self.SHEETS.columns.get_loc('D1')}
-            return colix_dict
-
-        def set_places_data_by_geometry(p_colix: dict):
-            """Separate WORKDATA according to gg column slices.
-            Drop the geometry (first) column from each slice.
-            Reminder:
-            - .iloc[] selects rows and columns by index
-            - syntax:  .iloc[row_slice, col_slice]
-            - `:` means take all in a slice.
-            """
-            self.WORKDATA['N'] = DataFrame(
-                self.SHEETS.iloc[:, p_colix['n'] + 1:p_colix['d2'] - 1])
-            self.WORKDATA['D2'] = DataFrame(
-                self.SHEETS.iloc[:, p_colix['d2'] + 1:p_colix['d1'] - 1])
-            self.WORKDATA['D1'] = DataFrame(
-                self.SHEETS.iloc[:, p_colix['d1'] + 1:])
-
-        def scrub_column_names():
-            """Remove geometry prefixes from column names.
-            Add "group" column to each dataframe.
-            """
-            for ggk in CI.gg_info.keys():
-                gg = ggk.lower() + "_"
-                fix_cols =\
-                    [fc.replace(gg, "") for fc in self.WORKDATA[ggk].columns]
-                self.WORKDATA[ggk].columns = fix_cols
-                self.WORKDATA[ggk]['group'] = self.TOPIC
-
-        def remove_rows_with_empty_labels():
-            """Delete rows where label is NaN or empty."""
-            for df_key in self.WORKDATA.keys():
-                self.WORKDATA[df_key] = self.WORKDATA[df_key].dropna(
-                    subset=['label'])
-
-        def derive_ontology_info():
-            """Derive ontology info from column names.
-            @DEV:
-            - Later, refactoring?... consider cases where the same label
-              may indicate a different ontology.
-            - Probably would want to add attributes to existing ontology
-              rather than define a new / alternative one.
-            - The "ontology" should be loose. These are attributes
-              suggested for use with this node or edge. Neither mandatory
-              (can be null) nor restrictive (can be other attributes).
-
-            The way I have it set, the ontology is defined only by the
-            first incidence of a given label within a geometry.
-
-            Reminder:
-            - A `set` is an iterable collection of unique values.
-            - Denoted in python by `{}`.
-            """
-            for ggk, df in self.WORKDATA.items():
-                ont_set = (set(df.columns) - CI.gg_static_attrs)
-                if ont_set:
-                    for lbl in df["label"].unique():
-                        if lbl not in self.FIELDS[ggk].keys():
-                            self.FIELDS[ggk][lbl] = list()
-                        self.FIELDS[ggk][lbl].append(ont_set)
-
-        def append_to_places_data():
-            """Append scrubbed Group data to Places dataframe.
-
-            *** PICK UP HERE ***
-            @DEV:
-            - Needs work to account for additional attributes that
-              may be added to the geometry from each sheet.
-            - Make sure it gets added to the consolidated dataframe.
-            - Make sure the rows for the group get all their values
-              carried over.
-            - Make sure values for all rows are getting loaded at
-              the group level. e.g. is `geo_ty` really empty for
-              all items in the `The Heliopticon` group?
-            """
-            for ggk, SHEET in self.WORKDATA.items():
-                if self.AFFINITY[ggk] is None:
-                    self.AFFINITY[ggk] = DataFrame(SHEET)
-                else:
-                    self.AFFINITY[ggk] =\
-                        self.AFFINITY[ggk].append(SHEET, ignore_index=True)
-
-        # #####################################################################
-        # ## scrub_places_data() main
-        # #####################################################################
-        colix = get_geometry_col_indexes()
-        set_places_data_by_geometry(colix)
-        scrub_column_names()
-        remove_rows_with_empty_labels()
-        derive_ontology_info()
-        append_to_places_data()
-        pp((self.WORKDATA))
-        pp((self.FIELDS))
-        pp((self.AFFINITY))
-
-        """
-        for col in self.SHEETS.columns:
-            if col in CI.ggeometry.keys():
-                gg = col
-            if col not in self.AFFINITY.keys():
-                self.AFFINITY[gg] = {"cols": [],
-                                   "desc": CI.ggeometry[gg],
-                                   "df": None}
-            else:
-                self.AFFINITY[gg]["cols"].append(col)
-        for gg in CI.ggeometry.keys():
-            df = DataFrame(self.SHEET[self.AFFINITY[gg]["cols"]])
-            df_null_idx = df.index[df[gg.lower() + "_label"].isna()]
-            df.drop(index=df_null_idx, inplace=True)
-            df["group"] = self.TOPIC
-            fix_cols = list()
-            for col in df.columns:
-                fix_cols.append(col.replace((gg.lower() + "_"), ""))
-            df.columns = fix_cols
-            self.AFFINITY[gg]["df"] = df
-            ont_set = (set(fix_cols) - CI.gg_static)
-            print(ont_set)
-            if ont_set:
-                if gg not in self.FIELDS.keys():
-                    self.FIELDS[gg] = dict()
-                for label in df["label"].unique():
-                    if label not in self.FIELDS[gg].keys():
-                        self.FIELDS[gg][label] = list()
-                    self.FIELDS[gg][label].append(ont_set)
-        print(self.AFFINITY)  # DEBUG only
-        print(self.FIELDS)  # DEBUG only
-        """
+            self.set_fields(topic, s_df)
 
     def make_network_diagram(self,
                              p_img_title: str):
