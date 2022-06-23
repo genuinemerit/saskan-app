@@ -47,11 +47,6 @@ class ConfigIO(object):
             "config": "config",
             "html": "html",
             "images": "images"}
-        self.gg_info: dict = {
-            'N': "Nodes",
-            'D2': "Bi-directional Edges",
-            'D1': "Single-directional Edges"}
-        self.gg_static_attrs: set = {'label', 'node_from', 'node_to', 'topic'}
 
     @dataclass
     class txt:
