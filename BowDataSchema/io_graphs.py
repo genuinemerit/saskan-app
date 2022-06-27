@@ -4,22 +4,86 @@
 
 :author:    GM (genuinemerit @ pm.me)
 
-@DEV
-- Eventually move all text strings to SaskanTexts
-
 Use NetworkX and matplotlib modules to generate graph diagrams.
+Use music21 to assign parts, phrases, pitches, notes, durations, etc.
+ to nodes, then to generate scores and midi files.
 
-This class only generates the graph using matplotlib.pyplot and
-networkx. It has no framework GUI elements. The figure is
-generated and then saved to a file in the app /save directory.
-
+Generate the graph using matplotlib.pyplot and networkx.
+This class has no framework GUI elements.
+Figures generated then saved to a file in the app /save directory.
 It is up to the calling class to display the figure.
+
+Prototype:
+    - Data in spreadsheet `places_data.ods`.
+    - A kind of affinity dataset spread across multiple tabs.
+    - Each tab defines a Topic (T) = the sheet name
+    - (T) becomes an attribute of a Node (N) or an Edge (E).
+    - Each Sheet (S) = (T) contains 0..n:
+        - Node (N) definitions
+        - Edge (E) = (Dn) definitions, which are either:
+            - Single-directional (D1) or
+            - Bi-directional (D2)
+Parse out:
+    - For both (N) and (Dn):
+        -- A label (L), which is like a record type ID
+            -- A label is _NOT_ a Unique record ID.
+            -- May have ontological attributes = Fields (F1, .., Fn)
+            -- (L)'s for (N) are distinct from (L)'s for (E).
+    - Every (N) has a unique ID (NID) = Name, a string
+        -- The parser de-duplicates. Chooses only first instance.
+    - Every (E) has a From Node (FR) and a To Node (TO)
+        -- For (E) in (D1), (FR) and (TO) indicate direction
+        -- For (E) in (D2), we assume two (E)'s, one in each direction
+        -- (E) = all (FR, TO) pairs
+        -- (D2) edges are expanded into two (D1) edges.
+    - For (L) in (N) or (Dn), (F1, F2, .., Fn) is a unique set (ONT).
+        -- Only one (L) per unique (N) or (E) = (FR, TO) pair.
+        -- (L) = (F1, F2, .., Fn) is documented but not enforced
+    - Nodes, Edges, Labels, Topics, Fields are organized into 3
+        consolidated datasets: NODES, EDGES, FIELDS
+
+Things to do with this nutty data...  :-)
+
+- Generate some graph diagrams.
+    - Analyze the graphs.
+
+- Generate some musical scores/phrases (see more notes below).
+
+- Generate outline of some geo-spatial data/maps.
+    - Possibly use as inputs into blender.
+
+Regarding the musical part of it...
+    - Auto-generate a template for parts, phrases, melodies, harmonies,
+        dynamics, tempo, panning based on combinations of qualities
+        expressed numerically and algorithmically based on multiple
+        contexts, like:
+    - For (T) associate a key signture =
+        set of notes, specific tonic, specified degrees, permitted modulations
+    - For (L) associate a 3-line / 12 bar chord progression
+        wtih a given pattern like 12-bar blues [I I I I IV IV I I V IV I V].
+        Notes in each bar associated w/ diatonic or 7 chords for scale degrees.
+    - Geo-spatial context associates a time signature
+    - Action-context associates a tempo
+    - Randomly or based on other context, associates dynamic patterns /
+        velocity for the 12 bars and for a repetition of them, say 3 times
+    - For (N), randomly generate and/or pick from standard sets of:
+        - number of parts and what instrument to assign to each part
+        - mel, har, rhythm (notes and rests) for each bar's main part
+        - mel, har, rhythm, panning patterns for additional parts
+    - Generate midi file / score based on above
+        - Export to MuseScore, Abelton, GarageBand, etc.
+        - Tweak to make it sound better.
+        - Store in app /sound directory.
 """
 
+# import matplotlib as mpl
 import matplotlib.pyplot as plt         # type: ignore
 import networkx as nx                   # type: ignore
 import pandas as pd                     # type: ignore
+import random
 
+from copy import copy
+from dataclasses import dataclass, fields
 from os import path
 from pandas import DataFrame
 from pprint import pformat as pf        # noqa: F401
@@ -38,70 +102,80 @@ class GraphIO(object):
     """Class for Networkx Graphing methods.
 
     Define/enable the Networkx graphing functions.
-
-    The Graph Class is for undirected networks.
     """
     def __init__(self):
-        """Class for displaying graphs.
-
-        Prototype works with data in spreadsheet `places_data.ods`.
-        It is a kind of affinity dataset, spread across multiple tabs.
-        Each tab is defined by "topic" = the sheet name
-        - T is informational only, becomes an attribute of the Node or Edge.
-        - Keep a list containing:
-            -- Topic name (T)
-            -- Node Names (ID) associated with the Topic
-
-        The data on a given sheet (S) contains some raw affinity data.
-        Each (S) for a (T) may contain 0..n of each:
-        - Node (N) definitions
-        - Single-directional (D1) edges
-        - Bi-directional (D2) edges
-
-        The class methods parse out:
-        - For both (N) and (Dn):
-            -- A label (L), which is like a record type ID
-            -- A label is _NOT_ a Unique record ID.
-            -- Optionally, may have ontological attributes, i.e., associated
-               with a set of fields (F1, F2, .., Fn)
-            -- Labels for Nodes and Edges are distinct.
-        - For (N), there is a unique ID (NID), which is a unique name string
-            -- A list of unique Node IDs (NID) handles de-duplication of ID's.
-        - For each Edge (E), there is a From Node (FR) and a To Node (TO)
-            -- For (E) in (D1), (FR) and (TO) indicate vector direction
-            -- For (E) in (D2), a vector is assumed in both directions
-            -- (E) is the set of all (FR, TO) pairs, where
-               all (D2) edges are expanded into two (D1) vectors.
-            -- Unique (E) pairs tie to all (1..n) Labels (L) for that pair.
-        - For (L) in (N) or (Dn), (F1, F2, .., Fn) is a unique ontology (ONT).
-          Ontologies/Fields
-            -- Group sets of attributes (F) for Labels (L)
-            -- Are documented but not enforced
-        - Nodes, Edges, Labels, Topics, Ontologies are organized into
-            a single consolidated Affinity dataset (A)
-            -- (A) is a dictionary containing Affinity-"Plus" info
-            -- It consolidates the Nodes and Edges from all Topics
-            -- It is Affinity"-Plus" since it contains attribute,
-               label, and topic info in addition to Node:Edge links.
+        """Class for managing graph data, generating graphs
+        and other graph-related methods.
         """
         pd.options.mode.chained_assignment = None
-        self.SHEETS = dict()       # raw dataframes {T: df(S)}
-        # unique node ID's {NID: T, L, F: {F1, F2, .., Fn}}
+        self.SHEETS = dict()
         self.NODES = dict()
-        # unique edges {(FR, TO): T, L, F: {F1, F2, .., Fn}}
         self.EDGES = dict()
-        self.FIELDS = dict()       # field names {E|N: {L: (F1, F2, .., Fn)}}
-        # cleaned, consolidated Affinity-Plus data
-        # Is this necessary in addition to NODES and EDGES?
-        # Probably not.
-        self.AFFINITY = dict()
-        # Graphing globals
-        self.G = nx.Graph()        # Networkx graph object
+        self.FIELDS = dict()  # drop this if not needed
+        self.MUSIC = dict()
+        self.KEYS = dict()
+        self.set_modes()
+
+    @dataclass
+    class major_keys:
+        """Class for deriving fifths, modes and key signatures."""
+        C: tuple = ('C', 'D', 'E', 'F', 'G', 'A', 'B')
+        G: tuple = ('G', 'A', 'B', 'C', 'D', 'E', 'F♯')
+        D: tuple = ('D', 'E', 'F♯', 'G', 'A', 'B', 'C♯')
+        A: tuple = ('A', 'B', 'C♯', 'D', 'E', 'F♯', 'G♯')
+        E: tuple = ('E', 'F♯', 'G♯', 'A', 'B', 'C♯', 'D♯')
+        B: tuple = ('B', 'C♯', 'D♯', 'E', 'F♯', 'G♯', 'A♯')
+        Gf: tuple = ('G♭', 'A♭', 'B♭', 'C♭', 'D♭', 'E♭', 'F')
+        Df: tuple = ('D♭', 'E♭', 'F', 'G♭', 'A♭', 'B♭', 'C')
+        Af: tuple = ('A♭', 'B♭', 'C', 'D♭', 'E♭', 'F', 'G')
+        Ef: tuple = ('E♭', 'F', 'G', 'A♭', 'B♭', 'C', 'D')
+        Bf: tuple = ('B♭', 'C', 'D', 'E♭', 'F', 'G', 'A')
+        F: tuple = ('F', 'G', 'A', 'B♭', 'C', 'D', 'E')
+
+    def set_modes(self):
+        """Populate key/mode data. Generate sets of minor keys.
+
+        Is this really correct? What I have called the natural minor keys
+        are actually the RELATIVE minor keys to the major keys, right?
+
+        Those also happen to be NATURAL minor keys (iirc) because they
+        follow the pattern for NATURAL minor keys. OK, OK, but I DO have
+        12 natural minor keys defined, one for every chromatic scale degree.
+
+        And based on that I have 12 harmonic and 12 melodic minor keys, one
+        for each chromatic scale degree. So I am good (though I don't have
+        the descending minor keys defined... and of course there are other
+        modes).
+
+        """
+        self.KEYS['fifths'] =\
+            tuple(f.name.replace('f', '♭').replace('s', '♯')
+                  for f in fields(self.major_keys))
+        self.KEYS['modes'] = dict()
+        self.KEYS['modes']['major'] =\
+            tuple((f.name.replace('f', '♭').replace('s', '♯'), f.default)
+                  for f in fields(self.major_keys))
+        nstr = "natural minor"
+        hstr = "harmonic minor"
+        estr = "melodic minor"
+        for m in (nstr, hstr, estr):
+            self.KEYS['modes'][m] = list()
+        for major in self.KEYS['modes']['major']:
+            dg = major[1]
+            nat = (dg[5], dg[6], dg[0], dg[1], dg[2], dg[3], dg[4])
+            har = list(copy(nat))
+            har[6] = har[6][:-1] if har[6][-1:] == '♭' else har[6] + '♯'
+            mel = list(copy(har))
+            mel[5] = mel[5][:-1] if mel[5][-1:] == '♭' else mel[5] + '♯'
+            for m in ((nstr, nat), (hstr, har), (estr, mel)):
+                self.KEYS['modes'][m[0]].append((dg[5] + "m", tuple(m[1])))
+        for m in (nstr, hstr, estr):
+            self.KEYS['modes'][m] = tuple(self.KEYS['modes'][m])
 
     def get_sheet_data(self,
-                       p_file_path,
-                       p_sheet_nm):
-        """Get data from an OpenDocument spreadsheet.
+                       p_file_path: str,
+                       p_sheet_nm: str):
+        """Get data from a spreadsheet.
 
         :args:
         - p_file_path (str): Path to the workbook.
@@ -122,9 +196,9 @@ class GraphIO(object):
         return sheet_df
 
     def get_raw_dataframes(self,
-                           p_file_nm):
-        """Init topics (sheet names + descriptions) from manifest tab.
-           Load raw data for all sheets to dataframes.
+                           p_file_nm: str):
+        """Load sheet data, driving from the manifest tab.
+           Load raw data for all sheets into pandas dataframes.
 
         :args:
         - p_file_nm (str): Name of the workbook.
@@ -139,14 +213,14 @@ class GraphIO(object):
                 self.SHEETS[topic] = self.get_sheet_data(file_path, topic)
 
     def get_unique_values(self,
-                          s_df,
-                          cols: list):
-        """For the given dataframe, return list of unique values
-           in the combination of named columns.
+                          cols: list,
+                          s_df: DataFrame):
+        """For given dataframe, return list of unique values
+           for combination of named columns.
 
         :args:
-        - s_df (DataFrame): Raw sheet being processed
         - col_nm (list): Column names to select on
+        - s_df (DataFrame): Raw sheet data being processed
         :returns:
         - (list): Unique values in column(s) or None
         """
@@ -160,13 +234,13 @@ class GraphIO(object):
         return vals
 
     def set_nodes(self,
-                  p_topic,
-                  s_df):
+                  p_topic: str,
+                  s_df: DataFrame):
         """Fill out Nodes indexes. Reject duplicate node names.
 
         :args:
         - p_topic (str): Name of the sheet/topic being processed.
-        - s_df (datframe): Raw data dataframe for the sheet.
+        - s_df (DataFrame): Raw data for the sheet.
         :sets:
         - (class attribute): NODES
         """
@@ -182,13 +256,13 @@ class GraphIO(object):
                     print(f"{CI.txt.err_record}: DUP {n_nm}: {p_topic}")
 
     def set_edges(self,
-                  p_topic,
-                  s_df):
+                  p_topic: str,
+                  s_df: DataFrame):
         """Fill out the (E) Edges indexes.
 
         :args:
         - p_topic (str): Name of the sheet/topic being processed.
-        - s_df (datframe): Raw data dataframe for the sheet.
+        - s_df (DataFrame): Raw data for the sheet.
         :sets:
         - (class attribute): EDGES
         """
@@ -198,49 +272,48 @@ class GraphIO(object):
                     if tuple(vector) not in self.EDGES.keys():
                         self.EDGES[tuple(vector)] = {'T': p_topic}
 
-        edges = self.get_unique_values(s_df, ['d1_node_from', 'd1_node_to'])
+        edges = self.get_unique_values(['d1_node_from', 'd1_node_to'], s_df)
         if edges is not None:
             add_edges(edges, p_topic)
-        edges = self.get_unique_values(s_df, ['d2_node_from', 'd2_node_to'])
+        edges = self.get_unique_values(['d2_node_from', 'd2_node_to'], s_df)
         if edges is not None:
             add_edges(edges, p_topic)
-        edges = self.get_unique_values(s_df, ['d2_node_to', 'd2_node_from'])
+        edges = self.get_unique_values(['d2_node_to', 'd2_node_from'], s_df)
         if edges is not None:
             add_edges(edges, p_topic)
 
     def set_labels(self,
-                   s_df):
+                   s_df: DataFrame):
         """Fill out labels for Nodes and Edges.
+        Nodes are indexed by unique name (NID).
+        Edges are indexed by (node_from, node_to).
 
         :args:
-        - s_df (datframe): Raw data dataframe for the sheet.
+        - s_df (DataFrame): Raw data for the sheet.
         :sets:
         - (class attribute): NODES, EDGES
         """
-        labels = self.get_unique_values(
-            s_df, ['n_name', 'n_label'])
+        labels = self.get_unique_values(['n_name', 'n_label'], s_df)
         if labels is not None:
             for n_list in labels:
                 self.NODES[n_list[0]]['L'] = n_list[1]
-
         labels = self.get_unique_values(
-            s_df, ['d1_node_from', 'd1_node_to', 'd1_label'])
+            ['d1_node_from', 'd1_node_to', 'd1_label'], s_df)
         if labels is not None:
             for v_list in labels:
                 self.EDGES[tuple(v_list[:2])]['L'] = v_list[2]
-
         labels = self.get_unique_values(
-            s_df, ['d2_node_from', 'd2_node_to', 'd2_label'])
+            ['d2_node_from', 'd2_node_to', 'd2_label'], s_df)
         if labels is not None:
             for v_list in labels:
                 self.EDGES[tuple(v_list[:2])]['L'] = v_list[2]
                 self.EDGES[(v_list[1], v_list[0])]['L'] = v_list[2]
 
-    def gather_ontologies(self,
-                          n_or_e: str,
-                          p_label: str,
-                          p_fields: list):
-        """Gather ontologies from the label and fields list.
+    def gather_fields(self,
+                      n_or_e: str,
+                      p_label: str,
+                      p_fields: list):
+        """Gather ontology (field list) from given label.
 
         :args:
         - n_or_e (str): "N" or "E" (Node or Edge)
@@ -255,14 +328,14 @@ class GraphIO(object):
             self.FIELDS[n_or_e][p_label] = p_fields
 
     def gather_node_fields(self,
-                           node_df,
-                           p_topic):
+                           p_topic: str,
+                           node_df: DataFrame):
         """Gather field names for Nodes view of Sheet data.
            Collect field names and field values.
 
         :args:
-        - node_df (dataframe): View of dataframe for Nodes.
         - p_topic (str): Name of the sheet/topic being processed.
+        - node_df (DataFrame): View of dataframe for Nodes.
         :sets:
         - (class attribute): NODES
         """
@@ -279,7 +352,7 @@ class GraphIO(object):
                     lbl_df = lbl_df.dropna(axis=1, how='all')
                     if not lbl_df.empty:
                         fields = lbl_df.columns.values.tolist()
-                        self.gather_ontologies("N", n_lbl, fields)
+                        self.gather_fields("N", n_lbl, fields)
                         self.NODES[n_nm]["F"] = dict()
                         value_row = node_df.loc[node_df['n_name'] == n_nm]
                         if not value_row.empty:
@@ -288,16 +361,16 @@ class GraphIO(object):
                                     value_row[fld_nm].values[0]
 
     def gather_edge_fields(self,
-                           p_d,
-                           edge_df,
-                           p_topic):
+                           p_topic: str,
+                           p_d: str,
+                           edge_df: DataFrame):
         """Gather field names and values for Edges views of Sheet data.
            Collect field names and field values.
 
         :args:
-        - p_d (str): "d1" or "d2" = edge type
-        - edge_df (dataframe): View of dataframe for Edges.
         - p_topic (str): Name of the sheet/topic being processed.
+        - p_d (str): "d1" or "d2" = edge type
+        - edge_df (DataFrame): View of dataframe for Edges.
         :sets:
         - (class attribute): EDGES
         """
@@ -315,7 +388,7 @@ class GraphIO(object):
                     lbl_df = lbl_df.dropna(axis=1, how='all')
                     if not lbl_df.empty:
                         fields = lbl_df.columns.values.tolist()
-                        self.gather_ontologies("E", e_lbl, fields)
+                        self.gather_fields("E", e_lbl, fields)
                         self.EDGES[e_nm]["F"] = dict()
                         value_row = edge_df.loc[
                             (edge_df[f'{p_d}_label'] == e_lbl) &
@@ -334,7 +407,7 @@ class GraphIO(object):
              identify non-name, non-label field/attribute columns.
            - For each label on the sheet, determine which
              field columns are non-null.
-           - Accumulate fields across topics as needed for each LABEL.
+           - Accumulate Fields (F) for each LABEL.
 
             :args:
             - p_topic (str): Name of sheet
@@ -343,32 +416,165 @@ class GraphIO(object):
             - (class attribute): FIELDS
 
         """
-        self.gather_node_fields(s_df.iloc[:, s_df.columns.get_loc('N') + 1:
-                                          s_df.columns.get_loc('D2')],
-                                p_topic)
-        self.gather_edge_fields('d1',
-                                s_df.iloc[:, s_df.columns.get_loc('D1') + 1:],
-                                p_topic)
-        self.gather_edge_fields('d2',
+        self.gather_node_fields(p_topic,
+                                s_df.iloc[:, s_df.columns.get_loc('N') + 1:
+                                          s_df.columns.get_loc('D2')])
+        self.gather_edge_fields(p_topic, 'd1',
+                                s_df.iloc[:, s_df.columns.get_loc('D1') + 1:])
+        self.gather_edge_fields(p_topic, 'd2',
                                 s_df.iloc[:, s_df.columns.get_loc('D2') + 1:
-                                          s_df.columns.get_loc('D1')],
-                                p_topic)
+                                          s_df.columns.get_loc('D1')])
+
+    def set_graph_data(self,
+                       p_file_nm: str):
+        """Organize data so that networkx can use it.
+        Then create a digaram using matplotlib.
+
+        :args:
+        - p_file_nm (str): Name of the file being processed.
+
+        :writes:
+        - (file): image file of graph diagram
+
+        @DEV:
+        - Zillions of options here!
+        - The networkx Gallery is good place to start, explore:
+          https://networkx.org/documentation/stable/auto_examples/index.html
+        - plt.show() works fine for testing, but won't be good for final
+          version, where I need to be able to integrate displays into the
+          game/editor framework.
+        - Looking at it longer-term, it will be worthwhile working on
+          a variety of options for both graph diagrams and graph data
+          analysis. For example, examining the degrees report shows right
+          away what elements of the data landscape are most "connected" and
+          which ones are most "disconnected" (and could use more definition).
+        - Lots of fun exploring how to use networkx and matplotlib to do the
+          diagrams. Won't hurt to go thru the nx gallery and references more
+          carefully and perhaps go through some matplotlib tutorials too.
+        - See workshops and notebooks on data visualization. bokeh, seaborn,
+          graphviz, etc.  I am also intrigued about generating 3D data that
+          could be rendered using blender maybe?
+        """
+        p_img_title = p_file_nm.split(".")[0].replace(" ", "_") + ".png"
+        plt.title(p_img_title)
+        G = nx.MultiDiGraph()
+        G.add_nodes_from(list(self.NODES.keys()))
+        G.add_edges_from(list(self.EDGES.keys()))
+        pos = nx.spring_layout(G, seed=13648)
+        # pos = nx.kamada_kawai_layout(G)
+        N = G.number_of_nodes()
+        M = G.number_of_edges()
+        print(f"Nodes: {N} Edges: {M}")
+        print("Degrees:")
+        pp((sorted([(dg[1], dg[0]) for dg in nx.degree(G)], reverse=True)))
+        # Modify node sizes based on degree and type.
+        # Modify node color based on topic, type, etc.
+        # Look at the reference. Can set qualities on a subset of items.
+        # Can also generate sub-graphs, graphs with only selected nodes.
+        node_sizes = [3 + 10 * i for i in range(N)]
+        # Likewise, set edge color based on label.
+        edge_colors = range(2, M + 2)
+        # edge_alphas = [(5 + i) / (M + 4) for i in range(M)]
+        cmap = plt.cm.plasma
+        nx.draw_networkx_nodes(G, pos,
+                               linewidths=1,
+                               edgecolors='blue',
+                               node_color='white',
+                               node_size=node_sizes)
+        nx.draw_networkx_edges(G, pos,
+                               node_size=node_sizes,
+                               edge_color=edge_colors,
+                               edge_cmap=cmap,
+                               width=2)
+        nx.draw_networkx_labels(G, pos,
+                                font_size=9,
+                                # font_weight='bold',
+                                font_color='indigo',
+                                verticalalignment="top")
+        e_labels = {k: v["L"] for k, v in self.EDGES.items()}
+        nx.draw_networkx_edge_labels(G, pos,
+                                     edge_labels=e_labels,
+                                     font_size=6)
+        # for i in range(M):
+        #     attrs = {list(self.EDGES.keys())[i]: {"alpha": edge_alphas[i]}}
+        # nx.set_edge_attributes(G, attrs)
+        ax = plt.gca()
+        ax.set_axis_off()
+
+        # plt.show()
+
+        plt.figure(figsize=(30.0, 30.0))      # w, h in inches
+        # options = {'font_size': 8,
+        #           'node_size': 500,
+        #           'node_color': 'blue',
+        #           'edgecolors': 'black',
+        #           'linewidths': 2}
+        # nx.draw_networkx(G, pos=nx.spring_layout(G), **options)
+        # nx.draw_networkx(G, with_labels=True, font_weight='normal')
+        # ax = plt.gca()
+        ax.margins(0.20)
+        # plt.axis("off")
+        # plt.show()
+        save_path = path.join(RI.get_app_path(),
+                              RI.get_config_value('save_path'),
+                              p_img_title)
+
+        # Hmmm... something goes wrong when I write to file
+        # Was displaing nicely using plt.show()
+
+        plt.savefig(save_path)
+        print(f"Graph diagram saved to: {save_path}")
+
+    def set_music_data(self):
+        """Generate music data from the graph data.
+           Try to set it up to be flexible, based on parsing
+           the graph data, not hard-coding associations.
+
+           Assign a key signature/mode to each Topic.
+           Work out permitted/suggested modulations later.
+           Actual key signature can always be derived from the scale.
+
+           @ TODO:
+           Assign a 3-line, 12-bar chord progression to each Label
+           with a given pattern -- like 12-bar blues [I I I I IV IV I I V IV I V].
+           Associate each degree with corresponding major, minor, diminished chords.
+           Have a randomization or smart algorithm that picks 7 chords.
+           Another one that picks inverted chords.
+        """
+        # pp((self.KEYS))
+        self.MUSIC['keys'] = dict()
+        # Get list of unique topic names
+        for topic in set([data['T'] for _, data in self.NODES.items()]):
+            # Randomly select a mode
+            modes = list(self.KEYS["modes"].keys())
+            mode = modes[random.randint(0, len(modes) - 1)]
+            # Randomly select a key/scale
+            knum = random.randint(0, 11)
+            key = self.KEYS["modes"][mode][knum][0]
+            scale = self.KEYS["modes"][mode][knum][1]
+            # Maybe I am using "key" a bit loosely.
+            # It is actually the specific scale in a mode, right?
+            self.MUSIC['keys'][topic] =\
+                {'mode': mode, 'key': key, 'scale': scale}
+
+        # Assembled list of unique label names
+        nlabels = set([data['L'] for _, data in self.NODES.items()])
+        elabels = set([data['L'] for _, data in self.EDGES.items()])
+        for label in nlabels.union(elabels):
+            pass
+
+        pp((self.MUSIC))
 
     def set_affinity_data(self,
                           p_file_nm: str):
-        """Load all data from the affinity data workbook.
+        """Load all data from the data workbook.
            - Read its manifest tab to initialize TOPICS (T)
-           - Load the raw data into SHEETS data frames (S).
+           - Load the raw data into SHEETS (S) dataframes.
            - Parse each (S):
-             -- Fill out Nodes list
-             -- Fill out Edges list
-             -- Fill out Labels lists
-             -- Fill out Fields dictionary
-           - Load the Affinity dictionary
-
-        @DEV:
-           - Create an (A) affinity dataframe if needed
-           - Create the (G) graph.
+             -- Fill out Nodes (N) dict
+             -- Fill out Edges (E) dict
+             -- Fill out Fields (F) dict
+           - Generate graph data and draw a diagram.
 
         Args:
             p_file_nm (str): Name of spreadsheet in /config.
@@ -379,122 +585,5 @@ class GraphIO(object):
             self.set_edges(topic, s_df)
             self.set_labels(s_df)
             self.set_fields(topic, s_df)
-
-    def make_network_diagram(self,
-                             p_img_title: str):
-        """Generate a drawing from the Graph object.
-
-        :args:
-        - p_img_file_nm:    Name of the image file to save
-        - p_node_list (dict) - Labeled nodes to add to graph.
-                                {'label': ['list of node names'], ...}
-        - p_edgelist_path (str) - File containing a pair of connected nodes
-                                  on each line.
-        - p_edgelist (list) - List of tuples of connected nodes.
-        - p_w_edgelist_path (str) - File containing a pair of connected nodes
-                                    then a weighting number on each line.
-        - p_edgelist (list) - List of tuples of connected nodes and
-                              a weighting number.
-        - p_graph_data (dict) - Data to be visualized as a graph
-                                TBD -- placeholder for more complex inputs
-        - p_redis_data (tuple) - Key to data to be visualized.
-                                 Must in the form of:
-                                 (db_name, data_record_key)
-                                TBD -- placeholder for more complex inputs
-                                GUI metadata can be mapped as a DAG?
-        if p_nodelist is not None:
-            for label, nodes in p_nodelist.items():
-                self.G.add_nodes_from(nodes, label=label)
-        elif p_edgelist_path is not None:
-            self.G = nx.read_edgelist(p_w_edgelist_path)
-        elif p_edgelist is not None:
-            for pair in p_edgelist:
-                self.G.add_node(pair[0])
-                self.G.add_node(pair[1])
-                self.G.add_edge(pair[0], pair[1])
-        elif p_w_edgelist_path is not None:
-            self.G = nx.read_weighted_edgelist(p_w_edgelist_path)
-        elif p_w_edgelist is not None:
-            for pair in p_w_edgelist:
-                self.G.add_node(pair[0])
-                self.G.add_node(pair[1])
-                self.G.add_edge(pair[0], pair[1])
-                self.G.edges[pair[0], pair[1]]['weight'] = pair[2]
-        elif p_graph_data is not None:
-            pass
-        elif p_redis_data is not None:
-            db_data = RI.get_redis_data(p_redis_data[0], p_redis_data[1])
-            pp(("db_data", db_data))
-
-        self.make_network_diagram(p_img_title)
-        """
-        plt.figure(figsize=(10.0, 10.0))      # w, h in inches
-
-        pp(("G", self.G))
-
-        nx.draw_networkx(self.G, with_labels=True, font_weight='bold')
-        plt.title(p_img_title)
-        save_path = path.join(RI.get_app_path(),
-                              RI.get_config_value('save_path'),
-                              p_img_title.replace(" ", "_") + '.png')
-        plt.savefig(save_path)
-        print(f"Graph diagram saved to: {save_path}")
-
-    # ================ obsolete =======================================
-
-    def get_group_info(self):
-        """Return info about the raw group dataframe."""
-        pd.set_option('display.max_columns', None)
-        return pf((
-            f"\n{CI.txt.val_group}\n{CI.txt.val_ul}{self.TOPIC}\n\n",
-            f"Data Types\n{CI.txt.val_ul}\n{self.SHEETS.dtypes}\n\n",
-            f"Rows, Columns\n{CI.txt.val_ul}\n{self.SHEETS.shape}\n\n",
-            f"Sample Data\n{CI.txt.val_ul}\n{str(self.SHEETS.head())}"))
-
-    def make_test_diagram(self):
-        """Test with a simple default test graph.
-
-        :return:    Networkx graph
-        """
-        G = nx.Graph()
-        G.add_node('A')
-        G.add_nodes_from(['B', 'C'])
-        G.add_edge('A', 'B')
-        G.add_edges_from([('B', 'C'), ('A', 'C')])
-        return G
-
-    def get_image_path(self):
-        """Return full path to the current image file.
-
-        For now, only one image file is supported.
-        May want to extend this to handle multiple frames.
-
-        :return:    File URL str
-        """
-        return path.join(self.CACHE, self.img_file_nm)
-
-    def set_content(self,
-                    p_w_inches: float,
-                    p_h_inches: float,
-                    p_graph_title: str = ''):
-        """Refresh the graph contents.
-
-        :args:
-            p_w_inches:       Width of the graph in inches
-            p_h_inches:       Height of the graph in inches
-            p_graph_title:    Title of the graph
-
-        :sets:  self.img_file_nm
-
-        :return: tuple (Networkx graph, width, height, title)
-
-        Prototype method. The idea would be to call methods
-        or pass in structures that can define a graph.
-        """
-        self.img_file_nm = 'networkx.png'
-        g_width = p_w_inches if p_w_inches > 0.0 else 5.5
-        g_height = p_h_inches if p_w_inches > 0.0 else 2.0
-        g_title = self.img_file_nm \
-            if p_graph_title in ('', None) else p_graph_title
-        G = self.make_test_diagram()
-        return (G, g_width, g_height, g_title)
+        # self.set_graph_data(p_file_nm)
+        self.set_music_data()
