@@ -76,7 +76,6 @@ Regarding the musical part of it...
         - Store in app /sound directory.
 """
 
-# import matplotlib as mpl
 import matplotlib.pyplot as plt         # type: ignore
 import networkx as nx                   # type: ignore
 import pandas as pd                     # type: ignore
@@ -114,6 +113,7 @@ class GraphIO(object):
         self.FIELDS = dict()  # drop this if not needed
         self.MUSIC = dict()
         self.KEYS = dict()
+        self.CHORDS = dict()
         self.set_modes()
 
     @dataclass
@@ -132,21 +132,55 @@ class GraphIO(object):
         Bf: tuple = ('B♭', 'C', 'D', 'E♭', 'F', 'G', 'A')
         F: tuple = ('F', 'G', 'A', 'B♭', 'C', 'D', 'E')
 
+    @dataclass
+    class chord_progressions:
+        """Class for deriving chord progressions."""
+        roman: tuple = ('', 'I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii')
+        sad_happy_0: tuple = (4, ('ii', 'V', 'I'))
+        pop_short_0: tuple = (3, ('I', 'V', 'vi', 'IV'))
+        pop_short_2: tuple = (3, ('I', 'V', 'vi', 'ii'))
+        pop_short_3: tuple = (3, ('I', 'iii', 'vi', 'IV'))
+        pop_short_4: tuple = (3, ('I', 'iii', 'vi', 'ii'))
+        pop_long_0: tuple = (3, ('I', 'vi', 'IV', 'V'))
+        pop_long_1: tuple = (3, ('I', 'IV', 'vi', 'V'))
+        pop_long_2: tuple = (3, ('I', 'vi', 'ii', 'V'))
+        pop_long_3: tuple = (3, ('I', 'ii', 'vi', 'V'))
+        surprise_minor_0: tuple = (2, ('I', 'IV', 'I', 'IV', 'V'),
+                                   1, ('vi', 'V', 'IV', 'V'))
+        surprise_minor_1: tuple = (2, ('I', 'IV', 'I', 'IV'),
+                                   1, ('vi', 'IV', 'vi', 'IV'))
+        sad_ballad_0: tuple = (2, ('vi', 'IV', 'vi', 'IV',
+                                   'ii', 'V', 'IV', 'V'))
+        happy_chorus_0: tuple = (2, ('I', 'IV', 'I', 'IV',
+                                     'ii', 'V', 'vi', 'IV'))
+        moody_0: tuple = (3, ('I', 'iii', 'IV', 'V'))
+        moody_1: tuple = (3, ('I', 'iii', 'VI', 'IV'))
+        jazz_pop_0: tuple = (3, ('I', 'ii', 'iii', 'IV', 'V'))
+        connect_0: tuple = (2, ('I', 'V', 'vi', 'iii',
+                                'IV', 'I', 'IV', 'V'))
+        blues_0: tuple = (1, ('I', 'I', 'I', 'I'),
+                          1, ('IV', 'IV', 'I', 'I'),
+                          1, ('V', 'IV', 'I', 'V'))
+        blues_1: tuple = (1, ('I', 'IV', 'I', 'I'),
+                          1, ('IV', 'IV', 'I', 'I'),
+                          1, ('V', 'IV', 'I', 'V'))
+        blues_2: tuple = (1, ('I', 'I', 'I', 'I'),
+                          1, ('IV', 'IV', 'I', 'I'),
+                          1, ('V', 'IV', 'I', 'I'))
+
+    @dataclass
+    class time_signatures():
+        """Class for deriving time signatures."""
+        cut: str = "2/2"
+        march: str = "2/4"
+        waltz: str = "3/4"
+        common: str = "4/4"
+        rolling: str = "6/8"
+
     def set_modes(self):
-        """Populate key/mode data. Generate sets of minor keys.
-
-        Is this really correct? What I have called the natural minor keys
-        are actually the RELATIVE minor keys to the major keys, right?
-
-        Those also happen to be NATURAL minor keys (iirc) because they
-        follow the pattern for NATURAL minor keys. OK, OK, but I DO have
-        12 natural minor keys defined, one for every chromatic scale degree.
-
-        And based on that I have 12 harmonic and 12 melodic minor keys, one
-        for each chromatic scale degree. So I am good (though I don't have
-        the descending minor keys defined... and of course there are other
-        modes).
-
+        """Populate key/mode data.
+        Generate sets of minor keys.
+        Create a dictionary of chord progressions.
         """
         self.KEYS['fifths'] =\
             tuple(f.name.replace('f', '♭').replace('s', '♯')
@@ -171,6 +205,15 @@ class GraphIO(object):
                 self.KEYS['modes'][m[0]].append((dg[5] + "m", tuple(m[1])))
         for m in (nstr, hstr, estr):
             self.KEYS['modes'][m] = tuple(self.KEYS['modes'][m])
+        self.CHORDS = {f.name: f.default
+                       for f in fields(self.chord_progressions)}
+        self.BEATS = {f.name: f.default
+                      for f in fields(self.time_signatures)}
+
+    def set_chords(self):
+        """Populate chords data. Generate sets of lead sheets.
+        """
+        pass
 
     def get_sheet_data(self,
                        p_file_path: str,
@@ -522,48 +565,269 @@ class GraphIO(object):
         # Hmmm... something goes wrong when I write to file
         # Was displaing nicely using plt.show()
 
+        # Also want to consider saving the graph data so
+        # it doesn't have to be recreated each time.
+
         plt.savefig(save_path)
         print(f"Graph diagram saved to: {save_path}")
 
-    def set_music_data(self):
-        """Generate music data from the graph data.
-           Try to set it up to be flexible, based on parsing
-           the graph data, not hard-coding associations.
+    def set_keys_for_topics(self):
+        """Assign a key/mode/scale to each Topic.
+           Will work out permitted, suggested modulations later.
 
-           Assign a key signature/mode to each Topic.
-           Work out permitted/suggested modulations later.
-           Actual key signature can always be derived from the scale.
+           @DEV:
+            - Derieve score key signature from the scale.
 
-           @ TODO:
-           Assign a 3-line, 12-bar chord progression to each Label
-           with a given pattern -- like 12-bar blues [I I I I IV IV I I V IV I V].
-           Associate each degree with corresponding major, minor, diminished chords.
-           Have a randomization or smart algorithm that picks 7 chords.
-           Another one that picks inverted chords.
+        :sets:
+        - (class attribute): self.MUSIC['keys']
         """
-        # pp((self.KEYS))
         self.MUSIC['keys'] = dict()
-        # Get list of unique topic names
         for topic in set([data['T'] for _, data in self.NODES.items()]):
-            # Randomly select a mode
             modes = list(self.KEYS["modes"].keys())
             mode = modes[random.randint(0, len(modes) - 1)]
-            # Randomly select a key/scale
             knum = random.randint(0, 11)
             key = self.KEYS["modes"][mode][knum][0]
             scale = self.KEYS["modes"][mode][knum][1]
-            # Maybe I am using "key" a bit loosely.
-            # It is actually the specific scale in a mode, right?
             self.MUSIC['keys'][topic] =\
                 {'mode': mode, 'key': key, 'scale': scale}
 
-        # Assembled list of unique label names
+    def set_chords_for_labels(self):
+        """Assign mood/chord progression pattern to each Label.
+           Will work out notes, specific chords, durations later,
+           specific to each node.
+
+        :sets:
+        - (class attribute): self.MUSIC['chords']
+        """
+        self.MUSIC['chords'] = dict()
         nlabels = set([data['L'] for _, data in self.NODES.items()])
         elabels = set([data['L'] for _, data in self.EDGES.items()])
         for label in nlabels.union(elabels):
-            pass
+            chords = list(self.CHORDS.keys())
+            chord_nm = chords[random.randint(0, len(chords) - 1)]
+            chord = self.CHORDS[chord_nm]
+            self.MUSIC['chords'][label] = {'mood': chord_nm, 'chords': chord}
 
-        pp((self.MUSIC))
+    def init_scores_for_nodes(self):
+        """Initialize data for generating scores for each node
+           based on the Topic and Label of each Node.
+           Details are handled in subsequent functions.
+
+        :sets:
+        - (class attribute): self.MUSIC['scores']
+        """
+        self.MUSIC['scores'] = dict()
+        for nid, ndata in self.NODES.items():
+            self.MUSIC['scores'][nid] =\
+                {'mode': self.MUSIC['keys'][ndata['T']]['mode'],
+                 'key': self.MUSIC['keys'][ndata['T']]['key'],
+                 'scale': self.MUSIC['keys'][ndata['T']]['scale'],
+                 'chords': self.MUSIC['chords'][ndata['L']]['chords'],
+                 'notes': []}
+
+    def set_time_signatures(self):
+        """A context is defined by set of node values whose labels
+        are in the same set, like ["region", "province", "town"].
+        Any node on the path of one of those nodes would get that
+        node's time signature. If the node in not in such a path,
+        then assign a default.
+
+        Select time signature based on such context for each node.
+
+        Pick a time signature: 4/4, 3/4, 6/8, 2/4, .. for nodes whose
+        label is in: ["region", "province", "town"] (or ...).
+        Would be nice to assign for all nodes in a sub-graph of a
+        given "geographical" label too.
+        But let's don't go down that rabbit-hole right now. ;-)
+
+        Assign beats per chords for the label.
+
+        For other labels (that is, eventually, for nodes not in an
+        identified sub-graph), just pick a time signature randomly.
+
+        :sets:
+        - (class attribute): self.MUSIC[<Node ID>]['time_signatures']
+        """
+        for nid, ndata in self.NODES.items():
+            if ndata['F'] in [{'n_geo_pol_ty': 'province'},
+                              {'n_geo_pol_ty': 'region'},
+                              {'n_geo_pol_ty': 'town'}]:
+                self.MUSIC['scores'][nid]['time_sig'] = self.BEATS['common']
+            else:
+                beat = list(self.BEATS.keys())[random.randint(
+                    0, len(self.BEATS.keys()) - 1)]
+                self.MUSIC['scores'][nid]['time_sig'] = self.BEATS[beat]
+
+    def set_number_of_bars(self):
+        """Set the number of bars for each node.
+           Example of chords:
+            (2, ('I', 'IV', 'I', 'IV'), 1, ('vi', 'IV', 'vi', 'IV'))
+            (3, ('I', 'ii', 'vi', 'V'))
+           Number of bars = sum of (each chord item's length X multiplier)
+
+        :set:
+        - (class attribute): self.MUSIC['scores'][<Node ID>]['bars']
+        """
+        for nid, music in self.MUSIC['scores'].items():
+            bars = 0
+            for ix, cdata in enumerate(music["chords"]):
+                if ix % 2 == 0:
+                    mult = cdata
+                else:
+                    bars += mult * len(cdata)
+            self.MUSIC['scores'][nid]['bars'] = bars
+
+    def set_relative_key(self):
+        """Set relative key for each node/score.
+
+        If it is a major key, then relative minor is the 6th degree.
+        Randomly choose one of the 3 minor keys to use (don't assume
+        it has to be the natural minor.)
+
+        If it is a minor key, then relative major is the 3rd degree.
+        """
+        def get_scale(p_mode, p_key):
+            for m in p_mode:
+                if m[0] == p_key:
+                    return(m[1])
+
+        for nid, music in self.MUSIC['scores'].items():
+            if music['mode'] == 'major':
+                mode =\
+                    random.choice(['harmonic', 'melodic', 'natural']) +\
+                    " minor"
+                key = music['scale'][5] + "m"
+            else:
+                mode = "major"
+                key = music['scale'][2]
+                if key == "F♯":
+                    key = "G♭"
+            self.MUSIC['scores'][nid]['key_relative'] =\
+                (mode, key, get_scale(self.KEYS["modes"][mode], key))
+
+    def set_neighbor_keys(self):
+        """Set keys that are a Fifth from key for each node/score.
+        For the selected mode, pick the next key and the previous key.
+        """
+        for nid, music in self.MUSIC['scores'].items():
+            mode = self.KEYS['modes'][music['mode']]
+            mode_ix = mode.index((music['key'], (music['scale'])))
+            n1 = mode_ix + 1 if mode_ix < len(mode) - 1 else 0
+            n2 = mode_ix - 1 if mode_ix > 0 else len(mode) - 1
+            self.MUSIC['scores'][nid]['key_neighbors'] =\
+                (mode[n1], mode[n2])
+            # clean up / consolidate the key data
+            self.MUSIC['scores'][nid]['key'] =\
+                (music['mode'], music['key'], music['scale'])
+            del(self.MUSIC['scores'][nid]['scale'])
+            del(self.MUSIC['scores'][nid]['mode'])
+
+    def set_melodic_patterns(self):
+        """
+        Mix it up randomly but include patterns like:
+        - Ordered patterns (asecnding, descending) for first 8 bars
+        - Surprise pattern (bigger steps) for last 4 bars
+        - Start/End with tonic or relative minor/relative major tonic
+
+        To start out with, we'll define the patterns like this:
+        - asc: go up in thirds or fifths or dominant 7ths
+        - desc: go down in thirds or fifths or dominant 7ths
+        - steady: go up or down or same in seconds or thirds
+        - tonic: use notes in tonic chord of main or relative key
+        """
+        for nid, music in self.MUSIC['scores'].items():
+            count_types = ["asc", "desc", "steady"]
+            cnt = dict()
+            pattern = []
+            for ct in count_types:
+                cnt[ct] = 0
+            for bar in range(1, music['bars'] + 1):
+                if bar == 1:
+                    pattern.append("tonic")
+                elif bar < int(music['bars'] * .67):
+                    pat = random.choice(count_types)
+                    pattern.append(pat)
+                    cnt[pat] += 1
+                elif bar < music['bars']:
+                    surprise_cnt = music['bars']
+                    for cp, ct in cnt.items():
+                        if ct < surprise_cnt:
+                            surprise_cnt = ct
+                            pat = cp
+                    pattern.append(pat)
+                    cnt[pat] += 1
+                else:
+                    pattern.append("tonic")
+            self.MUSIC['scores'][nid]['bars'] = (music['bars'], tuple(pattern))
+
+    def set_chords_for_bars(self):
+        """
+        """
+        pass
+
+    def set_notes_for_bars(self):
+        """
+        """
+        pass
+
+    def set_notes_for_nodes(self):
+        """Assign notes to each bar according to the time signature.
+
+        Associate each degree of the chord progression with major, minor,
+        or diminished chord based on the key and its nearest neighbors
+        (modulation candidates). Pick diatonic tritone, inverted-1st,
+        inverted-2nd, 7th, harmonic or melodic.
+
+        Assign notes, within the selected chord, to each bar, using
+        the guard-rails defined by the patterns, and with durations
+        appropriate to the time signature.
+        """
+        self.set_number_of_bars()
+        self.set_relative_key()
+        self.set_neighbor_keys()
+        self.set_melodic_patterns()
+        # @DEV -- pick up here...
+        self.set_chords_for_bars()
+        self.set_notes_for_bars()
+
+    def set_tempo_for_scores(self):
+        """Thinking to tie tempo to Event associated with Node in the
+        game timeline.
+
+        Events are part of saskan ontology (or will be) but are not
+        defined in the "places_data" file.  Each main sub-class of data
+        (see original ER diagram) can be expressed as graph data.
+        Game setup can include generating musical framework for all
+        graphed data.  For now, just simulate music parts where graphed
+        data not defined.
+
+        Tempo: slow, medium, fast, etc., use Italian if you like, but
+        really expressed as BPM in the notation, then translated to
+        appropriate MIDI instructions either by me or offline apps
+        (MuseScore, etc.). Default if no Event detected.
+
+        Simulate this for now.
+        """
+        pass
+
+    def set_music_data(self):
+        """Generate music data from the graph data.
+        Try to set it up to be flexible, based on parsing
+        the graph data, not hard-coding associations.
+
+        May want to move this to another class.
+
+        @DEV:
+        Also consider algorithms to define dynamics.
+        """
+        self.set_keys_for_topics()
+        self.set_chords_for_labels()
+        self.init_scores_for_nodes()
+        self.set_time_signatures()
+        self.set_notes_for_nodes()
+        self.set_tempo_for_scores()
+
+        pp((self.MUSIC['scores']))
 
     def set_affinity_data(self,
                           p_file_nm: str):
@@ -586,4 +850,10 @@ class GraphIO(object):
             self.set_labels(s_df)
             self.set_fields(topic, s_df)
         # self.set_graph_data(p_file_nm)
+
+        # Set up framework for music data,
+        # assigning keys to topics,
+        # progressions to labels, etc.
         self.set_music_data()
+        # Then generate a specific score for specific nodes.
+        # (Maybe edges too, but let's start with nodes.)
