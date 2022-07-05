@@ -785,111 +785,190 @@ class GraphIO(object):
             pat_cnt[pat] += 1
         self.MUSIC['scores'][nid]['chords']['pattern'] = pat_list
 
-    def set_pitch(self,
-                  m: int,
-                  n: int,
-                  chords: dict,
-                  rhythm: dict,
-                  bar_keys: dict,
-                  pattern: list,
-                  tonic_root: str):
-        """Set pitch for each beat within a measure.
+    def set_beat_chord(self,
+                       m: int,
+                       n: int,
+                       chords: dict,
+                       rhythm: dict,
+                       bar_keys: dict,
+                       pattern: list,
+                       tonic_root: str):
+        """Set chord for each beat within a measure.
 
-        Decide what kind of pitch to play on the beat:
+        Decide which chord to play on the beat:
             from main, relative, or a neighboring scale
         """
-        pitch = "?"
+        cord = "?"
         rp = random.randint(0, 100)
         if rp < 60 or (pattern == "tonic" and n == 1) or\
             ((m + 1) == len(chords['bars']) and
                 n == rhythm['measure']):
-            pitch = [tonic_root]
+            cord = [tonic_root]
         elif rp < 80:
-            pitch = [bar_keys['relative']]
+            cord = [bar_keys['relative']]
         elif rp < 90:
-            pitch = [bar_keys['mod_left']]
+            cord = [bar_keys['mod_left']]
         else:
-            pitch = [bar_keys['mod_right']]
-        return pitch
+            cord = [bar_keys['mod_right']]
+        return cord
 
-    def set_rhythm(self,
-                   rhythm: dict,):
+    def set_beat_rhythm(self,
+                        rhythm: dict,):
         """Set rhythm, in the sense of how many notes to
-        play, for a given beat. We are not yet assigning
-        specific pitches, not even rest/not-rest. So, like...
-        - One beat.
-        - Two beats of equal duration.
-        - Tuple (special case) -- 3 or more beats of equal duration.
-        -  This can be any intger. But let's limit it to 6.
-        - or
+        play, of what duration, for a given beat.
+        Not yet assigning specific pitches or rests.
+
+        This is a Monte Carlo shuffle with filters and retries.
+
+        Result will be like...
+        - One beat, or
+        - Two beats of equal duration, or
+        - Tuple -- 3, 5 or 7 beats of equal duration, or
         - Some combination of beats not of equal duration, but
           which "add up" to one complete beat.
-        - We document the rhythm pattern with a list of integer / character
-          tuples, like for a 4/4 time signature, we might see:
+
+        Document the rhythm pattern with a list of integer / character
+        tuples. For a 4/4 time signature, we might see:
           - [(4, 'q')]
           - [(8, 'e'), (8, 'e')]
           - [(8., 'e.'), (16, 's')]
           - [(16, 's'), (16, 's'), (16, 's'), (16, 's')]
-        - Tuples (for 3, 5 and 7 only) are indicated with a 't'
-          and a notation showing the basic beat note over the tuple:
+        - Indicate musical tuples (like triplets) with a 't'
+          and a notation showing the beat note over the tuple count:
           - [(4/3, 't')]
-        - Dotted notes have a dot after both the note and the char:
+        - For dotted notes put a dot after both the note and the char:
           - [(8., 'e.'), (16, 's')]
-          - It's possible to come up with a total less than a full beat.
+          - It's possible to come up with a total less than a full beat,
+            but that will be very rare due the backtracking and retries.
+
+        Eventually will reduce the verbosity of the info returned but
+        helpful for debugging.
         """
-        beats = {i: (n, rhythm['beat'] / i) for i, n in
-                 {1: 'w', 2: 'h', 4: 'q', 8: 'e', 16: 's', 32: 'y'}.items()
-                 if i >= rhythm['beat']}
-        # so 'beats' now tells us:
-        # - what is the "natural" beat note, according to time sig?
-        # -  it is the first note in the dict
-        # -  in lilypond notation, it is the index, like 4 means quarter note
-        # -  to help with debugging, I also have a single character like 'q'
-        # -  and if used, then it takes up 1/1 = 100% of the beat
-        # - Only notes that are "smaller" than the natural beat are allowed
-        # -  If any of them are used, then the natural note cannot be used
-        # -  index and character = note type, e.g., 8 = eighth note ('e')
-        # -  It duration is 0.5 if 4('q') is the natural note. In other words,
-        # -   it "uses up" half the duration of the total beat.
-        # - And so on. Presently I am ignoring 32nd, 64th, or 128th notes.
-        # - The algorithm must "use up" the entire beat by composing a
-        # -   set of beats using this collection that adds up to 1.0.
-        # - Note that we are not assigning pitches yet. For the sake of
-        #     readability, probably want to use both the numeric (indtex) and
-        #     the character versions of the beats.
-        # - Also allow for tuples up the six pulses and for dotted notes.
-        total_beat = 0.0
-        beat_notes = list()
-        break_me = 0
-        while total_beat < 1.0:
-            break_me += 1
-            if total_beat == 0.0 and random.randint(0, 100) < 12:
-                # Assign a musical tuple as a division of the natural beat.
-                # This can only be done once within the beat.
-                total_beat = 1.0
-                beat_notes.append(
-                    (f"{rhythm['beat']}/{random.choice([3, 5, 7])}", 't'))
+        def assign_tuple(
+                rhythm_beat: int,
+                beat_notes: list):
+            """Assign a musical tuple as a division of the natural beat.
+               This can only be done once within the beat."""
+            beat_notes.append(
+                (f"{rhythm_beat}/{random.choice([3, 5, 7])}", 't'))
+            return 1.0, beat_notes
+
+        def assign_beat_note(total_beat: float,
+                             beat_keys: list):
+            """If at start of looping, bend in favor of longer notes.
+            If nearer to end of looping, bend in favor or shorter notes.
+            """
+            if total_beat > 0.8:
+                beat = random.choice(beat_keys[len(beat_keys) - 3:])
             else:
                 if random.randint(0, 100) > 32:
-                    # bend in favor of longer notes
-                    beat = random.choice(list(beats.keys())[:2])
+                    beat = random.choice(beat_keys[:2])
                 else:
-                    beat = random.choice(list(beats.keys()))
-                # use dotted notes sparingly
-                dot = True if random.randint(0, 100) < 23 else False
-                duration = beats[beat][1]
-                if dot:
-                    duration += (duration * 0.5)
-                if total_beat + duration <= 1.0:
-                    total_beat += duration
-                    if dot:
-                        beat_notes.append((f"{beat}.", beats[beat][0] + '.'))
-                    else:
-                        beat_notes.append((str(beat), beats[beat][0]))
-            if break_me > 500:
-                break
+                    beat = random.choice(beat_keys)
+            return beat
 
-        pp(("beat_notes", beat_notes, 'total_beat', total_beat))
+        def assign_dot(duration):
+            """Assign dotted notes sparingly."""
+            dot = True if random.randint(0, 100) < 23 else False
+            if dot:
+                duration += (duration * 0.5)
+            return (dot, duration)
+
+        # ===== set_beat_rhythm() main =========
+        beats = {i: (n, rhythm['beat'] / i) for i, n in
+                 {1: 'w', 2: 'h', 4: 'q', 8: 'e',
+                  16: 's', 32: 'y', 64: 'z'}.items()
+                 if i >= rhythm['beat']}
+        try_again = True
+        tries = 0
+        while try_again is True:
+            total_beat = 0.0
+            break_me = 0
+            beat_notes = list()
+            while total_beat < 1.0:
+                if total_beat == 0.0 and random.randint(0, 100) < 12:
+                    total_beat, beat_notes =\
+                        assign_tuple(rhythm['beat'], beat_notes)
+                else:
+                    beat = assign_beat_note(total_beat, list(beats.keys()))
+                    dot, duration = assign_dot(beats[beat][1])
+                    if total_beat + duration <= 1.0:
+                        total_beat += duration
+                        if dot:
+                            beat_notes.append(
+                                (f"{beat}.", beats[beat][0] + '.'))
+                        else:
+                            beat_notes.append((str(beat), beats[beat][0]))
+                break_me += 1
+                if break_me > 100:
+                    break
+            if total_beat == 1.0 or tries > 9:
+                try_again = False
+        if total_beat != 1.0:
+            print("Warning: set_beat_rhythm() failed to assign a full beat." +
+                  f"\nBeats: {beat_notes} = {total_beat}")
+        return beat_notes
+
+    def set_pitch_range(self,
+                        chord: str):
+        """Set range of pitches to use within the beat.
+        """
+
+        def assign_octave_range():
+            """Assign octave range for a given pitch.
+            Choose range of pitches relating to octaves:
+            - Closed, stay within tonic4 to tonic5, more or less
+            - Open, range within tonic3 to tonic6, more or less.
+            """
+            min_o = 4
+            max_o = 5
+            if random.randint(0, 100) < 33:
+                min_o -= 1
+            if random.randint(0, 100) < 33:
+                max_o += 1
+            if random.randint(0, 100) < 16:
+                min_o -= 1
+            if random.randint(0, 100) < 16:
+                max_o += 1
+            return (min_o, max_o)
+
+        def assign_pitches(min_o: int,
+                           max_o: int,
+                           chord: str):
+            """Identify pitches for chord and octaves being processed.
+            - Tonic, 2nd, 3rd, 4th, 5th, 6th, 7th, Octave
+            - Which we get from self.KEYS['modes']:
+              - If chord is not in 'major' mode, then add an 'm' to chord
+                and look randomly in one of the 3 minor modes.
+            - Based on range, expand the notes available for the chord,
+              notating what octave each note is in.
+            We are not yet associating a pitch with a beat, just
+            assembling what range of pitches to work with in the beat."""
+            chord = "G♭" if chord == "F♯" else chord
+            beat_scale = list()
+            pitches = list()
+            modes: dict = self.KEYS['modes']
+            if chord in [scale[0] for scale in modes['major']]:
+                beat_scale = [scale[1] for scale in modes['major']
+                              if scale[0] == chord]
+            else:
+                for minor in [m for m in list(modes.keys()) if m != 'major']:
+                    if (chord + 'm') in [scale[0] for scale in modes[minor]]:
+                        beat_scale = [scale[1] for scale in modes[minor]
+                                      if scale[0] == (chord + 'm')]
+                        break
+            for o in range(min_o, max_o + 1):
+                for p in beat_scale:
+                    scale = list()
+                    for n in p:
+                        scale.append(f"{n}{o}")
+                    pitches.append(tuple(scale))
+            return pitches
+
+        # =============== set_pitch_range() main =========
+        min_o, max_o = assign_octave_range()
+        pitches = assign_pitches(min_o, max_o, chord)
+        return pitches
 
     def set_notes(self,
                   m: int,
@@ -957,12 +1036,25 @@ class GraphIO(object):
         - default octave is middle C (C4) for treble, bass C (C3) for bass
         - relative octave changes --> commas (,) and apostrophes (')
         - rests are represented by the letter r (r, r4, r8, r16, r32)
+
+        @DEV / DEBUG
+        In some cases, notes is coming back emmpty = {}.
+        Not sure why. Suspect something with the measures index/count in
+        set_bars()?
+        May want to review that later rather than stopping here.
+        I am not seeing any cases where this method returns an empty dict.
         """
         notes = {}
         for n in range(1, rhythm['measure'] + 1):
-            notes[n] = self.set_pitch(m, n, chords, rhythm, bar_keys,
-                                      pattern, tonic_root)
-            notes[n].append(self.set_rhythm(rhythm))
+            notes[n] = self.set_beat_chord(m, n, chords, rhythm, bar_keys,
+                                           pattern, tonic_root)
+            notes[n].append(self.set_beat_rhythm(rhythm))
+            notes[n].append(self.set_pitch_range(notes[n][0]))
+
+        # pp(("notes", notes))
+        # if notes == {}:
+        #     print("notes is empty!!")
+
         return notes
 
     def set_bars(self,
@@ -979,17 +1071,20 @@ class GraphIO(object):
         for b in range(1, chords['bars_in_phrase'] + 1):
             bar_keys = {}
             try:
-                d = self.ROMAN['order'].index(chords['bars'][m])
-            except:      # noqa: E722
+                d = self.ROMAN['order'].index(chords['bars'][m - 1])
+            except IndexError:
                 pp(("index out of range",
-                    chords['bars'][m]), self.ROMAN['order'])
+                    "m: ", m,
+                    "len(chords['bars'])", len(chords['bars']),
+                    "self.ROMAN['order']", self.ROMAN['order']))
+                pp(("chords['bars'][m - 1]", chords['bars'][m - 1]))
             for k in list(key_scales.keys()):
                 sk = list(key_scales[k].keys())[0]
                 bar_keys[k] = key_scales[k][sk][d]
-            pattern = chords['pattern'][m]
-            bars[(b, m + 1)] =\
+            pattern = chords['pattern'][m - 1]
+            bars[(b, m)] =\
                 {"pattern": pattern,
-                 "degree": chords['bars'][m],
+                 "degree": chords['bars'][m - 1],
                  "keys": bar_keys,
                  "chords": self.set_notes(m, chords, rhythm, bar_keys,
                                           pattern, tonic_root)}
