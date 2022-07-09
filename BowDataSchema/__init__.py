@@ -3,6 +3,7 @@
 from io_config import ConfigIO  # type: ignore
 from io_file import FileIO  # type: ignore
 from io_graphs import GraphIO  # type: ignore
+from io_music import MusicIO  # type: ignore
 from io_redis import RedisIO  # type: ignore
 from io_shell import ShellIO # type: ignore
 from io_wiretap import WireTap # type: ignore

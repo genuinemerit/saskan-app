@@ -1,6 +1,6 @@
 #!python
 """
-:module:    se_diagram_wdg.py
+:module:    io_graphs.py
 
 :author:    GM (genuinemerit @ pm.me)
 
@@ -79,6 +79,7 @@ Regarding the musical part of it...
 import matplotlib.pyplot as plt         # type: ignore
 import networkx as nx                   # type: ignore
 import pandas as pd                     # type: ignore
+import pickle
 import random
 
 from copy import copy
@@ -110,7 +111,7 @@ class GraphIO(object):
         self.SHEETS = dict()
         self.NODES = dict()
         self.EDGES = dict()
-        self.FIELDS = dict()  # drop this if not needed
+
         self.MUSIC = dict()
         self.KEYS = dict()
         self.CHORDS = dict()
@@ -365,24 +366,6 @@ class GraphIO(object):
                 self.EDGES[tuple(v_list[:2])]['L'] = v_list[2]
                 self.EDGES[(v_list[1], v_list[0])]['L'] = v_list[2]
 
-    def gather_fields(self,
-                      n_or_e: str,
-                      p_label: str,
-                      p_fields: list):
-        """Gather ontology (field list) from given label.
-
-        :args:
-        - n_or_e (str): "N" or "E" (Node or Edge)
-        - p_label (str): Label being processed.
-        - p_fields (list): List of field names for the label.
-        :sets:
-        - (class attribute): FIELDS
-        """
-        if n_or_e not in self.FIELDS.keys():
-            self.FIELDS[n_or_e] = dict()
-        if p_label not in self.FIELDS[n_or_e].keys():
-            self.FIELDS[n_or_e][p_label] = p_fields
-
     def gather_node_fields(self,
                            p_topic: str,
                            node_df: DataFrame):
@@ -408,7 +391,6 @@ class GraphIO(object):
                     lbl_df = lbl_df.dropna(axis=1, how='all')
                     if not lbl_df.empty:
                         fields = lbl_df.columns.values.tolist()
-                        self.gather_fields("N", n_lbl, fields)
                         self.NODES[n_nm]["F"] = dict()
                         value_row = node_df.loc[node_df['n_name'] == n_nm]
                         if not value_row.empty:
@@ -444,7 +426,6 @@ class GraphIO(object):
                     lbl_df = lbl_df.dropna(axis=1, how='all')
                     if not lbl_df.empty:
                         fields = lbl_df.columns.values.tolist()
-                        self.gather_fields("E", e_lbl, fields)
                         self.EDGES[e_nm]["F"] = dict()
                         value_row = edge_df.loc[
                             (edge_df[f'{p_d}_label'] == e_lbl) &
@@ -469,7 +450,7 @@ class GraphIO(object):
             - p_topic (str): Name of sheet
             - s_df (dataframe): Raw sheet dataframe.
             :sets:
-            - (class attribute): FIELDS
+            - (class attribute): NODES, EDGES
 
         """
         self.gather_node_fields(p_topic,
@@ -481,18 +462,21 @@ class GraphIO(object):
                                 s_df.iloc[:, s_df.columns.get_loc('D2') + 1:
                                           s_df.columns.get_loc('D1')])
 
-    def set_graph_data(self,
-                       p_file_nm: str):
-        """Organize data so that networkx can use it.
-        Then create a digaram using matplotlib.
+    def get_graph_object(self,
+                         p_save_nm: str):
+        """Unpickle saved networkx data object
 
-        :args:
-        - p_file_nm (str): Name of the file being processed.
+        :return: (obj) G, the networkx graph object.
+        """
+        with open(p_save_nm + ".pickle", 'rb') as f:
+            G = pickle.load(f)
+        return G
 
-        :writes:
-        - (file): image file of graph diagram
+    def draw_graph_diagram(self,
+                           p_save_nm: str,):
+        """Construct a graph diagram based on graph data.
 
-        @DEV:
+        @DEV / TODO:
         - Zillions of options here!
         - The networkx Gallery is good place to start, explore:
           https://networkx.org/documentation/stable/auto_examples/index.html
@@ -510,28 +494,27 @@ class GraphIO(object):
         - See workshops and notebooks on data visualization. bokeh, seaborn,
           graphviz, etc.  I am also intrigued about generating 3D data that
           could be rendered using blender maybe?
-        """
-        p_img_title = p_file_nm.split(".")[0].replace(" ", "_") + ".png"
-        plt.title(p_img_title)
-        G = nx.MultiDiGraph()
-        G.add_nodes_from(list(self.NODES.keys()))
-        G.add_edges_from(list(self.EDGES.keys()))
-        pos = nx.spring_layout(G, seed=13648)
-        # pos = nx.kamada_kawai_layout(G)
-        N = G.number_of_nodes()
-        M = G.number_of_edges()
-        print(f"Nodes: {N} Edges: {M}")
-        print("Degrees:")
-        pp((sorted([(dg[1], dg[0]) for dg in nx.degree(G)], reverse=True)))
+        - For now, focus on getting the data saved and making a graph
+          that can be exported/saved as a file.
+
+        # TODO:
         # Modify node sizes based on degree and type.
         # Modify node color based on topic, type, etc.
         # Look at the reference. Can set qualities on a subset of items.
         # Can also generate sub-graphs, graphs with only selected nodes.
-        node_sizes = [3 + 10 * i for i in range(N)]
         # Likewise, set edge color based on label.
-        edge_colors = range(2, M + 2)
-        # edge_alphas = [(5 + i) / (M + 4) for i in range(M)]
+        # Eventually prob want to use Redis instead of file system for
+        # "saved" data files.
+        """
+        G = self.get_graph_object(p_save_nm)
+        pos = nx.spring_layout(G, seed=13648)
+        # pos = nx.kamada_kawai_layout(G)
+        node_sizes = [3 + 10 * i for i in range(G.number_of_nodes())]
+        edge_colors = range(2, G.number_of_edges() + 2)
+        plt.title(p_save_nm + ".png")
         cmap = plt.cm.plasma
+        ax = plt.gca()
+        ax.set_axis_off()
         nx.draw_networkx_nodes(G, pos,
                                linewidths=1,
                                edgecolors='blue',
@@ -544,45 +527,80 @@ class GraphIO(object):
                                width=2)
         nx.draw_networkx_labels(G, pos,
                                 font_size=9,
-                                # font_weight='bold',
                                 font_color='indigo',
                                 verticalalignment="top")
         e_labels = {k: v["L"] for k, v in self.EDGES.items()}
         nx.draw_networkx_edge_labels(G, pos,
                                      edge_labels=e_labels,
                                      font_size=6)
-        # for i in range(M):
-        #     attrs = {list(self.EDGES.keys())[i]: {"alpha": edge_alphas[i]}}
-        # nx.set_edge_attributes(G, attrs)
-        ax = plt.gca()
-        ax.set_axis_off()
+        plt.show()
 
-        # plt.show()
+        # Hmmm... something goes wrong when I try to write to file
+        # Just get a blank page.
+        # Displays fine using plt.show() and can save from there to
+        #  a .PNG file no problem.
 
-        plt.figure(figsize=(30.0, 30.0))      # w, h in inches
-        # options = {'font_size': 8,
-        #           'node_size': 500,
-        #           'node_color': 'blue',
-        #           'edgecolors': 'black',
-        #           'linewidths': 2}
-        # nx.draw_networkx(G, pos=nx.spring_layout(G), **options)
-        # nx.draw_networkx(G, with_labels=True, font_weight='normal')
-        # ax = plt.gca()
-        ax.margins(0.20)
-        # plt.axis("off")
-        # plt.show()
-        save_path = path.join(RI.get_app_path(),
-                              RI.get_config_value('save_path'),
-                              p_img_title)
+        # plt.figure(figsize=(30.0, 30.0))      # w, h in inches
+        # plt.figure()
+        # plt.savefig(save_nm + ".png")
+        # print(f"Graph diagram saved to: {save_nm} + .png")
 
-        # Hmmm... something goes wrong when I write to file
-        # Was displaing nicely using plt.show()
+    def write_graph_data_report(self,
+                                p_save_nm: str,):
+        """Write a report of the graph data to a file.
 
-        # Also want to consider saving the graph data so
-        # it doesn't have to be recreated each time.
+        Example of a useful report:
+            - Nodes sorted by degree
+        :args:
+        - p_save_nm (str): Full path and name to use for related files.
 
-        plt.savefig(save_path)
-        print(f"Graph diagram saved to: {save_path}")
+        :writes:
+        - (file): picked object file of graph data
+        """
+        G = self.get_graph_object(p_save_nm)
+        degrees_csv = "Degrees , Node\n"
+        for dg in sorted([(dg[1], dg[0])
+                          for dg in nx.degree(G)], reverse=True):
+            degrees_csv += f"{dg[0]}, {dg[1]}\n"
+        with open(p_save_nm + "_degrees.csv", 'wb') as obj_file:
+            obj_file.write(degrees_csv.encode('utf-8'))
+            obj_file.close()
+        print(f"Degrees data saved to: {p_save_nm} + _degrees.csv")
+
+    def set_graph_data(self,
+                       p_file_nm: str):
+        """Organize data so that networkx can use it.
+        Save the data object to a pickled file.
+        Save the NODE and EDGES data too.
+
+        :args:
+        - p_file_nm (str): Name of the file being processed.
+
+        :writes:
+        - (file): pickled object file of graph data
+
+        :returns:
+        - (str): Full path and name to use for related files.
+        """
+        graph_nm = p_file_nm.split(".")[0].replace(" ", "_")
+        save_nm = path.join(RI.get_app_path(),
+                            RI.get_config_value('save_path'),
+                            graph_nm)
+        G = nx.MultiDiGraph()
+        G.add_nodes_from(list(self.NODES.keys()))
+        G.add_edges_from(list(self.EDGES.keys()))
+        with open(save_nm + ".pickle", 'wb') as obj_file:
+            pickle.dump(G, obj_file)
+        print(f"Graph data object pickled to: {save_nm} + .pickle")
+
+        with open(save_nm + "_nodes.pickle", 'wb') as nodes_file:
+            pickle.dump(self.NODES, nodes_file)
+        print(f"NODES data pickled to: {save_nm} + _nodes.pickle")
+
+        with open(save_nm + "_edges.pickle", 'wb') as edges_file:
+            pickle.dump(self.EDGES, edges_file)
+        print(f"EDGES data pickled to: {save_nm} + _edges.pickle")
+        return save_nm
 
     def set_scales_for_topics(self):
         """Assign a key/mode/scale to each Topic.
@@ -798,7 +816,7 @@ class GraphIO(object):
         Decide which chord to play on the beat:
             from main, relative, or a neighboring scale
         """
-        cord = "?"
+        cord = list()
         rp = random.randint(0, 100)
         if rp < 60 or (pattern == "tonic" and n == 1) or\
             ((m + 1) == len(chords['bars']) and
@@ -879,12 +897,12 @@ class GraphIO(object):
                  {1: 'w', 2: 'h', 4: 'q', 8: 'e',
                   16: 's', 32: 'y', 64: 'z'}.items()
                  if i >= rhythm['beat']}
-        try_again = True
-        tries = 0
+        try_again: bool = True
+        tries: int = 0
         while try_again is True:
-            total_beat = 0.0
-            break_me = 0
-            beat_notes = list()
+            total_beat: float = 0.0
+            break_me: int = 0
+            beat_notes: list = list()
             while total_beat < 1.0:
                 if total_beat == 0.0 and random.randint(0, 100) < 12:
                     total_beat, beat_notes =\
@@ -942,8 +960,13 @@ class GraphIO(object):
                 and look randomly in one of the 3 minor modes.
             - Based on range, expand the notes available for the chord,
               notating what octave each note is in.
-            We are not yet associating a pitch with a beat, just
-            assembling what range of pitches to work with in the beat."""
+            - We are not yet associating a pitch with a beat, just
+              assembling what range of pitches to work with in the beat.
+
+            :returns: (list) of 1..n pitch tuples, w/ pitches assigned to
+                octaves by number, like E3, F♯3 and so on. This identifies
+                the range of pitches avaialbe to choose from for the beat.
+            """
             chord = "G♭" if chord == "F♯" else chord
             beat_scale = list()
             pitches = list()
@@ -970,6 +993,63 @@ class GraphIO(object):
         pitches = assign_pitches(min_o, max_o, chord)
         return pitches
 
+    def set_beat_pitches(self,
+                         m: int,
+                         n: int,
+                         notes: list,
+                         pattern: str,
+                         prev_pitch: str):
+        """Set specific pitches for each beat.
+        Assign specific pitches from the selected set,
+        using rules for pattern asc, desc, steady, tonic.
+        Choose single pitches, chords, or both.
+        If a chord, choose seven, regular triad, or inverted.
+        If inverted, 1st, 2nd or 3rd (if it is a 7 chord)
+        For ascending, step up melodically (single notes)
+        or harmonically (repeating the chord or variations
+        of it) and only use pitches > previous pitch.
+        If descending, step down, using lower notes, chords.
+        If steady, step up and down by 2nds or 3rd only, or
+        repeat notes at same pitch. If tonic, do a steady
+        pattern featuring the degree 1 pitch in octave 4.
+
+        Only require octave 4 if m is 0 (first measure)
+        b = beat index, which is actually the notes within a beat.
+        m (measure) can have several beats (n) in it.
+         for example, if time sig is 3/4, then there will be 3 n's.
+        Within each 'n' (beat), there is a rhythm, which may
+         consist of one or several notes (or rests). For each
+         'stroke' of a rythm, there is a pitch.
+
+        Might help to review here from the top, making sure that
+        terminology is clear and clearly explained. Some debugging
+        that does not use the entire set of places data might
+        help too.
+        """
+        print(f"\npattern: {pattern}")
+        print(f"prev_pitch: {prev_pitch}")
+        beat_cnt: int = len(notes[1])
+        print(f"beat_cnt: {beat_cnt}")
+        pallette: dict = dict()
+        score: list = list()
+        for r in notes[2]:
+            for degree, note in enumerate(r):
+                pallette[note] = degree + 1
+        pp(("pitch pallette", pallette))
+        for b in range(0, beat_cnt):
+            print(f"\nm, n, b: {m}, {n}, {b}")
+            if pattern == "tonic" and b == 0:
+                score.append([(p, d) for p, d in pallette.items()
+                             if d == 1 and p[-1:] == "4"][0])
+                prev_pitch = score[b]
+            else:
+                note_or_chord = "note"\
+                    if random.randint(0, 100) < 80 else "chord"
+                print(f"Next a : {note_or_chord}")
+                score.append(("?", 0))
+        pp(("score", score))
+        return score
+
     def set_notes(self,
                   m: int,
                   chords: dict,
@@ -977,38 +1057,20 @@ class GraphIO(object):
                   bar_keys: dict,
                   pattern: list,
                   tonic_root: str):
-        """Set notes for each beat within a measure.
-        # 3. Choose scale range relating to octaves
-        # 3.a. Closed, stay within C4 to C5 (more or less)
-        # 3.b. Open, range within C3 to C6 (more or less)
-        #
-        # 4. Get the pitches for the chord: the 3rd, 5th, 7th
-        #    and get the 2nd, 4th and 6th too, for arpeggios.
-        #
-        # 5. Choose whether to:
-        # 5.a. Use a 7th or not
-        # 5.b. Use regular or inversion
-        # 5.c. If inversion, first, second, or third (if 7th)
-        #
-        # 6. Run algorithms relating to the patterns
-        #    ascending, descending, steady. Assign specific
-        #    pitches from the selected set to the rhythm,
-        #    using rules for the pattern.
-        # 6.a. If ascending, step up thru the chord either
-        #    melodically (single notes) or harmonically
-        #    (repeating the chord or variations of it).
-        #    Do not use pitches lower than previous note.
-        # 6.b. If descending, step down thru the chord
-        #    Use notes lower than previous notes in the beat.
-        # 6.c. If steady, step up and down by 2nds or 3rd only;
-        #    or repeat notes at same pitch. tonic = steady
+        """Set notes _for each beat_ within a measure.
         #
         # 7. Choose whether to have more than one voice.
         #   If so, choose the number of voices and quality
         #   of each:
-        # 7.a.  Simple harmonics.
-        # 7.b.  Counterpoint.
-        # 7.c.  Melodic echo.
+        # 7.a.  (More) simple harmonics.
+        # 7.b.  Counterpoint: parallel, round, fugue or other.
+        # 7.c.  Where to use 3rds and 6ths.
+        # 7.d.  Where/when to use 5th and octaves.
+        # 7.e.  Whether to use 4ths, 2nds or 7th at all.
+        # 7.f.  What species of counterpoint notes to use:
+        #       1:1, 1:2, ... 1:4, or a combination of these.
+        # 7.g.  Follow skips by skips in the opposite direction.
+        # 7.h.  Identify the high point of the counterpoint.
         # (Skip this in initial prototypes,
         #  then assume it is LH/bass clef for piano.
         #  Later, add instrumentation, including
@@ -1038,18 +1100,34 @@ class GraphIO(object):
         - rests are represented by the letter r (r, r4, r8, r16, r32)
 
         @DEV / DEBUG
-        In some cases, notes is coming back emmpty = {}.
-        Not sure why. Suspect something with the measures index/count in
-        set_bars()?
-        May want to review that later rather than stopping here.
-        I am not seeing any cases where this method returns an empty dict.
+        In some cases, notes is coming back empty = {} in the final MUSIC
+        dict. Not sure why. Suspect something with the measures index/count
+        in set_bars()?
+        Review/fix that later rather than stopping here.
+        Not seeing any cases where this method returns an empty dict.
+        m = measure, indexed starting at zero
+        n = beat within a measure, indexed starting at one (why?)
+            used to index a variable called "notes", a list where each
+            item indexed by n is a list containing:
+            1 - the name of a scale.
+            2 - a list of tuples designating rhythms within the beat
+            3 - a list of tuples designating range of pitches to choose from
         """
         notes = {}
+        prev_pitch: str = ""
         for n in range(1, rhythm['measure'] + 1):
             notes[n] = self.set_beat_chord(m, n, chords, rhythm, bar_keys,
                                            pattern, tonic_root)
             notes[n].append(self.set_beat_rhythm(rhythm))
             notes[n].append(self.set_pitch_range(notes[n][0]))
+            print(f"m, n: {m}, {n}")
+            pp(("notes[n]   ", notes[n]))
+            if n > 1:
+                pp(("notes[n-1]   ", notes[n-1]))
+            prev_pitch = "" if m == 0 and n == 1 else notes[n - 1][3][-1:]
+            notes[n].append(
+                self.set_beat_pitches(
+                    m, n, notes[n], str(pattern), prev_pitch))
 
         # pp(("notes", notes))
         # if notes == {}:
@@ -1181,11 +1259,15 @@ class GraphIO(object):
             self.set_edges(topic, s_df)
             self.set_labels(s_df)
             self.set_fields(topic, s_df)
-        # self.set_graph_data(p_file_nm)
 
-        # Set up framework for music data,
-        # assigning keys to topics,
-        # progressions to labels, etc.
-        self.set_music_data()
-        # Then generate a specific score for specific nodes.
-        # (Maybe edges too, but let's start with nodes.)
+        # Save graph data to file or database.
+        # Consider moving code to generate graphs
+        #  into a different class.
+
+        save_nm = self.set_graph_data(p_file_nm)
+        self.draw_graph_diagram(save_nm)
+        self.write_graph_data_report(save_nm)
+
+        # Move code for generating music data
+        #   to another class.
+        # self.set_music_data()
