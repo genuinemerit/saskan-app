@@ -7,29 +7,6 @@
 Use music21 to assign parts, phrases, pitches, notes, durations, etc.
  to nodes, then to generate scores and midi files.
 
-- Generate some musical scores/phrases (see more notes below).
-- Auto-generate a template for parts, phrases, melodies, harmonies,
-    dynamics, tempo, panning based on combinations of qualities
-    expressed numerically and algorithmically based on multiple
-    contexts, like:
-- For (T) associate a key signture =
-    set of notes, specific tonic, specified degrees, permitted modulations
-- For (L) associate a 3-line / 12 bar chord progression
-    wtih a given pattern like 12-bar blues [I I I I IV IV I I V IV I V].
-    Notes in each bar associated w/ diatonic or 7 chords for scale degrees.
-- Geo-spatial context associates a time signature
-- Action-context associates a tempo
-- Randomly or based on other context, associates dynamic patterns /
-    velocity for the 12 bars and for a repetition of them, say 3 times
-- For (N), randomly generate and/or pick from standard sets of:
-    - number of parts and what instrument to assign to each part
-    - mel, har, rhythm (notes and rests) for each bar's main part
-    - mel, har, rhythm, panning patterns for additional parts
-- Generate midi file / score based on above
-    - Export to MuseScore, Abelton, GarageBand, etc.
-    - Tweak to make it sound better.
-    - Store in app /sound directory.
-
 This class assumes that graph data has already been parsed
 and saved as pickled files. It uses the *_nodes.pickle file
 to drive the generation of music.
@@ -61,6 +38,9 @@ class MusicIO(object):
                  p_file_nm: str):
         """Class for managing music data, generating scores
         and other music-related methods.
+
+        It assumes a nodes data file has been pickled to the
+        save directory which ends with "_nodes.pickle".
 
         :args: p_save_nm: str
             - Generic name of related files where nodes data object saved
@@ -96,17 +76,26 @@ class MusicIO(object):
         minor_names = ("natural", "harmonic", "melodic")
         for m in minor_names:
             MINOR[m] = OrderedDict()
-        for key, sc in MAJOR.items():
-            MINOR["natural"][key] =\
+        for major_k, sc in MAJOR.items():
+            minor_k = MAJOR[major_k][5] + 'm'
+            MINOR["natural"][minor_k] =\
                 [sc[5], sc[6], sc[0], sc[1], sc[2], sc[3], sc[4]]
-            MINOR["harmonic"][key] = copy(MINOR["natural"][key])
-            MINOR["harmonic"][key][6] = MINOR["harmonic"][key][6][:-1]\
-                if MINOR["harmonic"][key][6][-1:] == '♭'\
-                else MINOR["harmonic"][key][6] + '♯'
-            MINOR["melodic"][key] = copy(MINOR["natural"][key])
-            MINOR["melodic"][key][5] = MINOR["melodic"][key][5][:-1]\
-                if MINOR["melodic"][key][5][-1:] == '♭'\
-                else MINOR["melodic"][key][5] + '♯'
+            MINOR["harmonic"][minor_k] = copy(MINOR["natural"][minor_k])
+            MINOR["harmonic"][minor_k][6] =\
+                MINOR["harmonic"][minor_k][6][:-1]\
+                if MINOR["harmonic"][minor_k][6][-1:] == '♭'\
+                else MINOR["harmonic"][minor_k][6] + '♯'
+            if '♯♯' in MINOR["harmonic"][minor_k][6]:
+                MINOR["harmonic"][minor_k][6] =\
+                    MINOR["harmonic"][minor_k][6][:1] + '𝄪'
+            MINOR["melodic"][minor_k] = copy(MINOR["natural"][minor_k])
+            MINOR["melodic"][minor_k][5] =\
+                MINOR["melodic"][minor_k][5][:-1]\
+                if MINOR["melodic"][minor_k][5][-1:] == '♭'\
+                else MINOR["melodic"][minor_k][5] + '♯'
+            if '♯♯' in MINOR["melodic"][minor_k][5]:
+                MINOR["melodic"][minor_k][5] =\
+                    MINOR["melodic"][minor_k][5][:1] + '𝄪'
 
         DEGREES = dict()
         DEGREES['major'] = ['I', 'IV', 'V']
@@ -185,104 +174,10 @@ class MusicIO(object):
         PROG[18] = {"phrases": 3,  "chords": THEME[18] + THEME[19] +
                     THEME[22]}
 
-
     def get_scale(self, p_mode, p_key):
         for m in self.CANON["modes"][p_mode]:
             if m[0] == p_key:
                 return(m[1])
-
-    def set_relative_key(self, node_nm: str):
-        """Set relative key for a score.
-
-        If it is a major key, then relative minor is the 6th degree.
-        Randomly choose one of the 3 minor keys to use;
-        don't assume it has to be the natural minor.
-
-        If it is a minor key, then relative major is the 3rd degree.
-
-        Not sure yet how to determine best key signature for
-        non-major, non-natural-minor keys. I guess it would always
-        be the relative major key. Sometimes that is pretty close,
-        sometimes it would require more accidentals.
-        """
-        music = self.MUSIC['scores'][node_nm]
-        mode = list(music['key_scales']['scale'].keys())[0]
-        if "major" in mode:
-            minors =\
-                [ky for ky in self.CANON['modes'].keys() if "minor" in ky]
-            rel_mode = random.choice(minors)
-            rel_ky = music['key_scales']['scale'][mode][5] + "m"
-            keysig = mode[0]
-        else:
-            rel_mode = "major"
-            rel_ky = music['key_scales']['scale'][mode][2]
-            if "F♯" in mode:
-                rel_ky = "G♭"
-            if "natural minor" in mode:
-                keysig = rel_ky
-            else:
-                keysig = "C"
-        self.MUSIC['scores'][node_nm]['key_scales']['signature'] = keysig
-        self.MUSIC['scores'][node_nm]['key_scales']['relative'] =\
-            {(rel_ky, rel_mode): self.get_scale(rel_mode, rel_ky)}
-
-    def set_neighbor_keys(self, node_nm: str):
-        """Set keys that are a Fifth from main key for score.
-        For selected mode, pick next key and previous key.
-        """
-        music = self.MUSIC['scores'][node_nm]
-        scale = list(music['key_scales']['scale'].keys())[0]
-        mode = self.CANON['modes'][scale[1]]
-        mix = mode.index((scale[0], (music['key_scales']['scale'][scale])))
-        n1 = mix + 1 if mix < len(mode) - 1 else 0
-        n2 = mix - 1 if mix > 0 else len(mode) - 1
-        n1_ky = mode[n1][0]
-        n2_ky = mode[n2][0]
-        n1_scale = mode[n1][1]
-        n2_scale = mode[n2][1]
-        self.MUSIC['scores'][node_nm]['key_scales']['mod_right'] =\
-            {(n1_ky, scale[1]): n1_scale}
-        self.MUSIC['scores'][node_nm]['key_scales']['mod_left'] =\
-            {(n2_ky, scale[1]): n2_scale}
-
-    def set_pattern(self, node_nm: str):
-        """
-        Mix it up randomly but include patterns like:
-        - Ordered patterns (asecnding, descending) for first 8 bars
-        - Surprise pattern (bigger steps) for last 4 bars
-        - Start/End with tonic or relative minor/relative major tonic
-
-        To start out with, we'll define the patterns like this:
-        - asc: go up in thirds or fifths or dominant 7ths
-        - desc: go down in thirds or fifths or dominant 7ths
-        - steady: go up or down or same in seconds or thirds
-        - tonic: use notes in tonic chord of main or relative key
-                 in a steady pattern. If the degree is not I,
-                 then at least end with a tonic or relative tonic note.
-        """
-        def least_used_pat(pat_cnt):
-            """Return pattern least used so far."""
-            max = bar_keysnt
-            for p, c in pat_cnt.items():
-                if c < max:
-                    max = c
-                    least_used = p
-            return least_used
-
-        music = self.MUSIC['scores'][node_nm]
-        bar_keysnt = len(music['chords']['bars'])
-        pat_cnt = {"asc": 0, "desc": 0, "steady": 0, "tonic": 0}
-        pat_list = []
-        for bar_n in range(0, bar_keysnt):
-            if bar_n == 0 or bar_n == (bar_keysnt - 1):
-                pat = "tonic"
-            elif bar_n < int(bar_keysnt * .67):
-                pat = random.choice(list(pat_cnt.keys()))
-            else:
-                pat = least_used_pat(pat_cnt)
-            pat_list.append(pat)
-            pat_cnt[pat] += 1
-        self.MUSIC['scores'][node_nm]['chords']['pattern'] = pat_list
 
     def set_beat_chord(self,
                        m: int,
@@ -675,93 +570,206 @@ class MusicIO(object):
             phrases[p] = bars
         return phrases
 
-    def set_chords_and_notes(self, node_nm: str):
+    def set_chords_and_notes(self, n_name: str):
         """Associate each degree of chord progression with notes.
         """
         key_scales = {m: s for m, s in
-                      self.MUSIC['scores'][node_nm]['key_scales'].items()
+                      self.MUSIC['scores'][n_name]['key_scales'].items()
                       if m != 'signature'}
         tonic_key = list(key_scales["scale"].keys())[0]
 
-        self.MUSIC['scores'][node_nm]['notes'] = dict()
+        self.MUSIC['scores'][n_name]['notes'] = dict()
         for v in range(1, random.randint(1, 2)):
             clef = "treble" if v == 1 else\
                 random.choice(["bass", "treble"])
-            self.MUSIC['scores'][node_nm]['notes'][clef] = self.set_phrases(
-                chords=self.MUSIC['scores'][node_nm]['chords'],
+            self.MUSIC['scores'][n_name]['notes'][clef] = self.set_phrases(
+                chords=self.MUSIC['scores'][n_name]['chords'],
                 key_scales=key_scales,
                 tonic_root=key_scales["scale"][tonic_key][0],
-                rhythm=self.MUSIC['scores'][node_nm]['rhythm'])
+                rhythm=self.MUSIC['scores'][n_name]['rhythm'])
 
-    def set_keys_patterns_chords(self, node_nm: str):
-        """Assign notes to each bar according to the time signature.
+    def set_melodic_pattern(self, n_name: str):
+        """Set melodic pattern (asc, desc, steady) for each bar.
+        Random mix but including rough rules like:
+        - More ordered patterns (asc, desc) for first 2/3rds of bars
+        - More surprise pattern (bigger intervals) for last 1/3 of bars
+        - Include taste of the tonic or relative tonic in first and last bars
+        - Include taste of a fifth or a minor third at end of phrases
+           that are not the last bar in the score
 
-        Assign notes, within the selected chord, to each bar, using
-        the guard-rails defined by the patterns, and with durations
-        appropriate to the time signature.
-
-        For now, just create one part with one voice.
+        Just assign pattern name to each bar, not notes or pitches.
         """
-        self.set_relative_key(node_nm)
-        self.set_neighbor_keys(node_nm)
-        self.set_pattern(node_nm)
-        self.set_chords_and_notes(node_nm)
+        dir_tracker = {"asc": 0, "desc": 0, "steady": 0}
+        b_cnt = self.SCORES[n_name]["structure"]["bars"]
+        bpp = self.SCORES[n_name]["structure"]["bars_per_phrase"]
+        pattern = list()
+        for m in range(b_cnt):
+            direction = random.choice(list(dir_tracker.keys()))
+            prog = self.SCORES[n_name]["structure"]["progression"][m]
+            orderly_odds = 85
+            rule = "none"
+            if (m == 0) or (m + 1 == b_cnt) or (prog == "I"):
+                rule = "tonic"
+                orderly_odds = 80
+            elif ((m + 1) % bpp == 0):
+                rule = "fifth" if random.randint(1, 101) > 50\
+                    else "minor_third"
+                orderly_odds = 90
+            elif m > (b_cnt * .67):
+                min_dir = min(dir_tracker.values())
+                direction =\
+                    [d for d, c in dir_tracker.items() if c == min_dir][0]
+                orderly_odds = 25
+            interval = "surprise" if random.randint(1, 101) > orderly_odds\
+                else "orderly"
+            if rule == "none":
+                rule = "tonic" if random.randint(1, 101) > 90 else\
+                    "fifth" if random.randint(1, 101) > 90 else\
+                    "minor_third" if random.randint(1, 101) > 90 else "none"
+            dir_tracker[direction] += 1
+            pattern.append({"direction": direction,
+                            "interval": interval,
+                            "rule": rule})
+        self.SCORES[n_name]["structure"]["pattern"] = pattern
 
-    def set_beat_and_tempo(self, p_node_nm: str):
-        """Select random time signature. For now: 2/4, 3/4, 4/4
+    def set_modulated_keys(self, n_name: str):
+        """Set keys, scales to use for modulations:
+        - Parallel key - shares same tonic as main key
+        - Relative key - shares same notes as main key
+        - V key - a fifth "up", "to the "right" on Circle of 5ths
+        - IV key - a fourth "down", "to the "left" on Circle of 5ths
+
+        Choose minor mode randomly if main key is major.
+        Set the key signature to match the major key.
+        """
+        def get_key(n_name):
+            """And set key signature to match the major key."""
+            if mod == "parallel":
+                m_key = self.SCORES[n_name]['tone']['key_scale'][0]
+            elif mod == "relative":
+                if self.SCORES[n_name]['tone']['key_mode'] == "major":
+                    m_key = self.SCORES[n_name]['tone']['key_scale'][5]
+                    self.SCORES[n_name]['tone']["key_sig"] =\
+                        self.SCORES[n_name]['tone']['key']
+                else:
+                    m_key = self.SCORES[n_name]['tone']['key_scale'][2]
+                    self.SCORES[n_name]['tone']["key_sig"] = m_key
+            elif mod == "V_key":
+                m_key = self.SCORES[n_name]['tone']['key_scale'][4]
+            elif mod == "IV_key":
+                m_key = self.SCORES[n_name]['tone']['key_scale'][3]
+            return m_key
+
+        self.SCORES[n_name]["tone"]["mods"] = dict()
+        for mod in ("parallel", "relative", "V_key", "IV_key"):
+            m_key = get_key(n_name)
+            if mod in ("parallel", "relative"):
+                if self.SCORES[n_name]['tone']['key_mode'] == "major":
+                    if m_key in ("A♭", "C♭", "G♭"):
+                        m_key = m_key[:1]
+                    m_key += "m"
+                    m_mode = random.choice(list(self.CANON.MINOR.keys()))
+                    m_scale = self.CANON.MINOR[m_mode][m_key]
+                else:
+                    m_mode = "major"
+                    if m_key == "F♯":
+                        m_key = "G♭"
+                    elif m_key[-1:] == "♯":
+                        m_key = m_key[:1]
+                    m_scale = self.CANON.MAJOR[m_key]
+            else:
+                m_mode = self.SCORES[n_name]['tone']['key_mode']
+                if m_mode == "major":
+                    m_scale = self.CANON.MAJOR[m_key]
+                else:
+                    if m_key in ("A♭", "C♭", "G♭"):
+                        m_key = m_key[:1]
+                    m_key += "m"
+                    self.CANON.MINOR[m_mode][m_key]
+            self.SCORES[n_name]['tone']["mods"][mod] = {
+                "key": m_key, "mode": m_mode, "scale": m_scale}
+
+    def set_time_and_tempo(self, p_n_name: str):
+        """Select random time signature. Set related items.
         Example:  time_sig = 3/4 so
             pulses per measure = 3, pulse note = quater note = '4'
         For BPM (= tempo), pick random integer between 60 and 180.
 
         :sets:
-        - (class attribute): self.MUSIC['scores'][<Node ID>]['rhythm'][...]
+        - (class attribute): self.SCORES
         """
-        tsig = list(self.TIMESIGS.values())[random.randint(
-            0, len(self.TIMESIGS.values()) - 1)]
-        pulse_per_m = tsig.split('/')[0]
-        pulse_note = tsig.split('/')[1]
-        bpm = random.randint(60, 180)
-        self.MUSIC['scores'][p_node_nm]['rhythm']['time_sig'] = tsig
-        self.MUSIC['scores'][p_node_nm]['rhythm']['measure'] = int(pulse_per_m)
-        self.MUSIC['scores'][p_node_nm]['rhythm']['beat'] = int(pulse_note)
-        self.MUSIC['scores'][p_node_nm]['rhythm']['bpm'] = int(bpm)
-        self.MUSIC['scores'][p_node_nm]['rhythm']['description'] =\
-            (f"{pulse_per_m} beats per measure" +
-             f"\n{self.BEATS[int(pulse_note)]} note gets the beat" +
-             f"\n{bpm} beat/minute = " +
-             f"{round((bpm / 60), 2)} beat/second")
+        time_sig = random.choice(list(self.CANON.TIMESIGS.keys()))
+        beat_note = int(time_sig.split('/')[1])
+        beats_per_min = random.randint(60, 180)
+        self.SCORES[p_n_name]['beat'] = {
+            'note': beat_note,
+            'note_name': self.CANON.NOTES[beat_note],
+            'per_bar': int(time_sig.split('/')[0]),
+            'per_min': beats_per_min,
+            'per_sec': round(beats_per_min / 60, 2),
+            'time_sig': time_sig,
+            'time_sig_name': self.CANON.TIMESIGS[time_sig]}
 
-    def set_chords_for_labels(self):
-        """Assign chord progression pattern to each Label.
-           Break out the sequences into one set of bars.
-           Will work out notes, specific chords, durations later,
-           specific to each node.
+    def set_node_scores(self):
+        """Assign a score to each unique Node.
+        Recall that a "Node" = an entity on the graph.
 
         :sets:
-        - (class attribute): self.MUSIC['chords']
+        - (class attribute): self.SCORES
         """
-        self.MUSIC['chords'] = dict()
-        nlabels = set([data['L'] for _, data in self.NODES.items()])
-        # elabels = set([data['L'] for _, data in self.EDGES.items()])
-        # for label in nlabels.union(elabels):
-        for label in nlabels:
-            chord = self.CHORDS[random.randint(0, len(self.CHORDS) - 1)]
-            bars = []
-            for phrase in chord:
-                bars.extend(list(phrase))
-            self.MUSIC['chords'][label] = {'phrases': len(chord),
-                                           'bars_in_phrase': len(chord[0]),
-                                           'bars': bars}
+        dcnt_max = 3
+        dcnt = 0
+        for n_name, n_data in self.NODES.items():
+            dcnt += 1
+            self.SCORES[n_name] =\
+                {"structure":
+                    {"bars": self.PALETTE['labels'][n_data['L']]["bars"],
+                     "bars_per_phrase":
+                        self.PALETTE['labels'][n_data['L']]["bars_per_phrase"],
+                     "phrases": self.PALETTE['labels'][n_data['L']]["phrases"],
+                     "progression":
+                        self.PALETTE['labels'][n_data['L']]["progression"]},
+                 "tone":
+                    {"key": self.PALETTE['topics'][n_data['T']]["key"],
+                     "key_mode": self.PALETTE['topics'][n_data['T']]["mode"],
+                     "key_scale":\
+                         self.PALETTE['topics'][n_data['T']]["scale"]}}
+            self.set_time_and_tempo(n_name)
+            self.set_modulated_keys(n_name)
+            self.set_melodic_pattern(n_name)
+            # self.set_chords_and_notes(n_name)
+            if dcnt >= dcnt_max:
+                break
+
+    def set_label_progressions(self):
+        """Assign a chord progression pattern to unique Node Label.
+        Recall that a "Label" defines Node record-types.
+
+        :sets:
+        - (class attribute): self.PALETTE
+        """
+        self.PALETTE['labels'] = dict()
+        labels = set([data['L'] for _, data in self.NODES.items()])
+        for label in labels:
+            prog_ix = random.choice(list(self.CHORD.PROG.keys()))
+            self.PALETTE['labels'][label] =\
+                {"progression": self.CHORD.PROG[prog_ix]['chords'],
+                 "phrases": self.CHORD.PROG[prog_ix]['phrases'],
+                 "bars": len(self.CHORD.PROG[prog_ix]['chords']),
+                 "bars_per_phrase":
+                     int(len(self.CHORD.PROG[prog_ix]['chords']) /
+                         self.CHORD.PROG[prog_ix]['phrases'])}
 
     def set_topic_modes(self):
-        """Assign a mode, key and scale for each Node Topic.
+        """Assign a mode, key and scale for each unique Node Topic.
+        Recall that a "Topic" = a spreadsheet name = a geo-spatial category.
 
         :sets:
-        - (class attribute): self.MUSIC['key_scales']
+        - (class attribute): self.PALETTE
         """
+        self.PALETTE['topics'] = dict()
         topics = set([data['T'] for _, data in self.NODES.items()])
         for topic in topics:
-            self.PALETTE[topic] = dict()
             mode = random.choice(["major", "natural", "harmonic", "melodic"])
             if mode == "major":
                 key = random.choice(list(self.CANON.MAJOR.keys()))
@@ -769,48 +777,33 @@ class MusicIO(object):
             else:
                 key = random.choice(list(self.CANON.MINOR[mode].keys()))
                 scale = self.CANON.MINOR[mode][key]
-            self.PALETTE[topic]['mode'] = [key, mode, scale]
+            self.PALETTE['topics'][topic] =\
+                {"key": key, "mode": mode, "scale": scale}
 
     def set_music_data(self):
         """Generate music data from the graph data.
-        Try to set it up to be flexible, based on parsing
-        the graph data, not hard-coding associations.
+
+        :sets:
+        - (class attribute): self.PALETTE
+        - (class attribute): self.SCORES
         """
         print("\n\nRetrieved graph data ===")
-        pp((self.NODES))
+        pp(("NODES", self.NODES))
 
-        print("\n\nCanonical, fixed Musical materials ===")
-        pp((self.CANON.MAJOR))
-        pp((self.CANON.MINOR))
-        pp((self.CANON.DEGREES))
-        pp((self.CANON.NOTES))
-        pp((self.CHORD.THEME))
-        pp((self.CHORD.PROG))
+        print("\n\nFixed canonical musical materials ===")
+        pp(("CANON.MAJOR", self.CANON.MAJOR))
+        pp(("CANON.MINOR", self.CANON.MINOR))
+        pp(("CANON.DEGREES", self.CANON.DEGREES))
+        pp(("CANON.TIMESIGS", self.CANON.TIMESIGS))
+        pp(("CANON.NOTES", self.CANON.NOTES))
+        pp(("CHORD.THEME", self.CHORD.THEME))
+        pp(("CHORD.PROG", self.CHORD.PROG))
 
         self.set_topic_modes()
-        print("\n\nGeneric/Thematic assignments ==============")
-        pp((self.PALETTE))
-        """
-        self.set_chords_for_labels()
-        DEBUG_CNT = 3
-        print("\n\nMUSIC")
-        pp((self.MUSIC))
-        self.MUSIC['scores'] = dict()
-        cnt = 0
-        for node_nm, ndat in self.NODES.items():
-            cnt += 1
-            self.MUSIC['scores'][node_nm] = dict()
-            for m in ('chords', 'key_scales', 'notes', 'rhythm'):
-                self.MUSIC['scores'][node_nm][m] = dict()
-            self.MUSIC['scores'][node_nm]['key_scales']['scale'] =\
-                self.MUSIC['scales'][ndat['T']]
-            self.MUSIC['scores'][node_nm]['chords'] =\
-                self.MUSIC['chords'][ndat['L']]
-            self.set_beat_and_tempo(node_nm)
-            # self.set_keys_patterns_chords(node_nm)
-            if cnt >= DEBUG_CNT:
-                break
+        self.set_label_progressions()
+        print("\n\nGeneric thematic assignments ==============")
+        pp(("PALETTE", self.PALETTE))
 
-        print("\n\nMUSIC['scores']")
-        pp((self.MUSIC['scores']))
-        """
+        self.set_node_scores()
+        print("\n\nMelodic and harmonic assignments ==============")
+        pp(("SCORES", self.SCORES))
