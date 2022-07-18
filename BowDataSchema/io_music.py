@@ -104,19 +104,36 @@ class MusicIO(object):
         DEGREES['arabic'] = ['1', '2', '3', '4', '5', '6', '7']
         DEGREES['roman'] = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'VII°']
 
-        NOTES = dict()
-        NOTES[1] = 'whole'
-        NOTES[2] = 'half'
-        NOTES[4] = 'quarter'
-        NOTES[8] = 'eighth'
-        NOTES[16] = 'sixteenth'
-        NOTES[32] = 'thirty-second'
-        NOTES[64] = 'sixty-fourth'
+        NOTES = OrderedDict()
+        NOTES['1'] = (4, 'whole', 'w', '𝅝')
+        NOTES['2'] = (2, 'half', 'h', '𝅗𝅥')
+        NOTES['4'] = (1, 'quarter', 'q', '𝅘𝅥')
+        NOTES['8'] = (0.5, 'eighth', 'e', '𝅘𝅥𝅮')
+        NOTES['16'] = (0.25, 'sixteenth', 's', '𝅘𝅥𝅯')
+        NOTES['2.'] = (3, 'dotted_half', 'h.', '𝄼.')
+        NOTES['4.'] = (1.5, 'dotted_quarter', 'q.', '𝄽.')
+        NOTES['T'] = (1, 'triplet', 't', '')
+        NOTES['8.'] = (0.75, 'dotted_eighth', 'e.', '𝄾.')
+        NOTES['8r'] = (0.5, 'eighth_rest', 'er', '𝄾')
+        NOTES['4r'] = (1, 'quarter_rest', 'qr', '𝄽')
+        NOTES['2r'] = (2, 'half_rest', 'hr', '𝄼')
+        NOTES['1r'] = (4, 'whole_rest', 'wr', '𝄻')
+        NOTES['16r'] = (0.25, 'sixteenth_rest', 'sr', '𝄿')
+        NOTES['16t'] = (0.5, 'double_sixteenth', 'ss', '♬')
+        NOTES['16.'] = (0.375, 'dotted_sixteenth', 's.', '𝅘𝅥𝅯.')
+        NOTES['32'] = (0.125, 'thirty_second', 'ts', '𝅘𝅥𝅰')
+        NOTES['32r'] = (0.125, 'thirty_second_rest', 'tsr', '𝅀')
+        NOTES['32.'] = (0.1875, 'dotted_thirty_second', 'ts.', '𝅘𝅥𝅰.')
+        NOTES['64'] = (0.0625, 'sixty_fourth', 'sf', '𝅘𝅥𝅱')
+        NOTES['64r'] = (0.0625, 'sixty_fourth_rest', 'sfr', '𝅁')
+        NOTES['64.'] = (0.9375, 'dotted_sixty_fourth', 'sf.', '𝅘𝅥𝅱.')
 
         TIMESIGS = dict()
         TIMESIGS["2/4"] = "March"
         TIMESIGS["3/4"] = "Waltz"
         TIMESIGS["4/4"] = "Common"
+
+        MAX_VOICES = 3
 
     @dataclass
     class CHORD:
@@ -174,421 +191,248 @@ class MusicIO(object):
         PROG[18] = {"phrases": 3,  "chords": THEME[18] + THEME[19] +
                     THEME[22]}
 
-    def get_scale(self, p_mode, p_key):
-        for m in self.CANON["modes"][p_mode]:
-            if m[0] == p_key:
-                return(m[1])
+    def set_bar_pitches(self,
+                        p_n_name: str,
+                        p_barx: int,
+                        p_degree: dict,
+                        p_pattern: dict,
+                        p_scale: dict,
+                        p_chords: dict):
+        """Assign pitches for one measure.
 
-    def set_beat_chord(self,
-                       m: int,
-                       n: int,
-                       chords: dict,
-                       rhythm: dict,
-                       bar_keys: dict,
-                       pattern: list,
-                       tonic_root: str):
-        """Set chord for each beat within a measure.
+        Rules:
+        - If only one rhythm-note, use either a full 7 chord or a triad.
+        - If first note in a multi-note bar start with p_chords[0] note.
 
-        Decide which chord to play on the beat:
-            from main, relative, or a neighboring scale
+        @DEV
+        - Refine this further to handle surprise, minor-third, & fifth
+        - If the corresponding rhythm-note is a rest, then indicate no pitch.
+        - Maybe work more on patterns for "steady" (arpeggios) that take
+          into account previous notes.
+        - Before doing that stuff ^, maybe try to generate a music21 or
+          lilypond or diret-to-midi file, play it, see how it sounds.
+          Get a little work in on "compiling" the patterns into a usable
+          format.
         """
-        cord = list()
-        rp = random.randint(0, 100)
-        if rp < 60 or (pattern == "tonic" and n == 1) or\
-            ((m + 1) == len(chords['bars']) and
-                n == rhythm['measure']):
-            cord = [tonic_root]
-        elif rp < 80:
-            cord = [bar_keys['relative']]
-        elif rp < 90:
-            cord = [bar_keys['mod_left']]
-        else:
-            cord = [bar_keys['mod_right']]
-        return cord
+        pitches = list()
+        rhythm_notes = self.SCORES[p_n_name]["notes"][1]["rhythm"][p_barx]
+        chrd_x = 0
+        scal_x = 0
+        chords = None
+        scales = None
+        pitch = None
 
-    def set_beat_rhythm(self,
-                        rhythm: dict,):
-        """Set rhythm, in the sense of how many notes to
-        play, of what duration, for a given beat.
-        Not yet assigning specific pitches or rests.
-
-        This is a Monte Carlo shuffle with filters and retries.
-
-        Result will be like...
-        - One beat, or
-        - Two beats of equal duration, or
-        - Tuple -- 3, 5 or 7 beats of equal duration, or
-        - Some combination of beats not of equal duration, but
-          which "add up" to one complete beat.
-
-        Document the rhythm pattern with a list of integer / character
-        tuples. For a 4/4 time signature, we might see:
-          - [(4, 'q')]
-          - [(8, 'e'), (8, 'e')]
-          - [(8., 'e.'), (16, 's')]
-          - [(16, 's'), (16, 's'), (16, 's'), (16, 's')]
-        - Indicate musical tuples (like triplets) with a 't'
-          and a notation showing the beat note over the tuple count:
-          - [(4/3, 't')]
-        - For dotted notes put a dot after both the note and the char:
-          - [(8., 'e.'), (16, 's')]
-          - It's possible to come up with a total less than a full beat,
-            but that will be very rare due the backtracking and retries.
-
-        Eventually will reduce the verbosity of the info returned but
-        helpful for debugging.
-        """
-        def assign_tuple(
-                rhythm_beat: int,
-                beat_notes: list):
-            """Assign a musical tuple as a division of the natural beat.
-               This can only be done once within the beat."""
-            beat_notes.append(
-                (f"{rhythm_beat}/{random.choice([3, 5, 7])}", 't'))
-            return 1.0, beat_notes
-
-        def assign_beat_note(total_beat: float,
-                             beat_keys: list):
-            """If at start of looping, bend in favor of longer notes.
-            If nearer to end of looping, bend in favor or shorter notes.
-            """
-            if total_beat > 0.8:
-                beat = random.choice(beat_keys[len(beat_keys) - 3:])
+        for dur_x, _ in enumerate(rhythm_notes):
+            if p_pattern["rule"] == "tonic" and len(rhythm_notes) == 1:
+                if random.randint(0, 100) < 30:
+                    pitches = p_chords["main"]      # 7 chord
+                else:
+                    pitches = p_chords["main"][:2]  # triad
             else:
-                if random.randint(0, 100) > 32:
-                    beat = random.choice(beat_keys[:2])
-                else:
-                    beat = random.choice(beat_keys)
-            return beat
-
-        def assign_dot(duration):
-            """Assign dotted notes sparingly."""
-            dot = True if random.randint(0, 100) < 23 else False
-            if dot:
-                duration += (duration * 0.5)
-            return (dot, duration)
-
-        # ===== set_beat_rhythm() main =========
-        beats = {i: (n, rhythm['beat'] / i) for i, n in
-                 {1: 'w', 2: 'h', 4: 'q', 8: 'e',
-                  16: 's', 32: 'y', 64: 'z'}.items()
-                 if i >= rhythm['beat']}
-        try_again: bool = True
-        tries: int = 0
-        while try_again is True:
-            total_beat: float = 0.0
-            break_me: int = 0
-            beat_notes: list = list()
-            while total_beat < 1.0:
-                if total_beat == 0.0 and random.randint(0, 100) < 12:
-                    total_beat, beat_notes =\
-                        assign_tuple(rhythm['beat'], beat_notes)
-                else:
-                    beat = assign_beat_note(total_beat, list(beats.keys()))
-                    dot, duration = assign_dot(beats[beat][1])
-                    if total_beat + duration <= 1.0:
-                        total_beat += duration
-                        if dot:
-                            beat_notes.append(
-                                (f"{beat}.", beats[beat][0] + '.'))
+                if dur_x == 0:                      # first note in bar
+                    chrd_x = 0
+                    tone = ""
+                    chord_pick = random.randint(0, 100)
+                    if chord_pick < 60 or p_pattern["rule"] == "tonic":
+                        tone = "main"
+                    elif chord_pick < 80:
+                        tone = "rel"
+                    elif chord_pick < 90:
+                        tone = "IV"
+                    elif chord_pick < 95:
+                        tone = "V"
+                    else:
+                        tone = "parl"
+                    chords = p_chords[tone]
+                    scales = p_scale[tone]
+                    pitch = chords[chrd_x]
+                    scal_x = scales.index(pitch)
+                else:                               # subsequent notes
+                    if p_pattern["direction"] == "asc":
+                        chrd_x += 1\
+                            if (chrd_x + 1) < (len(chords) - 1) else 0
+                        pitch = chords[chrd_x]
+                    elif p_pattern["direction"] == "desc":
+                        if chrd_x > 0:
+                            chrd_x = chrd_x - 1
                         else:
-                            beat_notes.append((str(beat), beats[beat][0]))
-                break_me += 1
-                if break_me > 100:
-                    break
-            if total_beat == 1.0 or tries > 9:
-                try_again = False
-        if total_beat != 1.0:
-            print("Warning: set_beat_rhythm() failed to assign a full beat." +
-                  f"\nBeats: {beat_notes} = {total_beat}")
-        return beat_notes
+                            chrd_x = (len(chords) - 1)
+                        pitch = chords[chrd_x]
+                    else:
+                        pick_interval = random.randint(0, 100)
+                        if pick_interval > 75:
+                            scal_x += 1\
+                                if (scal_x + 1) < (len(scales) - 1) else 0
+                        elif pick_interval > 50:
+                            if scal_x > 0:
+                                scal_x = scal_x - 1
+                            else:
+                                scal_x = (len(scales) - 1)
+                        pitch = scales[scal_x]
+                pp(("chrd_x: ", chrd_x, "scal_x: ", scal_x, "pitch: ", pitch))
+                pitches.append(pitch)
 
-    def set_pitch_range(self,
-                        chord: str):
-        """Set range of pitches to use within the beat.
+            pp(("pitches", pitches))
+
+        self.SCORES[p_n_name]["notes"][1]["pitch"][p_barx] = pitches
+
+    def set_pitches(self, p_n_name: str):
+        """For each measure, set the pitch for each rhythm-note."""
+        def get_sevens(p_note: str,
+                       p_scale: list):
+            """Return a list containing triad plus dominant 7th
+            for notes in designated key. Dominant means flat the 7th.
+
+            Assume we always start in range of C4-C5 for now.
+            Later we'll adjust that based on clef and voice.
+            May not want to assign a range here at all... we could
+            end up wanting to use inverted chords, assign different
+            ranges for different voices, etc.
+
+            Turned off the range for now.
+            """
+            notex = p_scale.index(p_note)
+            # chord_range = 4
+            chord_range = ""
+            chord = [p_note + str(chord_range)]
+            for n in range(3):
+                if notex < (len(p_scale) - 2):
+                    notex = notex + 2
+                else:
+                    notex = 0
+                    # chord_range += 1
+                note = p_scale[notex]
+                if n == 2:
+                    if note[-1:] == "♯":
+                        note = note[:1]
+                    else:
+                        note += "♭"
+                chord.append(note + str(chord_range))
+            return chord
+
+        # set_pitches() MAIN
+        # ===================================================
+        self.SCORES[p_n_name]["notes"][1]['pitch'] = dict()
+        print("\n\n")
+        for barx, pat in enumerate(
+                self.SCORES[p_n_name]["compose"]["pattern"]):
+            self.SCORES[p_n_name]["notes"][1]['pitch'][barx] = list()
+            deg = {"roman": self.SCORES[p_n_name]["compose"]["progress"][barx]}
+            deg["x"] = self.CANON.DEGREES['roman'].index(deg["roman"])
+            mods = self.SCORES[p_n_name]["modes"]["mods"]
+            sca = {"main": self.SCORES[p_n_name]["modes"]["key_scale"],
+                   "IV": mods['IV_key']['scale'],
+                   "V": mods['V_key']['scale'],
+                   "parl": mods['parallel']['scale'],
+                   "rel": mods['relative']['scale']}
+            chord = {"main": get_sevens(
+                        sca["main"][deg["x"]],
+                        self.SCORES[p_n_name]["modes"]["key_scale"]),
+                     "IV": get_sevens(sca["IV"][deg["x"]],
+                                      mods['IV_key']['scale']),
+                     "V": get_sevens(sca["V"][deg["x"]],
+                                     mods['V_key']['scale']),
+                     "parl": get_sevens(sca["parl"][deg["x"]],
+                                        mods['parallel']['scale']),
+                     "rel": get_sevens(sca["rel"][deg["x"]],
+                                       mods['relative']['scale'])}
+            print("\n====")
+            pp((("barx", barx),
+                ("pat", pat),
+                ("deg", deg),
+                ("scale", sca),
+                ("chord", chord)))
+            self.set_bar_pitches(p_n_name, barx, deg, pat, sca, chord)
+
+    def set_rhythm(self, p_n_name: str):
+        """For each bar within each voice, establish a rhythmic progression.
+        It will be described using musical notation, but without pitches.
+        Assume that '4' = quarter note gets the beat in all cases.
+        Examples, time signature 2/4:
+        - One-and-Two-and (single pulse): (2) = one half
+        - One-and, Two-and (double pulse): (4, 4) = two quarters
+        - One-and-Two, and (shuffle-in): (4., 8) = dotted quater note, eighth
+        - One, and-Two-and (shuffle-out): (8, 4.) = eighth, dotted quater note
+        - One, and, Two, and (4-tuple): (8, 8, 8, 8) = 4 eighths
+        ...and so on, including 16th, 32nd and 64th notes
+
+        The largest note in a bar is the beat note / beats per bar,
+        or the next whole-integer "up" from a fractional result.
+        Example for 2/4: 4 / 2 = 2 (half note)
+        Example for 3/4: 4 / 3 = 1.33 --> 2 (half note)
+        Example for 4/4: 4 / 4 = 1 (whole note)
+
+        Try to establish this without hard-coding the time signature.
+
+        Use of 16ths, 32nd and 64ths is discouraged using filtering rules,
+        but they are still needed in order to solve all situations.
+
+        Use iterative backtracking (do-overs) to ensure rhythms are
+        compatible with time signature.
+
+        @DEV:
+        - When adding more voices, may want to have more rules
+        - That is, derive the additional voices' rhythms from the
+          previously-established rhythms.
         """
-
-        def assign_octave_range():
-            """Assign octave range for a given pitch.
-            Choose range of pitches relating to octaves:
-            - Closed, stay within tonic4 to tonic5, more or less
-            - Open, range within tonic3 to tonic6, more or less.
+        def set_beat_note(p_n_name: str,
+                          p_beats: int,
+                          p_beats_per_bar: int,
+                          p_earlier_beat: int):
+            """Assign random note and duration. Increment total beat duration.
+            Voice index is hard-coded for now.
             """
-            min_o = 4
-            max_o = 5
-            if random.randint(0, 100) < 33:
-                min_o -= 1
-            if random.randint(0, 100) < 33:
-                max_o += 1
-            if random.randint(0, 100) < 16:
-                min_o -= 1
-            if random.randint(0, 100) < 16:
-                max_o += 1
-            return (min_o, max_o)
-
-        def assign_pitches(min_o: int,
-                           max_o: int,
-                           chord: str):
-            """Identify pitches for chord and octaves being processed.
-            - Tonic, 2nd, 3rd, 4th, 5th, 6th, 7th, Octave
-            - Which we get from self.CANON['modes']:
-              - If chord is not in 'major' mode, then add an 'm' to chord
-                and look randomly in one of the 3 minor modes.
-            - Based on range, expand the notes available for the chord,
-              notating what octave each note is in.
-            - We are not yet associating a pitch with a beat, just
-              assembling what range of pitches to work with in the beat.
-
-            :returns: (list) of 1..n pitch tuples, w/ pitches assigned to
-                octaves by number, like E3, F♯3 and so on. This identifies
-                the range of pitches avaialbe to choose from for the beat.
-            """
-            chord = "G♭" if chord == "F♯" else chord
-            beat_scale = list()
-            pitches = list()
-            modes: dict = self.CANON['modes']
-            if chord in [scale[0] for scale in modes['major']]:
-                beat_scale = [scale[1] for scale in modes['major']
-                              if scale[0] == chord]
+            beats = p_beats
+            if p_beats < p_beats_per_bar * 0.85:
+                note = random.choice(
+                    list(self.CANON.NOTES.keys())[:p_earlier_beat])
             else:
-                for minor in [m for m in list(modes.keys()) if m != 'major']:
-                    if (chord + 'm') in [scale[0] for scale in modes[minor]]:
-                        beat_scale = [scale[1] for scale in modes[minor]
-                                      if scale[0] == (chord + 'm')]
+                note = random.choice(list(self.CANON.NOTES.keys()))
+            duration = self.CANON.NOTES[note][0]
+            if (p_beats + duration) <= b_per_bar:
+                beats += duration
+                self.SCORES[p_n_name]["notes"][1]['rhythm'][m].append((note))
+            return beats
+
+        # set_rhythm() MAIN
+        # on first prototype, just doing one voice
+        # =============================================================
+        self.SCORES[p_n_name]["notes"][1]['rhythm'] = dict()
+        for m, _ in enumerate(self.SCORES[p_n_name]["compose"]["pattern"]):
+            beats = 0
+            b_per_bar = self.SCORES[p_n_name]['beat']['per_bar']
+            n_cnt = len(list(self.CANON.NOTES.keys()))
+            n_earlier = int(round(n_cnt * 0.5))
+            tries = 0
+            do_overs = 0
+            while do_overs < 10:
+                self.SCORES[p_n_name]["notes"][1]['rhythm'][m] = list()
+                while beats < b_per_bar:
+                    beats = set_beat_note(
+                        p_n_name, beats, b_per_bar, n_earlier)
+                    tries += 1
+                    if tries > 100:
+                        print(f"tries exceeded 100 for {p_n_name}")
                         break
-            for o in range(min_o, max_o + 1):
-                for p in beat_scale:
-                    scale = list()
-                    for n in p:
-                        scale.append(f"{n}{o}")
-                    pitches.append(tuple(scale))
-            return pitches
+                do_overs += 1
+                if beats == self.SCORES[p_n_name]['beat']['per_bar']:
+                    break
+                if do_overs >= 10:
+                    # maybe save each try and if we have to quit,
+                    # then pick the one with beats closest to 1.0.
+                    print(f"do-overs exceeded 10 for {p_n_name}")
 
-        # =============== set_pitch_range() main =========
-        min_o, max_o = assign_octave_range()
-        pitches = assign_pitches(min_o, max_o, chord)
-        return pitches
-
-    def set_beat_pitches(self,
-                         m: int,
-                         n: int,
-                         notes: list,
-                         pattern: str,
-                         prev_pitch: str):
-        """Set specific pitches for each beat.
-        Assign specific pitches from the selected set,
-        using rules for pattern asc, desc, steady, tonic.
-        Choose single pitches, chords, or both.
-        If a chord, choose seven, regular triad, or inverted.
-        If inverted, 1st, 2nd or 3rd (if it is a 7 chord)
-        For ascending, step up melodically (single notes)
-        or harmonically (repeating the chord or variations
-        of it) and only use pitches > previous pitch.
-        If descending, step down, using lower notes, chords.
-        If steady, step up and down by 2nds or 3rd only, or
-        repeat notes at same pitch. If tonic, do a steady
-        pattern featuring the degree 1 pitch in octave 4.
-
-        Only require octave 4 if m is 0 (first measure)
-        b = beat index, which is actually the notes within a beat.
-        m (measure) can have several beats (n) in it.
-         for example, if time sig is 3/4, then there will be 3 n's.
-        Within each 'n' (beat), there is a rhythm, which may
-         consist of one or several notes (or rests). For each
-         'stroke' of a rythm, there is a pitch.
-
-        Might help to review here from the top, making sure that
-        terminology is clear and clearly explained. Some debugging
-        that does not use the entire set of places data might
-        help too.
+    def set_voices(self, p_n_name: str):
+        """Determine how many voices to use and what clef they are in.
+        Assume all voices are in the same key.
         """
-        print(f"\npattern: {pattern}")
-        print(f"prev_pitch: {prev_pitch}")
-        beat_cnt: int = len(notes[1])
-        print(f"beat_cnt: {beat_cnt}")
-        PALETTE: dict = dict()
-        score: list = list()
-        for r in notes[2]:
-            for degree, note in enumerate(r):
-                PALETTE[note] = degree + 1
-        pp(("pitch PALETTE", PALETTE))
-        for b in range(0, beat_cnt):
-            print(f"\nm, n, b: {m}, {n}, {b}")
-            if pattern == "tonic" and b == 0:
-                score.append([(p, d) for p, d in PALETTE.items()
-                             if d == 1 and p[-1:] == "4"][0])
-                prev_pitch = score[b]
-            else:
-                note_or_chord = "note"\
-                    if random.randint(0, 100) < 80 else "chord"
-                print(f"Next a : {note_or_chord}")
-                score.append(("?", 0))
-        pp(("score", score))
-        return score
+        self.SCORES[p_n_name]["notes"] = dict()
+        voice_cnt = random.randint(1, self.CANON.MAX_VOICES)
+        for v in range(voice_cnt):
+            clef = "𝄞" if (v == 0) or (random.randint(1, 101) < 80) else "𝄢"
+            self.SCORES[p_n_name]["notes"][v + 1] = {"clef": clef}
 
-    def set_notes(self,
-                  m: int,
-                  chords: dict,
-                  rhythm: dict,
-                  bar_keys: dict,
-                  pattern: list,
-                  tonic_root: str):
-        """Set notes _for each beat_ within a measure.
-
-        Possible denominators and their meaning / what gets the beat:
-        1 - whole note
-        2 - half note
-        4 - quarter note
-        8 - eighth note
-        16 - sixteenth note
-        32 - thirty-second note
-        64 - sixty-fourth note
-
-        #
-        # 7. Choose whether to have more than one voice.
-        #   If so, choose the number of voices and quality
-        #   of each:
-        # 7.a.  (More) simple harmonics.
-        # 7.b.  Counterpoint: parallel, round, fugue or other.
-        # 7.c.  Where to use 3rds and 6ths.
-        # 7.d.  Where/when to use 5th and octaves.
-        # 7.e.  Whether to use 4ths, 2nds or 7th at all.
-        # 7.f.  What species of counterpoint notes to use:
-        #       1:1, 1:2, ... 1:4, or a combination of these.
-        # 7.g.  Follow skips by skips in the opposite direction.
-        # 7.h.  Identify the high point of the counterpoint.
-        # (Skip this in initial prototypes,
-        #  then assume it is LH/bass clef for piano.
-        #  Later, add instrumentation, including
-        #  percussion.)
-        #
-        # 8. Later -- also define dynamics.
-        #
-        # 9. See if I can smooth out any rough edges.
-
-        For writing notes, use a lilypond-like syntax for now.
-        Modify this to match what the python music_21 or MMA lib uses.
-
-        - lower-case note-name without a number (e.g. c, d, e, f, g, a, b)
-          means a single note of duration =
-          the beat note (usually = quarter-note)
-        - I will represent sharps and flat using unicode chracters:
-            f♯, g♭
-        - note-name with a number (e.g. c4, d4, e4, f4, g4, a4, b4)
-          means a single note of specified duration.
-        - a number with a dot after it means a dotted note of specific duration
-        - bars are represented by vertical bars (|)
-        - chords/polyphony are represented by angle brackets (< >)
-            - duration is coded after the closing bracket (<c e g>4)
-            - first note in a chord is relative to first note in previous chord
-        - default octave is middle C (C4) for treble, bass C (C3) for bass
-        - relative octave changes --> commas (,) and apostrophes (')
-        - rests are represented by the letter r (r, r4, r8, r16, r32)
-
-        @DEV / DEBUG
-        In some cases, notes is coming back empty = {} in the final MUSIC
-        dict. Not sure why. Suspect something with the measures index/count
-        in set_bars()?
-        Review/fix that later rather than stopping here.
-        Not seeing any cases where this method returns an empty dict.
-        m = measure, indexed starting at zero
-        n = beat within a measure, indexed starting at one (why?)
-            used to index a variable called "notes", a list where each
-            item indexed by n is a list containing:
-            1 - the name of a scale.
-            2 - a list of tuples designating rhythms within the beat
-            3 - a list of tuples designating range of pitches to choose from
-        """
-        notes = {}
-        prev_pitch: str = ""
-        for n in range(1, rhythm['measure'] + 1):
-            notes[n] = self.set_beat_chord(m, n, chords, rhythm, bar_keys,
-                                           pattern, tonic_root)
-            notes[n].append(self.set_beat_rhythm(rhythm))
-            notes[n].append(self.set_pitch_range(notes[n][0]))
-            print(f"m, n: {m}, {n}")
-            pp(("notes[n]   ", notes[n]))
-            if n > 1:
-                pp(("notes[n-1]   ", notes[n-1]))
-            prev_pitch = "" if m == 0 and n == 1 else notes[n - 1][3][-1:]
-            notes[n].append(
-                self.set_beat_pitches(
-                    m, n, notes[n], str(pattern), prev_pitch))
-
-        # pp(("notes", notes))
-        # if notes == {}:
-        #     print("notes is empty!!")
-
-        return notes
-
-    def set_bars(self,
-                 m: int,
-                 chords: dict,
-                 key_scales: dict,
-                 tonic_root: str,
-                 rhythm: dict):
-        """Bar = measure = collection of notes in a score, where
-        the nunber of beats in a meaure and what kind of note
-        gets the beat is defined by the time signature.
-        """
-        bars = {}
-        for b in range(1, chords['bars_in_phrase'] + 1):
-            bar_keys = {}
-            try:
-                d = self.ROMAN['order'].index(chords['bars'][m - 1])
-            except IndexError:
-                pp(("index out of range",
-                    "m: ", m,
-                    "len(chords['bars'])", len(chords['bars']),
-                    "self.ROMAN['order']", self.ROMAN['order']))
-                pp(("chords['bars'][m - 1]", chords['bars'][m - 1]))
-            for k in list(key_scales.keys()):
-                sk = list(key_scales[k].keys())[0]
-                bar_keys[k] = key_scales[k][sk][d]
-            pattern = chords['pattern'][m - 1]
-            bars[(b, m)] =\
-                {"pattern": pattern,
-                 "degree": chords['bars'][m - 1],
-                 "keys": bar_keys,
-                 "chords": self.set_notes(m, chords, rhythm, bar_keys,
-                                          pattern, tonic_root)}
-            m += 1
-        return (bars, m)
-
-    def set_phrases(self,
-                    chords: dict,
-                    key_scales: dict,
-                    tonic_root: str,
-                    rhythm: dict):
-        """Phrases are collections of measures played in succession.
-        """
-        phrases = {}
-        m = 0
-        for p in range(1, chords['phrases'] + 1):
-            (bars, m) = self.set_bars(m, chords, key_scales,
-                                      tonic_root, rhythm)
-            phrases[p] = bars
-        return phrases
-
-    def set_chords_and_notes(self, n_name: str):
-        """Associate each degree of chord progression with notes.
-        """
-        key_scales = {m: s for m, s in
-                      self.MUSIC['scores'][n_name]['key_scales'].items()
-                      if m != 'signature'}
-        tonic_key = list(key_scales["scale"].keys())[0]
-
-        self.MUSIC['scores'][n_name]['notes'] = dict()
-        for v in range(1, random.randint(1, 2)):
-            clef = "treble" if v == 1 else\
-                random.choice(["bass", "treble"])
-            self.MUSIC['scores'][n_name]['notes'][clef] = self.set_phrases(
-                chords=self.MUSIC['scores'][n_name]['chords'],
-                key_scales=key_scales,
-                tonic_root=key_scales["scale"][tonic_key][0],
-                rhythm=self.MUSIC['scores'][n_name]['rhythm'])
-
-    def set_melodic_pattern(self, n_name: str):
+    def set_melodic_pattern(self, p_n_name: str):
         """Set melodic pattern (asc, desc, steady) for each bar.
         Random mix but including rough rules like:
         - More ordered patterns (asc, desc) for first 2/3rds of bars
@@ -600,12 +444,12 @@ class MusicIO(object):
         Just assign pattern name to each bar, not notes or pitches.
         """
         dir_tracker = {"asc": 0, "desc": 0, "steady": 0}
-        b_cnt = self.SCORES[n_name]["structure"]["bars"]
-        bpp = self.SCORES[n_name]["structure"]["bars_per_phrase"]
+        b_cnt = self.SCORES[p_n_name]["compose"]["bars"]
+        bpp = self.SCORES[p_n_name]["compose"]["bars_per_phrase"]
         pattern = list()
         for m in range(b_cnt):
             direction = random.choice(list(dir_tracker.keys()))
-            prog = self.SCORES[n_name]["structure"]["progression"][m]
+            prog = self.SCORES[p_n_name]["compose"]["progress"][m]
             orderly_odds = 85
             rule = "none"
             if (m == 0) or (m + 1 == b_cnt) or (prog == "I"):
@@ -630,9 +474,9 @@ class MusicIO(object):
             pattern.append({"direction": direction,
                             "interval": interval,
                             "rule": rule})
-        self.SCORES[n_name]["structure"]["pattern"] = pattern
+        self.SCORES[p_n_name]["compose"]["pattern"] = pattern
 
-    def set_modulated_keys(self, n_name: str):
+    def set_modulated_keys(self, p_n_name: str):
         """Set keys, scales to use for modulations:
         - Parallel key - shares same tonic as main key
         - Relative key - shares same notes as main key
@@ -642,51 +486,61 @@ class MusicIO(object):
         Choose minor mode randomly if main key is major.
         Set the key signature to match the major key.
         """
-        def get_key(n_name):
+        def get_key(p_n_name):
             """And set key signature to match the major key."""
             if mod == "parallel":
-                m_key = self.SCORES[n_name]['tone']['key_scale'][0]
+                m_key = self.SCORES[p_n_name]['modes']['key_scale'][0]
             elif mod == "relative":
-                if self.SCORES[n_name]['tone']['key_mode'] == "major":
-                    m_key = self.SCORES[n_name]['tone']['key_scale'][5]
-                    self.SCORES[n_name]['tone']["key_sig"] =\
-                        self.SCORES[n_name]['tone']['key']
+                if self.SCORES[p_n_name]['modes']['key_mode'] == "major":
+                    m_key = self.SCORES[p_n_name]['modes']['key_scale'][5]
+                    self.SCORES[p_n_name]['modes']["key_sig"] =\
+                        self.SCORES[p_n_name]['modes']['key']
                 else:
-                    m_key = self.SCORES[n_name]['tone']['key_scale'][2]
-                    self.SCORES[n_name]['tone']["key_sig"] = m_key
+                    m_key = self.SCORES[p_n_name]['modes']['key_scale'][2]
+                    self.SCORES[p_n_name]['modes']["key_sig"] = m_key
             elif mod == "V_key":
-                m_key = self.SCORES[n_name]['tone']['key_scale'][4]
+                m_key = self.SCORES[p_n_name]['modes']['key_scale'][4]
             elif mod == "IV_key":
-                m_key = self.SCORES[n_name]['tone']['key_scale'][3]
+                m_key = self.SCORES[p_n_name]['modes']['key_scale'][3]
             return m_key
 
-        self.SCORES[n_name]["tone"]["mods"] = dict()
+        def adjust_key(p_key, p_mode):
+            m_key = p_key
+            if p_mode == "minor":
+                if p_key in ("A♭", "C♭", "D♭", "G♭"):
+                    m_key = p_key[:1]
+                m_key += "m"
+            elif p_mode == "major":
+                if m_key == "F♯":
+                    m_key = "G♭"
+                if m_key in ("C♭", "C♯", "D♯", "G♯"):
+                    m_key = p_key[:1]
+            return m_key
+
+        # set_modulated_keys() MAIN
+        # =============================================================
+        self.SCORES[p_n_name]['modes']["mods"] = dict()
         for mod in ("parallel", "relative", "V_key", "IV_key"):
-            m_key = get_key(n_name)
+            m_key = get_key(p_n_name)
             if mod in ("parallel", "relative"):
-                if self.SCORES[n_name]['tone']['key_mode'] == "major":
-                    if m_key in ("A♭", "C♭", "G♭"):
-                        m_key = m_key[:1]
-                    m_key += "m"
+                if self.SCORES[p_n_name]['modes']['key_mode'] == "major":
+                    m_key = adjust_key(m_key, "minor")
                     m_mode = random.choice(list(self.CANON.MINOR.keys()))
                     m_scale = self.CANON.MINOR[m_mode][m_key]
                 else:
                     m_mode = "major"
-                    if m_key == "F♯":
-                        m_key = "G♭"
-                    elif m_key[-1:] == "♯":
-                        m_key = m_key[:1]
+                    m_key = adjust_key(m_key, "major")
                     m_scale = self.CANON.MAJOR[m_key]
             else:
-                m_mode = self.SCORES[n_name]['tone']['key_mode']
+                m_mode = self.SCORES[p_n_name]['modes']['key_mode']
+                m_key = adjust_key(m_key, "major")
                 if m_mode == "major":
+                    m_key = adjust_key(m_key, "major")
                     m_scale = self.CANON.MAJOR[m_key]
                 else:
-                    if m_key in ("A♭", "C♭", "G♭"):
-                        m_key = m_key[:1]
-                    m_key += "m"
-                    self.CANON.MINOR[m_mode][m_key]
-            self.SCORES[n_name]['tone']["mods"][mod] = {
+                    m_key = adjust_key(m_key, "minor")
+                    m_scale = self.CANON.MINOR[m_mode][m_key]
+            self.SCORES[p_n_name]['modes']["mods"][mod] = {
                 "key": m_key, "mode": m_mode, "scale": m_scale}
 
     def set_time_and_tempo(self, p_n_name: str):
@@ -703,7 +557,7 @@ class MusicIO(object):
         beats_per_min = random.randint(60, 180)
         self.SCORES[p_n_name]['beat'] = {
             'note': beat_note,
-            'note_name': self.CANON.NOTES[beat_note],
+            'note_name': self.CANON.NOTES[str(beat_note)],
             'per_bar': int(time_sig.split('/')[0]),
             'per_min': beats_per_min,
             'per_sec': round(beats_per_min / 60, 2),
@@ -717,28 +571,30 @@ class MusicIO(object):
         :sets:
         - (class attribute): self.SCORES
         """
-        dcnt_max = 3
-        dcnt = 0
+        DBUGCNT_max = 3
+        DBUGCNT = 0
         for n_name, n_data in self.NODES.items():
-            dcnt += 1
+            DBUGCNT += 1
             self.SCORES[n_name] =\
-                {"structure":
+                {"compose":
                     {"bars": self.PALETTE['labels'][n_data['L']]["bars"],
                      "bars_per_phrase":
                         self.PALETTE['labels'][n_data['L']]["bars_per_phrase"],
                      "phrases": self.PALETTE['labels'][n_data['L']]["phrases"],
-                     "progression":
-                        self.PALETTE['labels'][n_data['L']]["progression"]},
-                 "tone":
+                     "progress":
+                        self.PALETTE['labels'][n_data['L']]["progress"]},
+                 'modes':
                     {"key": self.PALETTE['topics'][n_data['T']]["key"],
                      "key_mode": self.PALETTE['topics'][n_data['T']]["mode"],
-                     "key_scale":\
+                     "key_scale":
                          self.PALETTE['topics'][n_data['T']]["scale"]}}
             self.set_time_and_tempo(n_name)
             self.set_modulated_keys(n_name)
             self.set_melodic_pattern(n_name)
-            # self.set_chords_and_notes(n_name)
-            if dcnt >= dcnt_max:
+            self.set_voices(n_name)
+            self.set_rhythm(n_name)
+            self.set_pitches(n_name)
+            if DBUGCNT >= DBUGCNT_max:
                 break
 
     def set_label_progressions(self):
@@ -753,7 +609,7 @@ class MusicIO(object):
         for label in labels:
             prog_ix = random.choice(list(self.CHORD.PROG.keys()))
             self.PALETTE['labels'][label] =\
-                {"progression": self.CHORD.PROG[prog_ix]['chords'],
+                {"progress": self.CHORD.PROG[prog_ix]['chords'],
                  "phrases": self.CHORD.PROG[prog_ix]['phrases'],
                  "bars": len(self.CHORD.PROG[prog_ix]['chords']),
                  "bars_per_phrase":
