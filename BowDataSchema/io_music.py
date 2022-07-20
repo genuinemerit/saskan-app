@@ -12,6 +12,7 @@ and saved as pickled files. It uses the *_nodes.pickle file
 to drive the generation of music.
 """
 
+import music21 as m21
 import pickle
 import random
 
@@ -42,18 +43,24 @@ class MusicIO(object):
         It assumes a nodes data file has been pickled to the
         save directory which ends with "_nodes.pickle".
 
+        To load and create a fresh SCORES pickle from the NODES pickle:
+        self.set_music_data()
+
+        To create a fresh MIDI-type file/object from the SCORES pickle
+        and show it in MuseScore3:
+        self.set_midi_data()
+
         :args: p_save_nm: str
             - Generic name of related files where nodes data object saved
             - Example: "places_data"
         """
-        save_nm = path.join(RI.get_app_path(),
-                            RI.get_config_value('save_path'),
-                            p_file_nm)
-        with open(save_nm + "_nodes.pickle", 'rb') as f:
+        self.file_nm = path.join(RI.get_app_path(),
+                                 RI.get_config_value('save_path'),
+                                 p_file_nm)
+        with open(self.file_nm + "_nodes.pickle", 'rb') as f:
             self.NODES = pickle.load(f)
         self.PALETTE = dict()
         self.SCORES = dict()
-        self.set_music_data()
 
     @dataclass
     class CANON:
@@ -109,24 +116,24 @@ class MusicIO(object):
         NOTES['2'] = (2, 'half', 'h', '𝅗𝅥')
         NOTES['4'] = (1, 'quarter', 'q', '𝅘𝅥')
         NOTES['8'] = (0.5, 'eighth', 'e', '𝅘𝅥𝅮')
-        NOTES['16'] = (0.25, 'sixteenth', 's', '𝅘𝅥𝅯')
-        NOTES['2.'] = (3, 'dotted_half', 'h.', '𝄼.')
-        NOTES['4.'] = (1.5, 'dotted_quarter', 'q.', '𝄽.')
-        NOTES['T'] = (1, 'triplet', 't', '')
-        NOTES['8.'] = (0.75, 'dotted_eighth', 'e.', '𝄾.')
+        NOTES['16'] = (0.25, '16th', 's', '𝅘𝅥𝅯')
+        NOTES['2.'] = (3, 'dottedHalf', 'h.', '𝄼.')
+        NOTES['4.'] = (1.5, 'dottedQuarter', 'q.', '𝄽.')
+        NOTES['T'] = (1, 'quarter', 't', '')
+        NOTES['8.'] = (0.75, 'dottedEighth', 'e.', '𝄾.')
         NOTES['8r'] = (0.5, 'eighth_rest', 'er', '𝄾')
         NOTES['4r'] = (1, 'quarter_rest', 'qr', '𝄽')
         NOTES['2r'] = (2, 'half_rest', 'hr', '𝄼')
         NOTES['1r'] = (4, 'whole_rest', 'wr', '𝄻')
-        NOTES['16r'] = (0.25, 'sixteenth_rest', 'sr', '𝄿')
+        NOTES['16r'] = (0.25, '16th_rest', 'sr', '𝄿')
         NOTES['16t'] = (0.5, 'double_sixteenth', 'ss', '♬')
-        NOTES['16.'] = (0.375, 'dotted_sixteenth', 's.', '𝅘𝅥𝅯.')
-        NOTES['32'] = (0.125, 'thirty_second', 'ts', '𝅘𝅥𝅰')
+        NOTES['16.'] = (0.375, 'dotted16th', 's.', '𝅘𝅥𝅯.')
+        NOTES['32'] = (0.125, '32nd', 'ts', '𝅘𝅥𝅰')
         NOTES['32r'] = (0.125, 'thirty_second_rest', 'tsr', '𝅀')
-        NOTES['32.'] = (0.1875, 'dotted_thirty_second', 'ts.', '𝅘𝅥𝅰.')
-        NOTES['64'] = (0.0625, 'sixty_fourth', 'sf', '𝅘𝅥𝅱')
+        NOTES['32.'] = (0.1875, 'dotted32nd', 'ts.', '𝅘𝅥𝅰.')
+        NOTES['64'] = (0.0625, '64th', 'sf', '𝅘𝅥𝅱')
         NOTES['64r'] = (0.0625, 'sixty_fourth_rest', 'sfr', '𝅁')
-        NOTES['64.'] = (0.9375, 'dotted_sixty_fourth', 'sf.', '𝅘𝅥𝅱.')
+        NOTES['64.'] = (0.9375, 'dotted64th', 'sf.', '𝅘𝅥𝅱.')
 
         TIMESIGS = dict()
         TIMESIGS["2/4"] = "March"
@@ -209,10 +216,10 @@ class MusicIO(object):
         - If the corresponding rhythm-note is a rest, then indicate no pitch.
         - Maybe work more on patterns for "steady" (arpeggios) that take
           into account previous notes.
-        - Before doing that stuff ^, maybe try to generate a music21 or
+        - Before doing that stuff ^, try to generate a music21 or
           lilypond or diret-to-midi file, play it, see how it sounds.
-          Get a little work in on "compiling" the patterns into a usable
-          format.
+          Work in on "compiling" the patterns into a usable format
+          before tweaking the composition algorithm more.
         """
         pitches = list()
         rhythm_notes = self.SCORES[p_n_name]["notes"][1]["rhythm"][p_barx]
@@ -269,11 +276,10 @@ class MusicIO(object):
                             else:
                                 scal_x = (len(scales) - 1)
                         pitch = scales[scal_x]
-                pp(("chrd_x: ", chrd_x, "scal_x: ", scal_x, "pitch: ", pitch))
+                # pp(("chrd_x: ", chrd_x,
+                #     "scal_x: ", scal_x, "pitch: ", pitch))
                 pitches.append(pitch)
-
-            pp(("pitches", pitches))
-
+            # pp(("pitches", pitches))
         self.SCORES[p_n_name]["notes"][1]["pitch"][p_barx] = pitches
 
     def set_pitches(self, p_n_name: str):
@@ -282,12 +288,6 @@ class MusicIO(object):
                        p_scale: list):
             """Return a list containing triad plus dominant 7th
             for notes in designated key. Dominant means flat the 7th.
-
-            Assume we always start in range of C4-C5 for now.
-            Later we'll adjust that based on clef and voice.
-            May not want to assign a range here at all... we could
-            end up wanting to use inverted chords, assign different
-            ranges for different voices, etc.
 
             Turned off the range for now.
             """
@@ -336,12 +336,12 @@ class MusicIO(object):
                                         mods['parallel']['scale']),
                      "rel": get_sevens(sca["rel"][deg["x"]],
                                        mods['relative']['scale'])}
-            print("\n====")
-            pp((("barx", barx),
-                ("pat", pat),
-                ("deg", deg),
-                ("scale", sca),
-                ("chord", chord)))
+            # print("\n====")
+            # pp((("barx", barx),
+            #     ("pat", pat),
+            #     ("deg", deg),
+            #     ("scale", sca),
+            #     ("chord", chord)))
             self.set_bar_pitches(p_n_name, barx, deg, pat, sca, chord)
 
     def set_rhythm(self, p_n_name: str):
@@ -571,10 +571,10 @@ class MusicIO(object):
         :sets:
         - (class attribute): self.SCORES
         """
-        DBUGCNT_max = 3
-        DBUGCNT = 0
+        # DBUGCNT_max = 3
+        # DBUGCNT = 0
         for n_name, n_data in self.NODES.items():
-            DBUGCNT += 1
+            # DBUGCNT += 1
             self.SCORES[n_name] =\
                 {"compose":
                     {"bars": self.PALETTE['labels'][n_data['L']]["bars"],
@@ -594,8 +594,8 @@ class MusicIO(object):
             self.set_voices(n_name)
             self.set_rhythm(n_name)
             self.set_pitches(n_name)
-            if DBUGCNT >= DBUGCNT_max:
-                break
+            # if DBUGCNT >= DBUGCNT_max:
+            #     break
 
     def set_label_progressions(self):
         """Assign a chord progression pattern to unique Node Label.
@@ -642,7 +642,6 @@ class MusicIO(object):
         :sets:
         - (class attribute): self.PALETTE
         - (class attribute): self.SCORES
-        """
         print("\n\nRetrieved graph data ===")
         pp(("NODES", self.NODES))
 
@@ -655,11 +654,143 @@ class MusicIO(object):
         pp(("CHORD.THEME", self.CHORD.THEME))
         pp(("CHORD.PROG", self.CHORD.PROG))
 
-        self.set_topic_modes()
-        self.set_label_progressions()
         print("\n\nGeneric thematic assignments ==============")
         pp(("PALETTE", self.PALETTE))
 
-        self.set_node_scores()
         print("\n\nMelodic and harmonic assignments ==============")
         pp(("SCORES", self.SCORES))
+        """
+        self.set_topic_modes()
+        self.set_label_progressions()
+        self.set_node_scores()
+        # self.file_nm
+        with open(self.file_nm + "_scores.pickle", 'wb') as obj_file:
+            pickle.dump(self.SCORES, obj_file)
+        print(f"Music SCORES object pickled to: {self.file_nm}" +
+              "_scores.pickle")
+
+    def parse_score(self,
+                    p_n_name: str,
+                    p_key_sig: str,
+                    p_beat: dict,
+                    p_notes: dict):
+        """Parse a score into music21 note objects.
+        :args:
+        - p_n_name (str): name of the Node
+        - p_beat (dict): the beat data for one node
+        - p_notes (dict): the voice #1 notes data for one Node
+
+        :returns:
+        - music21.stream.Score object (a midi file, basically)
+
+        Will need to consider rhythm also in order to generate music
+        per the desired algorithmic structure. Remember that measures
+        with a single beat are treated as chords, so there will be 3
+        pitches but only a single note. Obviously, rhythm also gives
+        us duration. The notes data tells us the clef. The beat data
+        has time signature and BPM. The modes['key_sig'] has key signature.
+
+        Duration in music21 is based in quarter notes having a value 1.0.
+        So, a dotted quarter is 1.5. A half note is 2.0. A whole note is 4.0.
+        An eighth note is 0.5. A sixteenth note is 0.25. A thirty-second note
+        is 0.125. A sixty-fourth note is 0.0625. These are the same values
+        stored in the self.CANON.NOTES dataclass object.
+
+        I'm finding way too many rests in the score, so I am going to
+        ignore them for now (since I ignored them when assigning pitches
+        anyway).
+
+        Not quite getting how music21 handles dotted notes, so am going
+        to remove them for now, which may create some weirdness. :-)
+
+        Once the notes are parsed, a music21 object/stream is created.
+        - Send to MuseScore: <object>.show()
+        - Play it: <object>.show('midi')
+
+        >>> pp((MI.CANON.NOTES))
+OrderedDict([('1', (4, 'whole', 'w', '𝅝')),
+             ('2', (2, 'half', 'h', '𝅗𝅥')),
+             ('4', (1, 'quarter', 'q', '𝅘𝅥')),
+             ('8', (0.5, 'eighth', 'e', '𝅘𝅥𝅮')),
+             ('16', (0.25, 'sixteenth', 's', '𝅘𝅥𝅯')),
+             ('2.', (3, 'dotted_half', 'h.', '𝄼.')),
+             ('4.', (1.5, 'dotted_quarter', 'q.', '𝄽.')),
+             ('T', (1, 'triplet', 't', '')),
+             ('8.', (0.75, 'dotted_eighth', 'e.', '𝄾.')),
+             ('8r', (0.5, 'eighth_rest', 'er', '𝄾')),
+             ('4r', (1, 'quarter_rest', 'qr', '𝄽')),
+             ('2r', (2, 'half_rest', 'hr', '𝄼')),
+             ('1r', (4, 'whole_rest', 'wr', '𝄻')),
+             ('16r', (0.25, 'sixteenth_rest', 'sr', '𝄿')),
+             ('16t', (0.5, 'double_sixteenth', 'ss', '♬')),
+             ('16.', (0.375, 'dotted_sixteenth', 's.', '𝅘𝅥𝅯.')),
+             ('32', (0.125, 'thirty_second', 'ts', '𝅘𝅥𝅰')),
+             ('32r', (0.125, 'thirty_second_rest', 'tsr', '𝅀')),
+             ('32.', (0.1875, 'dotted_thirty_second', 'ts.', '𝅘𝅥𝅰.')),
+             ('64', (0.0625, 'sixty_fourth', 'sf', '𝅘𝅥𝅱')),
+             ('64r', (0.0625, 'sixty_fourth_rest', 'sfr', '𝅁')),
+             ('64.', (0.9375, 'dotted_sixty_fourth', 'sf.', '𝅘𝅥𝅱.'))])
+
+        """
+        print(f"\n\n========  {p_n_name}  ============")
+        pp((("key signature", p_key_sig), ("beat", p_beat)))
+        score = m21.stream.Stream()
+        score.clef = m21.clef.TrebleClef()
+        score.timeSignature = m21.meter.TimeSignature(p_beat["time_sig"])
+        for m, pitches in p_notes['pitch'].items():
+            measure = m21.stream.Stream()
+            range = 4
+            used = set()
+            rhythms = p_notes['rhythm'][m]
+            pp((("\nmeasure: ", m), ("pitches", pitches),
+                ("rhythms", rhythms)))
+            if len(rhythms) == 1:
+                # handle chords here
+                pass
+            else:
+                for px, pit in enumerate(pitches):
+                    rhy = rhythms[px].replace('r', '').replace('.', '')
+                    dur = self.CANON.NOTES[rhy][1]
+                    if pit[:1] in used:
+                        range = random.choice([3, 4, 5])\
+                            if range == 4 else 4
+                    else:
+                        used.add(pit[:1])
+                    pit += str(range)
+                    pit = pit.replace("♭", "-").replace("♯", "#")
+                    # print(f"{pit} ({dur}) = " +
+                    #      f"{m21.pitch.Pitch(pit).unicodeName}")
+                    pp((("pit", pit), ("rhy", rhy), ("dur", dur)))
+                    measure.append(m21.note.Note(pit, type=dur))
+            # measure.show("midi")
+            score.append(measure)
+        score.show("midi")
+        return score
+
+    def set_midi_data(self):
+        """Generate music file from music object that can be
+           loaded into MuscScore3 or other midi-style program.
+
+        Use music21 library to generate the file, then open in MuscScore3.
+        See:
+        https://web.mit.edu/music21/doc/
+        https://web.mit.edu/music21/doc/py-modindex.html
+
+        After learning how to do some stuff, may want to reduce the
+        modules imported to just the ones that are needed.
+        """
+        with open(self.file_nm + "_scores.pickle", 'rb') as f:
+            self.SCORES = pickle.load(f)
+        m21.environment.set('midiPath', '/usr/bin/timidity')
+        print("\n\nMelodic and harmonic assignments ==============")
+        DBUGCNT_max = 2
+        DBUGCNT = 0
+        book = m21.stream.Stream()
+        for n_name, n_data in self.SCORES.items():
+            DBUGCNT += 1
+            score = self.parse_score(n_name, n_data["modes"]["key_sig"],
+                                     n_data["beat"], n_data["notes"][1])
+            book.append(score)
+            if DBUGCNT >= DBUGCNT_max:
+                break
+        book.show()
