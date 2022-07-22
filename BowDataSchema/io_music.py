@@ -7,7 +7,8 @@
 Use music21 to assign parts, phrases, pitches, notes, durations, etc.
  to nodes, then to generate scores and midi files.
 
-This class assumes that graph data has already been parsed
+This class assumes that graph data describing Nodes and Edges
+related to some topic (see io_graphs.py) has already been parsed
 and saved as pickled files. It uses the *_nodes.pickle file
 to drive the generation of music.
 """
@@ -16,7 +17,6 @@ import music21 as m21
 import pickle
 import random
 
-from collections import OrderedDict
 from copy import copy
 from dataclasses import dataclass   # fields
 from os import path
@@ -40,18 +40,15 @@ class MusicIO(object):
         """Class for managing music data, generating scores
         and other music-related methods.
 
-        It assumes a nodes data file has been pickled to the
-        save directory which ends with "_nodes.pickle".
-
-        To load and create a fresh SCORES pickle from the NODES pickle:
-        self.set_music_data()
-
-        To create a fresh MIDI-type file/object from the SCORES pickle
-        and show it in MuseScore3:
-        self.set_midi_data()
+        How to:
+        - Load and create a fresh SCORES pickle from the NODES pickle:
+            self.set_music_data()
+        - Create a fresh MIDI-type file/object from the SCORES pickle
+          and show it in MuseScore3:
+            self.set_midi_data()
 
         :args: p_save_nm: str
-            - Generic name of related files where nodes data object saved
+            - Generic name of files where nodes data object saved
             - Example: "places_data"
         """
         self.file_nm = path.join(RI.get_app_path(),
@@ -64,88 +61,82 @@ class MusicIO(object):
 
     @dataclass
     class CANON:
-        """Class for defining canonical components of musical language."""
-        MAJOR = OrderedDict()
-        MAJOR['C'] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-        MAJOR['G'] = ['G', 'A', 'B', 'C', 'D', 'E', 'F♯']
-        MAJOR['D'] = ['D', 'E', 'F♯', 'G', 'A', 'B', 'C♯']
-        MAJOR['A'] = ['A', 'B', 'C♯', 'D', 'E', 'F♯', 'G♯']
-        MAJOR['E'] = ['E', 'F♯', 'G♯', 'A', 'B', 'C♯', 'D♯']
-        MAJOR['B'] = ['B', 'C♯', 'D♯', 'E', 'F♯', 'G♯', 'A♯']
-        MAJOR['G♭'] = ['G♭', 'A♭', 'B♭', 'C♭', 'D♭', 'E♭', 'F']
-        MAJOR['D♭'] = ['D♭', 'E♭', 'F', 'G♭', 'A♭', 'B♭', 'C']
-        MAJOR['A♭'] = ['A♭', 'B♭', 'C', 'D♭', 'E♭', 'F', 'G']
-        MAJOR['E♭'] = ['E♭', 'F', 'G', 'A♭', 'B♭', 'C', 'D']
-        MAJOR['B♭'] = ['B♭', 'C', 'D', 'E♭', 'F', 'G', 'A']
-        MAJOR['F'] = ['F', 'G', 'A', 'B♭', 'C', 'D', 'E']
+        """Class for defining canonical components of musical language.
 
-        MINOR = dict()
-        minor_names = ("natural", "harmonic", "melodic")
-        for m in minor_names:
-            MINOR[m] = OrderedDict()
-        for major_k, sc in MAJOR.items():
-            minor_k = MAJOR[major_k][5] + 'm'
-            MINOR["natural"][minor_k] =\
-                [sc[5], sc[6], sc[0], sc[1], sc[2], sc[3], sc[4]]
-            MINOR["harmonic"][minor_k] = copy(MINOR["natural"][minor_k])
-            MINOR["harmonic"][minor_k][6] =\
-                MINOR["harmonic"][minor_k][6][:-1]\
-                if MINOR["harmonic"][minor_k][6][-1:] == '♭'\
-                else MINOR["harmonic"][minor_k][6] + '♯'
-            if '♯♯' in MINOR["harmonic"][minor_k][6]:
-                MINOR["harmonic"][minor_k][6] =\
-                    MINOR["harmonic"][minor_k][6][:1] + '𝄪'
-            MINOR["melodic"][minor_k] = copy(MINOR["natural"][minor_k])
-            MINOR["melodic"][minor_k][5] =\
-                MINOR["melodic"][minor_k][5][:-1]\
-                if MINOR["melodic"][minor_k][5][-1:] == '♭'\
-                else MINOR["melodic"][minor_k][5] + '♯'
-            if '♯♯' in MINOR["melodic"][minor_k][5]:
-                MINOR["melodic"][minor_k][5] =\
-                    MINOR["melodic"][minor_k][5][:1] + '𝄪'
+        The class uses music21 convention of "#" for sharp (#) and "-"
+        for flat (-). Double-flat (--) is --. Double-sharp (##) is ##.
+        A m21 method displays notes using proper unicode characters for
+        accidentals and so forth.
 
-        DEGREES = dict()
-        DEGREES['major'] = ['I', 'IV', 'V']
-        DEGREES['minor'] = ['ii', 'iii', 'vi']
-        DEGREES['diminished'] = ['VII°']
-        DEGREES['arabic'] = ['1', '2', '3', '4', '5', '6', '7']
-        DEGREES['roman'] = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'VII°']
+        Regarding tuplets...
+        triplet = m21.duration.Tuplet(3, 2)
+          means, put 3 notes into a tuple with duration of 2 eighths
+        Example of quintuplet lasting as long as 2 eighths:
+        quintuplet = m21.duration.Tuplet(5, 2)
 
-        NOTES = OrderedDict()
-        NOTES['1'] = (4, 'whole', 'w', '𝅝')
-        NOTES['2'] = (2, 'half', 'h', '𝅗𝅥')
-        NOTES['4'] = (1, 'quarter', 'q', '𝅘𝅥')
-        NOTES['8'] = (0.5, 'eighth', 'e', '𝅘𝅥𝅮')
-        NOTES['16'] = (0.25, '16th', 's', '𝅘𝅥𝅯')
-        NOTES['2.'] = (3, 'dottedHalf', 'h.', '𝄼.')
-        NOTES['4.'] = (1.5, 'dottedQuarter', 'q.', '𝄽.')
-        NOTES['T'] = (1, 'quarter', 't', '')
-        NOTES['8.'] = (0.75, 'dottedEighth', 'e.', '𝄾.')
-        NOTES['8r'] = (0.5, 'eighth_rest', 'er', '𝄾')
-        NOTES['4r'] = (1, 'quarter_rest', 'qr', '𝄽')
-        NOTES['2r'] = (2, 'half_rest', 'hr', '𝄼')
-        NOTES['1r'] = (4, 'whole_rest', 'wr', '𝄻')
-        NOTES['16r'] = (0.25, '16th_rest', 'sr', '𝄿')
-        NOTES['16t'] = (0.5, 'double_sixteenth', 'ss', '♬')
-        NOTES['16.'] = (0.375, 'dotted16th', 's.', '𝅘𝅥𝅯.')
-        NOTES['32'] = (0.125, '32nd', 'ts', '𝅘𝅥𝅰')
-        NOTES['32r'] = (0.125, 'thirty_second_rest', 'tsr', '𝅀')
-        NOTES['32.'] = (0.1875, 'dotted32nd', 'ts.', '𝅘𝅥𝅰.')
-        NOTES['64'] = (0.0625, '64th', 'sf', '𝅘𝅥𝅱')
-        NOTES['64r'] = (0.0625, 'sixty_fourth_rest', 'sfr', '𝅁')
-        NOTES['64.'] = (0.9375, 'dotted64th', 'sf.', '𝅘𝅥𝅱.')
+        See these references for more information:
+        web.mit.edu/music21/doc/
+        web.mit.edu/music21/doc/genindex.html
+        web.mit.edu/music21/doc/py-modindex.html
+
+        The "genindex" link is the best detailed technical reference.
+        """
+        NOTES = dict()
+        for nty in ('full', 'rest', 'dotted', 'tuplet'):
+            NOTES[nty] = dict()
+        NOTES['full'] = {'whole': 4.0, 'half': 2.0, 'quarter': 1.0,
+                         'eighth': 0.5, '16th': 0.25, '32nd': 0.125,
+                         '64th': 0.0625}
+        for n, d in NOTES['full'].items():
+            dur = copy(d)
+            NOTES['full'][n] = m21.duration.Duration(dur)
+            NOTES['rest'][n] = m21.note.Rest(quarterLength=dur)
+            NOTES['dotted'][n] = m21.duration.Duration(dur + (dur / 2))
+        NOTES['tuplet'] = {
+            'triplet': m21.duration.Tuplet(3, 2),
+            'quintuplet': m21.duration.Tuplet(5, 2)}
+
+        SCALES = dict()
+        for k in ['C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#',
+                  'F', 'B-', 'E-', 'A-', 'D-', 'G-', 'C-', 'F-']:
+            SCALES[k] = dict() if k not in SCALES.keys() else SCALES[k]
+            SCALES[k]['major'] = m21.scale.MajorScale(k)
+            SCALES[k]['parallel']: m21.scale.MinorScale(k)
+            rk = m21.key.Key(k).relative.tonic.name
+            SCALES[rk] = dict() if rk not in SCALES.keys() else SCALES[rk]
+            SCALES[rk]['natural'] = m21.scale.MinorScale(rk)
+            SCALES[rk]['harmonic'] = m21.scale.HarmonicMinorScale(rk)
+            SCALES[rk]['melodic'] = m21.scale.MelodicMinorScale(rk)
+
+        KEYSIGS = dict()
+        for k in SCALES.keys():
+            KEYSIGS[k] = dict()
+            for mode, m_obj in SCALES[k].items():
+                a_cnt = 0
+                for p in m_obj.pitches:
+                    a_cnt = a_cnt + 1 if '#' in p.name\
+                        else a_cnt - 1 if '-' in p.name else a_cnt
+                KEYSIGS[k][mode] = m21.key.KeySignature(a_cnt)
 
         TIMESIGS = dict()
-        TIMESIGS["2/4"] = "March"
-        TIMESIGS["3/4"] = "Waltz"
-        TIMESIGS["4/4"] = "Common"
-
-        MAX_VOICES = 3
+        for sig in ('cut', '3/4', '6/8', 'common'):
+            TIMESIGS[sig] = m21.meter.TimeSignature(sig)
 
     @dataclass
     class CHORD:
-        """Class for deriving chord progressions."""
+        """Class for deriving chord progressions.
 
+        What else can I do in the way of motives, chord progressions,
+        as well as maybe articulations, dynamics, timbre and maybe even
+        counterpoint? I know I can't get too carried away, need to ierate
+        on simpler prototypes. Still...
+        - Something not enirely stochastic. Define some kind of pattern
+          for repetition, for reaching a climax, for calm resolution or
+          turnaround.
+        - I like the chord progression themes and progressions OK.
+          Let's keep that but maybe add additional deterministic stuff
+          on motives, cadences, ...?
+        """
         THEME = dict()
         THEME[0] = ['ii', 'V', 'I']
         THEME[1] = ['I', 'V', 'vi', 'IV']
@@ -199,7 +190,7 @@ class MusicIO(object):
                     THEME[22]}
 
     def set_bar_pitches(self,
-                        p_n_name: str,
+                        nnm: str,
                         p_barx: int,
                         p_degree: dict,
                         p_pattern: dict,
@@ -222,7 +213,7 @@ class MusicIO(object):
           before tweaking the composition algorithm more.
         """
         pitches = list()
-        rhythm_notes = self.SCORES[p_n_name]["notes"][1]["rhythm"][p_barx]
+        rhythm_notes = self.SCORES[nnm]["notes"][1]["rhythm"][p_barx]
         chrd_x = 0
         scal_x = 0
         chords = None
@@ -280,9 +271,9 @@ class MusicIO(object):
                 #     "scal_x: ", scal_x, "pitch: ", pitch))
                 pitches.append(pitch)
             # pp(("pitches", pitches))
-        self.SCORES[p_n_name]["notes"][1]["pitch"][p_barx] = pitches
+        self.SCORES[nnm]["notes"][1]["pitch"][p_barx] = pitches
 
-    def set_pitches(self, p_n_name: str):
+    def set_pitches(self, nnm: str):
         """For each measure, set the pitch for each rhythm-note."""
         def get_sevens(p_note: str,
                        p_scale: list):
@@ -303,31 +294,31 @@ class MusicIO(object):
                     # chord_range += 1
                 note = p_scale[notex]
                 if n == 2:
-                    if note[-1:] == "♯":
+                    if note[-1:] == "#":
                         note = note[:1]
                     else:
-                        note += "♭"
+                        note += "-"
                 chord.append(note + str(chord_range))
             return chord
 
         # set_pitches() MAIN
         # ===================================================
-        self.SCORES[p_n_name]["notes"][1]['pitch'] = dict()
+        self.SCORES[nnm]["notes"][1]['pitch'] = dict()
         print("\n\n")
         for barx, pat in enumerate(
-                self.SCORES[p_n_name]["compose"]["pattern"]):
-            self.SCORES[p_n_name]["notes"][1]['pitch'][barx] = list()
-            deg = {"roman": self.SCORES[p_n_name]["compose"]["progress"][barx]}
+                self.SCORES[nnm]["compose"]["pattern"]):
+            self.SCORES[nnm]["notes"][1]['pitch'][barx] = list()
+            deg = {"roman": self.SCORES[nnm]["compose"]["progress"][barx]}
             deg["x"] = self.CANON.DEGREES['roman'].index(deg["roman"])
-            mods = self.SCORES[p_n_name]["modes"]["mods"]
-            sca = {"main": self.SCORES[p_n_name]["modes"]["key_scale"],
+            mods = self.SCORES[nnm]["modes"]["mods"]
+            sca = {"main": self.SCORES[nnm]["modes"]["key_scale"],
                    "IV": mods['IV_key']['scale'],
                    "V": mods['V_key']['scale'],
                    "parl": mods['parallel']['scale'],
                    "rel": mods['relative']['scale']}
             chord = {"main": get_sevens(
                         sca["main"][deg["x"]],
-                        self.SCORES[p_n_name]["modes"]["key_scale"]),
+                        self.SCORES[nnm]["modes"]["key_scale"]),
                      "IV": get_sevens(sca["IV"][deg["x"]],
                                       mods['IV_key']['scale']),
                      "V": get_sevens(sca["V"][deg["x"]],
@@ -342,9 +333,9 @@ class MusicIO(object):
             #     ("deg", deg),
             #     ("scale", sca),
             #     ("chord", chord)))
-            self.set_bar_pitches(p_n_name, barx, deg, pat, sca, chord)
+            self.set_bar_pitches(nnm, barx, deg, pat, sca, chord)
 
-    def set_rhythm(self, p_n_name: str):
+    def set_rhythm(self, nnm: str):
         """For each bar within each voice, establish a rhythmic progression.
         It will be described using musical notation, but without pitches.
         Assume that '4' = quarter note gets the beat in all cases.
@@ -375,7 +366,7 @@ class MusicIO(object):
         - That is, derive the additional voices' rhythms from the
           previously-established rhythms.
         """
-        def set_beat_note(p_n_name: str,
+        def set_beat_note(nnm: str,
                           p_beats: int,
                           p_beats_per_bar: int,
                           p_earlier_beat: int):
@@ -391,48 +382,48 @@ class MusicIO(object):
             duration = self.CANON.NOTES[note][0]
             if (p_beats + duration) <= b_per_bar:
                 beats += duration
-                self.SCORES[p_n_name]["notes"][1]['rhythm'][m].append((note))
+                self.SCORES[nnm]["notes"][1]['rhythm'][m].append((note))
             return beats
 
         # set_rhythm() MAIN
         # on first prototype, just doing one voice
         # =============================================================
-        self.SCORES[p_n_name]["notes"][1]['rhythm'] = dict()
-        for m, _ in enumerate(self.SCORES[p_n_name]["compose"]["pattern"]):
+        self.SCORES[nnm]["notes"][1]['rhythm'] = dict()
+        for m, _ in enumerate(self.SCORES[nnm]["compose"]["pattern"]):
             beats = 0
-            b_per_bar = self.SCORES[p_n_name]['beat']['per_bar']
+            b_per_bar = self.SCORES[nnm]['beat']['per_bar']
             n_cnt = len(list(self.CANON.NOTES.keys()))
             n_earlier = int(round(n_cnt * 0.5))
             tries = 0
             do_overs = 0
             while do_overs < 10:
-                self.SCORES[p_n_name]["notes"][1]['rhythm'][m] = list()
+                self.SCORES[nnm]["notes"][1]['rhythm'][m] = list()
                 while beats < b_per_bar:
                     beats = set_beat_note(
-                        p_n_name, beats, b_per_bar, n_earlier)
+                        nnm, beats, b_per_bar, n_earlier)
                     tries += 1
                     if tries > 100:
-                        print(f"tries exceeded 100 for {p_n_name}")
+                        print(f"tries exceeded 100 for {nnm}")
                         break
                 do_overs += 1
-                if beats == self.SCORES[p_n_name]['beat']['per_bar']:
+                if beats == self.SCORES[nnm]['beat']['per_bar']:
                     break
                 if do_overs >= 10:
                     # maybe save each try and if we have to quit,
                     # then pick the one with beats closest to 1.0.
-                    print(f"do-overs exceeded 10 for {p_n_name}")
+                    print(f"do-overs exceeded 10 for {nnm}")
 
-    def set_voices(self, p_n_name: str):
+    def set_voices(self, nnm: str):
         """Determine how many voices to use and what clef they are in.
         Assume all voices are in the same key.
         """
-        self.SCORES[p_n_name]["notes"] = dict()
+        self.SCORES[nnm]["notes"] = dict()
         voice_cnt = random.randint(1, self.CANON.MAX_VOICES)
         for v in range(voice_cnt):
             clef = "𝄞" if (v == 0) or (random.randint(1, 101) < 80) else "𝄢"
-            self.SCORES[p_n_name]["notes"][v + 1] = {"clef": clef}
+            self.SCORES[nnm]["notes"][v + 1] = {"clef": clef}
 
-    def set_melodic_pattern(self, p_n_name: str):
+    def set_melodic_pattern(self, nnm: str):
         """Set melodic pattern (asc, desc, steady) for each bar.
         Random mix but including rough rules like:
         - More ordered patterns (asc, desc) for first 2/3rds of bars
@@ -441,15 +432,40 @@ class MusicIO(object):
         - Include taste of a fifth or a minor third at end of phrases
            that are not the last bar in the score
 
-        Just assign pattern name to each bar, not notes or pitches.
+        @DEV:
+        - Pick it up here.
+        - This is maybe where I can both do something more interesting.
+        - Maybe condense some code too.
+        - Consider how I might assgin a motif (or more than one) to
+          each phrase, then play them out over its bars. Starting/ending
+          on tonic or relative tonic may or may not be necessary since I
+          already have an indication of chords / notes to use in the chord
+          progression.
+        - Consider playing around with dynamics, accents and timbres too.
+        - ascending, descending, or steady are too simple. Ditch them.
+        - Consider using:
+            - Relatively simpler patterns in the first and last bars.
+            - Turnaround kind of patterns in the penultimate bar.
+            - Building up to higher notes, most complexity at about
+              2/3rd point of the score. Like maybe pick a max pitch to
+              aim for or something like that.
+            - Define complexity as a function of number of notes,
+              including harmonics vs. sparse melody, space of
+              intervals, type of intervals.
+            - Some simple accents and dynamics.
+        - I think it will probably work better to have these kinds of
+          patterns defined as rules, more or less, in the CANON. Then
+          here we are picking which ones to use, how to tweak them. I'd
+          rather not just build up another pile of metadata; would prefer
+          to get right to assigning notes (with pitch and duration) to bars.
         """
         dir_tracker = {"asc": 0, "desc": 0, "steady": 0}
-        b_cnt = self.SCORES[p_n_name]["compose"]["bars"]
-        bpp = self.SCORES[p_n_name]["compose"]["bars_per_phrase"]
+        b_cnt = self.SCORES[nnm]["compose"]["bars"]
+        bpp = self.SCORES[nnm]["compose"]["bars_per_phrase"]
         pattern = list()
         for m in range(b_cnt):
             direction = random.choice(list(dir_tracker.keys()))
-            prog = self.SCORES[p_n_name]["compose"]["progress"][m]
+            prog = self.SCORES[nnm]["compose"]["progress"][m]
             orderly_odds = 85
             rule = "none"
             if (m == 0) or (m + 1 == b_cnt) or (prog == "I"):
@@ -474,56 +490,67 @@ class MusicIO(object):
             pattern.append({"direction": direction,
                             "interval": interval,
                             "rule": rule})
-        self.SCORES[p_n_name]["compose"]["pattern"] = pattern
+        self.SCORES[nnm]["compose"]["pattern"] = pattern
 
-    def set_modulated_keys(self, p_n_name: str):
+    def set_modulated_keys(self, nnm: str):
         """Set keys, scales to use for modulations:
         - Parallel key - shares same tonic as main key
         - Relative key - shares same notes as main key
         - V key - a fifth "up", "to the "right" on Circle of 5ths
         - IV key - a fourth "down", "to the "left" on Circle of 5ths
 
+        Not sure this is really helpful? Modulation is a complex idea.
+        Might module for a measure, or just for one out-of-key note.
+        I am unlikely to come up with a deterministic way to do this
+        any time soon. Creating a ton of metadata seems like overkill.
+        I expect there are simpler music21 ways to do this, as well as
+        to change registers.
+
+        I already have the parallel and relative keys accessible.
+        Grabbing the IVth or Vth should be easier now too. Don't
+        really need to store them again at the socre level.
+
         Choose minor mode randomly if main key is major.
         Set the key signature to match the major key.
         """
-        def get_key(p_n_name):
+        def get_key(nnm):
             """And set key signature to match the major key."""
             if mod == "parallel":
-                m_key = self.SCORES[p_n_name]['modes']['key_scale'][0]
+                m_key = self.SCORES[nnm]['modes']['key_scale'][0]
             elif mod == "relative":
-                if self.SCORES[p_n_name]['modes']['key_mode'] == "major":
-                    m_key = self.SCORES[p_n_name]['modes']['key_scale'][5]
-                    self.SCORES[p_n_name]['modes']["key_sig"] =\
-                        self.SCORES[p_n_name]['modes']['key']
+                if self.SCORES[nnm]['modes']['key_mode'] == "major":
+                    m_key = self.SCORES[nnm]['modes']['key_scale'][5]
+                    self.SCORES[nnm]['modes']["key_sig"] =\
+                        self.SCORES[nnm]['modes']['key']
                 else:
-                    m_key = self.SCORES[p_n_name]['modes']['key_scale'][2]
-                    self.SCORES[p_n_name]['modes']["key_sig"] = m_key
+                    m_key = self.SCORES[nnm]['modes']['key_scale'][2]
+                    self.SCORES[nnm]['modes']["key_sig"] = m_key
             elif mod == "V_key":
-                m_key = self.SCORES[p_n_name]['modes']['key_scale'][4]
+                m_key = self.SCORES[nnm]['modes']['key_scale'][4]
             elif mod == "IV_key":
-                m_key = self.SCORES[p_n_name]['modes']['key_scale'][3]
+                m_key = self.SCORES[nnm]['modes']['key_scale'][3]
             return m_key
 
         def adjust_key(p_key, p_mode):
             m_key = p_key
             if p_mode == "minor":
-                if p_key in ("A♭", "C♭", "D♭", "G♭"):
+                if p_key in ("A-", "C-", "D-", "G-"):
                     m_key = p_key[:1]
                 m_key += "m"
             elif p_mode == "major":
-                if m_key == "F♯":
-                    m_key = "G♭"
-                if m_key in ("C♭", "C♯", "D♯", "G♯"):
+                if m_key == "F#":
+                    m_key = "G-"
+                if m_key in ("C-", "C#", "D#", "G#"):
                     m_key = p_key[:1]
             return m_key
 
         # set_modulated_keys() MAIN
         # =============================================================
-        self.SCORES[p_n_name]['modes']["mods"] = dict()
+        self.SCORES[nnm]['modes']["mods"] = dict()
         for mod in ("parallel", "relative", "V_key", "IV_key"):
-            m_key = get_key(p_n_name)
+            m_key = get_key(nnm)
             if mod in ("parallel", "relative"):
-                if self.SCORES[p_n_name]['modes']['key_mode'] == "major":
+                if self.SCORES[nnm]['modes']['key_mode'] == "major":
                     m_key = adjust_key(m_key, "minor")
                     m_mode = random.choice(list(self.CANON.MINOR.keys()))
                     m_scale = self.CANON.MINOR[m_mode][m_key]
@@ -532,7 +559,7 @@ class MusicIO(object):
                     m_key = adjust_key(m_key, "major")
                     m_scale = self.CANON.MAJOR[m_key]
             else:
-                m_mode = self.SCORES[p_n_name]['modes']['key_mode']
+                m_mode = self.SCORES[nnm]['modes']['key_mode']
                 m_key = adjust_key(m_key, "major")
                 if m_mode == "major":
                     m_key = adjust_key(m_key, "major")
@@ -540,10 +567,10 @@ class MusicIO(object):
                 else:
                     m_key = adjust_key(m_key, "minor")
                     m_scale = self.CANON.MINOR[m_mode][m_key]
-            self.SCORES[p_n_name]['modes']["mods"][mod] = {
+            self.SCORES[nnm]['modes']["mods"][mod] = {
                 "key": m_key, "mode": m_mode, "scale": m_scale}
 
-    def set_time_and_tempo(self, p_n_name: str):
+    def set_time_and_tempo(self, nnm: str):
         """Select random time signature. Set related items.
         Example:  time_sig = 3/4 so
             pulses per measure = 3, pulse note = quater note = '4'
@@ -552,17 +579,14 @@ class MusicIO(object):
         :sets:
         - (class attribute): self.SCORES
         """
-        time_sig = random.choice(list(self.CANON.TIMESIGS.keys()))
-        beat_note = int(time_sig.split('/')[1])
-        beats_per_min = random.randint(60, 180)
-        self.SCORES[p_n_name]['beat'] = {
-            'note': beat_note,
-            'note_name': self.CANON.NOTES[str(beat_note)],
-            'per_bar': int(time_sig.split('/')[0]),
-            'per_min': beats_per_min,
-            'per_sec': round(beats_per_min / 60, 2),
-            'time_sig': time_sig,
-            'time_sig_name': self.CANON.TIMESIGS[time_sig]}
+        ts = random.choice(list(self.CANON.TIMESIGS.keys()))
+        self.SCORES[nnm]['beat'] = {
+            'time_sig': self.CANON.TIMESIGS[ts],
+            'cnt': self.CANON.TIMESIGS[ts].beatCount,
+            'bar_dur': self.CANON.TIMESIGS[ts].barDuration,
+            'div': self.CANON.TIMESIGS[ts].beatDivisionCount,
+            'dur': self.CANON.TIMESIGS[ts].beatDuration,
+            'metro': m21.tempo.MetronomeMark(random.randint(60, 180))}
 
     def set_node_scores(self):
         """Assign a score to each unique Node.
@@ -571,31 +595,27 @@ class MusicIO(object):
         :sets:
         - (class attribute): self.SCORES
         """
-        # DBUGCNT_max = 3
-        # DBUGCNT = 0
-        for n_name, n_data in self.NODES.items():
-            # DBUGCNT += 1
-            self.SCORES[n_name] =\
-                {"compose":
-                    {"bars": self.PALETTE['labels'][n_data['L']]["bars"],
-                     "bars_per_phrase":
-                        self.PALETTE['labels'][n_data['L']]["bars_per_phrase"],
-                     "phrases": self.PALETTE['labels'][n_data['L']]["phrases"],
-                     "progress":
-                        self.PALETTE['labels'][n_data['L']]["progress"]},
-                 'modes':
-                    {"key": self.PALETTE['topics'][n_data['T']]["key"],
-                     "key_mode": self.PALETTE['topics'][n_data['T']]["mode"],
-                     "key_scale":
-                         self.PALETTE['topics'][n_data['T']]["scale"]}}
-            self.set_time_and_tempo(n_name)
-            self.set_modulated_keys(n_name)
-            self.set_melodic_pattern(n_name)
-            self.set_voices(n_name)
-            self.set_rhythm(n_name)
-            self.set_pitches(n_name)
-            # if DBUGCNT >= DBUGCNT_max:
-            #     break
+        dbug_max = len(self.NODES.keys())
+        # dbug_max = 3
+        dbug = 0
+        for nnm, nd in self.NODES.items():
+            dbug += 1
+            label = self.PALETTE['labels'][nd['L']]
+            topic = self.PALETTE['topics'][nd['T']]
+            self.SCORES[nnm] = {
+                "bar_cnt": label["bar_cnt"], "phr_cnt": label["phr_cnt"],
+                "chords": label["chords"],
+                "keysig": topic["keysig"], "scale": topic["scale"]}
+            self.set_time_and_tempo(nnm)
+            """
+            # self.set_modulated_keys(nnm) <-- not needed?
+            self.set_melodic_pattern(nnm)
+            self.set_voices(nnm)
+            self.set_rhythm(nnm)
+            self.set_pitches(nnm)
+            """
+            if dbug >= dbug_max:
+                break
 
     def set_label_progressions(self):
         """Assign a chord progression pattern to unique Node Label.
@@ -607,34 +627,38 @@ class MusicIO(object):
         self.PALETTE['labels'] = dict()
         labels = set([data['L'] for _, data in self.NODES.items()])
         for label in labels:
-            prog_ix = random.choice(list(self.CHORD.PROG.keys()))
+            p_x = random.choice(list(self.CHORD.PROG.keys()))
             self.PALETTE['labels'][label] =\
-                {"progress": self.CHORD.PROG[prog_ix]['chords'],
-                 "phrases": self.CHORD.PROG[prog_ix]['phrases'],
-                 "bars": len(self.CHORD.PROG[prog_ix]['chords']),
-                 "bars_per_phrase":
-                     int(len(self.CHORD.PROG[prog_ix]['chords']) /
-                         self.CHORD.PROG[prog_ix]['phrases'])}
+                {"chords": self.CHORD.PROG[p_x]['chords'],
+                 "phr_cnt": self.CHORD.PROG[p_x]['phrases'],
+                 "bar_cnt": len(self.CHORD.PROG[p_x]['chords'])}
 
     def set_topic_modes(self):
-        """Assign a mode, key and scale for each unique Node Topic.
+        """Assign a key and scale for each unique Node Topic.
         Recall that a "Topic" = a spreadsheet name = a geo-spatial category.
+        Keep in mind that not all the CANON scales have minor modes.
 
         :sets:
         - (class attribute): self.PALETTE
         """
         self.PALETTE['topics'] = dict()
         topics = set([data['T'] for _, data in self.NODES.items()])
+        # 67% chance to use major, else minor
         for topic in topics:
-            mode = random.choice(["major", "natural", "harmonic", "melodic"])
-            if mode == "major":
-                key = random.choice(list(self.CANON.MAJOR.keys()))
-                scale = self.CANON.MAJOR[key]
+            k = random.choice(list(self.CANON.SCALES.keys()))
+            if random.randint(100, 100) < 67:
+                m = "major"
             else:
-                key = random.choice(list(self.CANON.MINOR[mode].keys()))
-                scale = self.CANON.MINOR[mode][key]
+                got_it = False
+                while not got_it:
+                    m = random.choice(["natural", "harmonic", "melodic"])
+                    if m in self.CANON.SCALES[k]:
+                        got_it = True
+                    else:
+                        k = random.choice(list(self.CANON.SCALES.keys()))
             self.PALETTE['topics'][topic] =\
-                {"key": key, "mode": mode, "scale": scale}
+                {"keysig": self.CANON.KEYSIGS[k][m],
+                 "scale": self.CANON.SCALES[k][m]}
 
     def set_music_data(self):
         """Generate music data from the graph data.
@@ -656,27 +680,30 @@ class MusicIO(object):
 
         print("\n\nGeneric thematic assignments ==============")
         pp(("PALETTE", self.PALETTE))
-
-        print("\n\nMelodic and harmonic assignments ==============")
-        pp(("SCORES", self.SCORES))
         """
         self.set_topic_modes()
         self.set_label_progressions()
         self.set_node_scores()
+
+        print("\n\nMelodic and harmonic assignments ==============")
+        pp(("SCORES", self.SCORES))
+        """
+
         # self.file_nm
         with open(self.file_nm + "_scores.pickle", 'wb') as obj_file:
             pickle.dump(self.SCORES, obj_file)
         print(f"Music SCORES object pickled to: {self.file_nm}" +
               "_scores.pickle")
+        """
 
     def parse_score(self,
-                    p_n_name: str,
+                    nnm: str,
                     p_key_sig: str,
                     p_beat: dict,
                     p_notes: dict):
         """Parse a score into music21 note objects.
         :args:
-        - p_n_name (str): name of the Node
+        - nnm (str): name of the Node
         - p_beat (dict): the beat data for one node
         - p_notes (dict): the voice #1 notes data for one Node
 
@@ -701,38 +728,18 @@ class MusicIO(object):
         anyway).
 
         Not quite getting how music21 handles dotted notes, so am going
-        to remove them for now, which may create some weirdness. :-)
+        to remove them for now, which will create some weirdness. :-)
+
+        OK. Making some headway. I am thinking that I should probably just
+        use music21-oriented objects in the CANON to start with, and
+        reference them directly when generating the score. This can inlcude
+        clefs, key signatures, time signatures, and BPM.
 
         Once the notes are parsed, a music21 object/stream is created.
         - Send to MuseScore: <object>.show()
-        - Play it: <object>.show('midi')
-
-        >>> pp((MI.CANON.NOTES))
-OrderedDict([('1', (4, 'whole', 'w', '𝅝')),
-             ('2', (2, 'half', 'h', '𝅗𝅥')),
-             ('4', (1, 'quarter', 'q', '𝅘𝅥')),
-             ('8', (0.5, 'eighth', 'e', '𝅘𝅥𝅮')),
-             ('16', (0.25, 'sixteenth', 's', '𝅘𝅥𝅯')),
-             ('2.', (3, 'dotted_half', 'h.', '𝄼.')),
-             ('4.', (1.5, 'dotted_quarter', 'q.', '𝄽.')),
-             ('T', (1, 'triplet', 't', '')),
-             ('8.', (0.75, 'dotted_eighth', 'e.', '𝄾.')),
-             ('8r', (0.5, 'eighth_rest', 'er', '𝄾')),
-             ('4r', (1, 'quarter_rest', 'qr', '𝄽')),
-             ('2r', (2, 'half_rest', 'hr', '𝄼')),
-             ('1r', (4, 'whole_rest', 'wr', '𝄻')),
-             ('16r', (0.25, 'sixteenth_rest', 'sr', '𝄿')),
-             ('16t', (0.5, 'double_sixteenth', 'ss', '♬')),
-             ('16.', (0.375, 'dotted_sixteenth', 's.', '𝅘𝅥𝅯.')),
-             ('32', (0.125, 'thirty_second', 'ts', '𝅘𝅥𝅰')),
-             ('32r', (0.125, 'thirty_second_rest', 'tsr', '𝅀')),
-             ('32.', (0.1875, 'dotted_thirty_second', 'ts.', '𝅘𝅥𝅰.')),
-             ('64', (0.0625, 'sixty_fourth', 'sf', '𝅘𝅥𝅱')),
-             ('64r', (0.0625, 'sixty_fourth_rest', 'sfr', '𝅁')),
-             ('64.', (0.9375, 'dotted_sixty_fourth', 'sf.', '𝅘𝅥𝅱.'))])
-
+        - Play it: <object>.show('midi') <-- my default player is timidity
         """
-        print(f"\n\n========  {p_n_name}  ============")
+        print(f"\n\n========  {nnm}  ============")
         pp((("key signature", p_key_sig), ("beat", p_beat)))
         score = m21.stream.Stream()
         score.clef = m21.clef.TrebleClef()
@@ -757,7 +764,7 @@ OrderedDict([('1', (4, 'whole', 'w', '𝅝')),
                     else:
                         used.add(pit[:1])
                     pit += str(range)
-                    pit = pit.replace("♭", "-").replace("♯", "#")
+                    pit = pit.replace("-", "-").replace("#", "#")
                     # print(f"{pit} ({dur}) = " +
                     #      f"{m21.pitch.Pitch(pit).unicodeName}")
                     pp((("pit", pit), ("rhy", rhy), ("dur", dur)))
@@ -771,26 +778,37 @@ OrderedDict([('1', (4, 'whole', 'w', '𝅝')),
         """Generate music file from music object that can be
            loaded into MuscScore3 or other midi-style program.
 
-        Use music21 library to generate the file, then open in MuscScore3.
-        See:
-        https://web.mit.edu/music21/doc/
-        https://web.mit.edu/music21/doc/py-modindex.html
 
         After learning how to do some stuff, may want to reduce the
-        modules imported to just the ones that are needed.
+        m21 modules imported to just the ones that are needed.
+
+        Also keep in mind that music21 supports microtonal music, and
+        can also define durations of any length, regardless of whether
+        such a note exists in canonical notation.
+
+        Furthermore, it has a large set of music21 objects, which means
+        I can choose instruments/timbres, use the system to define
+        rhythms/beats, manipulate metronome/tempo and more.
+
+        This is such a large, complete library, it is really silly for
+        me to invent another layer of my own on top of it -- other than
+        for the pure joy and pedantic thrill of it of course! :-)
+
+        Should be able to simplify this once the set_music_data methods
+        are more closely aligned to music21 objects.
         """
         with open(self.file_nm + "_scores.pickle", 'rb') as f:
             self.SCORES = pickle.load(f)
         m21.environment.set('midiPath', '/usr/bin/timidity')
         print("\n\nMelodic and harmonic assignments ==============")
-        DBUGCNT_max = 2
-        DBUGCNT = 0
+        dbug_max = 2
+        dbug = 0
         book = m21.stream.Stream()
         for n_name, n_data in self.SCORES.items():
-            DBUGCNT += 1
+            dbug += 1
             score = self.parse_score(n_name, n_data["modes"]["key_sig"],
                                      n_data["beat"], n_data["notes"][1])
             book.append(score)
-            if DBUGCNT >= DBUGCNT_max:
+            if dbug >= dbug_max:
                 break
         book.show()
