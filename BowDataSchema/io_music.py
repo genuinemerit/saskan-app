@@ -21,7 +21,9 @@ from copy import copy
 from dataclasses import dataclass   # fields
 from os import path
 from pprint import pformat as pf        # noqa: F401
-from pprint import pprint as pp         # noqa: F401
+from pprint import pprint as pp
+
+from sympy import false         # noqa: F401
 
 from io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
@@ -231,6 +233,15 @@ class MusicIO(object):
         THEME[21] = ['I', 'IV', 'I', 'I']
         THEME[22] = ['V', 'IV', 'I', 'I']
 
+        DEGREES = {
+            'I': 1,
+            'ii': 2,
+            'iii': 3,
+            'IV': 4,
+            'V': 5,
+            'vi': 6,
+            'vii': 7}
+
         PROG = dict()
         PROG[0] = {"phrases": 4, "chords": THEME[0] * 4}
         PROG[1] = {"phrases": 3,  "chords": THEME[1] * 3}
@@ -386,155 +397,152 @@ class MusicIO(object):
             # pp(("pitches", pitches))
         self.SCORE[nnm]["notes"][1]["pitch"][p_barx] = pitches
 
-    def set_pitches(self, nnm: str):
-        """For each measure, set the pitch for each rhythm-note."""
-        def get_sevens(p_note: str,
-                       p_scale: list):
-            """Return a list containing triad plus dominant 7th
-            for notes in designated key. Dominant means flat the 7th.
+    def get_sevens(self,
+                   p_note: str,
+                   p_scale: list):
+        """Return a list containing triad plus dominant 7th
+        for notes in designated key. Dominant means flat the 7th.
 
-            Turned off the range for now.
-            """
-            notex = p_scale.index(p_note)
-            # chord_range = 4
-            chord_range = ""
-            chord = [p_note + str(chord_range)]
-            for n in range(3):
-                if notex < (len(p_scale) - 2):
-                    notex = notex + 2
-                else:
-                    notex = 0
-                    # chord_range += 1
-                note = p_scale[notex]
-                if n == 2:
-                    if note[-1:] == "#":
-                        note = note[:1]
-                    else:
-                        note += "-"
-                chord.append(note + str(chord_range))
-            return chord
-
-        # set_pitches() MAIN
-        # ===================================================
-        self.SCORE[nnm]["notes"][1]['pitch'] = dict()
-        print("\n\n")
-        for barx, pat in enumerate(
-                self.SCORE[nnm]["compose"]["pattern"]):
-            self.SCORE[nnm]["notes"][1]['pitch'][barx] = list()
-            deg = {"roman": self.SCORE[nnm]["compose"]["progress"][barx]}
-            deg["x"] = self.CANON.DEGREES['roman'].index(deg["roman"])
-            mods = self.SCORE[nnm]["modes"]["mods"]
-            sca = {"main": self.SCORE[nnm]["modes"]["key_scale"],
-                   "IV": mods['IV_key']['scale'],
-                   "V": mods['V_key']['scale'],
-                   "parl": mods['parallel']['scale'],
-                   "rel": mods['relative']['scale']}
-            chord = {"main": get_sevens(
-                        sca["main"][deg["x"]],
-                        self.SCORE[nnm]["modes"]["key_scale"]),
-                     "IV": get_sevens(sca["IV"][deg["x"]],
-                                      mods['IV_key']['scale']),
-                     "V": get_sevens(sca["V"][deg["x"]],
-                                     mods['V_key']['scale']),
-                     "parl": get_sevens(sca["parl"][deg["x"]],
-                                        mods['parallel']['scale']),
-                     "rel": get_sevens(sca["rel"][deg["x"]],
-                                       mods['relative']['scale'])}
-            # print("\n====")
-            # pp((("barx", barx),
-            #     ("pat", pat),
-            #     ("deg", deg),
-            #     ("scale", sca),
-            #     ("chord", chord)))
-            self.set_bar_pitches(nnm, barx, deg, pat, sca, chord)
-
-    def set_rhythm(self, nnm: str):
-        """For each bar within each voice, establish a rhythmic progression.
-        It will be described using musical notation, but without pitches.
-        Assume that '4' = quarter note gets the beat in all cases.
-        Examples, time signature 2/4:
-        - One-and-Two-and (single pulse): (2) = one half
-        - One-and, Two-and (double pulse): (4, 4) = two quarters
-        - One-and-Two, and (shuffle-in): (4., 8) = dotted quater note, eighth
-        - One, and-Two-and (shuffle-out): (8, 4.) = eighth, dotted quater note
-        - One, and, Two, and (4-tuple): (8, 8, 8, 8) = 4 eighths
-        ...and so on, including 16th, 32nd and 64th notes
-
-        The largest note in a bar is the beat note / beats per bar,
-        or the next whole-integer "up" from a fractional result.
-        Example for 2/4: 4 / 2 = 2 (half note)
-        Example for 3/4: 4 / 3 = 1.33 --> 2 (half note)
-        Example for 4/4: 4 / 4 = 1 (whole note)
-
-        Try to establish this without hard-coding the time signature.
-
-        Use of 16ths, 32nd and 64ths is discouraged using filtering rules,
-        but they are still needed in order to solve all situations.
-
-        Use iterative backtracking (do-overs) to ensure rhythms are
-        compatible with time signature.
-
-        @DEV:
-        - When adding more voices, may want to have more rules
-        - That is, derive the additional voices' rhythms from the
-          previously-established rhythms.
+        Turned off the range for now.
         """
-        def set_beat_note(nnm: str,
-                          p_beats: int,
-                          p_beats_per_bar: int,
-                          p_earlier_beat: int):
-            """Assign random note and duration. Increment total beat duration.
-            Voice index is hard-coded for now.
-            """
-            beats = p_beats
-            if p_beats < p_beats_per_bar * 0.85:
-                note = random.choice(
-                    list(self.CANON.NOTES.keys())[:p_earlier_beat])
+        notex = p_scale.index(p_note)
+        # chord_range = 4
+        chord_range = ""
+        chord = [p_note + str(chord_range)]
+        for n in range(3):
+            if notex < (len(p_scale) - 2):
+                notex = notex + 2
             else:
-                note = random.choice(list(self.CANON.NOTES.keys()))
-            duration = self.CANON.NOTES[note][0]
-            if (p_beats + duration) <= b_per_bar:
-                beats += duration
-                self.SCORE[nnm]["notes"][1]['rhythm'][m].append((note))
-            return beats
+                notex = 0
+                # chord_range += 1
+            note = p_scale[notex]
+            if n == 2:
+                if note[-1:] == "#":
+                    note = note[:1]
+                else:
+                    note += "-"
+            chord.append(note + str(chord_range))
+        return chord
 
-        # set_rhythm() MAIN
-        # on first prototype, just doing one voice
-        # =============================================================
-        self.SCORE[nnm]["notes"][1]['rhythm'] = dict()
-        for m, _ in enumerate(self.SCORE[nnm]["compose"]["pattern"]):
-            beats = 0
-            b_per_bar = self.SCORE[nnm]['beat']['per_bar']
-            n_cnt = len(list(self.CANON.NOTES.keys()))
-            n_earlier = int(round(n_cnt * 0.5))
-            tries = 0
-            do_overs = 0
-            while do_overs < 10:
-                self.SCORE[nnm]["notes"][1]['rhythm'][m] = list()
-                while beats < b_per_bar:
-                    beats = set_beat_note(
-                        nnm, beats, b_per_bar, n_earlier)
-                    tries += 1
-                    if tries > 100:
-                        print(f"tries exceeded 100 for {nnm}")
-                        break
-                do_overs += 1
-                if beats == self.SCORE[nnm]['beat']['per_bar']:
-                    break
-                if do_overs >= 10:
-                    # maybe save each try and if we have to quit,
-                    # then pick the one with beats closest to 1.0.
-                    print(f"do-overs exceeded 10 for {nnm}")
+    def pick_a_pitch(self,
+                     nnm: str,
+                     bars: dict):
+        """Assign a pitch for every interval in a measure.
+        - Choose triad or other harmonic vs. melodic line.
+        - Apply interval change to tonic if using harmonics.
+        - Start of each phrase should echo the first bar.
+        - End of each phrase should be punctuated in some fashion.
+        - Eventually, maybe adjust for register changes, but for
+          now just see how music21 handles it.
 
-    def set_voices(self, nnm: str):
-        """Determine how many voices to use and what clef they are in.
-        Assume all voices are in the same key.
+        :args:
+        - nnm (str) : Name of node being processed.
+        - bars (dict) : Dictionary of bars.
+
+        return: (dict) : Enhanced bars data.
         """
-        self.SCORE[nnm]["notes"] = dict()
-        voice_cnt = random.randint(1, self.CANON.MAX_VOICES)
-        for v in range(voice_cnt):
-            clef = "𝄞" if (v == 0) or (random.randint(1, 101) < 80) else "𝄢"
-            self.SCORE[nnm]["notes"][v + 1] = {"clef": clef}
+        scale = self.SCORE[nnm]["scale"]
+        bar_cnt = 0
+        for roman in self.SCORE[nnm]['chords']:
+            bars[bar_cnt] = dict()
+            degree = self.CANON.DEGREES[roman]
+            bar_values = list(bars.values())
+            mx = bar_values.index(bar_cnt)\
+                if bar_cnt in bars.values() else None
+            m_nm = list(bars.keys())[mx]\
+                if mx is not None else None
+            pp(("mx: ", mx, "  roman: ", roman, "  degree: ", degree, "  m_nm: ", m_nm))
+
+            # Handle bars for which a specific motif is defined.
+            if m_nm is not None and m_nm in self.SCORE[nnm]['motif'].keys():
+                print(f"\n\nProcessing bar: {m_nm} / {mx}")
+                this_bar = list()
+                for dirs in self.SCORE[nnm]['motif'][m_nm]['dirs']:
+                    pitches = list()
+                    for dir in dirs:
+                        degree += dir
+                        # Increase/decrease probability of using a
+                        # chord based on what type of bar it is.
+                        if random.randint(0, 100) < 70:
+                            pitch = m21.chord.Chord([
+                                scale.pitchFromDegree(degree),
+                                scale.pitchFromDegree(degree + 2),
+                                scale.pitchFromDegree(degree + 4)])
+                        else:
+                            pitch = scale.pitchFromDegree(degree)
+                        pitches.append(pitch)
+                    this_bar.append(pitches)
+                bars[bar_cnt]['pitches'] = this_bar
+                bars[bar_cnt]['notes'] =\
+                    self.SCORE[nnm]['motif'][m_nm]['notes']
+                del bars[m_nm]
+
+            # TODO: Handle bars for which a specific motif is not defined.
+
+            # First, those identified as Phrase Start or Phrase End. Apply
+            #  specific variations to those bars which either echo the first
+            #  bar or contain punctuation that marks a phrase end.
+            # (Not sure what these "rules" are yet. :-)  )
+
+            # And finally, the remaining bars, using a random choice of
+            # variations, like:
+            # - Choose notes similar to preceding bar but...
+            # - Swap the order of the partial-motives in a bar.
+            # - Invert the direction rules in a partial-motive.
+            # - Invert the order of the motif-notes in a partial-motive.
+            # - Combination of those.
+            # - Randomly modify the dynamics of the motives.
+
+            bar_cnt += 1
+        return bars
+
+    def identify_bars(self, nnm):
+        """Assign name and index to bars that align directly or
+        indirectly to a motif.
+
+        :args:
+        - nnm (str) : Name of node being processed.
+
+        return: (dict) : initialized set of bar names and indexes.
+        """
+        bars = {
+            '1st': 0,
+            '2nd': int(round(self.SCORE[nnm]['bar_cnt'] * .25)),
+            'Change': int(round(self.SCORE[nnm]['bar_cnt'] * .67)),
+            'End': self.SCORE[nnm]['bar_cnt'] - 1
+        }
+        # Compute size of phrases
+        p_sz = int(round(
+            self.SCORE[nnm]['bar_cnt'] / self.SCORE[nnm]['phr_cnt']))
+        # Determine where is the 3rd motif, if one is defined.
+        if self.SCORE[nnm]['motif']['3rd'] != '':
+            bars['3rd'] = int(round(self.SCORE[nnm]['bar_cnt'] * .75))
+        # Determine where is the turnaround, if one is defined.
+        if self.SCORE[nnm]['motif']['Turn'] != '':
+            bars['Turn'] = bars['End'] - 1
+        # Identify first and last bar of each phrase.
+        for p in range(0, self.SCORE[nnm]['phr_cnt']):
+            bars[f'End phrase {p + 1}'] = ((p + 1) * p_sz) - 1
+            if ((p + 1) * p_sz) < len(bars):
+                bars[f'Start phrase {p + 2}'] = ((p + 1) * p_sz)
+        return bars
+
+    def set_pitches(self,
+                    nnm: str):
+        """For each measure, set the pitch for each motif-note.
+
+        :args:
+        - nnm (str) : Name of node being processed.
+
+        :sets:
+        - (class attribute): self.SCORE
+        """
+        bars = self.identify_bars(nnm)
+        bars = self.pick_a_pitch(nnm, bars)
+        self.SCORE[nnm]['bars'] = bars
+
+        print("\n\n")
+        pp(("nnm, score: ", nnm, self.SCORE[nnm]))
 
     def translate_direction(self,
                             p_meta: str,):
@@ -658,12 +666,11 @@ class MusicIO(object):
         """
         ts = random.choice(list(self.CANON.TIMESIG.keys()))
         self.SCORE[nnm]['beat'] = {
-            'time_sig': self.CANON.TIMESIG[ts],
-            'cnt': self.CANON.TIMESIG[ts].beatCount,
             'bar_dur': self.CANON.TIMESIG[ts].barDuration,
-            'div': self.CANON.TIMESIG[ts].beatDivisionCount,
-            'dur': self.CANON.TIMESIG[ts].beatDuration,
-            'metron': m21.tempo.MetronomeMark(random.randint(60, 160))}
+            'beat_dur': self.CANON.TIMESIG[ts].beatDuration,
+            'beat_cnt': self.CANON.TIMESIG[ts].beatCount,
+            'metron': m21.tempo.MetronomeMark(random.randint(60, 160)),
+            'time_sig': self.CANON.TIMESIG[ts]}
 
     def set_node_scores(self):
         """Assign a score to each unique Node.
@@ -685,13 +692,7 @@ class MusicIO(object):
                 "keysig": topic["keysig"], "scale": topic["scale"]}
             self.set_meter(nnm)
             self.set_motif(nnm)
-            """
-            self.set_voices(nnm) <-- let's skip this for now.
-                                 <-- come back to it with timbres
-            self.set_rhythm(nnm) <-- already done in motives, drop this.
-            self.set_pitches(nnm) <-- just do this, adding variations
-                                  <-- next round, add articulations
-            """
+            self.set_pitches(nnm)
             if dbug >= dbug_max:
                 break
 
@@ -759,13 +760,13 @@ class MusicIO(object):
 
         print("\n\nGeneric thematic assignments ==============")
         pp(("PALETTE", self.PALETTE))
+
+        print("\n\nMelodic and harmonic assignments ==============")
+        pp(("SCORE", self.SCORE))
         """
         self.set_topic_modes()
         self.set_label_progressions()
         self.set_node_scores()
-
-        print("\n\nMelodic and harmonic assignments ==============")
-        pp(("SCORE", self.SCORE))
         """
 
         # self.file_nm
