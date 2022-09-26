@@ -23,7 +23,7 @@ from os import path
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp
 
-from sympy import false         # noqa: F401
+from sympy import false         # noqa: F401 ???
 
 from io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
@@ -243,30 +243,30 @@ class MusicIO(object):
             'vii': 7}
 
         PROG = dict()
-        PROG[0] = {"phrases": 4, "chords": THEME[0] * 4}
-        PROG[1] = {"phrases": 3,  "chords": THEME[1] * 3}
-        PROG[2] = {"phrases": 3,  "chords": THEME[2] * 3}
-        PROG[3] = {"phrases": 3,  "chords": THEME[3] * 3}
-        PROG[4] = {"phrases": 3,  "chords": THEME[4] * 3}
-        PROG[5] = {"phrases": 3,  "chords": THEME[5] * 3}
-        PROG[6] = {"phrases": 3,  "chords": THEME[6] * 3}
-        PROG[7] = {"phrases": 3,  "chords": THEME[7] * 3}
-        PROG[8] = {"phrases": 3,  "chords": THEME[8] * 3}
-        PROG[9] = {"phrases": 3,  "chords": THEME[9] * 3}
-        PROG[10] = {"phrases": 3,  "chords": THEME[10] * 2 + THEME[11]}
-        PROG[11] = {"phrases": 4,  "chords": THEME[11] + THEME[12] +
+        PROG[0] = {"phrases": 4, 'chords': THEME[0] * 4}
+        PROG[1] = {"phrases": 3,  'chords': THEME[1] * 3}
+        PROG[2] = {"phrases": 3,  'chords': THEME[2] * 3}
+        PROG[3] = {"phrases": 3,  'chords': THEME[3] * 3}
+        PROG[4] = {"phrases": 3,  'chords': THEME[4] * 3}
+        PROG[5] = {"phrases": 3,  'chords': THEME[5] * 3}
+        PROG[6] = {"phrases": 3,  'chords': THEME[6] * 3}
+        PROG[7] = {"phrases": 3,  'chords': THEME[7] * 3}
+        PROG[8] = {"phrases": 3,  'chords': THEME[8] * 3}
+        PROG[9] = {"phrases": 3,  'chords': THEME[9] * 3}
+        PROG[10] = {"phrases": 3,  'chords': THEME[10] * 2 + THEME[11]}
+        PROG[11] = {"phrases": 4,  'chords': THEME[11] + THEME[12] +
                     THEME[11] + THEME[12]}
-        PROG[12] = {"phrases": 4,  "chords": THEME[10] + THEME[13] +
+        PROG[12] = {"phrases": 4,  'chords': THEME[10] + THEME[13] +
                     THEME[10] + THEME[13]}
-        PROG[13] = {"phrases": 3,  "chords": THEME[14] * 3}
-        PROG[14] = {"phrases": 3,  "chords": THEME[15] * 3}
-        PROG[15] = {"phrases": 4,  "chords": THEME[16] + THEME[17] +
+        PROG[13] = {"phrases": 3,  'chords': THEME[14] * 3}
+        PROG[14] = {"phrases": 3,  'chords': THEME[15] * 3}
+        PROG[15] = {"phrases": 4,  'chords': THEME[16] + THEME[17] +
                     THEME[16] + THEME[17]}
-        PROG[16] = {"phrases": 3,  "chords": THEME[18] + THEME[19] +
+        PROG[16] = {"phrases": 3,  'chords': THEME[18] + THEME[19] +
                     THEME[20]}
-        PROG[17] = {"phrases": 3,  "chords": THEME[21] + THEME[19] +
+        PROG[17] = {"phrases": 3,  'chords': THEME[21] + THEME[19] +
                     THEME[20]}
-        PROG[18] = {"phrases": 3,  "chords": THEME[18] + THEME[19] +
+        PROG[18] = {"phrases": 3,  'chords': THEME[18] + THEME[19] +
                     THEME[22]}
 
         MOTIF = dict()
@@ -335,6 +335,7 @@ class MusicIO(object):
           lilypond or diret-to-midi file, play it, see how it sounds.
           Work in on "compiling" the patterns into a usable format
           before tweaking the composition algorithm more.
+        - This is being replaced by refactored code...
         """
         pitches = list()
         rhythm_notes = self.SCORE[nnm]["notes"][1]["rhythm"][p_barx]
@@ -404,6 +405,8 @@ class MusicIO(object):
         for notes in designated key. Dominant means flat the 7th.
 
         Turned off the range for now.
+
+        May not need this but hold onto it for now.
         """
         notex = p_scale.index(p_note)
         # chord_range = 4
@@ -424,76 +427,237 @@ class MusicIO(object):
             chord.append(note + str(chord_range))
         return chord
 
+    def set_start_or_end_bar(self,
+                             nnm: str,
+                             bar_nm: str,
+                             bar_x: int,
+                             degree: int,
+                             scale: object,
+                             bars: dict):
+        """Assign pitches to bars for which no specific motif is defined,
+        but they start or end a phrase.
+        - Set a middle probability for tonal work (chords) in these bars.
+        - Start of each phrase echoes first bar.
+        - End of each phrase should have shared patterns and be punctuated.
+
+        Apply specific types of variations...
+        - As is -- same as the model
+        - Swap order of the partial-motives
+        - Invert direction rules in one or both partial-motives
+        - Invert order of notes in one or both partial-motives.
+        - Combination of above.
+
+        Punctuations:
+        - One or both of the partials should have a long note.
+          Get half of bar duration. Set the partial dur to that
+           and set corresponding direction to zero.
+        - Make sure there's a tonic in phrase-ending bars.
+
+        :args:
+        - nnm: (str) name of the node for which music is generated
+        - bar_nm (str): descriptive name of bar, tied to named motif
+        - bar_x (int): index of bar in the score
+        - degree (int): scale degree selected to characterize this bar
+        - scale (music21 scale object): scale used in this score
+        - bars (dict): dictionary of pitches and durations in music21 format
+
+        :returns: (list) Pitches for selected bar, organized by parts.
+        """
+        def set_model_bar(bar_nm):
+            """Set bar's notes and directions to model bar."""
+            bar_model = "End" if bar_nm == "End" else "1st"
+            vary_n = self.SCORE[nnm]['motif'][bar_model]['notes']
+            vary_d = self.SCORE[nnm]['motif'][bar_model]['dirs']
+            return(vary_n, vary_d)
+
+        def apply_variations(vary_n, vary_d):
+            """Randomly swap motifys, directions, notes."""
+            if random.randint(0, 100) > 30:  # Swap motifs.
+                vary_n.reverse()
+                vary_d.reverse()
+            if random.randint(0, 100) > 50:  # Invert directions.
+                for dx, _ in enumerate(vary_d):
+                    if random.randint(0, 100) > 25:
+                        vary_d[dx].reverse()
+            if random.randint(0, 100) > 50:  # Invert notes.
+                for dx, _ in enumerate(vary_n):
+                    if random.randint(0, 100) > 25:
+                        vary_n[dx].reverse()
+            return(vary_n, vary_d)
+
+        def set_long_note(vary_n, vary_d):
+            """Assign a note half bar_dur length to ending bar-part."""
+            bar_dur = self.SCORE[nnm]['_beat']['bar_dur'].quarterLength
+            vary_n[0] = [m21.duration.Duration(bar_dur / 2)]
+            vary_d[0] = [0]
+            return(vary_n, vary_d)
+
+        def apply_punctuations(vary_n, vary_d):
+            """Set long notes and identify if tonic should be forced."""
+            set_long = False
+            if random.randint(0, 100) > 50:
+                vary_n, vary_d = set_long_note(vary_n, vary_d)
+                set_long = True
+            if not set_long or random.randint(0, 100) > 50:
+                vary_n, vary_d = set_long_note(vary_n, vary_d)
+            force_tonic = False if self.SCORE[nnm]['_chords'][bar_x] == 'I'\
+                else True
+            return(vary_n, vary_d, force_tonic)
+
+        # set_start_or_end_bar() MAIN
+        # =============================================================
+        # NEXT/DEBUG:
+        # Need to figure out where the sequencing is getting off, i.e.,
+        # sometimes there is a different quantity of notes (durations)
+        # and pitches.
+        # Also, why is bar 0 is getting modified by this function? It should
+        # only be populating bars associated with a "Start n" or "End n" name
+        # which have not already been populated.
+        print(f"2. Processing bar: {bar_nm} / {bar_x}")
+        vary_n, vary_d = set_model_bar(bar_nm)
+        vary_n, vary_d = apply_variations(vary_n, vary_d)
+        force_tonic = False
+        if "End" in bar_nm:
+            vary_n, vary_d, force_tonic = apply_punctuations(vary_n, vary_d)
+        this_bar = list()
+        for dirs in vary_d:
+            pitches = list()
+            for dir in dirs:
+                degree += dir
+                if force_tonic:
+                    degree = 1
+                    force_tonic = False
+                if (random.randint(0, 100) < 30 or
+                        ("End" in bar_nm and random.randint(0, 100) < 70)):
+                    pitch = m21.chord.Chord([
+                        scale.pitchFromDegree(degree),
+                        scale.pitchFromDegree(degree + 2),
+                        scale.pitchFromDegree(degree + 4)])
+                elif random.randint(0, 100) < 20:
+                    pitch = m21.chord.Chord([
+                        scale.pitchFromDegree(degree),
+                        scale.pitchFromDegree(degree + 2),
+                        scale.pitchFromDegree(degree + 4),
+                        scale.pitchFromDegree(degree + 6)])
+                else:
+                    pitch = scale.pitchFromDegree(degree)
+                pitches.append(pitch)
+            this_bar.append(pitches)
+        bars[bar_x]['notes'] = vary_n
+        bars[bar_x]['pitches'] = this_bar
+        del bars[bar_nm]
+        return bars
+
+    def set_specific_motif(self,
+                           nnm: str,
+                           bar_nm: str,
+                           bar_x: int,
+                           degree: int,
+                           scale: object,
+                           bars: dict):
+        """Assign pitches to bars for which a specific motif is defined.
+        - Set a high probability for tonal work (chords) in these bars.
+
+        :args:
+        - nnm: (str) name of the node for which music is generated
+        - bar_nm (str): descriptive name of bar, tied to named motif
+        - bar_x (int): index of bar in the score
+        - degree (int): scale degree selected to characterize this bar
+        - scale (music21 scale object): scale used in this score
+        - bars (dict): dictionary of pitches and durations in music21 format
+
+        :returns: (list) Pitches for selected bar, organized by parts.
+        """
+        this_bar = list()
+        print(f"1. Processing bar: {bar_nm} / {bar_x}")
+        for dirs in self.SCORE[nnm]['motif'][bar_nm]['dirs']:
+            pitches = list()
+            for dir in dirs:
+                degree += dir
+                if random.randint(0, 100) < 70:
+                    pitch = m21.chord.Chord([
+                        scale.pitchFromDegree(degree),
+                        scale.pitchFromDegree(degree + 2),
+                        scale.pitchFromDegree(degree + 4)])
+                elif random.randint(0, 100) < 30:
+                    pitch = m21.chord.Chord([
+                        scale.pitchFromDegree(degree),
+                        scale.pitchFromDegree(degree + 2),
+                        scale.pitchFromDegree(degree + 4),
+                        scale.pitchFromDegree(degree + 6)])
+                else:
+                    pitch = scale.pitchFromDegree(degree)
+                pitches.append(pitch)
+            this_bar.append(pitches)
+        bars[bar_x]['notes'] = self.SCORE[nnm]['motif'][bar_nm]['notes']
+        bars[bar_x]['pitches'] = this_bar
+        del bars[bar_nm]
+        return bars
+
     def pick_a_pitch(self,
                      nnm: str,
                      bars: dict):
         """Assign a pitch for every interval in a measure.
-        - Choose triad or other harmonic vs. melodic line.
-        - Apply interval change to tonic if using harmonics.
-        - Start of each phrase should echo the first bar.
-        - End of each phrase should be punctuated in some fashion.
-        - Eventually, maybe adjust for register changes, but for
-          now just see how music21 handles it.
+
+        Pass thru the bars dictionary multiple times:
+        1st pass -- assign pitches to bars with specific motifs assigned
+        2nd pass -- assign pitches to bars with no motif assigned, but
+          which are start or end a phrase and have not already been done
+        3rd pass -- assign pitches not yet handled.
 
         :args:
         - nnm (str) : Name of node being processed.
-        - bars (dict) : Dictionary of bars.
+        - bars (dict) : Dictionary of bars with names assigned, but no pitches.
 
-        return: (dict) : Enhanced bars data.
+        return: (dict) : Bars data with pitches and notes.
         """
-        scale = self.SCORE[nnm]["scale"]
-        bar_cnt = 0
-        for roman in self.SCORE[nnm]['chords']:
-            bars[bar_cnt] = dict()
-            degree = self.CANON.DEGREES[roman]
-            bar_values = list(bars.values())
-            mx = bar_values.index(bar_cnt)\
-                if bar_cnt in bars.values() else None
-            m_nm = list(bars.keys())[mx]\
-                if mx is not None else None
-            pp(("mx: ", mx, "  roman: ", roman, "  degree: ", degree, "  m_nm: ", m_nm))
+        def get_bar_name(bar_x: int, bars: dict):
+            """Return a bar name, if there is one, based on current bar number.
+            """
+            mi = list(bars.values()).index(bar_x)\
+                if bar_x in list(bars.values()) else None
+            bar_nm = list(bars.keys())[mi] if mi is not None else None
+            return bar_nm
 
-            # Handle bars for which a specific motif is defined.
-            if m_nm is not None and m_nm in self.SCORE[nnm]['motif'].keys():
-                print(f"\n\nProcessing bar: {m_nm} / {mx}")
-                this_bar = list()
-                for dirs in self.SCORE[nnm]['motif'][m_nm]['dirs']:
-                    pitches = list()
-                    for dir in dirs:
-                        degree += dir
-                        # Increase/decrease probability of using a
-                        # chord based on what type of bar it is.
-                        if random.randint(0, 100) < 70:
-                            pitch = m21.chord.Chord([
-                                scale.pitchFromDegree(degree),
-                                scale.pitchFromDegree(degree + 2),
-                                scale.pitchFromDegree(degree + 4)])
-                        else:
-                            pitch = scale.pitchFromDegree(degree)
-                        pitches.append(pitch)
-                    this_bar.append(pitches)
-                bars[bar_cnt]['pitches'] = this_bar
-                bars[bar_cnt]['notes'] =\
-                    self.SCORE[nnm]['motif'][m_nm]['notes']
-                del bars[m_nm]
+        # First pass --> handle bar names that match motif names.
+        for bar_x, roman in enumerate(self.SCORE[nnm]['_chords']):
+            bars[bar_x] = dict()
+            bar_nm = get_bar_name(bar_x, bars)
+            if bar_nm is not None:
+                if bar_nm in self.SCORE[nnm]['motif'].keys():
+                    bars = self.set_specific_motif(
+                        nnm, bar_nm, bar_x, self.CANON.DEGREES[roman],
+                        self.SCORE[nnm]['_scale'], bars)
 
-            # TODO: Handle bars for which a specific motif is not defined.
+        # Second pass --> handle bars that start or end a phrase.
+        # Something is getting messed up. I have more pitches
+        # defined than notes (durations) in some cases. I think
+        # that it is happening the second pass. May not be correctly
+        # sequencing the variations. I am seeing it in the first bar
+        # too, though, which may mean there is a problem in the first
+        # pass too. Break it down...
+        # Yeah, it does not occur when I comment out the second pass.
+        """
+        for bar_x, roman in enumerate(self.SCORE[nnm]['_chords']):
+            bar_nm = get_bar_name(bar_x, bars)
+            if bar_nm is not None:
+                if bars[bar_x] == {}:
+                    bars = self.set_start_or_end_bar(
+                        nnm, bar_nm, bar_x, self.CANON.DEGREES[roman],
+                        self.SCORE[nnm]['_scale'], bars)
+                else:
+                    print(f"Bar is already set, skipping {bar_nm} / {bar_x}")
+                    del bars[bar_nm]
+        """
 
-            # First, those identified as Phrase Start or Phrase End. Apply
-            #  specific variations to those bars which either echo the first
-            #  bar or contain punctuation that marks a phrase end.
-            # (Not sure what these "rules" are yet. :-)  )
-
-            # And finally, the remaining bars, using a random choice of
-            # variations, like:
-            # - Choose notes similar to preceding bar but...
-            # - Swap the order of the partial-motives in a bar.
-            # - Invert the direction rules in a partial-motive.
-            # - Invert the order of the motif-notes in a partial-motive.
-            # - Combination of those.
-            # - Randomly modify the dynamics of the motives.
-
-            bar_cnt += 1
+        # And finally, the remaining bars, using a random choice of
+        # variations, like:
+        # - Choose notes similar to preceding bar but...
+        # - Swap the order of the partial-motives in a bar.
+        # - Invert the direction rules in a partial-motive.
+        # - Invert the order of the motif-notes in a partial-motive.
+        # - Combination of those.
+        # - Randomly modify the dynamics of the motives.
         return bars
 
     def identify_bars(self, nnm):
@@ -507,23 +671,23 @@ class MusicIO(object):
         """
         bars = {
             '1st': 0,
-            '2nd': int(round(self.SCORE[nnm]['bar_cnt'] * .25)),
-            'Change': int(round(self.SCORE[nnm]['bar_cnt'] * .67)),
-            'End': self.SCORE[nnm]['bar_cnt'] - 1
+            '2nd': int(round(self.SCORE[nnm]['_t_bar'] * .25)),
+            'Change': int(round(self.SCORE[nnm]['_t_bar'] * .67)),
+            'End': self.SCORE[nnm]['_t_bar'] - 1
         }
         # Compute size of phrases
         p_sz = int(round(
-            self.SCORE[nnm]['bar_cnt'] / self.SCORE[nnm]['phr_cnt']))
+            self.SCORE[nnm]['_t_bar'] / self.SCORE[nnm]['_t_phrase']))
         # Determine where is the 3rd motif, if one is defined.
         if self.SCORE[nnm]['motif']['3rd'] != '':
-            bars['3rd'] = int(round(self.SCORE[nnm]['bar_cnt'] * .75))
+            bars['3rd'] = int(round(self.SCORE[nnm]['_t_bar'] * .75))
         # Determine where is the turnaround, if one is defined.
         if self.SCORE[nnm]['motif']['Turn'] != '':
             bars['Turn'] = bars['End'] - 1
         # Identify first and last bar of each phrase.
-        for p in range(0, self.SCORE[nnm]['phr_cnt']):
+        for p in range(0, self.SCORE[nnm]['_t_phrase']):
             bars[f'End phrase {p + 1}'] = ((p + 1) * p_sz) - 1
-            if ((p + 1) * p_sz) < len(bars):
+            if ((p + 1) * p_sz) < self.SCORE[nnm]['_t_bar']:
                 bars[f'Start phrase {p + 2}'] = ((p + 1) * p_sz)
         return bars
 
@@ -626,10 +790,10 @@ class MusicIO(object):
         for mot in p_mots:
             no = list()
             dr = list()
-            for mx, meta in enumerate(mot):
+            for mi, meta in enumerate(mot):
                 if meta in ('Q', 'S', 'B', 'D', 'W', 'T'):
                     no.append(
-                        self.translate_duration(meta, mot[mx + 1], p_denom))
+                        self.translate_duration(meta, mot[mi + 1], p_denom))
                 elif meta in ('^', 'v', '~'):
                     dr.append(self.translate_direction(meta))
             notes.append(no)
@@ -645,8 +809,8 @@ class MusicIO(object):
         :sets:
         - (class attribute): self.SCORE
         """
-        ts = self.SCORE[nnm]['beat']['time_sig'].ratioString
-        denom = self.SCORE[nnm]['beat']['time_sig'].denominator
+        ts = self.SCORE[nnm]['_beat']['time_sig'].ratioString
+        denom = self.SCORE[nnm]['_beat']['time_sig'].denominator
         mot_raw = self.CANON.MOTIF[ts][random.choice(
             list(self.CANON.MOTIF[ts].keys()))]
         motif = dict()
@@ -665,11 +829,11 @@ class MusicIO(object):
         - (class attribute): self.SCORE
         """
         ts = random.choice(list(self.CANON.TIMESIG.keys()))
-        self.SCORE[nnm]['beat'] = {
+        self.SCORE[nnm]['_beat'] = {
             'bar_dur': self.CANON.TIMESIG[ts].barDuration,
             'beat_dur': self.CANON.TIMESIG[ts].beatDuration,
             'beat_cnt': self.CANON.TIMESIG[ts].beatCount,
-            'metron': m21.tempo.MetronomeMark(random.randint(60, 160)),
+            'metronome': m21.tempo.MetronomeMark(random.randint(60, 160)),
             'time_sig': self.CANON.TIMESIG[ts]}
 
     def set_node_scores(self):
@@ -687,9 +851,11 @@ class MusicIO(object):
             label = self.PALETTE['labels'][nd['L']]
             topic = self.PALETTE['topics'][nd['T']]
             self.SCORE[nnm] = {
-                "bar_cnt": label["bar_cnt"], "phr_cnt": label["phr_cnt"],
-                "chords": label["chords"],
-                "keysig": topic["keysig"], "scale": topic["scale"]}
+                '_chords': label['chords'],
+                '_keysig': topic['keysig'],
+                '_scale': topic['scale'],
+                '_t_bar': label['bar_cnt'],
+                '_t_phrase': label['phr_cnt']}
             self.set_meter(nnm)
             self.set_motif(nnm)
             self.set_pitches(nnm)
@@ -708,9 +874,9 @@ class MusicIO(object):
         for label in labels:
             p_x = random.choice(list(self.CANON.PROG.keys()))
             self.PALETTE['labels'][label] =\
-                {"chords": self.CANON.PROG[p_x]['chords'],
-                 "phr_cnt": self.CANON.PROG[p_x]['phrases'],
-                 "bar_cnt": len(self.CANON.PROG[p_x]['chords'])}
+                {'chords': self.CANON.PROG[p_x]['chords'],
+                 'phr_cnt': self.CANON.PROG[p_x]['phrases'],
+                 'bar_cnt': len(self.CANON.PROG[p_x]['chords'])}
 
     def set_topic_modes(self):
         """Assign a key and scale for each unique Node Topic.
@@ -737,8 +903,8 @@ class MusicIO(object):
                     else:
                         k = random.choice(list(self.CANON.SCALE.keys()))
             self.PALETTE['topics'][topic] =\
-                {"keysig": self.CANON.KEYSIG[k][m],
-                 "scale": self.CANON.SCALE[k][m]}
+                {'keysig': self.CANON.KEYSIG[k][m],
+                 'scale': self.CANON.SCALE[k][m]}
 
     def set_music_data(self):
         """Generate music data from the graph data.
@@ -818,9 +984,12 @@ class MusicIO(object):
         Once the notes are parsed, a music21 object/stream is created.
         - Send to MuseScore: <object>.show()
         - Play it: <object>.show('midi') <-- my default player is timidity
+
+        @DEV:
+        Should be able to remove this function after refactoring.
         """
         print(f"\n\n========  {nnm}  ============")
-        pp((("key signature", p_key_sig), ("beat", p_beat)))
+        # pp((("key signature", p_key_sig), ('beat', p_beat)))
         score = m21.stream.Stream()
         score.clef = m21.clef.TrebleClef()
         score.timeSignature = m21.meter.TimeSignature(p_beat["time_sig"])
@@ -874,6 +1043,7 @@ class MusicIO(object):
         me to invent another layer of my own on top of it -- other than
         for the pure joy and pedantic thrill of it of course! :-)
 
+        @DEV:
         Should be able to simplify this once the set_music_data methods
         are more closely aligned to music21 objects.
         """
@@ -887,7 +1057,7 @@ class MusicIO(object):
         for n_name, n_data in self.SCORE.items():
             dbug += 1
             score = self.parse_score(n_name, n_data["modes"]["key_sig"],
-                                     n_data["beat"], n_data["notes"][1])
+                                     n_data['_beat'], n_data["notes"][1])
             book.append(score)
             if dbug >= dbug_max:
                 break
