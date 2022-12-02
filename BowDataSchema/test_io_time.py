@@ -7,6 +7,7 @@ from pprint import pprint as pp         # noqa: F401
 from io_time import TimeIO
 TI = TimeIO("time_data")
 
+
 class TestTimeIO(object):
     """Class for testing Calendar-related data and methods.
     """
@@ -58,7 +59,7 @@ class TestTimeIO(object):
                           p2 + " orbit: " +
                           str(int(round(TI.CAL.PLANETS["Faton"][p2]["orbit"]))) +
                           " days") 
-                    print(p1 + "/ "  + p2 + " orbital congruence is every: " +
+                    print(p1 + "/ " + p2 + " orbital congruence is every: " +
                           str(int(round(TI.orbital_congruence(
                             TI.CAL.PLANETS, "Faton", p1, p2)))) +
                           " days\n")
@@ -77,16 +78,18 @@ class TestTimeIO(object):
     def test_year_zero(self):
         print(TI.COLOR.RED + "Testing year zero" + TI.COLOR.END)
         print(TI.COLOR.YELLOW)
-        for cal_nm in list(TI.CAL.CALENDAR.keys()):
-        # for cal_nm in ["SAG", "AG"]:
+        cal_keys = list(TI.CAL.CALENDAR.keys())
+        for cal_nm in cal_keys:
+        #     _, cal_start = TI.year_zero(cal_nm)
+        #     print(cal_start["day"])
             pp(TI.year_zero(cal_nm))
         print(TI.COLOR.END)
 
 
 if __name__ == '__main__':
     TTI = TestTimeIO()
-    TTI.test_cal()
-    TTI.test_file()
-    TTI.test_congruence()
-    TTI.test_lunar_phases()
+#    TTI.test_cal()
+#    TTI.test_file()
+#    TTI.test_congruence()
+#    TTI.test_lunar_phases()
     TTI.test_year_zero()

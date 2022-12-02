@@ -161,7 +161,7 @@ class TimeIO(object):
                 "events": [{"day": 1, "name": "equinox"}]}}
         CALENDAR = {
             "AG": {"name": "Astro-Gavorian",
-                   "type": "[solar, arithmetic]",
+                   "type": ["solar", "arithmetic"],
                    "desc": "Year count begins with an " +
                            "estimate of when life " +
                            "began on Gavor. Used only by " +
@@ -177,7 +177,7 @@ class TimeIO(object):
                             "days": 1,
                             "rule": ["add_to_year_end"]}},
             "SAG": {"name": "Short Astro-Gavorian",
-                    "type": "[solar, arithmetic]",
+                    "type": ["solar", "arithmetic"],
                     "desc": "Year count is AG minus 4396230000. " +
                             "Rosetta stone calendar. All " +
                             "dates relative to this. " +
@@ -193,7 +193,7 @@ class TimeIO(object):
                              "days": 1,
                              "rule": ["add_to_year_end"]}},
             "Juuj": {"name": "Juujian",
-                     "type": "[solar, arithmetic]",
+                     "type": ["solar", "arithmetic"],
                      "desc": "Oldest Helioptic calendar",
                      "day": {"start": "noon"},
                      "months": {"days": [
@@ -209,7 +209,7 @@ class TimeIO(object):
                               "rule": [
                                   "insert_month", 0]}},
             "Beshq": {"name": "Beshquoise",
-                      "type": "[solar, arithmetic]",
+                      "type": ["solar", "arithmetic"],
                       "desc": "Reformed Helioptic calendar",
                       "day": {"start": "noon"},
                       "months": {"days": [
@@ -225,7 +225,7 @@ class TimeIO(object):
                                "rule": [
                                   "extend_month", 1]}},
             "Bye": {"name": "Byenungik",
-                    "type": "[solar, arithmetic]",
+                    "type": ["solar", "arithmetic"],
                     "desc": "Traditional Bynenungik " +
                             "calendar",
                     "day": {"start": "noon"},
@@ -242,7 +242,7 @@ class TimeIO(object):
                              "rule": [
                                  "extend_month", 12]}},
             "Nye": {"name": "Nyelik",
-                    "type": "[solar, arithmetic]",
+                    "type": ["solar", "arithmetic"],
                     "desc": "Traditional Nyelik " +
                             "calendar, reflecting belief " +
                             "that Nyeliks were the first " +
@@ -262,7 +262,7 @@ class TimeIO(object):
                              "rule": [
                                  "extend_month", 2]}},
             "Mobal": {"name": "Mobalbeqan",
-                      "type": "[solar, arithmetic]",
+                      "type": ["solar", "arithmetic"],
                       "desc": "Traditional Mobalbeqan " +
                               "calendar, reflecting belief " +
                               "that Mobalbeshqi were first " +
@@ -275,14 +275,14 @@ class TimeIO(object):
                       "year": {"start": {
                                 "season": "spring",
                                 "event": "equinox"},
-                              "days": 366,
-                              "zero": 576},
+                               "days": 366,
+                               "zero": 576},
                       "leap": {"period": 3,
                                "days": 1,
                                "rule": [
                                    "extend_month", 7]}},
             "Settan": {"name": "Settan",
-                       "type": "[lunar, astronomical]",
+                       "type": ["lunar", "astronomical"],
                        "desc": "Traditional Settan " +
                                "calendar, reflecting belief " +
                                "that Setta arrived long ago.",
@@ -302,7 +302,7 @@ class TimeIO(object):
                                 "rule": [
                                     "extend_month", 1]}},
             "Ter": {"name": "Terrapin",
-                    "type": "[solar, arithmetic]",
+                    "type": ["solar", "arithmetic"],
                     "desc": "Traditional Terrapin " +
                             "calendar, reflecting belief " +
                             "that Terrapins arrived long ago.",
@@ -324,7 +324,7 @@ class TimeIO(object):
                              "rule": [
                                  "extend_month", 7]}},
             "Jack": {"name": "Jackalope",
-                     "type": "[arithmetic]",
+                     "type": ["arithmetic"],
                      "desc": "Jackalope calendar does not " +
                              "count years sequentially. " +
                              "Instead, it defines an age and " +
@@ -338,7 +338,7 @@ class TimeIO(object):
                               "zero": [1, "Age of Dust"]},
                      "leap": None},
             "K'kol": {"name": "Kahilakol",
-                      "type": "[solar, arithmetic]",
+                      "type": ["solar", "arithmetic"],
                       "desc": "Kahilakol calendar starts at " +
                               "estimated arrival of Kahila " +
                               "folk in Saskan Lands.",
@@ -353,7 +353,7 @@ class TimeIO(object):
                                "zero": -801},
                       "leap": None},
             "K'beq": {"name": "Kahilabeq",
-                      "type": "[solar, arithmetic]",
+                      "type": ["solar", "arithmetic"],
                       "desc": "Kahilabeq calendar starts at " +
                               "estimated arrival of Kahila " +
                               "folk in Saskan Lands.",
@@ -368,7 +368,7 @@ class TimeIO(object):
                                "zero": -826},
                       "leap": None},
             "Empa": {"name": "Empafarasi",
-                     "type": "[stellar, arithmetic]",
+                     "type": ["stellar", "arithmetic"],
                      "desc": "Empafarasi calendar starts at " +
                              "founding of the House of the " +
                              "Empafarasi.",
@@ -401,7 +401,7 @@ class TimeIO(object):
         """
         try:
             with open(self.set_file_name(p_file_nm), 'rb') as f:
-                    self.CAL_DB = pickle.load(f)
+                self.CAL_DB = pickle.load(f)
             pp(self.CAL_DB)
         except FileNotFoundError:
             print("No calendar database found.")
@@ -499,137 +499,79 @@ class TimeIO(object):
 
         :args: p_cal_nm (str): name of calendar
 
-        :return: dict = {start_time (float) = year zero, in calendar
-        reckoning, adjusted for year and day start
-        "SAG": {"name": "Short Astro-Gavorian",
-                    "type": "[solar, arithmetic]",
-                    "desc": "Year count is AG minus 4396230000. " +
-                            "Rosetta stone calendar. All " +
-                            "dates relative to this. " +
-                            "Used by Agency on Gavor.",
-                    "day": {"start": "midnight"},
-                    "months": None,
-                    "year": {"start": {
-                        "season": "winter",
-                        "event": "solstice"},
-                            "days": 366,
-                            "zero": 4934},
-                    "leap": {"period": 3,
-                             "days": 1,
-                             "rule": ["add_to_year_end"]}},
-
-        SEASON = {
-            "days": 91.75,
-            "winter": {
-                "rel": {"forward": 0, "reverse": 0},
-                "events": [{"day": 1, "name": "solstice"},
-                           {"day": 45.75, "name": "midwinter"}]},
-            "spring": {
-                "rel": {"forward": 1, "reverse": 3},
-                "events": [{"day": 1, "name": "equinox"}]},
-            "summer": {
-                "rel": {"forward": 2, "reverse": 2},
-                "events": [{"day": 1, "name": "solstice"},
-                           {"day": 45.75, "name": "midsummer"}]},
-            "autumn": {
-                "rel": {"forward": 3, "reverse": 1},
-                "events": [{"day": 1, "name": "equinox"}]}}
+        :return: dict = year zero date according to calendar
         """
-        # Year zero / Day zero is the same on all calendars,
-        # so we just grab it from the SAG calendar. 
-        # Always midnight at the Winter Solstice.
+        sag_start = {
+            "season":
+                self.CAL.CALENDAR["SAG"]["year"]["start"]["season"],
+            "event":
+                self.CAL.CALENDAR["SAG"]["year"]["start"]["event"],
+            "day": 1,
+            "time": self.CAL.CALENDAR["SAG"]["day"]["start"]
+        }
+        cal_start = {
+            "year": self.CAL.CALENDAR[p_cal_nm]["year"]["zero"],
+            "month_count": None,
+            "day_count": None,
+            "month_day": None,
+            "season": None
+        }
+        # If a start season is defined, adjust the start date
+        # (day number) as offset to winter solstice, season #4.
+        # The CAL SEASONS object's "reverse" attribute tells
+        # how many seasons before Winter that season is.
 
-        #  SAG Year Zero, Day 1 is represented as:
-        #  Day      1
-        #  Month    NA
-        #  Year     4934
-        #  Time     00:00
-        #  Desc     Day 1, Year 4934, Midnight, Winter solstice.
-        print("\n..." + p_cal_nm)
-        sag_start_season =\
-            self.CAL.CALENDAR["SAG"]["year"]["start"]["season"]
-        sag_start_event =\
-            self.CAL.CALENDAR["SAG"]["year"]["start"]["event"]
-        sag_start_day = 1
-        sag_start_time =\
-            self.CAL.CALENDAR["SAG"]["day"]["start"]
-        # print("\nSAG Year Zero, Day Zero: " +
-        #       sag_start_season + " " +
-        #       sag_start_event + ", " +
-        #       str(sag_start_day) + " " +
-        #       sag_start_time)
-
-        # The calendar DB has year zero for each calendar.
-        cal_start_year =\
-            self.CAL.CALENDAR[p_cal_nm]["year"]["zero"]
-        cal_start_month = "??"
-        if self.CAL.CALENDAR[p_cal_nm]["months"] is None:
-            cal_start_month = "N/A"
-        cal_start_day = "??"
-        # Calendars start the year at different times.
-        # How date and time are described varies by calendar.
-        # If there are differences between it and the SAG
-        # calendar, then day and month needs to be computed as 
-        # an offest from the SAG calendar.
-
-        # Most, but not all, solar calendars start on a solstice
-        # or equinox, that is, the first day of a season. In these
-        # cases, we can easily compute the number of days from start
-        # of the calendar year to the winter solstice.
-
-        # We assume that any start season which is not winter
-        # occurs __prior__ to winter.  We want to compute the
-        # days offset between when the calendar starts and the
-        # winter solstice, which is the start of season #4. 
-        # The CAL SEASONS object's "reverse" attribute tells us
-        # how many seasons before Winter that season is. 
-        try:
-            cal_start_season =\
-                self.CAL.CALENDAR[p_cal_nm]["year"]["start"]["season"]
-            print("Calendar start season: " + cal_start_season)
+        # Solar calendars should always have an explicit start day.
+        # Lunar and Stellar calendars are based on conjuctions.
+        # In game world, the era started with full conjuctions, so
+        # they always start on day #1 of the year.
+        cal_y_start = self.CAL.CALENDAR[p_cal_nm]["year"]["start"]
+        if "season" in cal_y_start:
+            cal_start["season"] = cal_y_start["season"]
             days_before_winter =\
-                self.CAL.SEASON[cal_start_season]["rel"]["reverse"] *\
+                self.CAL.SEASON[cal_start["season"]]["rel"]["reverse"] *\
                 self.CAL.SEASON["days"]
-            cal_start_day = int(round(
-                sag_start_day + days_before_winter))
-        except KeyError:
-            pass
+            cal_start["day_count"] = int(round(sag_start["day"] +
+                                         days_before_winter))
+        elif "event" in cal_y_start and cal_y_start["event"] == "full":
+            cal_start["day_count"] = 1
+        elif "event" in cal_y_start and cal_y_start["event"] == "congruence":
+            cal_start["day_count"] = 1
+        elif "day" in cal_y_start and cal_y_start["day"] is not None:
+            cal_start["day_count"] = cal_y_start["day"]
+        else:
+            print("No explicit start day found....")
+            pp(self.CAL.CALENDAR[p_cal_nm])
+        # Set the season to match the SAG calendar.
+        cal_start["season"] = sag_start["season"]
+        # Non-SQG day-starts occur AFTER SAG day start time of midnight.
+        # So.. no need to adjust day count based on day-start time.
+        # Determine if start year is a leap year. Leap year rules:
+        # - add_to_year_end
+        # - insert_month, @month_index
+        # - extend_month, @month_index <-- this is the only one relevant.
+        #   Other two are not affected by year-zero algo.
+        cal_months = self.CAL.CALENDAR[p_cal_nm]["months"]
+        cal_leap = self.CAL.CALENDAR[p_cal_nm]["leap"]
+        extend_month = None
+        if cal_months is not None:
+            if cal_leap is not None and cal_start["year"] > 1 and\
+                    cal_start["year"] % cal_leap["period"] == 0:
+                extend_month = cal_leap["rule"][1]
+                cal_months["days"][extend_month - 1] += cal_leap["days"]
+            cal_start["month_count"] = 1
+            # If the calendar uses months, compute the start
+            # month and day of the month.
+            day_count = cal_start["day_count"]
+            for m_days in cal_months["days"]:
+                if day_count > m_days:
+                    day_count -= m_days
+                    cal_start["month_count"] += 1
+                else:
+                    cal_start["month_day"] = day_count
+                    break
 
-        # Lunar calendars typically start on a full moon. OR two.
-        # Their year/start/event name will be "full" and it will
-        # list one or both the moons names. Luckily :-) the day zero
-        # event occurred on a winter solstice that also happened to be
-        # a full moon conjunction of the two moons.  Only the Settan
-        # calendar (so far) is a lunar one. We can use a "full moons"
-        # rule to set its day count to 1 for the day zero event.
-
-        # Some solar calendars (K'hol, K'beq) start their count on
-        # an arbitrary day, enumerated as day 1, but the count is not
-        # necessarily in synch with the SAG calendar every year. They have a negative year zero count.
-        # For the sake of conveniece, unless they
-        # provide a different seasonal start point, assume they
-        # start on the winter solstice. In other words assume their
-        # day zero day count is 1.
-
-        # The Empa calendar starts on the planetary conjunction
-        # Gavor and Astra, which occurs only every 84,989 days. Its
-        # years are a fraction of this amount, with each year being
-        # counted as tick towards the cojunction, then starting over.
-        # Since day zero occurred during a Great Conjunction, we can
-        # define Empa day zero as day 1 of its calendar. 
-
-        # Different calendars start a __day__ at different times.
-        # The SAG day starts at midnight. May need to adjust the
-        # day count up or down by 1 to account for these differences.
-
-        # Some calendars use months, some don't.
-        # For those that do, if we have a day-count then now we
-        #  can compute the month and day of the month.
-
-        return(self.CAL.CALENDAR[p_cal_nm]["name"],
-               cal_start_year,
-               cal_start_month,
-               cal_start_day)
+        return(self.CAL.CALENDAR[p_cal_nm]["name"], cal_start)
 
     def get_day_part(self,
                      p_day_t: float):
