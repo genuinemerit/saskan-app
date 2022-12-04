@@ -47,24 +47,6 @@ class TestTimeIO(object):
         print(TI.COLOR.RED + "Test setting file" + TI.COLOR.END)
         TI.set_time_data("time_data")
 
-    def test_congruence(self):
-        print(TI.COLOR.RED + "Testing congruence calculations" + TI.COLOR.END)
-        print(TI.COLOR.YELLOW)
-        for p1 in list(TI.CAL.PLANETS["Faton"].keys()):
-            for p2 in list(TI.CAL.PLANETS["Faton"].keys()):
-                if p1 != p2:
-                    print(p1 + " orbit: " +
-                          str(int(round(TI.CAL.PLANETS["Faton"][p1]["orbit"]))) +
-                          " days / " + 
-                          p2 + " orbit: " +
-                          str(int(round(TI.CAL.PLANETS["Faton"][p2]["orbit"]))) +
-                          " days") 
-                    print(p1 + "/ " + p2 + " orbital congruence is every: " +
-                          str(int(round(TI.orbital_congruence(
-                            TI.CAL.PLANETS, "Faton", p1, p2)))) +
-                          " days\n")
-        print(TI.COLOR.END)
-
     def test_lunar_phases(self):
         print(TI.COLOR.RED + "Testing lunar phases" + TI.COLOR.END)
         print(TI.COLOR.YELLOW)
@@ -92,4 +74,5 @@ if __name__ == '__main__':
 #    TTI.test_file()
 #    TTI.test_congruence()
 #    TTI.test_lunar_phases()
-    TTI.test_year_zero()
+#    TTI.test_year_zero()
+    TI.planetary_congruence()

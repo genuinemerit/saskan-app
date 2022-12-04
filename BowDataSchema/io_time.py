@@ -13,11 +13,10 @@ All are from perspective of a single time zone that
 encompasses the lands of the game, spread over about 1,600
 square kilometers, located in the northern hemisphere.
 
-All values are hard-coded for now. Later, abstract the
-static values into config class or file.
+May eventually want to alter local time settings.
 
-To simplify things for now, all day-counts are based on
-a start-time at midnight.
+Static Values are hard-coded for now. Later, abstract them
+into config class or file.
 
 Rebuild the saskan conda venv using lessons learned
 from work on the home-finance app. Use latest version of
@@ -25,38 +24,33 @@ python and pandas. Switch to pygame for a GUI.
 """
 
 import pickle
-# import random
 
-# from copy import copy
 from dataclasses import dataclass   # fields
-# from os import path
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
-# from symbol import pass_stmt            # noqa: F401
 
 from io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
-# from io_redis import RedisIO            # type: ignore
 
 CI = ConfigIO()
 FI = FileIO()
-# RI = RedisIO()
 
 
 class TimeIO(object):
-    """Class for Calendar-related data and methods.
+    """Class for Calendar-related data and methods
+    for the star/planet system Faton/Gavor.
     """
     def __init__(self,
-                 p_file_nm: str):
+                 p_db_nm: str):
         """Manage time, calendar and astronomical data.
         Store data in a pickled dict: CALENDAR_DB.
 
         To save the CALENDAR_DB pickle, call:
-            self.set_time_data(p_file_nm)
+            self.set_time_db(p_db_nm)
         To retieve it, call:
-            self.get_time_data(p_file_nm)
+            self.get_time_db(p_db_nm)
 
-        :args: p_file_nm: str
+        :args: p_db_nm: str
             - Generic name of time data file object
             - Example: "time_data"
         """
@@ -64,7 +58,10 @@ class TimeIO(object):
 
     @dataclass
     class COLOR:
-        """Define CLI colors."""
+        """Define CLI colors.
+
+        Probably move to a genreric helper class.
+        """
         BLUE = '\033[94m'
         BOLD = '\033[1m'
         CYAN = '\033[96m'
@@ -79,12 +76,10 @@ class TimeIO(object):
     @dataclass
     class CAL:
         """Define static compoments of CALENDAR_DB.
-        Initialize the time dictionary if one does not yet
-        exist.  For example, to start a new one, or to
-        wipe the current one and start a new one.
+        Initialize time dict if one does not yet exist,
+        to start a new one, or to wipe current one.
 
-        These materials should remain immutable.
-        Eventually move this to an external config file.
+        This class should be immutable.
 
         Units are as follows unless otherwise noted:
         - distance => kilometers
@@ -95,11 +90,9 @@ class TimeIO(object):
         - orbit => revolution of Gavor around Faton:
            multiple, fractional Gavoran years
 
-        Define objects by describing a container name,
-        which references another object type, then each of
-        the objects within that container. For example,
-        planets are contained in a star; moons are
-        contained in a planet.
+        Objects defined by a container name which references
+        parent object type. Then define objects within container.
+        For example: planets contained in a star; moons in a planet.
         """
         STARS = {
             "Galactic Center": {
@@ -384,61 +377,88 @@ class TimeIO(object):
                      "leap": None}}
 
     def set_file_name(self,
-                      p_file_nm: str):
-        """Return full name of calendar DB file."""
-        # self.file_nm = path.join(RI.get_app_path(),
-        #                        RI.get_cfg_val(
-        #                            'save_path'),
-        #                        p_file_nm)
-        file_nm = "/tmp/" + p_file_nm + "_calendar.pickle"
+                      p_db_nm: str):
+        """Return full name of calendar DB file.
+        For now, store it in shared memory.
+        Later, persist it to Redis.
+        """
+        file_nm = "/dev/shm" + p_db_nm + "_calendar.pickle"
         return file_nm
 
-    def get_time_data(self,
-                      p_file_nm: str):
+    def get_time_db(self,
+                    p_db_nm: str):
         """Retrieve the calendar database
 
-        :args: p_file_nm (str) - generic file name
+        :args: p_db_nm (str) - generic file name
         """
         try:
-            with open(self.set_file_name(p_file_nm), 'rb') as f:
+            with open(self.set_file_name(p_db_nm), 'rb') as f:
                 self.CAL_DB = pickle.load(f)
             pp(self.CAL_DB)
         except FileNotFoundError:
             print("No calendar database found.")
 
-    def set_time_data(self,
-                      p_file_nm: str):
+    def set_time_db(self,
+                    p_db_nm: str):
         """Store the calendar database.
-        :args: p_file_nm (str) - generic file name
+        :args: p_db_nm (str) - generic file name
         :write:
         - _calendar.pickle file
         """
         try:
-            with open(self.set_file_name(p_file_nm), 'wb') as f:
+            with open(self.set_file_name(p_db_nm), 'wb') as f:
                 pickle.dump(self.CAL_DB, f)
             print("Calendar database saved.")
         except Exception as e:
             print("Error writing calendar database. " + str(e))
 
-    def orbital_congruence(self,
-                           p_orb_obj: object,
-                           p_core_nm: str,
-                           p_obj_nm_a: str,
-                           p_obj_nm_b: str):
-        """Compute the congruence of two orbits as the
-        product of their orbital periods. The objects
-        must be of the same type, either PLANETS or
-        MOONS. The first argument is the actual object
-        from CAL, not just a type name.
-        :args:
-        - p_orb_obj (object): object from CAL class
-        - p_core_nm (str): name of object around which they orbit
-        - p_obj_nm_a (str): name of first orbital object
-        - p_obj_nm_b (str): name of second orbital object
-        :return: congruence (float) = product of two orbits
+    def planetary_congruence(self):
+        """When star-gazing, they would
+        appear to be aligned probably if wihinin a few degrees
+        of one another.
+
+        Furthermore, it is(apparent) congurence as
+        occurs from the perspective of Gavor (the planet).
+
+        To get this perspective, figure out the degreees with respect
+        to Faton, and then similar for the planets being looked
+        at. If the angles are similar within a specified range,
+        then (apparent) congruence can be said to occur.
+
+        Note that this will happen much more often than "actual"
+        congruence.
+        # 1) What is the "margin of error" from Gavor's perspective
+        # such that an observer would say congruence is happening?
+        # Is it different for each planet? Is it different for
+        # plants closer to Faton vs. those farther away? --> +/- 5 degrees.
+
+        # 2) Assuming "counterclocwise" revolutions around Faton,
+        # from perfpective of Faton's north pole, and assuming
+        # that all planets were at "degree zero" (perfectly aligned)
+        # on "Day Zero", what is the degree of each planet as they
+        # proceed around Faton? The "days" list identifies their orbital
+        # degree. The "diff" list identifies their congruence with Gavor
+        # to within plus or minus 5 degrees.
         """
-        return (p_orb_obj[p_core_nm][p_obj_nm_a]["orbit"] *
-                p_orb_obj[p_core_nm][p_obj_nm_b]["orbit"])
+        planets = self.CAL.PLANETS["Faton"]
+        for p_nm in planets.keys():
+            planets[p_nm]["days"] = []
+            planets[p_nm]["diff"] = []
+        for day in range(0, 250):
+            for p_nm, p_dat in planets.items():
+                planets[p_nm]["days"].append(
+                    round(((day / p_dat["orbit"]) * 360) % 360, 2))
+            gavor_degrees = planets["Gavor"]["days"][day]
+            for p_nm in [p for p in planets.keys() if p != "Gavor"]:
+                p_degrees = planets[p_nm]["days"][day]
+                if gavor_degrees < 6 and p_degrees > 354:
+                    p_degrees = p_degrees - 354
+                diff = round(abs(gavor_degrees - p_degrees), 2)
+                if diff < 5.01:
+                    planets[p_nm]["diff"].append("*" + str(diff))
+                else:
+                    planets[p_nm]["diff"].append(str(diff))
+        pp(planets)
 
     def lunar_phases(self,
                      p_lunar_obj: object,
@@ -448,9 +468,18 @@ class TimeIO(object):
         and full phases occur on specific days. Waning
         and waxing phases occur between these days.
         The times are computed as fractions of an orbit,
-        which is calculated in Gavoan days. The "common"
-        reference to the phases may extend a bit on either
-        side of the computed day/time.
+        which is calculated in Gavotan days. The "common"
+        reference to the phases should probably extend
+        on either side of the computed day/time.
+
+        Note that this algorithm simply defines the phases.
+        It does not determine what phase a mmon is in on a
+        given date.
+
+        Pass in object names (IDs) rather than the
+        object itself.
+
+        Simplify for now to assume the planet is Gavor.
 
         :args:
         - p_lunar_obj (object): object from CAL class
@@ -496,6 +525,11 @@ class TimeIO(object):
         Based on the calendar type, the starting point is
         adjusted for season (year start) and time (day start),
         relative to the SAG starting point.
+
+        The point of this method is to provide a common
+        starting point when computing dates and times. May
+        also want to have a "calendar" that is simply day count
+        since day zero/year zero.
 
         :args: p_cal_nm (str): name of calendar
 
@@ -573,10 +607,11 @@ class TimeIO(object):
 
         return(self.CAL.CALENDAR[p_cal_nm]["name"], cal_start)
 
+    ## >> Pick up here...
+
     def get_day_part(self,
                      p_day_t: float):
-        """Determine if time is before or after noon, etc.
-        Same for all calendars.
+        """Determine if time/day clock starts before or after noon, etc.
 
         :args: p_day_t (float): time of day, as decimal portion of day
         """
@@ -589,7 +624,8 @@ class TimeIO(object):
     def get_day_hour(self,
                      p_cal_nm: str,
                      p_day_t: float):
-        """Determine the hour of the day, for specified calendar.
+        """Convert hour of the day, for specified calendar, with
+        respect to "standard" day start time of Midnight.
 
         :args:
         - p_cal_nm (str): index to static calender data
@@ -608,7 +644,13 @@ class TimeIO(object):
 
     def get_day_watch(self,
                       p_day_h: int):
-        """Determine the watch for specified calendar-hour.
+        """Determine the watch and wayt for specified calendar-hour.
+        Work on other conversions. Everything should be relative to
+        "standard" clock parts.
+
+        Needs work. See notes on hours, wayts and watches.
+        Consider providing variations between calendars.
+        Adjust at minimum for day-start times.
 
         :args:
         - p_cal_nm (str): index to static calender data
@@ -630,6 +672,14 @@ class TimeIO(object):
         Count SAG day zero at midnight as day number 0.
 
         Results are saved in a dictionary, keyed by SAG day number.
+
+        Needs work. Things to consider:
+        - Having a "calendar" that is simply day-count from Day Zero.
+        - OR.. adjust the SAG to be this.
+        - Define what I mean by "roll number".
+        - That should work forward and backward.
+        - Ideally, input terms from any calendar, convert to standard,
+          then convert to target(s) or to all.
 
         :args:
         - p_day_n (float): day number
