@@ -1,0 +1,60 @@
+name: saskan
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10.6
+#  - python=3.11.0
+  - pip
+  - mypy
+  - flake8
+  - isort
+  - arrow
+  - pathlib
+  - requests
+  - tzlocal
+  - sqlite
+  - numpy
+  - pandas
+  - redis
+  - twisted
+  - tornado
+  - redis
+  - matplotlib
+#   - pygame
+  - nltk
+  - Levenshtein
+#   - odfpy
+
+# 2021-10-10  11:00
+# Path: saskan.yml
+
+# Be sure redis is installed at the OS level before
+# running this script.
+
+# pygame is not available in the conda-forge channel
+#  Have to install it first using pip (or maybe apt).
+
+# And it has dependencies like:
+# sudo apt-get install \
+#  python3-dev \
+#  python3-numpy \
+#  subversion \
+#  ffmpeg \
+#  libsdl1.2-dev \
+#  libsdl-image1.2-dev \
+#  libsdl-mixer1.2-dev \
+#  libsdl-ttf2.0-dev \
+#  libavcodec-dev \
+#  libavformat-dev \
+#  libportmidi-dev \
+#  libsmpeg-dev \
+#  libswscale-dev \
+
+# still needed to pip install redis
+
+# conda env list
+# conad env remove -n saskan
+# conda env create -f ./saskan.yml
+# conda activate saskan
+# conda deactivate

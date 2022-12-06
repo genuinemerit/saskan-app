@@ -6,12 +6,10 @@ module:    io_file.py
 class:     FileIO/0
 author:    GM <genuinemerit @ pm.me>
 
-Add a file delete function.
-Use os.remove(path) to delete a file.
-
-Add a file copy function.
-Use shutil.copy(from_file, to_file) to copy a file.
+@DEV
+- Consider adding JSON conversion functions.
 """
+import pickle
 import shutil
 
 from os import remove, system
@@ -164,8 +162,7 @@ class FileIO(object):
 
     def write_file(self,
                    p_path: str,
-                   p_data,
-                   p_file_type: str = "w+") -> tuple:
+                   p_data) -> tuple:
         """Write or overwrite data to specified file.
 
         Create file if it does not already exist.
@@ -173,17 +170,58 @@ class FileIO(object):
         Args:
             p_path (str): Legit path to a file location.
             p_data (str): Text to append to the file.
-            p_file_type (str): default = "w+"
         Return:
             (tuple): (Status (bool), Message (str or None))
         """
         try:
-            f = open(p_path, p_file_type)
+            f = open(p_path, "w+")
             f.write(p_data)
             f.close()
         except Exception as err:
             return (False, err)
         return (True, None)
+
+    def pickle_object(self,
+                      p_path: str,
+                      p_obj):
+        """Pickle an object.
+
+        Args:
+            p_path (str): Legit path to pickled object location.
+            p_obj (obj): Object to be pickled.
+        Return:
+            (tuple): (Status (bool),
+                      Message (str or None))"""
+        ok = True
+        msg = None
+        try:
+            with open(p_path, 'wb') as obj_file:
+                pickle.dump(p_obj, obj_file)
+        except Exception as e:
+            msg = e
+            ok = False
+        return (ok, msg)
+
+    def unpickle_object(self,
+                        p_path: str):
+        """Unpickle an object.
+        Args:
+            p_path (str): Legit path to pickled object location.
+            p_obj (obj): Object to be pickled.
+        Return:
+            (tuple): (Status (bool),
+                      Message (str or None)),
+                      Object (obj or None))"""
+        ok = True
+        msg = None
+        obj = None
+        try:
+            with open(p_path, 'rb') as f:
+                obj = pickle.load(f)
+        except Exception as e:
+            msg = e
+            ok = False
+        return (ok, msg, obj)
 
     def get_dir(self,
                 p_path: str) -> tuple:
@@ -205,21 +243,20 @@ class FileIO(object):
             return (False, err, None)
 
     def get_file(self,
-                 p_path: str,
-                 p_file_type: str = "r") -> tuple:
+                 p_path: str) -> tuple:
         """Read in an entire file and return its contents.
 
         Args:
             p_path (str): Legit path to file location.
-            p_file_type (str): default = "r"
         Return
-            (Tuple): (Status (bool), Message (text or None),
+            (Tuple): (Status (bool),
+                      Message (text or None),
                       File content (Text, Bytes or None))
         """
         content = None
         try:
             if Path(p_path).exists():
-                with open(p_path, p_file_type) as f:
+                with open(p_path, "r") as f:
                     content = f.read().strip()
                 f.close()
                 return (True, None, content)

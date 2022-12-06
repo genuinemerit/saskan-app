@@ -5,7 +5,7 @@ Saskan Schema Admin and Services
 
 :Contact: genuinemerit @ pm.me
 
-Python3.9 must be installed.
+Python3.9 (or whatever) must be installed.
 See requirements.txt for notes on libraries to install using apt.
 
 - git clone (or pull) git@github.com:genuinemerit/bow-data-schema.git
@@ -59,7 +59,7 @@ setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Platform :: Desktop",
-        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Database",
         "Topic :: Games/Entertainment"
     ],

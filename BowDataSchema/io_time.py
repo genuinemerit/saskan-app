@@ -29,7 +29,7 @@ from dataclasses import dataclass   # fields
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
 
-from io_config import ConfigIO          # type: ignore
+from sandbox.io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
 
 CI = ConfigIO()

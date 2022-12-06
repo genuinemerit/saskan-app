@@ -14,23 +14,41 @@ from dataclasses import dataclass
 
 
 class ConfigIO(object):
-    """Static 'internal' strings used by..
+    """Static strings used by..
         - saskan_install
-        - saskan_meta
-        - RedisIO
+        - meta_io
 
-    App-related texts should be stored in the JSON config file.
+    App-related texts should be stored in a JSON config file,
+    one for each language being used.
+
+    The directories can also been defined in a config file too.
+
+    As with the Home Finance app, having multiple config files
+    is a good idea. Don't try to put everything in one file.
+    Maybe even consider breaking up the "GUI" metadata.
+
+    For enhancing performance, since I am having trouble with
+    Redis, let's go back to the old way of doing things -- stash
+    stuff in dev/shm, so it will reside in memory. Set a wee flag
+    indicating that the data is available in memory. Worry about
+    stashing shit in Redis or whatever later.
+
+    I am also OK with having lots of little files, as long as
+    they are clearly named and organzied. Pretty much samet thing
+    as having Redis objects, innit?
+
+    Finally, since everything is going to JSON/memory, let's
+    merge ConfigIO and MetaIO into one class.
     """
     def __init__(self):
         """Initialize infrastructure strings.
-
-        @DEV
-        - Any reason these can't also be a dataclass?
         """
         self.io()
 
     def io(self):
         """Application files, directories, DBs, graph geometry, etc. """
+        self.SRC = "/home/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema"
+        self.TGT = "/home/saskan"
         self.path_usr_bin: str = '/usr/local/bin'
         self.gui_metadata: str = 'config/gui_metadata.json'
         self.app_path_key: str = "app_path"

@@ -5,21 +5,21 @@
 BoW Saskan App Admin GUI.  wx version."""
 
 import platform
-import wx
+import pygame
 
 from pprint import pprint as pp     # noqa: F401
 
-from io_config import ConfigIO      # type: ignore
-from io_file import FileIO          # type: ignore
-from io_redis import RedisIO        # type: ignore
-from io_wiretap import WireTap      # type: ignore
-from saskan_meta import SaskanMeta  # type: ignore
+from sandbox.io_config import ConfigIO      # type: ignore
+from BowDataSchema.io_file import FileIO          # type: ignore
+from sandbox.xxx_io_db_redis import RedisIO     # type: ignore
+from BowDataSchema.io_meta import MetaIO          # type: ignore
+from BowDataSchema.io_wiretap import WireTap      # type: ignore
 
 CI = ConfigIO()
 FI = FileIO()
+SM = MetaIO()
 RI = RedisIO()
 WT = WireTap()
-SM = SaskanMeta()
 
 
 class SaskanEyes(wx.Frame):
@@ -67,7 +67,7 @@ class SaskanEyes(wx.Frame):
         Panels are described as "windows".
         Let's see what happens if I have more than one.
 
-        Boxes (called "BoxSizer") work like in Qt. 
+        Boxes (called "BoxSizer") work like in Qt.
         They have an orientation = HORIZONTAL or VERTICAL
         Can add spacers.
         """
@@ -77,7 +77,7 @@ class SaskanEyes(wx.Frame):
         os_version = "OS: " + platform.platform()
 
         pnl = wx.Panel(self)
-        
+
         # What I think of as a "panel" may be a "dialog" in wx?
 
         # Looks like all StaticTexts have to be associated to pnl.
@@ -97,7 +97,7 @@ class SaskanEyes(wx.Frame):
         # For vertical boxes, the 2nd attribute of Add is "size"?
         # For horizontal boxes, the 1st attribute of Add is "size"?
         # So... that last number is border size.
-        # .Add(object--like a StaticText, 
+        # .Add(object--like a StaticText,
         #      horizontally-strechable-or-not (wx.EXPAND),
         #      make-a-border-all-around (wx.ALL),
         #      border-size (in px))

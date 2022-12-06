@@ -1,6 +1,7 @@
 #!/usr/bin/bash
 
 # Be sure to chmod u=rwx,g=rx,o=rx
+# The installer script modifies this with the correct path
 
 python3 ~APP_DIR~/python/saskan_eyes.py
 

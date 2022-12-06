@@ -1,6 +1,6 @@
 #!python
 """
-:module:    io_redis.py
+:module:    io_db_redis.py
 :class:     RedisIO
 
 Handle core Redis IO functions.
@@ -22,11 +22,17 @@ Handle core Redis IO functions.
 Redis commands: https://redis.io/commands
 
 @DEV:
-- redis-io is like a layer on top of saskan_fileio, handling
+- io_db_redis is like a layer on top of io_file, handling
     similar abstractions (io functions) but for redis instead of files.
 
-- saskan_fileio module has status-file-checking methods that
+- io_file module has status-file-checking methods that
     should probably be moved to io_redis.  Store "flag files" in redis.
+
+For some reason I am having trouble getting the RedisIO class to
+recognize that the python redis module is installed. Conda did not
+install it properly at first, so I pip installed it. When checking
+from the command line, everything is fine. But when I try to run the
+class, it says that the module is not installed.
 
 - Redis Basement should also replace "saskan_texts.py".
 
@@ -73,7 +79,7 @@ Main behaviors:
 import datetime
 import hashlib
 import json
-import redis  # type: ignore
+import redis
 import secrets
 import uuid
 import zlib
@@ -81,7 +87,7 @@ import zlib
 from copy import copy
 from pprint import pprint as pp  # noqa: F401
 
-from io_config import ConfigIO
+from sandbox.io_config import ConfigIO
 
 CI = ConfigIO()
 
