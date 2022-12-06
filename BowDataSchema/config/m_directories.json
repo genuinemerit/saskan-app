@@ -4,7 +4,7 @@
     "COPY": ["data", "html", "images"],
     "LOG": ["debug", "error", "info", "traced", "tracef", "warn"],
     "MEM": "/dev/shm",
-    "SRC": "/home/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema",
+    "SRC": "/home/bow/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema",
     "SUBDIRS": ["data", "html", "images", "python", "save"],
     "TGT": "/home/bow"
 }

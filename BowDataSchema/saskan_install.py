@@ -133,7 +133,7 @@ class SaskanInstall(object):
         ok, err, files = FI.get_dir(src_dir)
         if not ok:
             raise Exception(f"{self.t['err_file']} {src_dir} {err}")
-        py_files = [f for f in files if f.endswith(".py")]
+        py_files = [f for f in files if str(f).endswith(".py")]
         tgt_dir = path.join(self.a, "python")
         for f in py_files:
             if Path(f).is_file():
