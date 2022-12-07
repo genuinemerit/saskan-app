@@ -1,7 +1,6 @@
 #!python
 # flake8: noqa
 from BowDataSchema.io_file import FileIO
-from BowDataSchema.io_meta import MetaIO
 from BowDataSchema.io_graphs import GraphIO
 from BowDataSchema.io_music import MusicIO
 from BowDataSchema.io_shell import ShellIO

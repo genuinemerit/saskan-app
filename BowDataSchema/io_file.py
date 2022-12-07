@@ -9,11 +9,13 @@ author:    GM <genuinemerit @ pm.me>
 @DEV
 - Consider adding JSON conversion functions.
 """
+import json
 import pickle
 import shutil
 
 from os import path, remove, system
 from pathlib import Path
+from pprint import pprint as pp
 
 from io_shell import ShellIO       # type: ignore
 
@@ -25,7 +27,9 @@ class FileIO(object):
 
     def __init__(self):
         """Initialize FileIO object."""
-        pass
+        self.c = self.get_context()
+        self.d = self.get_app_and_data_dirs()
+        self.t = self.get_static_text()
 
     def make_readable(self,
                       p_path: str) -> tuple:
@@ -138,6 +142,24 @@ class FileIO(object):
         except OSError as err:
             return(False, err)
 
+    def copy_files(self,
+                   p_tgt_dir: str,
+                   p_files):
+        """Copy from [SRC] to [TGT]/saskan
+
+        Args:
+            p_tgt_dir (str): Legit path to a directory.
+            p_files: List of files (from Path iterdir object) to copy.
+        """
+        for f in p_files:
+            if Path(f).is_file():
+                file_name = str(f).split("/")[-1]
+                tgt_file = path.join(p_tgt_dir, file_name)
+                ok, err = self.copy_file(str(f), tgt_file)
+                if not ok:
+                    raise Exception(
+                        f"{self.t['err_file']} {tgt_file} {err}")
+
     def append_file(self,
                     p_path: str,
                     p_text: str) -> tuple:
@@ -181,48 +203,6 @@ class FileIO(object):
             return (False, err)
         return (True, None)
 
-    def pickle_object(self,
-                      p_path: str,
-                      p_obj):
-        """Pickle an object.
-
-        Args:
-            p_path (str): Legit path to pickled object location.
-            p_obj (obj): Object to be pickled.
-        Return:
-            (tuple): (Status (bool),
-                      Message (str or None))"""
-        ok = True
-        msg = None
-        try:
-            with open(p_path, 'wb') as obj_file:
-                pickle.dump(p_obj, obj_file)
-        except Exception as e:
-            msg = e
-            ok = False
-        return (ok, msg)
-
-    def unpickle_object(self,
-                        p_path: str):
-        """Unpickle an object.
-        Args:
-            p_path (str): Legit path to pickled object location.
-            p_obj (obj): Object to be pickled.
-        Return:
-            (tuple): (Status (bool),
-                      Message (str or None)),
-                      Object (obj or None))"""
-        ok = True
-        msg = None
-        obj = None
-        try:
-            with open(p_path, 'rb') as f:
-                obj = pickle.load(f)
-        except Exception as e:
-            msg = e
-            ok = False
-        return (ok, msg, obj)
-
     def get_dir(self,
                 p_path: str) -> tuple:
         """Read a directory and return its contents.
@@ -265,28 +245,164 @@ class FileIO(object):
         except Exception as err:
             return (False, err, None)
 
-    def set_shared_mem_dirs(self,
-                            p_mem: str,
-                            p_appdirs: list,
-                            p_datadirs: list) -> tuple:
-        """Refresh shared memory directories.
+    def pickle_object(self,
+                      p_path: str,
+                      p_obj):
+        """Pickle an object.
+
+        Args:
+            p_path (str): Legit path to pickled object location.
+            p_obj (obj): Object to be pickled.
+        Return:
+            (tuple): (Status (bool),
+                      Message (str or None))"""
+        ok = True
+        msg = None
+        try:
+            with open(p_path, 'wb') as obj_file:
+                pickle.dump(p_obj, obj_file)
+        except Exception as e:
+            msg = e
+            ok = False
+        return (ok, msg)
+
+    def unpickle_object(self,
+                        p_path: str):
+        """Unpickle an object.
+        Args:
+            p_path (str): Legit path to pickled object location.
+            p_obj (obj): Object to be pickled.
+        Return:
+            (tuple): (Status (bool),
+                      Message (str or None)),
+                      Object (obj or None))"""
+        ok = True
+        msg = None
+        obj = None
+        try:
+            with open(p_path, 'rb') as f:
+                obj = pickle.load(f)
+        except Exception as e:
+            msg = e
+            ok = False
+        return (ok, msg, obj)
+
+    def get_metadata(self,
+                     p_meta_nm: str) -> dict:
+        """"Read metadata...
+        - from shared memory pickle if it exists (hard-coded path)
+        - else from app JSON file if it exists.  (relative path)
+        - else from git project JSON file.       (relative path)
+
+        Returns: (dict) Directory values or exception.
+        """
+        ok, msg, meta = self.unpickle_object(
+            path.join("/dev/shm", "data/config", f"{p_meta_nm}.pickle"))
+        if not ok:
+            ok, msg, meta = self.get_file(
+                    path.join("../data/config", f"{p_meta_nm}.json"))
+            if ok:
+                meta = json.loads(meta)
+            else:
+                ok, msg, meta =\
+                    self.get_file(path.join("config", f"{p_meta_nm}.json"))
+                if ok:
+                    meta = json.loads(meta)
+                else:
+                    raise Exception(f"Error reading metadata: {msg}")
+        return(meta)
+
+    def get_context(self):
+        """"Read context metadata. For example, application language.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_context")
+        return(meta)
+
+    def get_app_and_data_dirs(self):
+        """Read app and data directoriess metadata.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_directories")
+        return(meta)
+
+    def get_static_text(self):
+        """Read static text metadata..
+        - from shared memory pickle if it exists (hard-coded path)
+        - else from app JSON file if it exists.  (relative path)
+        - else from git project JSON file.       (relative path)
+
+        Args: (str) p_lang: Language code.
+        Returns: (dict) Text values or exception.
+        """
+        context = self.get_context()
+        meta = self.get_metadata(f"m_texts_{context['lang']}")
+        return(meta)
+
+    def pickle_saskan(self):
+        """Set up shared memory directories for saskan app and pickle...
+        - configs
+
+        @DEV
+        Will need to work on how to handle permissions for shared memory
+        write and delete.
 
         Args:
             p_mem (str): Legit path to shared memory location.
         """
-        mdir = dict()
-        mdir["app"] = path.join(p_mem, "saskan")
-        ok, msg = self.make_dir(mdir["app"])
-        if not ok:
-            raise Exception(f"Failed to create dir: {mdir['app']} {msg}")
-        for d in p_appdirs:
-            mdir[d] = path.join(mdir["app"], d)
-            ok, msg = self.make_dir(mdir[d])
+
+        def create_mem_dirs():
+            """Wipe out shared memory data dirs if they exist.
+            Create shared memory directories for saskan app.
+            - shared mem parent dir
+            - shared mem app sub dirs, includes 'data' dir
+            - shared mem data sub dirs
+            """
+            app_d = path.join(self.d["MEM"], "saskan")
+            ok, _, _ = self.get_dir(app_d)
+            if ok:
+                app_files = app_d + "/*"
+                ok, result = SI.run_cmd([f"rm -rf {app_files}"])
+                if not ok:
+                    raise Exception(result)
+                ok, result = SI.run_cmd([f"rmdir {app_d}"])
+                if not ok:
+                    raise Exception(result)
+            ok, msg = self.make_dir(app_d)
             if not ok:
-                raise Exception(f"Failed to create dir: {mdir['d']} {msg}")
-        for d in p_datadirs:
-            mdir[d] = path.join(mdir["app"], "data", d)
-            ok, msg = self.make_dir(mdir[d])
+                raise Exception(f"{self.t['err_file']} {app_d} {msg}")
+            for sd in self.d["APPDIRS"]:
+                app_sd = path.join(app_d, sd)
+                ok, msg = self.make_dir(app_sd)
+                if not ok:
+                    raise Exception(f"{self.t['err_file']} {app_sd} {msg}")
+            for dd in self.d["DATADIRS"]:
+                data_d = path.join(app_d, "data", dd)
+                ok, msg = self.make_dir(data_d)
+                if not ok:
+                    raise Exception(f"Failed to create dir: {data_d} {msg}")
+
+        def pickle_config_objects():
+            """Pickle dict versions of config json files.
+            """
+            src_dir = path.join(self.d['TGT'], self.d['APP'], "data/config")
+            ok, err, files = self.get_dir(src_dir)
             if not ok:
-                raise Exception(f"Failed to create dir: {mdir['d']} {msg}")
-        return(mdir)
+                raise Exception(f"{self.t['err_file']} {src_dir} {err}")
+            for f in files:
+                if Path(f).is_file():
+                    file_nm = str(f).split("/")[-1]
+                    if file_nm.endswith(".json"):
+                        mem_file = path.join(
+                            self.d['MEM'], self.d['APP'], "data/config",
+                            file_nm.replace(".json", ".pickle"))
+                        _, _, cfg_data = self.get_file(f)
+                        ok, err = self.pickle_object(mem_file,
+                                                     json.loads(cfg_data))
+                        if not ok:
+                            raise Exception(
+                                f"{self.t['err_file']} {mem_file} {err}")
+        # pickle_saskan() main
+        # ====================
+        create_mem_dirs()
+        pickle_config_objects()

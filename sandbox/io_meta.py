@@ -18,47 +18,16 @@ FI = FileIO()
 
 
 class MetaIO(object):
-    """Class to manage metadata configuration and loading.
+    """Class to modify metadata configuration and loading.
 
     @DEV
     - Implement calls to specific functions from saskan_eyes.
+    - May want to move all this to io_file
     """
     def __init__(self):
         """Initialize MetaIO object.
         """
         pass
-
-    # Get setup metadata
-    # ==============================================================
-
-    def get_text_meta(self,
-                      p_dirs: dict,
-                      p_lang: str = "en"):
-        """If shared memory pickle does not exist then..
-        If deployed JSON file exists..
-        - Read static text values from deployed JSON file.
-        Else...
-        - Read static text values from git project JSON file.
-        Pickle it for live sharing.
-
-        Args: (str) p_lang: Language code.
-        Returns: (dict) Text values or exception.
-        """
-        self.d = p_dirs
-        file_nm = f"m_texts_{p_lang}"
-        ok, msg, txts = FI.unpickle_object(
-            path.join(self.d["MEM"], "data", f"{file_nm}.pickle"))
-        if not ok:
-            ok, msg, txts_j = FI.get_file(
-                    path.join(self.d["APP"], "config", f"{file_nm}.json"))
-            if not ok:
-                ok, msg, txts_j = FI.get_file(
-                    path.join(self.d["SRC"], "config", f"{file_nm}.json"))
-            if not ok:
-                raise Exception(
-                    f"Error reading <{file_nm}> texts metadata: {msg}")
-            txts = json.loads(txts_j)
-        return txts
 
     # Set configuration values
     # ==============================================================

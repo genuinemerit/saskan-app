@@ -8,20 +8,16 @@ import sys
 
 from pprint import pprint as pp   # noqa: F401
 
-from sandbox.io_config import ConfigIO    # type: ignore
-from BowDataSchema.io_file import FileIO        # type: ignore
-from sandbox.xxx_io_db_redis import RedisIO      # type: ignore
+from io_file import FileIO    # type: ignore
 
-CI = ConfigIO()
 FI = FileIO()
-RI = RedisIO()
 
 
 class WireTap(object):
-    """Interface to Log and Monitor Redis databases.
-    Call this class to write and read Log or Monitor DBs.
-    These are proprietary logger functions using Redis,
-    not the standard Python Logging module.
+    """Interface to Log and Monitor name spaces.
+    Call this class to write and read Log or Monitor data.
+    These are proprietary logger functions,
+    not standard Python Logging module.
 
     @DEV:
     - Eventually, create services instead of direct calls.
@@ -34,9 +30,7 @@ class WireTap(object):
         as part of saskan_install. Will crash if config files
         have not been created properly.
 
-        Modify them using options in config_meta.py.
-        @DEV:
-        - Provide a menu item to saskan_eyes do the same.
+        Modify them manually or using options in saskan_eye.py.
         """
         rec = RI.get_record("basement", CI.app_path_key)
         self.APP_PATH = rec['values']['app_path']
