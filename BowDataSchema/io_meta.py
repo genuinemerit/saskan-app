@@ -26,47 +26,39 @@ class MetaIO(object):
     def __init__(self):
         """Initialize MetaIO object.
         """
-        self.config_dir = "config"
-        self.shared_mem_dir = "/dev/shm"
+        pass
 
     # Get setup metadata
     # ==============================================================
 
     def get_text_meta(self,
+                      p_dirs: dict,
                       p_lang: str = "en"):
-        """If pickle does not exist then..
-        - Read static text values from JSON file.
-        - Store it in a class and pickle it in shared memory.
+        """If shared memory pickle does not exist then..
+        If deployed JSON file exists..
+        - Read static text values from deployed JSON file.
+        Else...
+        - Read static text values from git project JSON file.
+        Pickle it for live sharing.
 
         Args: (str) p_lang: Language code.
         Returns: (dict) Text values or exception.
         """
+        self.d = p_dirs
         file_nm = f"m_texts_{p_lang}"
-        pk_file_path = path.join(self.shared_mem_dir, f"{file_nm}.pickle")
-        cfg_file_path = path.join(self.config_dir, f"{file_nm}.json")
-        ok, msg, txts = FI.unpickle_object(pk_file_path)
+        ok, msg, txts = FI.unpickle_object(
+            path.join(self.d["MEM"], "data", f"{file_nm}.pickle"))
         if not ok:
-            ok, msg, txts_j = FI.get_file(cfg_file_path)
-            txts = json.loads(txts_j)
-            if ok:
-                ok, msg = FI.pickle_object(pk_file_path, txts)
-                if not ok:
-                    raise Exception(
-                        f"Error pickling <{p_lang}> text metadata: {msg}")
-            else:
+            ok, msg, txts_j = FI.get_file(
+                    path.join(self.d["APP"], "config", f"{file_nm}.json"))
+            if not ok:
+                ok, msg, txts_j = FI.get_file(
+                    path.join(self.d["SRC"], "config", f"{file_nm}.json"))
+            if not ok:
                 raise Exception(
-                    f"Error reading <{p_lang}> texts metadata: {msg}")
+                    f"Error reading <{file_nm}> texts metadata: {msg}")
+            txts = json.loads(txts_j)
         return txts
-
-    def get_dirs_meta(self):
-        """Read app set-up metadata regarding directories from JSON file.
-        Returns: (dict) Directory values or exception.
-        """
-        ok, msg, dirs =\
-            FI.get_file(path.join(self.config_dir, "m_directories.json"))
-        if not ok:
-            raise Exception(f"Error reading directories metadata: {msg}")
-        return(json.loads(dirs))
 
     # Set configuration values
     # ==============================================================

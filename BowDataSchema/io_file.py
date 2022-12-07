@@ -12,7 +12,7 @@ author:    GM <genuinemerit @ pm.me>
 import pickle
 import shutil
 
-from os import remove, system
+from os import path, remove, system
 from pathlib import Path
 
 from io_shell import ShellIO       # type: ignore
@@ -264,3 +264,29 @@ class FileIO(object):
                 return (False, "not found", None)
         except Exception as err:
             return (False, err, None)
+
+    def set_shared_mem_dirs(self,
+                            p_mem: str,
+                            p_appdirs: list,
+                            p_datadirs: list) -> tuple:
+        """Refresh shared memory directories.
+
+        Args:
+            p_mem (str): Legit path to shared memory location.
+        """
+        mdir = dict()
+        mdir["app"] = path.join(p_mem, "saskan")
+        ok, msg = self.make_dir(mdir["app"])
+        if not ok:
+            raise Exception(f"Failed to create dir: {mdir['app']} {msg}")
+        for d in p_appdirs:
+            mdir[d] = path.join(mdir["app"], d)
+            ok, msg = self.make_dir(mdir[d])
+            if not ok:
+                raise Exception(f"Failed to create dir: {mdir['d']} {msg}")
+        for d in p_datadirs:
+            mdir[d] = path.join(mdir["app"], "data", d)
+            ok, msg = self.make_dir(mdir[d])
+            if not ok:
+                raise Exception(f"Failed to create dir: {mdir['d']} {msg}")
+        return(mdir)
