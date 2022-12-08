@@ -297,14 +297,6 @@ class RedisIO(object):
         data_rec["audit"] = audit
         return (data_rec, r_update)
 
-    def do_expire(self,
-                  p_db: str,
-                  p_key: str,
-                  p_expire: int = 0):
-        """Set expiration seconds for a key."""
-        if p_expire > 0:
-            expire_secs = p_expire * 60 * 60
-            self.RNS[p_db].expire(p_key, expire_secs)
 
     def do_insert(self,
                   p_db: str,

@@ -2,6 +2,7 @@
 
 # Be sure to chmod u=rwx,g=rx,o=rx
 # The installer script modifies this with the correct path
+# Change this to execute a reporting script
 
-python3 ~APP_DIR~/python/io_wiretap.py
+python3 ~APP_DIR~io_wiretap.py
 

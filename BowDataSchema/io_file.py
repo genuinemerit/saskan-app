@@ -27,8 +27,8 @@ class FileIO(object):
 
     def __init__(self):
         """Initialize FileIO object."""
-        self.c = self.get_context()
         self.d = self.get_app_and_data_dirs()
+        self.c = self.get_context()
         self.t = self.get_static_text()
 
     def make_readable(self,
@@ -261,8 +261,8 @@ class FileIO(object):
         try:
             with open(p_path, 'wb') as obj_file:
                 pickle.dump(p_obj, obj_file)
-        except Exception as e:
-            msg = e
+        except Exception as err:
+            msg = err
             ok = False
         return (ok, msg)
 
@@ -271,7 +271,6 @@ class FileIO(object):
         """Unpickle an object.
         Args:
             p_path (str): Legit path to pickled object location.
-            p_obj (obj): Object to be pickled.
         Return:
             (tuple): (Status (bool),
                       Message (str or None)),
@@ -296,9 +295,11 @@ class FileIO(object):
 
         Returns: (dict) Directory values or exception.
         """
-        ok, msg, meta = self.unpickle_object(
-            path.join("/dev/shm", "data/config", f"{p_meta_nm}.pickle"))
+        pk_file = path.join("/dev/shm/saskan/data/config",
+                            f"{p_meta_nm}.pickle")
+        ok, msg, meta = self.unpickle_object(pk_file)
         if not ok:
+            pp((pk_file, ok, msg, meta))
             ok, msg, meta = self.get_file(
                     path.join("../data/config", f"{p_meta_nm}.json"))
             if ok:
@@ -312,6 +313,13 @@ class FileIO(object):
                     raise Exception(f"Error reading metadata: {msg}")
         return(meta)
 
+    def get_app_and_data_dirs(self):
+        """Read app and data directoriess metadata.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_directories")
+        return(meta)
+
     def get_context(self):
         """"Read context metadata. For example, application language.
         Returns: (dict) Directory values or exception.
@@ -319,11 +327,11 @@ class FileIO(object):
         meta = self.get_metadata("m_context")
         return(meta)
 
-    def get_app_and_data_dirs(self):
-        """Read app and data directoriess metadata.
+    def get_log_settings(self):
+        """Read log settings metadata.
         Returns: (dict) Directory values or exception.
         """
-        meta = self.get_metadata("m_directories")
+        meta = self.get_metadata("m_log")
         return(meta)
 
     def get_static_text(self):
@@ -371,16 +379,25 @@ class FileIO(object):
             ok, msg = self.make_dir(app_d)
             if not ok:
                 raise Exception(f"{self.t['err_file']} {app_d} {msg}")
+            ok, result = SI.run_cmd(f"chmod u=rwx,g=rwx,o=rwx {app_d}")
+            if not ok:
+                raise Exception(f"{self.t['err_file']} {app_d} {result}")
             for sd in self.d["APPDIRS"]:
                 app_sd = path.join(app_d, sd)
                 ok, msg = self.make_dir(app_sd)
                 if not ok:
                     raise Exception(f"{self.t['err_file']} {app_sd} {msg}")
+                ok, result = SI.run_cmd(f"chmod u=rwx,g=rwx,o=rwx {app_sd}")
+                if not ok:
+                    raise Exception(f"{self.t['err_file']} {app_sd} {result}")
             for dd in self.d["DATADIRS"]:
                 data_d = path.join(app_d, "data", dd)
                 ok, msg = self.make_dir(data_d)
                 if not ok:
                     raise Exception(f"Failed to create dir: {data_d} {msg}")
+                ok, result = SI.run_cmd(f"chmod u=rwx,g=rwx,o=rwx {data_d}")
+                if not ok:
+                    raise Exception(f"{self.t['err_file']} {data_d} {result}")
 
         def pickle_config_objects():
             """Pickle dict versions of config json files.

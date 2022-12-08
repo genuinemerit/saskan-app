@@ -27,7 +27,7 @@ from sympy import false         # noqa: F401 ???
 
 from sandbox.io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
-from sandbox.xxx_io_db_redis import RedisIO            # type: ignore
+from sandbox.io_db_redis import RedisIO            # type: ignore
 
 CI = ConfigIO()
 FI = FileIO()
