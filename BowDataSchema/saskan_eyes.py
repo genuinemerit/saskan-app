@@ -10,7 +10,7 @@ See: ../design/pygame_notes.md
 import platform
 import pygame as pg
 import sys
-import typing
+# import typing
 
 from dataclasses import dataclass
 from pprint import pprint as pp     # noqa: F401
@@ -90,156 +90,6 @@ class PG:
     TIMER = pg.time.Clock()
 
 
-class MenuBar(object):
-    """ Menu Bar items for the application.
-    Define a surface for a clickable top-level menu bar item.
-    Clicking on a menu bar item opens or closes a MenuItems.
-    """
-    def __init__(self,
-                 p_name: str,
-                 p_x_left: int):
-        """Initialize a Menu Bar object.
-        = `text` is text content and UID for the menu bar item.
-        - `mbox` is the bounding box for the menu bar item.
-        - 'mtxt` is the image (surface) for rendering text.
-        - 'tbox` is the bounding box for the text.
-
-        :args:
-        - p_name (str): text and UID for menu bar item.
-        - p_x_left (int): x location for menu bar box.
-        """
-        self.is_selected = False
-        self.text = p_name
-        self.mbox = pg.Rect(p_x_left, PG.MBAR_Y,
-                            PG.MBAR_W, PG.MBAR_H)
-        self.mtxt = PG.F_SANS_12.render(
-            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
-        self.tbox = self.mtxt.get_rect()
-        self.tbox.topleft =\
-            (p_x_left + int((self.mbox.width - self.tbox.width) / 2),
-             PG.MBAR_Y + PG.MBAR_MARGIN)
-
-    def draw(self):
-        """ Draw a Menu Bar item.
-        """
-        if self.is_selected:
-            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.mbox, 2)
-        else:
-            pg.draw.rect(PG.WIN, PG.PC_BLUE, self.mbox, 2)
-        PG.WIN.blit(self.mtxt, self.tbox)
-
-    def clicked(self, p_mouse_loc) -> bool:
-        """ Return True if mouse clicked on the mbox.
-        """
-        if self.mbox.collidepoint(p_mouse_loc):
-            self.is_selected = not(self.is_selected)
-            return True
-        return False
-
-
-class MenuItems(object):
-    """Define one or more MenuItem associated with a MenuBar.
-    Clicking on a menu bar item triggers a function and sets
-    visibility of the MenuItems to False.
-    """
-    def __init__(self,
-                 p_mitm_list: list,
-                 p_mbar: MenuBar):
-        """ Initialize Menu Items.
-        The container (mbox) surface holds all the items.
-        Each MenuItem is clickable, per its bounding box (tbox).
-
-        :args:
-        - p_mitm_list (list): list of menu item names.
-        - p_mbar (MenuBar): the parent MenuBar object
-
-        Rect = (left, top, width, height)
-        """
-        self.name = p_mbar.text
-        self.is_visible = False
-        self.item_cnt = len(p_mitm_list)
-        self.mbox = pg.Rect(p_mbar.mbox.left,
-                            p_mbar.mbox.bottom,
-                            p_mbar.mbox.width,
-                            p_mbar.mbox.height * self.item_cnt)
-        self.mitems = []
-        for mx, mi_nm in enumerate(p_mitm_list):
-            mtxt = PG.F_SANS_12.render(
-                mi_nm, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
-            tbox = pg.Rect(self.mbox.left + PG.MBAR_MARGIN,
-                           ((self.mbox.top + (PG.MBAR_H * mx)) +
-                            PG.MBAR_MARGIN),
-                           PG.MBAR_W, PG.MBAR_H)
-            self.mitems.append({'mtxt': mtxt, 'tbox': tbox, 'text': mi_nm})
-
-    def draw(self):
-        """ Draw the list of Menu Items.
-        """
-        if self.is_visible:
-            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.mbox, 2)
-            for mi in self.mitems:
-                PG.WIN.blit(mi['mtxt'], mi['tbox'])
-
-    def clicked(self,
-                p_mouse_loc):
-        """ Return name of clicked menu item or None.
-        If clicked on a menu item, set visibility of its container to False.
-
-        @DEV:
-        - The tbox coordinates are relative to the mbox.
-        - The mouse_loc is relative to the window.
-        - Need to convert mouse_loc to mbox coordinates or vice-versa.
-        """
-        for mi in self.mitems:
-            pp(("Examining for click:", mi))
-            pp(("mi['tbox']:", mi['tbox']))
-            pp(("p_mouse_loc:", p_mouse_loc))
-            if mi['tbox'].collidepoint(p_mouse_loc):
-                print(f"Menu Item clicked!: {mi['text']}")
-                self.is_visible = False
-                return mi['text']
-        return None
-
-
-class MenuGroup(object):
-    """Define a group object for menu bars and menu items.
-    Reference menus by name and associate menu bar with its items.
-    """
-    def __init__(self):
-        self.mbars: dict = dict()
-        self.mitms: dict = dict()
-        self.current_bar = None
-        self.current_item = None
-
-    def add_bar(self,
-                p_mbar: MenuBar):
-        """Add a MenuBar to the collection."""
-        self.mbars[p_mbar.text] = p_mbar
-
-    def add_item(self,
-                 p_mitms: MenuItems):
-        """Add a MenuItems to the collection."""
-        self.mitms[p_mitms.name] = p_mitms
-
-
-class PageHeader(object):
-    """Set text for header.
-    HDR is a widget drawn at top of the window.
-    """
-
-    def __init__(self,
-                 p_hdr_txt: str = ""):
-        """ Initialize PageHeader. """
-        self.img = PG.F_SANS_18.render(p_hdr_txt, True,
-                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
-        self.box = self.img.get_rect()
-        self.box.topleft = PG.HDR_LOC
-
-    def draw(self):
-        """ Draw PageHeader. """
-        PG.WIN.blit(self.img, self.box)
-
-
 class InfoBar(object):
     """Info Bar item.
     It is located across bottom of window.
@@ -281,6 +131,153 @@ class InfoBar(object):
             PG.WIN.blit(genimg,
                         genimg.get_rect(topleft=(PG.WIN_W * 0.67,
                                                  PG.IBAR_Y)))
+
+
+class MenuBar(object):
+    """ Menu Bar items for the application.
+    Define a surface for a clickable top-level menu bar item.
+    Clicking on a menu bar item opens or closes a MenuItems.
+    """
+    def __init__(self,
+                 p_name: str,
+                 p_x_left: int):
+        """Initialize a Menu Bar object.
+        = `text` is text content and UID for the menu bar item.
+        - `mbox` is the bounding box for the menu bar item.
+        - 'mtxt` is the image (surface) for rendering text.
+        - 'tbox` is the bounding box for the text.
+
+        :args:
+        - p_name (str): text and UID for menu bar item.
+        - p_x_left (int): x location for menu bar box.
+        """
+        self.is_selected = False
+        self.text = p_name
+        mbox_w = len(self.text) * 12
+        self.mbox = pg.Rect(p_x_left,
+                            PG.MBAR_Y,
+                            mbox_w,
+                            PG.MBAR_H)
+        self.mtxt = PG.F_SANS_12.render(
+            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        self.tbox = self.mtxt.get_rect()
+        self.tbox.topleft =\
+            (p_x_left + int((self.mbox.width - self.tbox.width) / 2),
+             PG.MBAR_Y + PG.MBAR_MARGIN)
+
+    def draw(self):
+        """ Draw a Menu Bar item.
+        """
+        if self.is_selected:
+            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.mbox, 2)
+        else:
+            pg.draw.rect(PG.WIN, PG.PC_BLUE, self.mbox, 2)
+        PG.WIN.blit(self.mtxt, self.tbox)
+
+    def clicked(self, p_mouse_loc) -> bool:
+        """ Return True if mouse clicked on the mbox.
+        """
+        if self.mbox.collidepoint(p_mouse_loc):
+            return True
+        return False
+
+
+class MenuItems(object):
+    """Define one or more MenuItem associated with a MenuBar.
+    Clicking on a menu bar item triggers a function and sets
+    visibility of the MenuItems to False.
+    """
+    def __init__(self,
+                 p_mitm_list: list,
+                 p_mbar: MenuBar):
+        """ Initialize Menu Items.
+        The container (mbox) surface holds all the items.
+        Each MenuItem is clickable, per its bounding box (tbox).
+
+        :args:
+        - p_mitm_list (list): list of menu item names.
+        - p_mbar (MenuBar): the parent MenuBar object
+
+        Rect = (left, top, width, height)
+        """
+        self.name = p_mbar.text
+        self.is_visible = False
+        self.item_cnt = len(p_mitm_list)
+        # Protoype of box to draw around  menu items.
+        self.mbox = pg.Rect(p_mbar.mbox.left,
+                            p_mbar.mbox.bottom,
+                            0,
+                            p_mbar.mbox.height * self.item_cnt)
+        self.mitems = []
+        for mx, mi_nm in enumerate(p_mitm_list):
+            mtxt = PG.F_SANS_12.render(
+                mi_nm, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
+            mitm_w = mtxt.get_width() + (PG.MBAR_MARGIN * 2)
+            # Box for each item in the menu item list.
+            tbox = pg.Rect(self.mbox.left + PG.MBAR_MARGIN,
+                           ((self.mbox.top + (PG.MBAR_H * mx)) +
+                            PG.MBAR_MARGIN),
+                           mitm_w, PG.MBAR_H)
+            # Set mbox width equal to largest tbox width
+            if tbox.width > self.mbox.width:
+                self.mbox.width = tbox.width
+            self.mitems.append({'mtxt': mtxt, 'tbox': tbox, 'text': mi_nm})
+
+    def draw(self):
+        """ Draw the list of Menu Items.
+        """
+        if self.is_visible:
+            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.mbox, 2)
+            for mi in self.mitems:
+                PG.WIN.blit(mi['mtxt'], mi['tbox'])
+
+    def clicked(self,
+                p_mouse_loc):
+        """ Return name of clicked menu item or None.
+        """
+        for mi in self.mitems:
+            if mi['tbox'].collidepoint(p_mouse_loc):
+                return mi['text']
+        return None
+
+
+class MenuGroup(object):
+    """Define a group object for menu bars and menu items.
+    Reference menus by name and associate menu bar with its items.
+    """
+    def __init__(self):
+        self.mbars: dict = dict()
+        self.mitems: dict = dict()
+        self.current_bar = None
+        self.current_item = None
+
+    def add_bar(self,
+                p_mbar: MenuBar):
+        """Add a MenuBar to the collection."""
+        self.mbars[p_mbar.text] = p_mbar
+
+    def add_item(self,
+                 p_mitems: MenuItems):
+        """Add a MenuItems to the collection."""
+        self.mitems[p_mitems.name] = p_mitems
+
+
+class PageHeader(object):
+    """Set text for header.
+    HDR is a widget drawn at top of the window.
+    """
+
+    def __init__(self,
+                 p_hdr_txt: str = ""):
+        """ Initialize PageHeader. """
+        self.img = PG.F_SANS_18.render(p_hdr_txt, True,
+                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        self.box = self.img.get_rect()
+        self.box.topleft = PG.HDR_LOC
+
+    def draw(self):
+        """ Draw PageHeader. """
+        PG.WIN.blit(self.img, self.box)
 
 
 class TextInput(pg.sprite.Sprite):
@@ -391,13 +388,13 @@ class SaskanEyes(object):
         self.IBAR = InfoBar('')
         # Menu bars and items
         self.MEG = MenuGroup()
-        moff = 0
+        prev_x = PG.MBAR_X
         for _, mn in FI.g["menus"]["menu"].items():
-            self.MEG.add_bar(MenuBar(mn["nm"],
-                                     PG.MBAR_X + (PG.MBAR_W * moff)))
-            moff += 1
+            mn_nm = mn["nm"]
+            self.MEG.add_bar(MenuBar(mn_nm, prev_x))
+            prev_x = self.MEG.mbars[mn_nm].mbox.right
             mil = [mi['nm'] for _, mi in mn["items"].items()]
-            self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn["nm"]]))
+            self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn_nm]))
 
         # Test log message
         WT.log_msg("info", "Mouse location: " + str(self.mouse_loc))
@@ -407,12 +404,53 @@ class SaskanEyes(object):
         # Make it go!
         self.main_loop()
 
+    # Mouse Click Event Handlers
+    # ==============================================================
+    def do_select_mbar(self,
+                       p_mouse_loc):
+        """Trap for a mouse click on a menu bar item.
+
+        :args:
+        - p_mouse_loc: (tuple) mouse location
+        """
+        self.MEG.current_bar is None
+        self.MEG.current_item = None
+        for m_nm, mbar in self.MEG.mbars.items():
+            if mbar.clicked(p_mouse_loc):
+                if mbar.is_selected:
+                    # Hide bar and item list if currently selected.
+                    mbar.is_selected = False
+                    self.MEG.mitems[m_nm].is_visible = False
+                else:
+                    mbar.is_selected = True
+                    # Hide any other visible item list.
+                    for _, mitm in self.MEG.mitems.items():
+                        mitm.is_visible = False
+                    self.MEG.mitems[m_nm].is_visible = True
+                    self.MEG.current_bar = mbar
+            else:
+                mbar.is_selected = False
+
+    def do_select_mitem(self,
+                        p_mouse_loc):
+        """Trap for a mouse click on a menu item.
+
+        :args:
+        - p_mouse_loc: (tuple) mouse location
+        """
+        self.MEG.current_item = None
+        for m_nm, ilist in self.MEG.mitems.items():
+            if ilist.is_visible:
+                item_nm = ilist.clicked(p_mouse_loc)
+                if item_nm is not None:
+                    self.MEG.current_item = ilist
+                    print("DEBUG: Trigger event:" + item_nm)
+
     # Keyboard Event Handlers
     # ==============================================================
-    @typing.no_type_check
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
-        This is triggered by the ESC key or `X`ing the window.
+        This is triggered by the Q key, ESC key or `X`ing the window.
 
         :args:
         - event: (pg.event.Event) event to handle
@@ -450,7 +488,7 @@ class SaskanEyes(object):
         self.IBAR.draw()
         for m_nm, mbar in self.MEG.mbars.items():
             mbar.draw()
-            self.MEG.mitms[m_nm].draw()
+            self.MEG.mitems[m_nm].draw()
 
         # for txtin in self.TIG:
         #     txtin.draw()
@@ -474,6 +512,11 @@ class SaskanEyes(object):
 
             for event in pg.event.get():
                 self.check_exit_app(event)
+
+                if event.type == pg.MOUSEBUTTONDOWN:
+                    self.do_select_mbar(self.mouse_loc)
+                    self.do_select_mitem(self.mouse_loc)
+                    # self.do_select_txtin(self.mouse_loc):
 
             if self.freeze_mode is False:
                 self.refresh_screen()

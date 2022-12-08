@@ -3,7 +3,7 @@
         "bar": {
             "x": 60,
             "y": 10,
-            "w": 60,
+            "w": 100,
             "h": 26,
             "margin": 6},
         "menu": {
@@ -11,7 +11,7 @@
                 "nm": "File",
                 "items": {
                     "exit": {
-                        "nm":"&Quit"}}},
+                        "nm":"Quit (Q or ESC)"}}},
             "view": {
                 "nm": "View",
                 "items": {
@@ -63,13 +63,13 @@
                     "debug": {
                         "nm":"App Logs"},
                     "pressure": {
-                        "nm":"Service Pressure"}}},
+                        "nm":"Pressure"}}},
             "help": {
                 "nm": "Help",
                 "items": {
                     "app_help": {
-                        "nm": "About Saskan Eyes"},
+                        "nm": "Saskan Eyes"},
                     "pg_help": {
-                        "nm": "About PyGame"}}}}
+                        "nm": "PyGame"}}}}
     }
 }
