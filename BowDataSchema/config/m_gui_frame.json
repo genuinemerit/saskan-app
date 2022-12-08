@@ -1,0 +1,14 @@
+{
+    "frame": {
+        "ttl": "Saskan Eyes",
+        "dsc": "Control, Monitor, Test, Edit Saskan Services.\n Version: 0.0.1",
+        "nm": "saskan_eyes_frame",
+        "sz": {
+            "w": 1200,
+            "h": 900},
+        "ibar": {
+            "x": 60,
+            "y": 872
+        }
+    }
+}

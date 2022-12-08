@@ -1,0 +1,75 @@
+{
+    "menus": {
+        "bar": {
+            "x": 60,
+            "y": 10,
+            "w": 60,
+            "h": 26,
+            "margin": 6},
+        "menu": {
+            "file": {
+                "nm": "File",
+                "items": {
+                    "exit": {
+                        "nm":"&Quit"}}},
+            "view": {
+                "nm": "View",
+                "items": {
+                    "anim_stop": {
+                        "nm":"Freeze (F7)"},
+                    "anim_start": {
+                        "nm":"Unfreeze (F8)"},
+                    "services": {
+                        "nm":"Services"},
+                    "editor": {
+                        "nm":"Editor"},
+                    "monitor": {
+                        "nm":"Monitor"},
+                    "diagram": {
+                        "nm":"Diagram"},
+                    "map": {
+                        "nm":"Map"}}},
+            "services": {
+                "nm": "Services",
+                "items": {
+                    "start": {
+                        "nm":"Start"},
+                    "stop": {
+                        "nm":"Stop"},
+                    "status": {
+                        "nm":"Status"},
+                    "test": {
+                        "nm":"Test"}}},
+            "edit": {
+                "nm": "Edit",
+                "items": {
+                    "config": {
+                        "nm":"Settings"},
+                    "time": {
+                        "nm":"Time"},
+                    "places": {
+                        "nm":"Places"},
+                    "music": {
+                        "nm":"Music"},
+                    "images": {
+                        "nm":"Images"}}},
+            "monitor": {
+                "nm": "Monitor",
+                "items": {
+                    "msg": {
+                        "nm":"Service Logs"},
+                    "trace": {
+                        "nm":"Trace Logs"},
+                    "debug": {
+                        "nm":"App Logs"},
+                    "pressure": {
+                        "nm":"Service Pressure"}}},
+            "help": {
+                "nm": "Help",
+                "items": {
+                    "app_help": {
+                        "nm": "About Saskan Eyes"},
+                    "pg_help": {
+                        "nm": "About PyGame"}}}}
+    }
+}

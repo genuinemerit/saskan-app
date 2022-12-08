@@ -4,56 +4,7 @@
 :author:    GM (genuinemerit @ pm.me)
 BoW Saskan App GUI.  pygame version.
 
-Online references:
-- https://www.pygame.org/docs/
-- https://www.pygame.org/docs/genindex.html
-
-Books:
-- Begining Python Games Development -
-    - https://learning.oreilly.com/library/view/beginning-python-games/9781484209707/9781484209714_Ch03.xhtml
-- Python Game Programming by Example -
-    - https://learning.oreilly.com/library/view/python-game-programming/9781785281532/ch05.html
-- Program Arcade Games with Python and Pygame -
-    - https://learning.oreilly.com/library/view/program-arcade-games/9781484217900/
-
-
-Video courses:
-- The Art of Doing: Video Game Creation with Python and Pygame -
-    - https://learning.oreilly.com/videos/the-art-of/9781803231587/
-- Game Development with PyGame: Write Your Own Games, Simulations, Demonstrations with Python -
-    - https://learning.oreilly.com/videos/game-development-with/9781484256619/
-
-
-Other libraries that may come in handy eventually:
-
-Algorithms:
-- pygame-ai
-
-Physics:
-- pymunk
-
-Animation, Sprites:
-- pyglet
-
-Primitives, Rendering:
-- cocos2d
-- panda3d
-- wasabi2d
-
-Geometry, Vectors, Matrices:
-- pygame.math
-- pyrr
-- euclid
-- vec
-
-Sound:
-- pyfxr
-
-
-Placs to find game assets and resources:
-- pyweek
-- itch.io
-
+See: ../design/pygame_notes.md
 """
 
 import platform
@@ -63,7 +14,6 @@ import typing
 
 from dataclasses import dataclass
 from pprint import pprint as pp     # noqa: F401
-from pygame.locals import *
 
 from io_file import FileIO          # type: ignore
 from io_wiretap import WireTap      # type: ignore
@@ -75,38 +25,57 @@ pg.init()
 
 @dataclass(frozen=True)
 class PG:
-    # Colors
-    C_BLACK = pg.Color(0, 0, 0)
-    C_BLUE = pg.Color(0, 0, 255)
-    C_BLUEPOWDER = pg.Color(176, 224, 230)
-    C_GREEN = pg.Color(0, 255, 0)
-    C_PALEPINK = pg.Color(215, 198, 198)
-    C_RED = pg.Color(255, 0, 0)
-    C_WHITE = pg.Color(255, 255, 255)
-    # Fonts
+    # CLI Colors and accents
+    CL_BLUE = '\033[94m'
+    CL_BOLD = '\033[1m'
+    CL_CYAN = '\033[96m'
+    CL_DARKCYAN = '\033[36m'
+    CL_END = '\033[0m'
+    CL_GREEN = '\033[92m'
+    CL_PURPLE = '\033[95m'
+    CL_RED = '\033[91m'
+    CL_YELLOW = '\033[93m'
+    CL_UNDERLINE = '\033[4m'
+    # PyGame Colors
+    PC_BLACK = pg.Color(0, 0, 0)
+    PC_BLUE = pg.Color(0, 0, 255)
+    PC_BLUEPOWDER = pg.Color(176, 224, 230)
+    PC_GREEN = pg.Color(0, 255, 0)
+    PC_PALEPINK = pg.Color(215, 198, 198)
+    PC_RED = pg.Color(255, 0, 0)
+    PC_WHITE = pg.Color(255, 255, 255)
+    # PyGame Fonts
     F_SANS_12 = pg.font.SysFont('DejaVu Sans', 12)
     F_SANS_16 = pg.font.SysFont('DejaVu Sans', 16)
     F_SANS_18 = pg.font.SysFont('DejaVu Sans', 18)
     F_FIXED_18 = pg.font.SysFont('Courier 10 Pitch', 18)
-    # Cursors
-    IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
+    # PyGame Cursors
+    CUR_ARROW = pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW)
+    CUR_CROSS = pg.cursors.Cursor(pg.SYSTEM_CURSOR_CROSSHAIR)
+    CUR_HAND = pg.cursors.Cursor(pg.SYSTEM_CURSOR_HAND)
+    CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
+    CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
     # Window / Canvas / Display
-    APP_NM = 'Saskantinon'
-    pg.display.set_caption(APP_NM)
-    WIN_W = 1800
-    WIN_H = 960
+    pg.display.set_caption(FI.g["frame"]["ttl"])
+    WIN_W = FI.g["frame"]["sz"]["w"]
+    WIN_H = FI.g["frame"]["sz"]["h"]
     WIN_MID = (WIN_W / 2, WIN_H / 2)
     WIN = pg.display.set_mode((WIN_W, WIN_H))
-    # Menu and Info Bar Widgets
-    MBAR_X = 60
-    MBAR_Y = 10
-    MBAR_W = 100        # Modify based on text content?
-    MBAR_H = 26
-    MBAR_MARGIN = 6
-    MBAR_LOC = (MBAR_X, MBAR_Y)
-    IBAR_X = 60
-    IBAR_Y = 932
+    # Info Bar
+    IBAR_X = FI.g["frame"]["ibar"]["x"]
+    IBAR_Y = FI.g["frame"]["ibar"]["y"]
     IBAR_LOC = (IBAR_X, IBAR_Y)
+    # Menu Bar
+    # Note: MBAR_W is the width of each individual menu bar menu,
+    # width of the total menu bar is cumulative of all menu bar menus.
+    # To get more clever, may want to adjust the width of each menu
+    # according to the size of its text.
+    MBAR_X = FI.g["menus"]["bar"]["x"]
+    MBAR_Y = FI.g["menus"]["bar"]["y"]
+    MBAR_W = FI.g["menus"]["bar"]["w"]
+    MBAR_H = FI.g["menus"]["bar"]["h"]
+    MBAR_MARGIN = FI.g["menus"]["bar"]["margin"]
+    MBAR_LOC = (MBAR_X, MBAR_Y)
     # Report Page Widgets
     HDR_LOC = (60, 40)      # LOC = Top-Left x, y
     PAGE_X = 60
@@ -144,7 +113,7 @@ class MenuBar(object):
         self.mbox = pg.Rect(p_x_left, PG.MBAR_Y,
                             PG.MBAR_W, PG.MBAR_H)
         self.mtxt = PG.F_SANS_12.render(
-            self.text, True, PG.C_BLUEPOWDER, PG.C_BLACK)
+            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.tbox = self.mtxt.get_rect()
         self.tbox.topleft =\
             (p_x_left + int((self.mbox.width - self.tbox.width) / 2),
@@ -154,9 +123,9 @@ class MenuBar(object):
         """ Draw a Menu Bar item.
         """
         if self.is_selected:
-            pg.draw.rect(PG.WIN, PG.C_BLUEPOWDER, self.mbox, 2)
+            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.mbox, 2)
         else:
-            pg.draw.rect(PG.WIN, PG.C_BLUE, self.mbox, 2)
+            pg.draw.rect(PG.WIN, PG.PC_BLUE, self.mbox, 2)
         PG.WIN.blit(self.mtxt, self.tbox)
 
     def clicked(self, p_mouse_loc) -> bool:
@@ -169,7 +138,7 @@ class MenuBar(object):
 
 
 class MenuItems(object):
-    """Define one or more MenuItem's associated with a MenuBar.
+    """Define one or more MenuItem associated with a MenuBar.
     Clicking on a menu bar item triggers a function and sets
     visibility of the MenuItems to False.
     """
@@ -196,7 +165,7 @@ class MenuItems(object):
         self.mitems = []
         for mx, mi_nm in enumerate(p_mitm_list):
             mtxt = PG.F_SANS_12.render(
-                mi_nm, True, PG.C_BLUEPOWDER, PG.C_BLACK)
+                mi_nm, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
             tbox = pg.Rect(self.mbox.left + PG.MBAR_MARGIN,
                            ((self.mbox.top + (PG.MBAR_H * mx)) +
                             PG.MBAR_MARGIN),
@@ -207,7 +176,7 @@ class MenuItems(object):
         """ Draw the list of Menu Items.
         """
         if self.is_visible:
-            pg.draw.rect(PG.WIN, PG.C_BLUEPOWDER, self.mbox, 2)
+            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.mbox, 2)
             for mi in self.mitems:
                 PG.WIN.blit(mi['mtxt'], mi['tbox'])
 
@@ -234,8 +203,7 @@ class MenuItems(object):
 
 class MenuGroup(object):
     """Define a group object for menu bars and menu items.
-    Used a dict so as to easily reference them by name, and
-    easily associate the bar with its items.
+    Reference menus by name and associate menu bar with its items.
     """
     def __init__(self):
         self.mbars: dict = dict()
@@ -263,7 +231,7 @@ class PageHeader(object):
                  p_hdr_txt: str = ""):
         """ Initialize PageHeader. """
         self.img = PG.F_SANS_18.render(p_hdr_txt, True,
-                                       PG.C_BLUEPOWDER, PG.C_BLACK)
+                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.box = self.img.get_rect()
         self.box.topleft = PG.HDR_LOC
 
@@ -288,7 +256,7 @@ class InfoBar(object):
         else:
             self.text = p_text
         self.itxt = PG.F_SANS_12.render(
-            self.text, True, PG.C_BLUEPOWDER, PG.C_BLACK)
+            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.ibox = self.itxt.get_rect()
         self.ibox.topleft = PG.IBAR_LOC
 
@@ -309,7 +277,7 @@ class InfoBar(object):
             genimg = PG.F_SANS_12.render(
                 "Generation: " + str(p_frame_cnt) +
                 "    |    Mouse: " + str(p_mouse_loc),
-                True, PG.C_BLUEPOWDER, PG.C_BLACK)
+                True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
             PG.WIN.blit(genimg,
                         genimg.get_rect(topleft=(PG.WIN_W * 0.67,
                                                  PG.IBAR_Y)))
@@ -336,7 +304,7 @@ class TextInput(pg.sprite.Sprite):
         self.t_box = pg.Rect(p_x, p_y, p_w, p_h)
         self.t_value = ""
         self.t_font = PG.F_FIXED_18
-        self.t_color = PG.C_GREEN
+        self.t_color = PG.PC_GREEN
         self.text = self.t_font.render(self.t_value, True, self.t_color)
         self.is_selected = False
 
@@ -348,9 +316,9 @@ class TextInput(pg.sprite.Sprite):
         self.pos = self.text.get_rect(center=(self.t_box.x + self.t_box.w / 2,
                                               self.t_box.y + self.t_box.h / 2))
         if self.is_selected:
-            pg.draw.rect(PG.WIN, PG.C_BLUEPOWDER, self.t_box, 2)
+            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, self.t_box, 2)
         else:
-            pg.draw.rect(PG.WIN, PG.C_BLUE, self.t_box, 2)
+            pg.draw.rect(PG.WIN, PG.PC_BLUE, self.t_box, 2)
         PG.WIN.blit(self.text, self.pos)
 
     def clicked(self, p_mouse_loc) -> bool:
@@ -399,18 +367,116 @@ class SaskanEyes(object):
     Initiated and executed by __main__.
     """
     def __init__(self, *args, **kwargs):
-        """Initialize counters, modes, trackers, widgets.
+        """
+        Refresh shared data space.
+        Initialize counters, modes, trackers, widgets.
         Execute the main event loop.
         """
-        # Refresh all data in shared memory
-        # FI.pickle_saskan()
+        FI.pickle_saskan()
         WT.log_module(__file__, __name__, self)
+
         # Mouse tracking
         self.mouse_loc = (0, 0)
+        # Keyboard assignments
+        self.QUIT_KY: list = [pg.K_q, pg.K_ESCAPE]
+        self.ANIM_KY: list = [pg.K_F3, pg.K_F4, pg.K_F5]
+        self.DATA_KY: list = [pg.K_a, pg.K_l]
+        self.RPT_TYPE_KY: list = [pg.K_KP1, pg.K_KP2, pg.K_KP3]
+        self.RPT_MODE_KY: list = [pg.K_UP, pg.K_RIGHT, pg.K_LEFT]
+        # Animation modes
+        self.frame_cnt_mode = False
+        self.frame_cnt = 0
+        self.freeze_mode = False
+        # Information bar
+        self.IBAR = InfoBar('')
+        # Menu bars and items
+        self.MEG = MenuGroup()
+        moff = 0
+        for _, mn in FI.g["menus"]["menu"].items():
+            self.MEG.add_bar(MenuBar(mn["nm"],
+                                     PG.MBAR_X + (PG.MBAR_W * moff)))
+            moff += 1
+            mil = [mi['nm'] for _, mi in mn["items"].items()]
+            self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn["nm"]]))
+
         # Test log message
         WT.log_msg("info", "Mouse location: " + str(self.mouse_loc))
         # Test log report
-        WT.dump_log()
+        # WT.dump_log()
+
+        # Make it go!
+        self.main_loop()
+
+    # Keyboard Event Handlers
+    # ==============================================================
+    @typing.no_type_check
+    def check_exit_app(self, event: pg.event.Event):
+        """Handle exit if one of the exit modes is triggered.
+        This is triggered by the ESC key or `X`ing the window.
+
+        :args:
+        - event: (pg.event.Event) event to handle
+        """
+        if (event.type == pg.QUIT or
+                (event.type == pg.KEYUP and
+                    event.key in self.QUIT_KY)):
+            pg.quit()
+            sys.exit()
+
+    # Event Routers
+    # ==============================================================
+    def track_state(self):
+        """Keep track of the state of the app on each frame.
+
+        Sets:
+        - mouse_loc: get current mouse location
+        - cursor: if no text input box is activated, set to default
+        - frame_cnt: increment if not in a freeze mode
+        """
+        self.mouse_loc = pg.mouse.get_pos()
+
+        # if self.TIG.current is None:
+        #     pg.mouse.set_cursor(pg.cursors.Cursor())
+
+        if self.frame_cnt_mode is True and self.freeze_mode is False:
+            self.frame_cnt += 1
+
+    def refresh_screen(self):
+        """Refresh the screen with the current state of the app.
+        30 milliseconds between each frame is the normal framerate.
+        To go into slow motion, add a wait here. Don't change the framerate.
+        """
+        PG.WIN.fill(PG.PC_BLACK)
+        self.IBAR.draw()
+        for m_nm, mbar in self.MEG.mbars.items():
+            mbar.draw()
+            self.MEG.mitms[m_nm].draw()
+
+        # for txtin in self.TIG:
+        #     txtin.draw()
+        # self.PHDR.draw()
+        # self.PAGE.draw()
+
+        pg.display.update()
+        PG.TIMER.tick(30)
+
+    # Main Loop
+    # ==============================================================
+    def main_loop(self):
+        """Manage the event loop.
+        - Handle window events (quit --> ESC or Q)
+        - Handle animation events (F3, F4, F5)
+        - Handle data load events (F7, F8)
+        - Handle mouse events
+        """
+        while True:
+            self.track_state()
+
+            for event in pg.event.get():
+                self.check_exit_app(event)
+
+            if self.freeze_mode is False:
+                self.refresh_screen()
 
 
 # Run program

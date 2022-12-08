@@ -5,9 +5,6 @@
 module:    io_file.py
 class:     FileIO/0
 author:    GM <genuinemerit @ pm.me>
-
-@DEV
-- Consider adding JSON conversion functions.
 """
 import json
 import pickle
@@ -15,7 +12,7 @@ import shutil
 
 from os import path, remove, system
 from pathlib import Path
-from pprint import pprint as pp
+# from pprint import pprint as pp
 
 from io_shell import ShellIO       # type: ignore
 
@@ -30,6 +27,11 @@ class FileIO(object):
         self.d = self.get_app_and_data_dirs()
         self.c = self.get_context()
         self.t = self.get_static_text()
+        self.g = dict()
+        g = self.get_gui_frame()
+        self.g["frame"] = g["frame"]
+        g = self.get_gui_menus()
+        self.g["menus"] = g["menus"]
 
     def make_readable(self,
                       p_path: str) -> tuple:
@@ -299,7 +301,6 @@ class FileIO(object):
                             f"{p_meta_nm}.pickle")
         ok, msg, meta = self.unpickle_object(pk_file)
         if not ok:
-            pp((pk_file, ok, msg, meta))
             ok, msg, meta = self.get_file(
                     path.join("../data/config", f"{p_meta_nm}.json"))
             if ok:
@@ -332,6 +333,20 @@ class FileIO(object):
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_log")
+        return(meta)
+
+    def get_gui_frame(self):
+        """Read GUI frame metadata.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_gui_frame")
+        return(meta)
+
+    def get_gui_menus(self):
+        """Read GUI menus metadata.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_gui_menus")
         return(meta)
 
     def get_static_text(self):
