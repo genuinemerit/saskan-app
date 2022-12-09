@@ -9,6 +9,13 @@
         "ibar": {
             "x": 60,
             "y": 872
+        },
+        "pg_hdr": {
+            "x": 20,
+            "y": 10,
+            "w": 1080,
+            "h": 20,
+            "default_text": "Saskan Eyes"
         }
     }
 }

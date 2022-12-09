@@ -32,6 +32,8 @@ class FileIO(object):
         self.g["frame"] = g["frame"]
         g = self.get_gui_menus()
         self.g["menus"] = g["menus"]
+        g = self.get_gui_windows()
+        self.g["windows"] = g["windows"]
 
     def make_readable(self,
                       p_path: str) -> tuple:
@@ -347,6 +349,13 @@ class FileIO(object):
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_gui_menus")
+        return(meta)
+
+    def get_gui_windows(self):
+        """Read GUI (sub)-windows metadata.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_gui_windows")
         return(meta)
 
     def get_static_text(self):

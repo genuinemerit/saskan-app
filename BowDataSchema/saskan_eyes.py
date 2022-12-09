@@ -77,7 +77,8 @@ class PG:
     MBAR_MARGIN = FI.g["menus"]["bar"]["margin"]
     MBAR_LOC = (MBAR_X, MBAR_Y)
     # Report Page Widgets
-    HDR_LOC = (60, 40)      # LOC = Top-Left x, y
+    PHDR_LOC = (FI.g["frame"]["pg_hdr"]["x"],
+                FI.g["frame"]["pg_hdr"]["y"])
     PAGE_X = 60
     PAGE_Y = 60
     PAGE_MAX_LNS = 38    # max lines to display per column
@@ -209,7 +210,9 @@ class MenuItems(object):
                             0,
                             p_mbar.mbox.height * self.item_cnt)
         self.mitems = []
-        for mx, mi_nm in enumerate(p_mitm_list):
+        for mx, mi in enumerate(p_mitm_list):
+            mi_id = mi[0]
+            mi_nm = mi[1]
             mtxt = PG.F_SANS_12.render(
                 mi_nm, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
             mitm_w = mtxt.get_width() + (PG.MBAR_MARGIN * 2)
@@ -221,7 +224,8 @@ class MenuItems(object):
             # Set mbox width equal to largest tbox width
             if tbox.width > self.mbox.width:
                 self.mbox.width = tbox.width
-            self.mitems.append({'mtxt': mtxt, 'tbox': tbox, 'text': mi_nm})
+            self.mitems.append(
+                {'id': mi_id, 'mtxt': mtxt, 'tbox': tbox, 'text': mi_nm})
 
     def draw(self):
         """ Draw the list of Menu Items.
@@ -233,11 +237,11 @@ class MenuItems(object):
 
     def clicked(self,
                 p_mouse_loc):
-        """ Return name of clicked menu item or None.
+        """ Return id and name of clicked menu item or None.
         """
         for mi in self.mitems:
             if mi['tbox'].collidepoint(p_mouse_loc):
-                return mi['text']
+                return (mi['id'], mi['text'])
         return None
 
 
@@ -268,16 +272,40 @@ class PageHeader(object):
     """
 
     def __init__(self,
-                 p_hdr_txt: str = ""):
+                 p_hdr_text: str):
         """ Initialize PageHeader. """
-        self.img = PG.F_SANS_18.render(p_hdr_txt, True,
+        self.img = PG.F_SANS_18.render(p_hdr_text, True,
                                        PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.box = self.img.get_rect()
-        self.box.topleft = PG.HDR_LOC
+        self.box.topleft = PG.PHDR_LOC
 
     def draw(self):
         """ Draw PageHeader. """
         PG.WIN.blit(self.img, self.box)
+
+
+class HelpDisplay(object):
+    """Set content for the help display.
+    Lower left corner of the window.
+    """
+
+    def __init__(self,
+                 p_display_config):
+        """ Initialize Help Display.
+
+        :args:
+        - p_display_config: (path) Configuration for the sub-window.
+        """
+        pp((p_display_config))
+
+    def draw(self,
+             p_help_text: str):
+        """ Draw Help Display.
+
+        Args: (str) help text to display or HTML file.
+        """
+        pp((p_help_text))
+        # PG.WIN.blit(self.img, self.rect)
 
 
 class TextInput(pg.sprite.Sprite):
@@ -393,8 +421,12 @@ class SaskanEyes(object):
             mn_nm = mn["nm"]
             self.MEG.add_bar(MenuBar(mn_nm, prev_x))
             prev_x = self.MEG.mbars[mn_nm].mbox.right
-            mil = [mi['nm'] for _, mi in mn["items"].items()]
+            mil = [(mi_id, mi['nm']) for mi_id, mi in mn["items"].items()]
             self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn_nm]))
+        # Page header
+        self.PHDR = PageHeader(FI.g["frame"]["pg_hdr"]["default_text"])
+        # Sub-windows
+        self.PHELP = HelpDisplay(FI.g["windows"]["help"])
 
         # Test log message
         WT.log_msg("info", "Mouse location: " + str(self.mouse_loc))
@@ -438,16 +470,36 @@ class SaskanEyes(object):
         :args:
         - p_mouse_loc: (tuple) mouse location
         """
+        item_nm = None
         self.MEG.current_item = None
-        for m_nm, ilist in self.MEG.mitems.items():
+        for _, ilist in self.MEG.mitems.items():
             if ilist.is_visible:
                 item_nm = ilist.clicked(p_mouse_loc)
                 if item_nm is not None:
                     self.MEG.current_item = ilist
-                    print("DEBUG: Trigger event:" + item_nm)
+        return item_nm
 
-    # Keyboard Event Handlers
+    # Keyboard and Menu Item Event Handlers
     # ==============================================================
+    def exit_app(self):
+        """Exit the app.
+        """
+        pg.quit()
+        sys.exit()
+
+    def handle_menu_event(self,
+                          p_menu_item):
+        """Trigger an event based on menu item selection.
+        """
+        menu_nm = self.MEG.current_item.name
+        m_item_id = p_menu_item[0]
+        m_item_text = p_menu_item[1]
+        print(menu_nm, m_item_id, m_item_text)
+        if m_item_id == "exit":
+            self.exit_app()
+        elif m_item_id in ("pg_help", "app_help"):
+            self.PHELP.draw("DEBUG...help text or html")
+
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
         This is triggered by the Q key, ESC key or `X`ing the window.
@@ -456,12 +508,10 @@ class SaskanEyes(object):
         - event: (pg.event.Event) event to handle
         """
         if (event.type == pg.QUIT or
-                (event.type == pg.KEYUP and
-                    event.key in self.QUIT_KY)):
-            pg.quit()
-            sys.exit()
+                (event.type == pg.KEYUP and event.key in self.QUIT_KY)):
+            self.exit_app()
 
-    # Event Routers
+    # Loop Events
     # ==============================================================
     def track_state(self):
         """Keep track of the state of the app on each frame.
@@ -490,9 +540,10 @@ class SaskanEyes(object):
             mbar.draw()
             self.MEG.mitems[m_nm].draw()
 
+        self.PHDR.draw()
+
         # for txtin in self.TIG:
         #     txtin.draw()
-        # self.PHDR.draw()
         # self.PAGE.draw()
 
         pg.display.update()
@@ -515,7 +566,9 @@ class SaskanEyes(object):
 
                 if event.type == pg.MOUSEBUTTONDOWN:
                     self.do_select_mbar(self.mouse_loc)
-                    self.do_select_mitem(self.mouse_loc)
+                    menu_item = self.do_select_mitem(self.mouse_loc)
+                    if self.MEG.current_item is not None:
+                        self.handle_menu_event(menu_item)
                     # self.do_select_txtin(self.mouse_loc):
 
             if self.freeze_mode is False:
