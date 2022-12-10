@@ -3,12 +3,10 @@
  * 	2022 Genuine Merit Software
  ***************************************** */
 /* Styles actually used in Saskan Eyes app */
-body { 	background:#eeeeff;
+body { 	background:#1c1c1d;
 		color:black;
-	   	border-top: 1px solid #edffed;
-	   	border-left: 1px solid #edffed;
 		font-family: 'Gill Sans', Verdana, Arial, Helvetica, sans-serif; 
-		font-size: 0.9em; 
+		font-size: 1.0em;
 		margin-top: 5px;
 		margin-left: 6px;
 		margin-right: 12px;
@@ -18,7 +16,7 @@ body { 	background:#eeeeff;
 		padding-top: 10px;
 		padding-bottom: 10px;
 	}
-h1 	{	margin-top:1px;
+h1 	{	margin-top:7px;
 	}
 p 	{	padding-top:1px;
 	}
@@ -27,21 +25,26 @@ div.menu
 	top:2px;left:10px;
 	margin-bottom:2px;
 	margin-left:10px;
+	padding-bottom:5px;
+	padding-left:18px;
+	padding-right:36px;
 	background-color:#fff6ed; 
 	font-size: 1em; 
-	width: 95%;
+	width: 62%;
 	   border-top: 1px solid #edffed;
 	   border-left: 1px solid #edffed;
 }
 div.page
 {
 	position:absolute; 
-	top:24px;left:10px;
+	top:30px;left:10px;
 	margin-bottom:2px;
 	margin-left:10px;
+	padding-left:18px;
+	padding-right:36px;
 	background-color:#fff6ed; 
 	font-size: 1em; 
-	width: 95%;
+	width: 62%;
 	   border-top: 1px solid #edffed;
 	   border-left: 1px solid #edffed;
 }
