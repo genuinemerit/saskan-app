@@ -34,6 +34,8 @@ class FileIO(object):
         self.g["menus"] = g["menus"]
         g = self.get_gui_windows()
         self.g["windows"] = g["windows"]
+        g = self.get_gui_html()
+        self.g["html"] = g["html"]
 
     def make_readable(self,
                       p_path: str) -> tuple:
@@ -125,9 +127,9 @@ class FileIO(object):
         """
         try:
             remove(p_path)
-            return(True, None)
+            return (True, None)
         except OSError as err:
-            return(False, err)
+            return (False, err)
 
     def copy_file(self,
                   p_path_from: str,
@@ -142,9 +144,9 @@ class FileIO(object):
         """
         try:
             shutil.copy(p_path_from, p_path_to)
-            return(True, None)
+            return (True, None)
         except OSError as err:
-            return(False, err)
+            return (False, err)
 
     def copy_files(self,
                    p_tgt_dir: str,
@@ -314,49 +316,56 @@ class FileIO(object):
                     meta = json.loads(meta)
                 else:
                     raise Exception(f"Error reading metadata: {msg}")
-        return(meta)
+        return (meta)
 
     def get_app_and_data_dirs(self):
         """Read app and data directoriess metadata.
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_directories")
-        return(meta)
+        return (meta)
 
     def get_context(self):
         """"Read context metadata. For example, application language.
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_context")
-        return(meta)
+        return (meta)
 
     def get_log_settings(self):
         """Read log settings metadata.
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_log")
-        return(meta)
+        return (meta)
 
     def get_gui_frame(self):
         """Read GUI frame metadata.
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_gui_frame")
-        return(meta)
+        return (meta)
 
     def get_gui_menus(self):
         """Read GUI menus metadata.
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_gui_menus")
-        return(meta)
+        return (meta)
 
     def get_gui_windows(self):
         """Read GUI (sub)-windows metadata.
         Returns: (dict) Directory values or exception.
         """
         meta = self.get_metadata("m_gui_windows")
-        return(meta)
+        return (meta)
+
+    def get_gui_html(self):
+        """Read GUI HTML and URI references.
+        Returns: (dict) Directory values or exception.
+        """
+        meta = self.get_metadata("m_gui_html")
+        return (meta)
 
     def get_static_text(self):
         """Read static text metadata..
@@ -369,7 +378,7 @@ class FileIO(object):
         """
         context = self.get_context()
         meta = self.get_metadata(f"m_texts_{context['lang']}")
-        return(meta)
+        return (meta)
 
     def pickle_saskan(self):
         """Set up shared memory directories for saskan app and pickle...

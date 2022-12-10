@@ -16,10 +16,11 @@ dependencies:
   - sqlite
   - numpy
   - pandas
-  - redis
   - twisted
   - tornado
-  - redis
+#  - redis
+  - imgkit
+#   - pywebview
   - matplotlib
 #   - pygame
   - nltk

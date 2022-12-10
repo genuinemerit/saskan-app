@@ -1,0 +1,8 @@
+{
+    "html": {
+        "help": {
+            "pygame": "https://www.pygame.org/docs/",
+            "app": "html/app_help.html",
+            "game": "html/saskan_help.html"}
+    }
+}

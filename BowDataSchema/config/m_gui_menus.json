@@ -68,7 +68,9 @@
                 "nm": "Help",
                 "items": {
                     "app_help": {
-                        "nm": "Saskan Eyes"},
+                        "nm": "Saskan Eyes (admin)"},
+                    "game_help": {
+                        "nm": "Saskantinon (game)"},
                     "pg_help": {
                         "nm": "PyGame"}}}}
     }

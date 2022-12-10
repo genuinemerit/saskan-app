@@ -10,6 +10,7 @@ See: ../design/pygame_notes.md
 import platform
 import pygame as pg
 import sys
+import webbrowser
 # import typing
 
 from dataclasses import dataclass
@@ -55,37 +56,34 @@ class PG:
     CUR_HAND = pg.cursors.Cursor(pg.SYSTEM_CURSOR_HAND)
     CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
+
     # Window / Canvas / Display
     pg.display.set_caption(FI.g["frame"]["ttl"])
     WIN_W = FI.g["frame"]["sz"]["w"]
     WIN_H = FI.g["frame"]["sz"]["h"]
     WIN_MID = (WIN_W / 2, WIN_H / 2)
     WIN = pg.display.set_mode((WIN_W, WIN_H))
-    # Info Bar
-    IBAR_X = FI.g["frame"]["ibar"]["x"]
-    IBAR_Y = FI.g["frame"]["ibar"]["y"]
-    IBAR_LOC = (IBAR_X, IBAR_Y)
     # Menu Bar
-    # Note: MBAR_W is the width of each individual menu bar menu,
-    # width of the total menu bar is cumulative of all menu bar menus.
-    # To get more clever, may want to adjust the width of each menu
-    # according to the size of its text.
     MBAR_X = FI.g["menus"]["bar"]["x"]
     MBAR_Y = FI.g["menus"]["bar"]["y"]
+    # Note: MBAR_W is the width of each individual menu bar menu.
     MBAR_W = FI.g["menus"]["bar"]["w"]
     MBAR_H = FI.g["menus"]["bar"]["h"]
     MBAR_MARGIN = FI.g["menus"]["bar"]["margin"]
     MBAR_LOC = (MBAR_X, MBAR_Y)
-    # Report Page Widgets
+    # Page Header
     PHDR_LOC = (FI.g["frame"]["pg_hdr"]["x"],
                 FI.g["frame"]["pg_hdr"]["y"])
-    PAGE_X = 60
-    PAGE_Y = 60
-    PAGE_MAX_LNS = 38    # max lines to display per column
-    PAGE_V_OFF = 22      # vertical offset for each line of text
-    PAGE_COLS = [(PAGE_X, PAGE_Y),
-                 (WIN_W * 0.33, PAGE_Y),
-                 (WIN_W * 0.67, PAGE_Y)]
+    # Info Bar / Dock
+    IBAR_X = FI.g["frame"]["ibar"]["x"]
+    IBAR_Y = FI.g["frame"]["ibar"]["y"]
+    IBAR_LOC = (IBAR_X, IBAR_Y)
+    # Services Admin Window
+    PSRV_LOC = (FI.g["windows"]["srv"]["x"],
+                FI.g["windows"]["srv"]["x"])
+    PSRV_W = FI.g["windows"]["srv"]["w"]
+    PSRV_h = FI.g["windows"]["srv"]["w"]
+
     # Other
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
@@ -284,28 +282,26 @@ class PageHeader(object):
         PG.WIN.blit(self.img, self.box)
 
 
-class HelpDisplay(object):
-    """Set content for the help display.
-    Lower left corner of the window.
+class HtmlDisplay(object):
+    """Set content for display in external web browser.
     """
 
-    def __init__(self,
-                 p_display_config):
-        """ Initialize Help Display.
+    def __init__(self):
+        """ Initialize Html Display.
 
-        :args:
-        - p_display_config: (path) Configuration for the sub-window.
+        @DEV
+        - Maybe look into ways of configuring browser window.
         """
-        pp((p_display_config))
+        pass
 
     def draw(self,
-             p_help_text: str):
-        """ Draw Help Display.
+             p_help_uri: str):
+        """ Open web browser to display HTML resource.
 
-        Args: (str) help text to display or HTML file.
+        Args: (str) UTI to HTML file to display in browser.
         """
-        pp((p_help_text))
-        # PG.WIN.blit(self.img, self.rect)
+        webbrowser.open(p_help_uri)
+        # webbrowser.open_new_tab(p_help_uri)
 
 
 class TextInput(pg.sprite.Sprite):
@@ -425,8 +421,9 @@ class SaskanEyes(object):
             self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn_nm]))
         # Page header
         self.PHDR = PageHeader(FI.g["frame"]["pg_hdr"]["default_text"])
-        # Sub-windows
-        self.PHELP = HelpDisplay(FI.g["windows"]["help"])
+        # External windows
+        # webbrowser.register('firefox')
+        self.WHTML = HtmlDisplay()
 
         # Test log message
         WT.log_msg("info", "Mouse location: " + str(self.mouse_loc))
@@ -497,8 +494,13 @@ class SaskanEyes(object):
         print(menu_nm, m_item_id, m_item_text)
         if m_item_id == "exit":
             self.exit_app()
-        elif m_item_id in ("pg_help", "app_help"):
-            self.PHELP.draw("DEBUG...help text or html")
+        elif "help" in m_item_id:
+            if m_item_id == "pg_help":
+                self.WHTML.draw(FI.g["html"]["help"]["pygame"])
+            elif m_item_id == "app_help":
+                self.WHTML.draw(FI.g["html"]["help"]["app"])
+            elif m_item_id == "game_help":
+                self.WHTML.draw(FI.g["html"]["help"]["game"])
 
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
