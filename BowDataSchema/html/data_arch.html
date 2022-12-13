@@ -21,18 +21,19 @@
 
         <p>Images used in GUI components are created using a variety of tools and stored as binary image files in the application "images" space.
 
-        <p>All data used during execution are stored as either pickled objects or copies of binary files in shared memory (/dev/shm) during a session. This includes the configuration data, the game state, images, the musicology data, the service responses and so on. Inserted or modified data which need to be persisted between sessions are converted to JSON and stored in the application "save" space.
+        <p>All data used during execution are stored as either pickled objects or copies of binary files in shared memory (/dev/shm) during a session and accessed as key-value data records. This includes the configuration data, the game state, images, the musicology data, the service responses and so on. Inserted or modified data which need to be persisted between sessions are converted to JSON and stored in the application "save" space.
 
-        <p>During session execution, data is organized into high-level namespaces and stored as records with unique keys.  The key includes a record type specification, a create timestamp, an expiration timestamp, and a unique identifier. Additional indexes and lists are created in-memory as needed.
+        <p>During session execution, data is organized into high-level namespaces and stored as records, using a variety of structures, with unique keys.  The key includes a record type specification, a create timestamp, an expiration timestamp, and a unique identifier. Additional indexes and lists are created in-memory as needed.
 
-        <p>In Linux terms, pretty much all "records" are files stored either under the application directory, which resides under the user's home directory, or in shared memory. The "data" space is a directory; the "config" and "game" are its subdirectories. The "save" and "image" spaces are a subdirectories of the application directory.
+        <p>In Linux terms, the records are files stored either under the application directory, which resides under the user's home directory, or in shared memory. The "data" space is a directory; the "config" and "game" are its subdirectories. The "save" and "images" spaces are a subdirectories of the application directory.
 
         <p>From a design and architecture point of view, information about data can be divided into 4 useful categories:
         <ul>
             <li><a href="./data_namespaces.html">Namespaces</a>
             <li><a href="./data_persistence.html">Persistence</a>
-            <li><a href="./data_record_types.html">Record Types</a>
-            <li><a href="./data_record_structs.html">Record Structures</a>
+            <li><a href="./data_record_types.html">Record types</a>
+            <li><a href="./data_record_structs.html">Record structures</a>
+            <li><a href="./data_graphed.html">Graph Data structures</a>
         </ul>
     </div>
 </body>

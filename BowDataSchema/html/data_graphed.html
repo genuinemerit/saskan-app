@@ -1,0 +1,30 @@
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Graph Data</title>
+    <link rel="stylesheet" href="saskan_style.css">
+</head>
+<body>
+    <div class="menu">
+        <a href="./app_help.html">Home</a> &bull;
+        <a href="./app_arch.html">Application</a> &bull;
+        <a href="./svc_arch.html">Services</a> &bull;
+        <a href="./data_arch.html">Data</a>
+    </div>
+    <div class="page">
+        <h1><a name="architecture">Graph Data</a></h2>
+
+        <h2>Overview</h3>
+        <p>Some types of game data lend themselves to being structured in the form of a graph, also sometimes referred to as networked data.  At present, there is an experimental class called "io_graphs" that loads game data describing places, edited in the first instance in ODF spreadsheets and loaded into pandas dta frames, into a graph structure.
+        <p>The native python networkx library is used to create the graph data structures, which are persisted to the application's "data" namespace as a pickled object.
+        <p>Two types of graph data are envisioned: "place" graphs, and "path" graphs.
+            <ul>
+                <li>A place graph is a graph of places, where places are nodes, and the edges are the paths between places.
+                <li>A path graph is a graph of paths, where paths are nodes, and the edges are the places between which the paths connect.
+            </ul>
+        <p>Whether or not this approach will facilitate the construction, management and use of game world objects, particularly its maps, remmains to be seen.
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
+    </div>
+</body>
+</html>

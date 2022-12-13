@@ -18,25 +18,34 @@ dependencies:
   - pandas
   - twisted
   - tornado
-#  - redis
+  - music21
+  - sympy
   - imgkit
-#   - pywebview
   - matplotlib
-#   - pygame
   - nltk
   - Levenshtein
-#   - odfpy
+#  - sqlite3
+#  - redis
+#  - pygame
+#  - odfpy
 
 # 2021-10-10  11:00
 # Path: saskan.yml
 
+# Too many unresolved dependencides with python 3.11.0
+# as of December, 2022.
+
+# There may be a better alternative to tornado, but
+# I like it even though it is kind of old-school now.
+
 # Be sure redis is installed at the OS level before
-# running this script.
+# running this script to install python redis modules.
+# May still need to install redis using pip.
 
 # pygame is not available in the conda-forge channel
-#  Have to install it first using pip (or maybe apt).
-
-# And it has dependencies like:
+#  Have to install it using pip.
+# And it has dependencies like the following which
+#  may also need to be installed:
 # sudo apt-get install \
 #  python3-dev \
 #  python3-numpy \
@@ -52,7 +61,7 @@ dependencies:
 #  libsmpeg-dev \
 #  libswscale-dev \
 
-# still needed to pip install redis
+# May need to install odfpy using pip.
 
 # conda env list
 # conad env remove -n saskan

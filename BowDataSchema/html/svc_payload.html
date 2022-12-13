@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Service Message Payload</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+        <a href="./app_help.html">Home</a> &bull;
+        <a href="./app_arch.html">Application</a> &bull;
+        <a href="./svc_arch.html">Services</a> &bull;
+        <a href="./data_arch.html">Data</a>
+    </div>
+    <div class="page">
+        <h1><a name="svc_design">Service Message Payload</a></h3>
+
+        <p>A common class called "MsgSequencer", implemented via module "msg_sequencer.py", handle two asyncio tasks:
+            <ul>
+                <li>The "read_msg" task, which reads bytes from a stream, pulling in the first 4 bytes to get message size, the message package itself.
+                <li>The "send_msg" task, calculates the size of message, sends that in 4 bytes, followed by the message package.
+            </ul>
+        <p>At present, this class is delivered via the "bow_quiver" repository. Will likely move it into a common repo with the rest of the code in the interest of keeping the code base consolidated and less confusing.
+
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
+    </div>
+</body>
+</html>

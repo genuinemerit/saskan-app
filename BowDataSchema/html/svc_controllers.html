@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Service Controllers</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+        <a href="./app_help.html">Home</a> &bull;
+        <a href="./app_arch.html">Application</a> &bull;
+        <a href="./svc_arch.html">Services</a> &bull;
+        <a href="./data_arch.html">Data</a>
+    </div>
+    <div class="page">
+        <h1><a name="svc_design">Service Controllers</a></h3>
+
+        <p>The Controller component directs the traffic on a given Channel. This component is often referred to as a Server.
+        <p>It is implemented as a python class with a module name like "[servicens]_server.py".
+        <p>The controller has two asyncio tasks:
+            <ul>
+                <li>The "server" task, which handles a stream reader and a stream writer. On a specified host and port, it waits for and gathers messages for a given channel, which is subscribed to by a set of peers. When a message is received, then it is passed along to the channel's subscribers.
+                <li>The "main" task, which launches the server.
+            </ul>
+
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
+    </div>
+</body>
+</html>
