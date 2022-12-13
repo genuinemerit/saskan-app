@@ -1,28 +1,29 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Services Help</title>
+        <title>Services Activation</title>
         <link rel="stylesheet" href="saskan_style.css">
     </head>
 
 <body>
     <div class="menu">
-        <a href="./saskan_help.html">ToC</a> &bull; 
-        <a href="./app_help.html">App</a> &bull; 
-        <a href="./svc_help.html">Services</a> &bull; 
-        <a href="./db_help.html">DB</a>
+        <a href="./app_help.html">Home</a> &bull;
+        <a href="./app_arch.html">Application</a> &bull;
+        <a href="./svc_arch.html">Services</a> &bull;
+        <a href="./data_arch.html">Data</a>
     </div>
-<div class="page">
-<h3><a name="svc_monitoring">Services Monitoring</a></h3>
+    <div class="page">
+        <h3><a name="svc_monitoring">Services Monitoring</a></h3>
 
-<p>The Monitor GUI reads the Monitor and Log databases to display information at both summary and detailed levels regarding the state and the status of the server, responder and requestor components of the system.
-    
-<p>As the system becomes more hardened, the intention is that the Monitor will be able to provide data to the user/admin and/or to a "smart" (AI/ML) automated observer, which can make adjustments to the system based on the data.  For example, spinning up additional instances of a given type of server to relieve load pressure, avoid bottlenecks, or to prepare for and then throttle back down from known/expected peak load times.
-    
-<p>Such feedback may also help with application design, as it could indicate what features (services) are most commonly or least commonly requested.
-
-<p> &nbsp;</p>
-<p> &nbsp;</p>
-</div>
+        <p>The Services Monitor module reads the Log namespace to display information at  summary and detailed levels regarding the state and the status of the server, responder and requestor components of the messaging system.
+        <p>These components use the wiretap module to write monitor and log data to the Log namespace.
+        <p>The level of information monitoring and logged is driven by configuration settings. For example, how often to log a summary of the state of the system, how often to log a detailed report of the state of the system, how often to log a summary of the state of a specific component, how often to log a detailed report of the state of a specific component, etc.
+        <p>Metadata may also drive the generation of warning messages and even automated throttling of the system. For example, if a given channel is receiving heavy traffic, or if analysis has revealed that a given channel expects heavy traffic during certain peak periods, then instructions may be be crafted to automtically bring up more (or to reduce) ports to that channel.
+        <p>In an ideal state, collapsed channels could be automatically spun up to handle server or software failures. This is probably more approrpriate once the system is deployed on Digital Ocean, where additional Linux servers, and not only addtional ports under a given Linux server, can be spun up or taken down on demand.
+        <p>As the system becomes more hardened, the intention is that the Monitor will be able to provide data to the user/admin and/or to a "smart" (AI/ML) automated observer, which can make adjustments to the system based on the data.  As noted, spinning up additional instances of a given type of server to relieve load pressure, avoid bottlenecks, or to prepare for and then throttle back down from known/expected peak load times.
+        <p>Designing in such feedback can also help with application design, as they can indicate what features (services) are most commonly or least commonly requested.
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
+    </div>
 </body>
 </html>

@@ -1,43 +1,32 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>Database Help</title>
+        <title>Data Record Types</title>
         <link rel="stylesheet" href="saskan_style.css">
     </head>
 
-<body>
-    <div class="menu">
-        <a href="./saskan_help.html">ToC</a> &bull; 
-        <a href="./app_help.html">App</a> &bull; 
-        <a href="./svc_help.html">Services</a> &bull; 
-        <a href="./db_help.html">DB</a>
+    <body>
+        <div class="menu">
+            <a href="./app_help.html">Home</a> &bull;
+            <a href="./app_arch.html">Application</a> &bull;
+            <a href="./svc_arch.html">Services</a> &bull;
+            <a href="./data_arch.html">Data</a>
+        </div>
+    <div class="page">
+        <h1><a name="recordstructs">Data Record Structures</a></h3>
+        <p>Name:value pairs with unique names is the fundamental design principle.</p>
+        <p>The system is not (yet) using Redis or Sqllite or Postrgres. It is using a simple JSON file for each data record, organized into namespaces defined as Linux directories.</p>
+        <p>Standard key structure is as follows, with each part of the key separated by a colon. Key content should not therefore use the colon character, expect as a part separator. Use of punctuation in the key content is discouraged.
+            <ul>
+                <li>Descriptive key part, minimally including a record type identifier with a version number. May have multiple parts, which are separated by a tilde (~).
+                <li>Create timestamp, in the format YYYYMMDDHHMMSS.SSS. All dates and times are assumed to be UTC. There is no need to specify a time zone.
+                <li>Expiration timestamp, in the format YYYYMMDDHHMMSS.SSS.
+                <li>Unique identifier, a cryptographically strong hash.
+            </ul>
+        <p>Persisted data should be compressed and cast to base64 encoding. This is to reduce the size of the data files, and to avoid problems with special characters in the data.
+        <p>There are no plans at present to encrypt the data at rest, though that's not a bad idea. For senstive PPI data, it is a must. Such data should also be stored on a separate Linux server altogether.
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
     </div>
-<div class="page">
-<h3><a name="recordstructs">Record Structures</a></h3>
-<p>Records of the same type share a structure.</p>
-<ul>
-    <li class="spaced"><strong>Key Format</strong> is identical for all records of a given type.</li>
-    <ul>
-        <li class="spaced">A Topic definition record key structure ==> <em>Category:Name:Version</em></li>
-        <ul>
-        <li><em>Example</em>: Redis:NamespacesSchema:0.1.0</li>
-        </ul>
-        <li class="spaced">A Service definition record key structure ==> <em>TopicName:MessageName:MessageAction:Version</em></li>
-        <ul>
-        <li><em>Example 1</em>: Ontology:GetOntologyFile:request:0.1.0</li>
-        <li><em>Example 2</em>: Ontology:GetOntologyFile:response:0.1.0</li>
-        </ul>
-    </ul>        
-    <li class="spaced"><strong>Values Format</strong> defines what fields are passed on a request or
-    a response.</li>
-    <li class="spaced"><strong>Audit Format</strong> is the same for all records. Consists of two fields:</li>
-    <ul>
-        <li>HashID: hash_value</li>
-        <li>LastModified: timestamp+sequence_number</li>
-    </ul>        
-</ul>
-<p> &nbsp;</p>
-<p> &nbsp;</p>
-</div>
 </body>
 </html>

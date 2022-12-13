@@ -15,12 +15,14 @@
     <div class="page">
         <h1><a name="svc_design">Service Topics</a></h3>
 
-        <p>A common class called "MsgSequencer", implemented via module "msg_sequencer.py", handle two asyncio tasks:
+        <p>By and large, a topic is handled by a single service component across a single channel, but there is nothing to prevent use of multiple channels for a given topic if it makes sense to do so. <p>The following topics are currently under consideration:
             <ul>
-                <li>The "read_msg" task, which reads bytes from a stream, pulling in the first 4 bytes to get message size, the message package itself.
-                <li>The "send_msg" task, calculates the size of message, sends that in 4 bytes, followed by the message package.
+                <li><strong>Logging</strong>.  This topic has the wiretap module as its primary client.  It is used to log messages and other information to a file or database.  It is also used to send messages to the console in order to report on debug/trace/info event, errors, warnings, or failures.
+                <li><strong>Monitoring</strong>.  This topic also has the wiretap module as its primary client.  It is used to send messages to the console and to a database in order to report on the status of the system.  For example, to record the number of messages sent and received over a given channel in a period of time.
+                <li><strong>Movement</strong>.  This topic has a game play module as its primary client.  It is used to manage movement of avatars around the game world, for example on a map or within a scene.
+                <li><strong>Timeline</strong>.  This topic has a game play module as its primary client.  It is used to direct the development of events according to a script, or to track the in-game date-time progression in relation to game activities.
+                <li><strong>Chat</strong>.  This topic has a game play module as its primary client.  It is used to handle communications between players.
             </ul>
-        <p>At present, this class is delivered via the "bow_quiver" repository. Will likely move it into a common repo with the rest of the code in the interest of keeping the code base consolidated and less confusing.
 
         <p> &nbsp;</p>
         <p> &nbsp;</p>

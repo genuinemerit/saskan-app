@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Service Responses</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+        <a href="./app_help.html">Home</a> &bull;
+        <a href="./app_arch.html">Application</a> &bull;
+        <a href="./svc_arch.html">Services</a> &bull;
+        <a href="./data_arch.html">Data</a>
+    </div>
+    <div class="page">
+        <h1><a name="svc_design">Service Responses / Messaging Gateway</a></h3>
+
+        <p>See the <a href="./svc_request.html">Message Request</a> section for a contextualization of the message response process flow.
+        <p>There are likely to be many "_reponse.py" modules, but they all have functions in common:
+            <ul>
+                <li><strong>Message Expiration</strong>>. The lifetime of a message is typically limited to a few seconds, though some might need a longer lifespan. The message expiration is set by the gateway according to the metadata defining the message and its context. There is a "sweeper" process that continually checks for expired message in the Harvest namespace and archives or deletes them.
+                <li><strong>Harvest IO</strong>. Write message content to the shared memory namespace per format defined by metadata.
+                <li><strong>Broker IO</strong>. Return the key to the Harvest record to the message broker. (Not sure yet what this communication process consists of...async call I think.) This is also the point at which a message may be routed to an Invalid Message broker rather than its originally-intended channel.
+            </ul>
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
+    </div>
+</body>
+</html>

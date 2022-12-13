@@ -1,0 +1,49 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Service Message Structures</title>
+        <link rel="stylesheet" href="saskan_style.css">
+    </head>
+
+<body>
+    <div class="menu">
+        <a href="./app_help.html">Home</a> &bull;
+        <a href="./app_arch.html">Application</a> &bull;
+        <a href="./svc_arch.html">Services</a> &bull;
+        <a href="./data_arch.html">Data</a>
+    </div>
+    <div class="page">
+        <h1><a name="svc_design">Service Message Structures</a></h3>
+
+        <p>Each message has a specific physical structure defined by metadata and implemented by a message structure class.
+
+        <h2>Message Hierarchy</h2>
+
+        <p>The structured messages have a hierarchy as well as specific record layouts. The level of complexity of the hierarchies depends on the the needs of the topic and the complexity of the channel.
+        <p>Topic definition sit at the top of the hierarchy. This identifies what "family" a message belogs to. Within a topic are <strong>plans</strong> describing a logically-connected group of messages. For example, a set of request and response messages involved in the movement of an avatar from one location to another on a map. These messages are logically connected and are grouped together in a plan.
+        <p>A plan can involve more than one channel. For example, the avatar movement plan may involve a request to move the avatar, a response to that request, and a notification to other game objects that the avatar has moved. These messages are logically connected and grouped together in a plan, but the messages are handled by two distinct channels.
+        <p> Finally, there is a specific schema (record layout) for each individual message. It is defined by metadata and implemented by one or more message structuring classes.
+
+        <h2>Message Schema</h2>
+
+        <p>Messages sent over the network are encoded in JSON. The JSON is compressed using the GZIP algorithm. The compressed JSON is then encoded using the Base64 algorithm. The Base64 encoded string is then sent over the network along with a sizing block.
+        <p>A message schema is defined minimally as a type and an object which describes its form.
+        <p>Types are complex: record, enum, array, map (a/k/a hash), union (combination of other types), or fixed/binary (a byte string).  In the game world and its admin software, the current intention is that all schemas will be records to start out wtih. Other types will be deployed only as/when needed.
+        <p>Every Saskan message schema has a <strong>name</strong> to identify what logical message or messages (memmber/s of a Plan) use the schema. Typically this includes an indication of its role in the plan, for example inclding a term like "_request" or "_reply" in its name.
+        <p>Every message schema also has a version number, which is part of its name. This helps to manage change over time, similar to how a well-designed RESTful system works.
+        <p>The name of a schema is usually qualified by a channel name, plan name and/or topic name. The idea is to encourage re-use and simplicity. No need to create new base message schemas if in fact the same structure is simply being shared across multiple service plans. This type of sharing is managed at the metadata level.
+        <p>The message <strong>object</strong> is typically a collection of fields where each field has a name and a type. Fields may have optional attributes too, like fixed values, default values, or enumerated values (lists).
+        <p>Types include: int, long, float, double, string, boolean, bytes, null and binary.
+        <p>Optional attributes include:
+            <ul>
+                <li><em>default</em>: default value for field
+                <li><em>order</em>: order of field in record
+                <li><em>aliases</em>: list of aliases for field
+                <li><em>doc</em>: documentation for a speicific field
+            </ul>
+        <p>Within the Python classes, all message structures are handled using standard Python objects and types. These are converted to JSON when the message packages are constructed.  Archived messages are stored in GZIPped, Base64-encoded JSON format, preceded by a 4-byte sizing block, that is, in the same format used when transmitting them as a payload across the network.
+        <p> &nbsp;</p>
+        <p> &nbsp;</p>
+    </div>
+</body>
+</html>

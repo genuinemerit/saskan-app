@@ -15,16 +15,10 @@
     <div class="page">
         <h1><a name="svc_design">Service Channels</a></h3>
 
-        <p>A Channel is associated with one or more topics. This collection of topics may be thought of as a message namespace. The channel's topics are subscribed to by a set of peers (clients).  Traffic on the channel is managed by a Controller component.
-        <p>Channels come in several different types:
-            <ul>
-                <li><strong>Request-Reply</strong>. Also called request-response, this is a channel for handling transactional messages. A single client, for example, an Actor in the game, requests a specific type of service, for example, to move its avatar to a specific target. The response is delivered to a single client, the Actor, which is the only one who can consume the response.
-                <li><strong>Publish-Subscribe</strong>.  This is a channel for handling broadcast messages. A single client, for example, the game events server, publishes a message to all clients who have subscribed to the channel, for example, all the Actors in a given zone. The message is delivered to multiple clients who have subscribed to the channel. This type of channel might be used for a chat channel.
-                <li><strong>Recipient List</strong>.  This is another flavor of a broadcast channel. A single client, for example, the game time server, publishes a message to a pre-defined list of clients. This type of channel can be thought of as a "push" broadcast because the server decides which clients should recieve the message.
-                <li><strong>Datatype Channel</strong>. This is a more sophisticated breakdown of a Request-Reply channel. The client sends a request to the server, which is a request to create a new instance of a datatype. The server responds with a new instance of the datatype. The client can then send updates to the server, which will update the instance. The client can also send requests to the server to delete the instance. This type of channel is used for game objects, for example, a player's avatar. Furthermore, a datatype channel ty[ically provides multiple inter-related sub-channels. For example, there could be a datatype channels relating to purchases on a game marketplace. A market-query determines if any item is available at a given market, perhaps info about quantity and quality. The market-price-quote sub-channel handles haggling over the price. The actual purchase and exchange of goods is handled by the market-purchase-order sub-channel (and perhaps others). A Datatype Channel can be thought of as a kind of network of inter-related request-reply channels.
-                <li><strong>Peer-to-Peer</strong>. This is a channel for handling direct messages between two clients. This type of channel is used for private chat, for example.
-                <li><strong>Invalid Message</strong>. This is a channel for routing log messages to the appropriate log file when no response can be found for a given request.
-            </ul>
+        <p>A Channel is associated with a topic or sub-topic and implements a specific instance of a type of message broker. A channel's topic is subscribed to by a set of peers (clients).  Traffic on the channel is managed by a Controller component.
+
+        <p>See the <a href="./svc_brokers.html">Service Brokers</a> page for an overview of what are the types of brokers.
+
 
         <p> &nbsp;</p>
         <p> &nbsp;</p>
