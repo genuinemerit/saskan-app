@@ -86,7 +86,7 @@ class ShellIO(object):
         server_nm = p_service_nm + "_server.py"
         is_running, msg = self.check_running_services(server_nm)
         if is_running:
-            return(True, f"{server_nm} already running.")
+            return (True, f"{server_nm} already running.")
         else:
             svc_msg = ""
             for pgm in ("server", "response", "request"):

@@ -1,0 +1,19 @@
+{
+"clients": {
+        "robot_player": {
+            "description": "A client broker or other software proxy that represents a player of the game which is driven by an artifical intelligence of some kind."
+        },
+        "human_player": {
+            "description": "A client broker or other software proxy that represents a human player of the game."
+        },
+        "player_avatar": {
+            "description": "A client broker or other software proxy that represents an avatar in the game world that is driven by a human or robot player."
+        },
+        "npc_avatar": {
+            "description": "A client broker or other software proxy that represents a non_player_driven avatar (a Non_Player Character) in the game world."
+        },
+        "map_context_object": {
+            "description": "A client broker or other software proxy that represents a non_player object other than a NPC, in the game world. For example, a building, a tree, an organizational ledger, an automatic town crier, and so on.."
+        }
+    }
+}

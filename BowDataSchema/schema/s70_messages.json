@@ -1,0 +1,176 @@
+{
+"messages": {
+        "ack": {
+            "message_received": ["[datetime]"],
+            "transaction_id": ["[uuid]"]
+        },
+        "in_process": {
+            "transaction_id": ["[uuid]"],
+            "current_status": ["pending", "in_process"],
+            "wait_time": ["[seconds.milliseconds]"]},
+        "reject": {
+            "transaction_id": ["[uuid]"],
+            "failure_reason": ["[reason]"]},
+        "log_response": {
+            "reponse": ["[response_body]"]
+        },
+
+        "avatar_motion.request_response.evaluate_move.request": {
+            "client_id": ["[client_id]"],
+            "requesttime": ["[gametime]"],
+            "map_context_id": ["[map_context_id]"],
+            "current_coords": ["(x,y,z)"],
+            "target_coords": ["(x,y,z)"]
+        },
+        "avatar_motion.request_response.evaluate_move.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "success": ["yes", "partial"],
+            "est_moved_coordinates": ["(x,y,z)"],
+            "est_movement_path": ["(x,y,z), ..."],
+            "est_movement_duration": ["gametime"]
+        },
+        "avatar_motion.request_response.do_move.request": {
+            "client_id": ["[client_id]"],
+            "requesttime": ["[gametime]"],
+            "map_context_id": ["[map_context_id]"],
+            "current_coordinates": ["(x,y,z)"],
+            "target_coordinates": ["(x,y,z)"]
+        },
+        "avatar_motion.request_response.do_move.request_cancel": {
+            "transaction_id": ["[uuid]"]
+        },
+        "avatar_motion.request_response.do_move.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "success": ["yes", "partial"],
+            "moved_coordinates": ["(x,y,z)"],
+            "movement_path": ["(x,y,z), ..."],
+            "movement_duration": ["gametime"]
+        },
+        "avatar_motion.request_response.do_move.response_cancel": {
+            "transaction_id": ["[uuid]"],
+            "cancel_reason": "[reason]"
+        },
+        "avatar_motion.broadcast.notify.recipient_list": {
+            "client_id": ["[client_id]"],
+            "prev_coordinates": ["(x,y,z)"],
+            "moved_coordinates": ["(x,y,z)"]
+        },
+        "marketplace.datatype_requests.inventory_list.request": {
+            "client_id": ["[client_id]"],
+            "requesttime": ["[gametime]"],
+            "market_id": ["[game_market_id]"],
+            "inventory_categories": ["[category1, category2, ...]"]
+        },
+        "marketplace.datatype_requests.inventory_list.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "market_id": ["[game_market_id]"],
+            "inventory_categories": ["[category1, category2, ...]"]
+        },
+        "marketplace.datatype_requests.commodity_available.request": {
+            "client_id": ["[client_id]"],
+            "requesttime": ["[gametime]"],
+            "market_id": ["[game_market_id]"],
+            "commodity_id": ["[game_prop_id]"]
+        },
+        "marketplace.datatype_requests.commodity_available.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "market_id": ["[game_market_id]"],
+            "commodity_id": ["[game_prop_id]"],
+            "commodity_desc": {"field1": "value1", "fieldn": "valuen"}
+        },
+        "marketplace.datatype_requests.price_ask.request": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "requesttime": ["[gametime]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"]
+        },
+        "marketplace.datatype_requests.price_ask.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"],
+            "price": {"currency": "[currency_id]", "amount": "[value]"}
+        },
+        "marketplace.datatype_requests.price_offer.request": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "requesttime": ["[gametime]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"],
+            "price": {"currency": "[currency_id]", "amount": "[value]"}
+        },
+        "marketplace.datatype_requests.price_offer.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"],
+            "accept_price": ["yes", "no"]
+        },
+        "marketplace.datatype_requests.purchase.request": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "requesttime": ["[gametime]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"],
+            "price": {"currency": "[currency_id]", "amount": "[value]"}
+        },
+        "marketplace.datatype_requests.purchase.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"],
+            "price": {"currency": "[currency_id]", "amount": "[value]"}
+        },
+        "marketplace.datatype_requests.transfer.request": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "requesttime": ["[gametime]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"]
+        },
+        "marketplace.datatype_requests.transfer.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "market_id": ["[game_market_id]"],
+            "quantity": "[amount]",
+            "commodity_id": ["[game_prop_id]"]
+        },
+        "gametime.request_response.get_time.request": {
+            "client_id": ["[client_id]"],
+            "calendar": "[game_calendar_id]"
+        },
+        "gametime.request_response.get_time.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "calendar": "[game_calendar_id]",
+            "current_datetime": "[game_datetime]"
+        },
+        "gametime.publish_subscribe.subscribe.request": {
+            "client_id": ["[client_id]"],
+            "calendars_requested": ["[game_calendar_id]", "[game_calendar_id]"]
+        },
+        "gametime.publish_subscribe.subscribe.response": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "calendars_subscribed": ["[game_calendar_id]", "[game_calendar_id]"]
+        },
+        "gametime.publish_subscribe.subscribe.notify": {
+            "client_id": ["[client_id]"],
+            "transaction_id": ["[uuid]"],
+            "current_gametime": {"[calendar_id1]": "[game_datetime1]",
+                                "[calendar_idn]": "[game_datetime2]"}
+        }
+    }
+}

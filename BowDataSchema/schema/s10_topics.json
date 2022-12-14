@@ -1,0 +1,30 @@
+{
+"topics": {
+        "avatar_motion": {
+            "request_response": {
+                "description": "Handle avatar movement within maps or scenes.",
+                "channel": {"avatar_motion": ["send", "receive"]}
+            },
+            "broadcast": {
+                "description": "Notify contextual objects about avatar movements.",
+                "channel": {"avatar_motion": ["send", "receive"]}
+            }
+        },
+        "marketplace": {
+            "datatype_requests": {
+                "description": "Handle marketplace transactions: inventory, pricing, purchase, delivery.",
+                "channel": {"marketplace": ["send", "receive"]}
+            }
+        },
+        "gametime": {
+            "request_response": {
+                "description": "Provide current game time in requested modality.",
+                "channel": {"gametime": ["send", "receive"]}
+            },
+            "publish_subscribe": {
+                "description": "Broadcast current game time in multiple modalities.",
+                "channel": {"gametime": ["send", "receive"]}
+            }
+        }
+    }
+}

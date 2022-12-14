@@ -1,0 +1,170 @@
+{
+"services": {
+        "avatar_motion.request_response.evaluate_move": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "avatar_gate"
+            }
+        },
+        "avatar_motion.request_response.do_move": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "request_cancel": {
+                "clients": ["player_avatar"],
+                "replies": ["ack", "in_process"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "avatar_gate"
+            },
+            "response_cancel": {
+                "key": "[client_id]~[service_name].response_cancel~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "avatar_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "monitored_gate"
+            }
+        },
+        "avatar_motion.broadcast.notify": {
+            "recipient_list": {
+                "subscribers": ["map_context_object"],
+                "key": "[object_id]~[service_name].recipient_list~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "subscriber_gate"
+            }},
+        "marketplace.datatype_requests.inventory_list": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "inventory_gate"
+            }},
+        "marketplace.datatype_requests.commodity_available": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "inventory_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "monitored_gate"
+            }},
+        "marketplace.datatype_requests.price_ask": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "inventory_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "monitored_gate"
+            }},
+        "marketplace.datatype_requests.price_offer": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "inventory_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "monitored_gate"
+            }},
+        "marketplace.datatype_requests.purchase": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "inventory_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "monitored_gate"
+            }},
+        "marketplace.datatype_requests.transfer": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gateway": "inventory_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "monitored_gate"
+            }},
+        "gametime.request_response.get_time": {
+            "request": {
+                "clients": ["player_avatar", "npc_avatar", "map_context_object"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "gametime_gate"
+            }},
+        "gametime.publish_subscribe.subscribe": {
+            "request": {
+                "clients": ["map_context_object"],
+                "replies": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "subscriber_gate"
+            },
+            "response_cancel": {
+                "key": "[client_id]~[service_name].response_cancel~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "subscriber_gate"
+            },
+            "log_response": {
+                "key": "[datetime]~[service_name].log~[uuid]",
+                "router": "log_router",
+                "gateway": "subscriber_gate"
+            }},
+        "gametime.publish_subscribe.notify": {
+            "publish_list": {
+                "subscribers": ["map_context_object"],
+                "key": "[object_id]~[service_name].publish_list~[datetime]~[expiretime]~[uuid]",
+                "router": "game_router",
+                "gateway": "subscriber_gate"
+            }
+        }
+    }
+}

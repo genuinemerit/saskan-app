@@ -15,7 +15,9 @@
     <div class="page">
         <h1><a name="svc_design">Service Topics</a></h3>
 
-        <p>By and large, a topic is handled by a single service component across a single channel, but there is nothing to prevent use of multiple channels for a given topic if it makes sense to do so. <p>The following topics are currently under consideration:
+        <p>By and large, a topic is handled by a single service component across a single channel, but there is nothing to prevent use of multiple channels for a given topic if it makes sense to do so.
+        <p>There is also no reason why multiple topics cannot br handled on the same channel.
+        <p>The following topics are currently under consideration:
             <ul>
                 <li><strong>Logging</strong>.  This topic has the wiretap module as its primary client.  It is used to log messages and other information to a file or database.  It is also used to send messages to the console in order to report on debug/trace/info event, errors, warnings, or failures.
                 <li><strong>Monitoring</strong>.  This topic also has the wiretap module as its primary client.  It is used to send messages to the console and to a database in order to report on the status of the system.  For example, to record the number of messages sent and received over a given channel in a period of time.
