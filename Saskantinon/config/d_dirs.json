@@ -1,0 +1,10 @@
+{
+    "APP": "saskan",
+    "APPDIRS": ["data", "images", "python", "save"],
+    "DATADIRS": ["config", "harvest", "log", "monitor", "schema"],
+    "LOGCFG": ["debug", "error", "info", "traced", "tracef", "warn"],
+    "BIN": "/usr/local/bin",
+    "MEM": "/dev/shm",
+    "SRC": "/home/bow/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema",
+    "TGT": "/home/bow"
+}

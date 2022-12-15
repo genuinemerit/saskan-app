@@ -1,0 +1,10 @@
+#!/usr/bin/bash
+
+# module: /bash/saskan_install
+
+# For this file --> chmod u=rwx,g=rx,o=rx
+# Run from local git app dir with conda "saskan" venv activated.
+# Run with sudo permissions.
+
+python3 saskan_install.py
+

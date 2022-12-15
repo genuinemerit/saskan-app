@@ -1,0 +1,24 @@
+# Other dependencies:
+# python=3.10.6
+# pygame
+  - pip
+  - mypy
+  - flake8
+  - isort
+  - arrow
+  - pathlib
+  - requests
+  - tzlocal
+  - sqlite
+  - numpy
+  - pandas
+  - twisted
+  - tornado
+  - music21
+  - sympy
+  - imgkit
+  - matplotlib
+  - nltk
+  - Levenshtein
+# May be added later:
+#  - odfpy

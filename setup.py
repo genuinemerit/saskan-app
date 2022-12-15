@@ -1,39 +1,42 @@
 # coding: utf-8
 
 """
-Saskan Schema Admin and Services
+Saskantinon Applications - Game and Admin Tools
 
 :Contact: genuinemerit @ pm.me
 
-Python3.9 (or whatever) must be installed.
-See requirements.txt for notes on libraries to install using apt.
+Python3.10 (or whatever) must be installed.
+Creating a conda environment first is required.
+See notes in saskan.yml for details and for notes on
+libraries to install using apt or pip.
+Activate the saskan environment before running install.py.
 
-- git clone (or pull) git@github.com:genuinemerit/bow-data-schema.git
-- git checkout **develop**
-- `cd` __local/path/to/bow-data-schema__
-- `python3.9 ./setup.py build`
-- `sudo python3.9 ./setup.py install`
-    - See notes in requirements.txt if problems doing component installs.
-- `python3.9 install.py`
+- git clone (or pull) git@github.com:genuinemerit/saskan-app.git
+- develop is the default branch (for now)
+- do git checkout **develop** (if needed)
 
-To make the program executable from command line `install.py` will:
-- Copy shell script `..install/saskan_data` to HOME/.local/bin.
-- Set up the .saskantinon directory under home dir.
-- Copy resources and scripts into `~/saskantinon` dirs from git clone.
+To do a customized install...
+- `cd [path-to]saskan_app`
+- sudo ./saskan_intall.sh
 
-To rebuild the database, edit `~/saskantinon/log/db_status`,
-  setting it to INCOMPLETE, then run `saskan_data`.
-Note that the db_status file does not exist until the program
-  has been run at least once.
 
-To run the program:  type `saskan_data` at any command line.
+To make the program executable from command line `saskan_install.py` will:
+- Copy shell scripts to /local/usr/bin.
+- Set up a `saskan` directory under home dir.
+- Copy resources and scripts into `~/saskan` dirs from git clone.
+- Set up and pickle temp resources into `/dev/shm/saskan`
 
+To run the program:  type `saskantinon` at any command line.
+
+To do a traditional packagead install, try something like this...
+- `python ./setup.py build`
+- `sudo python ./setup.py install`
 """
 # IMPORTS
 from setuptools import setup, find_packages   # type: ignore
 # CONSTANTS
-NAME = "BowDataSchema"
-VERSION = "0.1.2"
+NAME = "Saskantinon"
+VERSION = "0.1.0"
 with open('./requirements.txt', 'r') as f_req:
     REQUIRES = f_req.read()
 with open('./README.md', 'r') as f_desc:
@@ -44,11 +47,11 @@ setup(
     version=VERSION,
     author="Genuinemerit",
     author_email="genuinemerit@pm.me",
-    description="Saskantinon Schema Editor and Services",
+    description="Saskantinon Game and Admin Tools",
     long_description_content_type="text/markdown",
     long_description=README,
-    url="https://github.com/genuinemerit/bow-data-schema.git",
-    keywords=["BoW", "Saskan", "data", "services", "editor", "RPG"],
+    url="https://github.com/genuinemerit/saskan-app.git",
+    keywords=["Saskantinon", "game", "editor", "RPG"],
     install_requires=REQUIRES,
     packages=find_packages(),
     include_package_data=True,
@@ -59,18 +62,15 @@ setup(
         "Natural Language :: English",
         "Operating System :: OS Independent",
         "Platform :: Desktop",
-        "Programming Language :: Python :: 3.11",
-        "Topic :: Database",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Games/Entertainment"
     ],
     python_requires='>=3.9',
     project_urls={
-        "Source": "https://github.com/genuinemerit/bow-data-schema.git",
-        "Issues": "https://github.com/genuinemerit/bow-data-schema/issues",
+        "Source": "https://github.com/genuinemerit/saskan-app.git",
+        "Issues": "https://github.com/genuinemerit/saskan-app/issues",
         "Pull requests":
-        "https://github.com/genuinemerit/bow-data-schema/pulls",
-        "Project": "https://trello.com/bowax",
-        "Technical Documentation": "https://github.com/genuinemerit/bow-wiki",
-        "User Documentation": "https://github.com/genuinemerit/bow-wiki/wiki"
+        "https://github.com/genuinemerit/saskan-app/pulls",
+        "Documentation": "https://github.com/genuinemerit/saskan-wiki"
     }
 )
