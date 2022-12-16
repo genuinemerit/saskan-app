@@ -1,4 +1,4 @@
-#python
+#!python
 """
 :module:    msg_sequencer.py
 :class:     MsgSequencer

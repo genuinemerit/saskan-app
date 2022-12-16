@@ -5,6 +5,9 @@
 module:    io_file.py
 class:     FileIO/0
 author:    GM <genuinemerit @ pm.me>
+
+@DEV:
+- Use services instead of direct calls, as doable.
 """
 import json
 import pickle
@@ -24,18 +27,21 @@ class FileIO(object):
 
     def __init__(self):
         """Initialize FileIO object."""
-        self.d = self.get_app_and_data_dirs()
-        self.c = self.get_context()
-        self.t = self.get_static_text()
-        self.g = dict()
-        g = self.get_gui_frame()
-        self.g["frame"] = g["frame"]
-        g = self.get_gui_menus()
-        self.g["menus"] = g["menus"]
-        g = self.get_gui_windows()
-        self.g["windows"] = g["windows"]
-        g = self.get_gui_html()
-        self.g["html"] = g["html"]
+        self.d = self.get_metadata("d_dirs")
+        self.c = self.get_metadata("c_context")
+        self.t = self.get_metadata(f"t_texts_{self.c['lang']}")
+        self.g = self.get_metadata("g_frame")
+        self.g = self.g | self.get_metadata("g_menus")
+        self.g = self.g | self.get_metadata("g_windows")
+        self.g = self.g | self.get_metadata("g_html")
+
+    def get_log_settings(self) -> dict:
+        """Get logging settings.
+
+        Returns:
+            (Dict): Logging settings.
+        """
+        return self.get_metadata("l_log")
 
     def make_readable(self,
                       p_path: str) -> tuple:
@@ -316,68 +322,6 @@ class FileIO(object):
                     meta = json.loads(meta)
                 else:
                     raise Exception(f"Error reading metadata: {msg}")
-        return (meta)
-
-    def get_app_and_data_dirs(self):
-        """Read app and data directoriess metadata.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_directories")
-        return (meta)
-
-    def get_context(self):
-        """"Read context metadata. For example, application language.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_context")
-        return (meta)
-
-    def get_log_settings(self):
-        """Read log settings metadata.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_log")
-        return (meta)
-
-    def get_gui_frame(self):
-        """Read GUI frame metadata.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_gui_frame")
-        return (meta)
-
-    def get_gui_menus(self):
-        """Read GUI menus metadata.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_gui_menus")
-        return (meta)
-
-    def get_gui_windows(self):
-        """Read GUI (sub)-windows metadata.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_gui_windows")
-        return (meta)
-
-    def get_gui_html(self):
-        """Read GUI HTML and URI references.
-        Returns: (dict) Directory values or exception.
-        """
-        meta = self.get_metadata("m_gui_html")
-        return (meta)
-
-    def get_static_text(self):
-        """Read static text metadata..
-        - from shared memory pickle if it exists (hard-coded path)
-        - else from app JSON file if it exists.  (relative path)
-        - else from git project JSON file.       (relative path)
-
-        Args: (str) p_lang: Language code.
-        Returns: (dict) Text values or exception.
-        """
-        context = self.get_context()
-        meta = self.get_metadata(f"m_texts_{context['lang']}")
         return (meta)
 
     def pickle_saskan(self):

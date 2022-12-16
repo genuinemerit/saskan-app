@@ -9,7 +9,6 @@ import platform
 import pygame as pg
 import sys
 import webbrowser
-# import typing
 
 from dataclasses import dataclass
 from pprint import pprint as pp     # noqa: F401

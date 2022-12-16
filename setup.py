@@ -5,32 +5,35 @@ Saskantinon Applications - Game and Admin Tools
 
 :Contact: genuinemerit @ pm.me
 
-Python3.10 (or whatever) must be installed.
-Creating a conda environment first is required.
-See notes in saskan.yml for details and for notes on
-libraries to install using apt or pip.
-Activate the saskan environment before running install.py.
-
+To get the software:
 - git clone (or pull) git@github.com:genuinemerit/saskan-app.git
-- develop is the default branch (for now)
-- do git checkout **develop** (if needed)
+- develop is the default branch
 
-To do a customized install...
+To do a local install...
+- Python3.10 (or whatever) must be installed.
+- Creating a conda environment first is required.
+- See notes in saskan.yml for details for what
+  libraries to install using apt or pip.
+- Activate the saskan environment before running saskan_install
+- Edit config/d_dirs.json to identify where to put game dirs
+
+Then...
 - `cd [path-to]saskan_app`
-- sudo ./saskan_intall.sh
-
+- sudo ./saskan_intall  (a bash script that executes saskan_install.py)
 
 To make the program executable from command line `saskan_install.py` will:
-- Copy shell scripts to /local/usr/bin.
-- Set up a `saskan` directory under home dir.
-- Copy resources and scripts into `~/saskan` dirs from git clone.
+- Copy shell scripts to /usr/local/bin.
+- Set up a `saskan` directory under the home dir.
+- Copy resources and scripts into `~/saskan` dirs from the git clone.
 - Set up and pickle temp resources into `/dev/shm/saskan`
 
-To run the program:  type `saskantinon` at any command line.
+To run the admin program:  type `saskan_admin` at any command line.
+To run the game program: type `saskantinon` at any command line.`
 
 To do a traditional packagead install, try something like this...
 - `python ./setup.py build`
 - `sudo python ./setup.py install`
+Not sure if I have it set up right.
 """
 # IMPORTS
 from setuptools import setup, find_packages   # type: ignore

@@ -5,6 +5,6 @@
     "LOGCFG": ["debug", "error", "info", "traced", "tracef", "warn"],
     "BIN": "/usr/local/bin",
     "MEM": "/dev/shm",
-    "SRC": "/home/bow/Dropbox/Apps/BoW/bow-data-schema/BowDataSchema",
+    "SRC": "/home/bow/Dropbox/GitHub/saskan-app/Saskantinon",
     "TGT": "/home/bow"
 }

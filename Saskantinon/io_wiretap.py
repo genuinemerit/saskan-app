@@ -28,7 +28,7 @@ class WireTap(object):
     not standard Python Logging module.
 
     @DEV:
-    - Eventually, create services instead of direct calls.
+    - Use services instead of direct calls.
     """
 
     def __init__(self):

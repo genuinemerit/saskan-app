@@ -1,5 +1,5 @@
 #!python
-"""Saskan Eyes file configuration / install / set-up.
+"""Saskan Apps file configuration / install / set-up.
 :module:    saskan_install.py
 :class:     SaskanInstall/0
 :author:    GM <genuinemerit @ pm.me>
@@ -25,7 +25,7 @@ SI = ShellIO()
 class SaskanInstall(object):
     """Configure and install set-up for Saskan apps.
 
-    @DEV: Replace hard-coded home-directory path with
+    @DEV: Replace hard-coded home-directory path in dirs config with
           an argument.
     """
     def __init__(self):
@@ -109,12 +109,12 @@ class SaskanInstall(object):
     def set_log_configs(self):
         """Write JSON config file for default logging and monitoring.
         """
-        self.m_log_vals = dict()
+        self.l_log_vals = dict()
         for log_type in FI.d["LOGCFG"]:
-            self.m_log_vals[log_type] = FI.t[f"val_{log_type}"]
+            self.l_log_vals[log_type] = FI.t[f"val_{log_type}"]
         ok, msg = FI.write_file(
-            path.join(self.a, "data/config/m_log.json"),
-            json.dumps(self.m_log_vals))
+            path.join(self.a, "data/config/l_log.json"),
+            json.dumps(self.l_log_vals))
         if not ok:
             raise Exception(f"{FI.t['err_file']} {msg}")
 

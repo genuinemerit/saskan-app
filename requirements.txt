@@ -1,6 +1,5 @@
 # Other dependencies:
 # python=3.10.6
-# pygame
   - pip
   - mypy
   - flake8
@@ -14,6 +13,7 @@
   - pandas
   - twisted
   - tornado
+  - pygame
   - music21
   - sympy
   - imgkit

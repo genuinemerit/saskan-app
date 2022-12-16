@@ -21,10 +21,10 @@ dependencies:
   - tornado
   - music21
   - sympy
-  - imgkit
   - matplotlib
   - nltk
   - Levenshtein
+
 # May be added later:
 #  - odfpy
 
@@ -35,7 +35,7 @@ dependencies:
 # Have to install it using pip.
 
 # conda env list
-# conad env remove -n saskan
+# conda env remove -n saskan
 # conda env create -f ./saskan.yml
 # conda activate saskan
 # conda deactivate
