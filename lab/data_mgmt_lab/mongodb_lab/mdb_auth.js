@@ -1,0 +1,1 @@
+db.auth("%USER%", "%PWD%");

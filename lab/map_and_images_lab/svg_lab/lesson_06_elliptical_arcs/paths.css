@@ -1,0 +1,112 @@
+/* ============= SVG Styles ============== */
+
+svg {
+  border: 0.2px solid rgba(0, 0, 0, 0.2);
+  float: left;
+}
+
+/* Default text */
+text {
+  font-family: "Gill Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  fill: black;
+  stroke: none;
+  stroke-width: 0.4;
+}
+/* Default path */
+path {
+  fill: none;
+}
+
+/* Fills */
+
+.f_black {
+  fill: black;
+}
+.f_blue {
+  fill: blue;
+}
+.f_gray {
+  fill: gray;
+}
+.f_none {
+  fill: none;
+}
+.f_pink {
+  fill: pink;
+}
+.f_red {
+  fill: red;
+}
+.f_skyblue {
+  fill: skyblue;
+}
+.f_trans {
+  fill: rgba(0, 0, 0, 0.1);
+}
+
+/* Strokes */
+.s_none {
+  stroke: none;
+}
+.s03_orange {
+  stroke: orange;
+  stroke-width: 0.3;
+}
+.s05_blue {
+  stroke: blue;
+  stroke-width: 0.5;
+}
+.s059_green {
+  stroke: green;
+  stroke-width: 0.59;
+}
+.s075_red {
+  stroke: red;
+  stroke-width: 0.75;
+}
+.s1_black {
+  stroke: black;
+  stroke-width: 1;
+}
+.s1_blue {
+  stroke: blue;
+  stroke-width: 1;
+}
+.s1_green {
+  stroke: green;
+  stroke-width: 1;
+}
+.s1_red {
+  stroke: red;
+  stroke-width: 1;
+}
+.s1_trans {
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+.s2_black {
+  stroke: black;
+  stroke-width: 2;
+}
+.s2_blue {
+  stroke: blue;
+  stroke-width: 2;
+}
+.s2_green {
+  stroke: green;
+  stroke-width: 2;
+}
+.s2_orange {
+  stroke: orange;
+  stroke-width: 2;
+}
+.s2_red {
+  stroke: red;
+  stroke-width: 2;
+}
+.s8_black {
+  stroke: black;
+  stroke-width: 8;
+}

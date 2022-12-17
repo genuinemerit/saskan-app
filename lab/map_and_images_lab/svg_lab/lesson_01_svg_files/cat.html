@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<!-- This lesson demonstrates a variety of ways to pull SVG images into HTML.
+  In this lesson, the SVG is defined as an ".svg" image file and the end we
+  also see an inline SVG. -->
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>The Cat</title>
+  <style>
+    body {
+      font-size: 1.20em;
+      font-family: "Gill Sans", Verdana, Arial, Helvetica, sans-serif;
+      text-shadow: none;
+      border-top: 0.2em solid lightblue;
+      border-left: 0.2em solid lightblue;
+      border-right: 0.2em solid lightblue;
+      margin: 5em 3em 0.01em 4em;
+      padding: 0.8em 0.5em 0.5em 1.3em;
+    }
+
+    h1 {
+      margin-top: 0.1em;
+    }
+
+    .white {
+      color: white;
+    }
+
+    .gold {
+      color: gold;
+    }
+
+    .pbox {
+      width: 30%;
+      height: 80px;
+      border: 5px solid gray;
+      font-size: 80%;
+    }
+
+    .bigborder {
+      border: 25px solid;
+    }
+
+    .wider {
+      width: 90%;
+    }
+    /* Pull in the image file as a CSS background, repeated 3 times. */
+
+    .bgcat33 {
+      background-image: url("./cat.svg");
+      background-size: 33% 100%;
+    }
+    /* Pull in the image file as a CSS background, repeated many times on 3 rows. */
+
+    .bgcattiny {
+      background-image: url("./cat.svg");
+      background-size: 10% 33%;
+    }
+    /* Pull in the image file as a CSS background filling the entire bg */
+
+    .bgcatfull {
+      background-image: url("cat.svg");
+      background-size: 100% 100%;
+    }
+
+    .catlist {
+      /* If the size of the SVG itself is removed in the SVG file, but it has
+           a viewbox defined, then suppsedly it will default to a size of 1em
+           when pulled into the HTML. I couldn't get that working just by
+           playing around, so will leave viewbox to a later lesson. For now we
+           just get big cats!  */
+      list-style-image: url("cat.svg");
+    }
+
+    .catborder {
+      /* This has the interesting quality of creating a "four-corners" border,
+        each with a scaled-down image in it. */
+      border-image: url("cat.svg");
+    }
+
+    svg {
+      display: block;
+      width: 400px;
+      height: 400px;
+      font-size: 80%;
+      margin: auto;
+      border: thick double navy;
+      background-color: lightblue;
+    }
+
+    circle {
+      fill: lavender;
+      stroke: navy;
+      stroke-width: 5;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>My SVG Lessons</h1>
+  <!-- There are multiple ways to include an SVG image in HTML. -->
+
+  <!-- Direct reference as an image element. -->
+  <img src="cat.svg" title="Cat 1" alt="Sticky Cat" />
+  <!-- Modifying the size in HTML. Only px measures work with image
+    sizing. -->
+  <img src="cat.svg" title="Cat 2" alt="Sticky Cat" height="40px" width="40px" />
+  <img src="cat.svg" title="Cat 3" alt="Sticky Cat" height="200px" width="200px" />
+  <!-- Scaling is proportional if only one dimension is provided in HTML.
+        Another way of saying it is that the aspect ratio is preserved unless
+        it is explicitly modified. -->
+  <img src="cat.svg" title="Cat 4" alt="Sticky Cat" height="300px" />
+  <img src="cat.svg" title="Cat 5" alt="Sticky Cat" width="150px" />
+  <!-- Distortion occurs only when both dimensions are modified. -->
+  <img src="cat.svg" title="Cat 6" alt="Sticky Cat" height="100px" width="300px" />
+  <img src="cat.svg" title="Cat 7" alt="Sticky Cat" height="300px" width="100px" />
+
+  <!-- CSS background images. -->
+  <div class="pbox bgcat33"></div>
+  <div class="pbox bgcattiny"></div>
+  <div class="pbox bgcatfull"></div>
+
+  <!-- CSS list-style-images.. -->
+  <ul class="catlist">
+    <li>1st Cat</li>
+    <li>2nd Cat</li>
+    <li>3rd Cat</li>
+  </ul>
+
+  <!-- CSS border-image.. -->
+  <div class="pbox bigborder catborder bgcat33"></div>
+
+  <!-- Direct reference as an object. This approach may be necessary for older
+      browsers that do not directly support SVG rendering but do support an
+      SVG plug-in. What is interesting in this approach is that the SVG file is
+      literally included in the page, so each element of SVG is referenced as
+      an element. It is "injected" into the HTML. -->
+  <object data="cat.svg" type="image/svg+xml" title="Cat Object" alt="Sticky Cat">
+    <!-- Fall back with a helpful message -->
+    <p>Uh-oh. Your browser does not support SVG. Remind me to provide you with a PNG.</p>
+  </object>
+
+  <!-- Inline SVG. For HTML5 there is no need to identify a namespace.
+      Otherwise include xmlns="http://www.w3.org/2000/svg" as an
+      attribute of the inline svg element. CSS _can_ be used any CSS-eligible
+      styles within the SVG element, including "svg" itself.  Note that the
+      actual size of this svg is 400x400 (plus its border) as set in CSS. The
+      viewBox size and internal measures are relevant only relationally. The
+      viewBox is local coordinate system.
+      
+      Everything in the svg, including the text, maintains its aspect ratio as
+      we modify the svg size in CSS. I am not entirely sure why the svg ends up
+      centered horizontally. That must be a default since we did not provide a
+      position for it in the CSS, yeah?  SVG can also be embedded inline in PDF
+      files, but I will leave that for another day... -->
+  <h1>Inline SVG here, yo!</h1>
+  <svg viewbox="0 0 250 250">
+    <title>It's a circle, yo!</title>
+    <desc>Yo, it's a circle.</desc>
+    <circle cx="125" cy="125" r="100" />
+    <text x="125" y="125" dy="0.5em" text-anchor="middle">Look Ma, Body Font!</text>
+  </svg>
+  <p>And here we are back in regular HMTL again...</p>
+
+</body>
+
+</html>

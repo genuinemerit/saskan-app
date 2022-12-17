@@ -1,0 +1,206 @@
+<?xml version="1.0"?>
+<!-- <?xml-stylesheet href="paths.css" type="text/css" ?> -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file starts the lesssons on patterns and gradients.
+
+  We can define patterns to use as fills. A graphic object of this type is
+  referred to as a tile.
+
+  Summary of Path commmands:
+    M m   x y     Move to
+    L l   x y     Draw line to (polyline available)
+    H h   x       Draw horiz line to
+    V v   y       Draw vert line to
+    A a   rx ry x-rotate large-arc sweep x y     Elliptical arc
+    Q q   x1 y1 x y   Quadratic bezier (control, end-point)
+    T t   x y         Quadratic bezier extension (end-point)
+    C c   x1 y1 x2 y2 x y     Cubic bezier (ctl-1, ctl-2, end point)
+    S s   x2 y2 x y           Cubic bezier extension (ctl-4, end point)
+    Z             Explicit line close instruction
+-->
+<svg width="800" height="800" viewbox="0 0 800 800"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="patterns.css" rel="stylesheet" type="text/css"/>
+  <title>Patterns and Gradients</title>
+  <desc>Basic methods for SVG Patterns and Gradients</desc>
+
+  <!-- Define -->
+  <defs>
+    <!-- The tile for our pattern. -->
+    <g id="sinwave_tile">
+      <desc>A sample tile for use as a pattern</desc>
+      <path d="M 0 0 Q 5 20, 10 10 T 20 20" class="f_none s_black sw_1" />
+      <path d="M 0 0 h20 v20 h-20 z" class="f_none s_gray sw_05" />
+    </g>
+      <!-- The grpahic object that will contain our patterns. -->
+    <g id="3rects">
+    <desc>Example showing 3 differently sized rects.</desc>
+    <rect x="0" y="0" width="100" height="100" class="s_black sw_1" />
+    <rect x="115" y="0" width="70" height="80" class="s_black sw_1" />
+    <rect x="200" y="0" width="150" height="130" class="s_black sw_1" />
+    </g>
+    <!-- A "pattern" is a tag that defines how to use the tile and of course
+      points to the tile to use. The patternsUnit reflects how we want the
+      tiles spaced. Fill a _percentage_ of the containining object?  Or space
+      them at equal intervals? The "objectBoundingBox" value is the smallest
+      rectangle that completely encloses a graphic object.  The first pattern
+      uses the tile to fill percentage-wise against the bounding box.
+
+      "objectBoundingBox" is the default value for patternUnits. -->
+    <pattern id="sinwave_pat1" x="0" y="0" width="20%" height="20%"
+             patternUnits="objectBoundingBox">
+        <desc>Pattern sets pct of bounding box to use for each tile.</desc>
+        <use xlink:href="#sinwave_tile" />
+    </pattern>
+    <!-- To have the tiled pattern "lay in as-is" contiguously, we set the
+      patternUnits to "userSpaceOnUse" and assign a fixed width and height to
+      the pattern, which matches the height and width of the tile.
+
+      This is generally the preferred setting for patternUnits.
+     -->
+    <pattern id="sinwave_pat2" x="0" y="0" width="20" height="20"
+             patternUnits="userSpaceOnUse">
+        <desc>Pattern sets exactly the space to use for each tile.</desc>
+        <use xlink:href="#sinwave_tile" />
+    </pattern>
+    <!-- A URL reference to the pattern is used inside of a graphic object
+       for its fill attribute. The pattern itself is not resized, only the
+       amount of space it occupies in the containing object.
+     -->
+    <!-- Example using the "bounding box percentage" method.
+     In first rect, it "flows" perfectly; in the 2nd it is "truncated" and
+     in the 3rd there is space around it. In all cases, the pattern sits in
+     the upper-left corner of its space, since we set x,y to (0,0) in the
+     pattern.  -->
+    <g id="3rects_pat1" style="fill: url(#sinwave_pat1);">
+      <desc>Rects using same pattern, spaced by pct within bounding box.</desc>
+      <use xlink:href="#3rects"/>
+      <text x="15" y="115">patternUnits=objectBoundingBox</text>
+      <text x="15" y="130">pattern width=20%</text>
+      <text x="15" y="145">pattern height=20%</text>
+    </g>
+   <!-- Example using the "exact space on use" method.
+    This is typically what we are trying to do with patterns.
+    In the 2nd rect, the upper-left tile does not align exactly to the
+    upper-left corner of the rect. That is because the rect's width is not a
+    clean multiple of the pattern width (but its height is).  -->
+   <g id="3rects_pat2" style="fill: url(#sinwave_pat2);">
+     <desc>Rects using same pattern, with exact space on use specified.</desc>
+     <use xlink:href="#3rects"/>
+     <text x="15" y="115">patternUnits=userSpaceOnUse</text>
+     <text x="15" y="130">pattern width=20</text>
+     <text x="15" y="145">pattern height=20</text>
+   </g>
+
+   <!-- Set "patternContentUnits" for units used within the pattern itself.
+    Default is "userSpaceOnUse". As in above examples, this means the size of
+    the tile does not change when the size of the containing object changes.
+    If we set patternContentUnits to "objectBoundingBox" then the tile path
+    data points are expressed in terms of the object being filled. When doing
+    the latter, keep in mind that stroke-width may need to be adjusted in
+    order to get the desired effects.
+    -->
+    <!-- In this example, we define a pattern that adjusts to the bounding box,
+    both in terms of spacing and units. Here we use factors rather than pcts.
+    And we set the stroke-width to be very thin so they will "grow" nicely. -->
+   <pattern id="sinwave_pat3" x="0" y="0" width=".2" height=".2"
+            patternUnits="objectBoundingBox"
+            patternContentUnits="objectBoundingBox">
+       <desc>Pattern is proportional to the container.</desc>
+       <path d="M 0 0 Q .05 .20, .10 .10 T .20 .20"
+             class="f_none s_black sw_01" />
+       <path d="M 0 0 h 0.2 v 0.2 h-0.2 z"
+             class="f_none s_gray sw_01" />
+   </pattern>
+   <!-- In this example, the tile "flows" well in all of the rects and
+     aligns to the upper-left corner in all of them also. The trade-off is
+     that the pattern itself is modified to some degree with respect to
+     the thickness of its lines. -->
+   <g id="3rects_pat3" style="fill: url(#sinwave_pat3);">
+     <desc>Rects using same pattern, with proportional spacing and units.</desc>
+     <use xlink:href="#3rects"/>
+     <text x="0" y="130">patternUnits=objectBoundingBox</text>
+     <text x="0" y="145">patternContentUnits=objectBoundingBox</text>
+     <text x="0" y="160">pattern width=.2</text>
+     <text x="0" y="175">pattern height=.2</text>
+   </g>
+   <!-- To scale a pattern, use viewBox on the pattern object. Or can also
+     use preserveAspectRatio (see earlier lessons on this topic; same
+     principle).  viewBox overrides patternContentUnits. In this case we make
+     the stroke quite thick since we are shrinking the tile quite a lot.
+
+     Play around with the viewBox dimensions to get a sense of how this work.
+     The smaller the viewBox, the larger and more truncated the tile will be.
+     The larger the viewBox, the smaller the tile will be. The tile is a cubic
+     bezier whose dimensions are about 150 x 150. The pattern sets the tile
+     size to 20 x 20. So a view box smaller than 150 will only show part of
+     the tile. Larger than that, the tile will get smaller and smaller.  -->
+    <g id="wiggle">
+      <path d="M 30 100 C 50 50, 70 20, 100 100, 110, 130, 45, 150, 65, 100"
+            class="f_none s_black sw_5" />
+      <path d="M 0 0 h150 v150 h-150 z" class="f_none s_gray sw_025" />
+    </g>
+    <pattern id="scaleme" x="0" y="0" width="20" height="20"
+             patternUnits="userSpaceOnUse"
+             viewBox="0 0 150 150">
+        <desc>Pattern is scaled using viewBox.</desc>
+        <use xlink:href="#wiggle" />
+    </pattern>
+    <g id="rect_scale">
+      <rect x="0" y="0" width="100" height="100" class="s_black"
+            style="fill: url(#scaleme);"/>
+      <text x="5" y="115">patternUnits=userSpaceOnUse</text>
+      <text x="5" y="130">pattern width=20</text>
+      <text x="5" y="145">pattern height=20</text>
+      <text x="5" y="160">viewBox=0 0 150 150</text>
+    </g>
+    <!-- Unlike markers, where nesting is really bad idea, nested patterns
+    are useful in order to achieve more complex designs. Here is an example
+    of a striped polka-dot effect created using two patterns. -->
+    <pattern id="stripe" patternUnits="userSpaceOnUse" x="0" y="0"
+             width="6" height="6">
+        <path d="M 0 0, 6 0" class="f_none s_black sw_05"/>
+    </pattern>
+    <pattern id="polkadot" patternUnits="userSpaceOnUse" x="0" y="0"
+             width="36" height="36">
+        <circle cx="12" cy="12" r="12" class="f_none s_black"
+            style="fill: url(#stripe);" />
+    </pattern>
+    <g id="rect_nest">
+      <desc>Rect uses a nested pattern.</desc>
+      <rect x="0" y="0" width="100" height="100" class="f_none s_black"
+            style="fill: url(#polkadot);" />
+      <text x="0" y="115">strip pattern nested</text>
+      <text x="0" y="130">inside circle pattern</text>
+    </g>
+
+  </defs>
+
+  <!-- Render -->
+  <g transform="translate(5, 5)">
+    <use xlink:href="#sinwave_tile"/>
+  </g>
+  <g transform="translate(40, 5)">
+    <use xlink:href="#3rects_pat1"/>
+  </g>
+  <g transform="translate(410, 5)">
+    <use xlink:href="#3rects_pat2"/>
+  </g>
+  <g transform="translate(40, 180)">
+    <use xlink:href="#3rects_pat3"/>
+  </g>
+  <g transform="translate(410, 180)">
+    <use xlink:href="#wiggle"/>
+    <text x="0" y="170">border stroke-width=0.25</text>
+    <text x="0" y="185">path stroke-width=5</text>
+  </g>
+  <g transform="translate(600, 180)">
+    <use xlink:href="#rect_scale"/>
+  </g>
+  <g transform="translate(40, 380)">
+    <use xlink:href="#rect_nest"/>
+  </g>
+
+</svg>

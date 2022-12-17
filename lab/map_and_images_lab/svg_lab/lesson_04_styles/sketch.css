@@ -1,0 +1,33 @@
+body {
+  font-size: 1em;
+  font-family: "Gill Sans", Verdana, Arial, Helvetica, sans-serif;
+  text-shadow: none;
+  margin: 2em 1em 2em 1em;
+  padding: 0.8em 0.5em 0.5em 1.3em;
+}
+h1 {
+  margin-top: 0.1em;
+}
+
+.white {
+  color: white;
+}
+.gold {
+  color: gold;
+}
+
+/* ============= SVG Styles ============== */
+.orangeyellow {
+  /* These are SVG properties, so a CSS linter will flag them with warnings.
+     But they work fine when applied to SVG objects.  */
+  fill: orange;
+  stroke: yellow;
+  stroke-width: 3.25;
+  stroke-dasharray: 2 2;
+  }
+.bluegreen {
+  fill: blue;
+  stroke: green;
+  stroke-width: 3.25;
+  stroke-dasharray: 2 2;
+}

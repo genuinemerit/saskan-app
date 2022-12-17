@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Web Socket Echo Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-css">
+    <link rel="stylesheet" href="http://bit.ly/cdn-bootstrap-theme">
+    <script src="http://bit.ly/cdn-bootstrap-jq"></script>
+    <script src="connect.js"></script>
+  </head>
+  <body lang="en">
+      <div class="vertical-center">
+        <div class="container">
+          <p>&nbsp;</p>
+          <form role="form" id="chat_form"
+                onsubmit="sendMessage(); return false;">
+                <div class="form-group">
+                    <input class="form-control" type="text" name="message"
+                           id="message" placeholder="Type text to echo here"
+                           value="" autofocus />
+                </div>
+                <button type="button" id="send" class="btn btn-primary"
+                        onclick="sendMessage();">Send!</button>
+          </form>
+        </div>
+      </div>
+      <script src="http://bit.ly/cdn-bootstrap-minjs"></script>
+  </body>
+</html>

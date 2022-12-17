@@ -1,0 +1,255 @@
+/* Tag Clases
+ * ====================
+ */
+svg {
+  border: 0.2px solid rgba(20, 20, 20, 0.5);
+  float: left;
+}
+
+/* Generic Text Classes
+ * ====================
+ */
+/* Font families */
+.ff_mono {
+  font-family: FreeMono, 'Courier New', Courier, Monospace, monospace;
+}
+.ff_sans {
+  font-family: 'Droid Sans Fallback', 'Gill Sans', Arial, Helvetica, 'Sans Serif', sans-serif;
+}
+.ff_serif {
+  font-family: FreeSerif, 'Utopia', LucidaGrande, 'Century Schoolbook L',
+  'Times New Roman' Serif, serif;
+}
+
+/* Font sizes */
+.fs_8 {
+  font-size: 8pt;
+}
+.fs_11 {
+  font-size: 11pt;
+}
+.fs_12 {
+  font-size: 12pt;
+}
+.fs_14 {
+  font-size: 12pt;
+}
+.fs_18 {
+  font-size: 18pt;
+}
+.fs_48 {
+  font-size: 48pt;
+}
+
+/* Font weights */
+.fw_bold {
+  font-weight: bold;
+}
+
+/* Base Line Shifts */
+.bls_sub {
+ baseline-shift: sub;
+}
+.bls_super {
+ baseline-shift: super;
+}
+
+/* Text decorations */
+.td_over {
+  text-decoration: overline;
+}
+
+/* Word spacing */
+.wdsp_shrink {
+  word-spacing: -5pt;
+}
+.wdsp_10pt {
+  word-spacing: 10pt;
+}
+.wdsp_12px {
+  word-spacing: 12px;
+}
+
+/* Letter spacing */
+.ltsp_wide {
+  letter-spacing: 10px;
+}
+.ltsp_shrink_1pt {
+  letter-spacing: -1pt;
+}
+.ltsp_tight {
+  letter-spacing: -2px;
+}
+.ltsp_tighter {
+  letter-spacing: -3px;
+}
+
+/* SVG-specific styles
+ * ===================
+ */
+
+/* Text anchors */
+.ta_left {
+  text-anchor: start;
+}
+.ta_middle {
+  text-anchor: middle;
+}
+.ta_right {
+  text-anchor: end;
+}
+
+/* Fill colors */
+.f_none {
+  fill: none;
+}
+.f_black {
+  fill: black;
+}
+.f_blue {
+  fill: blue;
+}
+.f_bluesky {
+  fill: skyblue;
+}
+.f_bluetrans {
+  fill: rgba(0, 0, 255, 0.5);
+}
+.f_gray {
+  fill: gray;
+}
+.f_graycharcoal {
+  fill: rgb(66,66,66);
+}
+.f_graylight {
+  fill: #CCCCCC;
+}
+.f_green {
+  fill: rgb(0, 255, 0);
+}
+.f_greenforest {
+  fill: green;
+}
+.f_orange {
+  fill: orange;
+}
+.f_pink {
+  fill: pink;
+}
+.f_red {
+  fill: red;
+}
+.f_turquoise {
+  fill: turquoise;
+}
+.f_white {
+  fill: white;
+}
+.f_yellow {
+  fill: yellow;
+}
+
+/* Fill opacities */
+.fo_100 {
+  fill-opacity: 1.0;
+}
+.fo_075 {
+  fill-opacity: 0.75;
+}
+.fo_050 {
+  fill-opacity: 0.50;
+}
+.fo_025 {
+  fill-opacity: 0.25;
+}
+.fo_005 {
+  fill-opacity: 0.05;
+}
+
+/* Stroke colors */
+.s_none {
+  stroke: none;
+}
+.s_black {
+  stroke: black;
+}
+.s_blue {
+  stroke: blue;
+}
+.s_gray {
+  stroke: gray;
+}
+.s_greenforest {
+  stroke: green;
+}
+.s_orange {
+  stroke: orange;
+}
+.s_red {
+  stroke: red;
+}
+.s_white {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+
+/* Stop colors */
+.stop_gold {
+  stop-color: #ffcc00;
+}
+.stop_lime {
+  stop-color: #66cc99;
+}
+.stop_lime2 {
+  stop-color: #9c9;
+}
+.stop_salmon {
+  stop-color: #f96;
+}
+.stop_pink {
+  stop-color: #cc6699;
+}
+.stop_ruby {
+  stop-color: #906;
+}
+.stop_white {
+  stop-color: white;
+}
+
+/* Stop opacities */
+.so_100 {
+  stop-opacity: 1.0;
+}
+.so_050 {
+  stop-opacity: 0.50;
+}
+.so_005 {
+  stop-opacity: 0.05;
+}
+.so_000 {
+  stop-opacity: 0.00;
+}
+
+/* Stroke widths */
+.sw_01 {
+  stroke-width: 0.01;
+}
+.sw_025 {
+  stroke-width: 0.25;
+}
+.sw_05 {
+  stroke-width: 0.5;
+}
+.sw_1 {
+  stroke-width: 1.0;
+}
+.sw_3 {
+  stroke-width: 3.0;
+}
+.sw_5 {
+  stroke-width: 5.0;
+}
+
+/* Dashed stroke patterns */
+.s_dash_4_4 {
+  stroke-dasharray: 4 4;
+}

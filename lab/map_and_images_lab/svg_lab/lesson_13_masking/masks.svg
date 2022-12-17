@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file starts the lessons on Clipping and Masking in SVG.
+
+Concepts:
+
+ Clipping. Viewport is a kind of clipping area. Anything outside the view
+ port is not visible.  With "clipPath" we can create clipping areas inside of
+ the viewport.  clipPath defines a clipping region object. "clip-path" is the
+ attribute that associates drawing objects to the clipping region.
+
+ Masking. Sort of the opposite of a costume party mask. An SVG mask transfers
+ its transparency to the masked object. The masking object is "mask". The
+ determination of alpha value is a bit complex. It is not simply the opacity
+ setting. A factor is applied to each RGB value, those are summed, and then
+ multipled by the opacity setting. (See page 149 of SVG essentials).  This is
+ done to adjust for standard saturation values, which read as "darkness". The
+ result of this algorithm is that the darker the color used in the mask, the
+ smaller the resulting alpha value will be, so the less opaque the masked
+ object will be. Examples below demonstrate how this works. It is not enitrely
+ intuitive and takes a little practice to get used to it.
+
+ Using a dark mask color like blue wtih max opaqueness means its masked object
+ will be almost entirely obscured (less opaque). Using white as the mask color
+ with max opaqueness means its masked object will be entirely visible and is
+ obscured very little (more opaque).  But in all cases the masked object will
+ still be partially transparent.
+-->
+<svg width="1200" height="1400" viewbox="0 0 1200 1400"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="masks.css" rel="stylesheet" type="text/css"/>
+  <title>Clips and Masks</title>
+  <desc>Clipping and Masking in SVG</desc>
+
+  <!-- Define -->
+  <defs>
+
+    <!-- Clips specified in user coordinates.
+         Coordinates of clipping regions are defined using SVG drawing
+        commands like rect. Including borders here for reference only. -->
+    <clipPath id="rectClip">
+        <desc>A simple rectangular clipping region</desc>
+        <rect id="clipRect" x="25" y="45" width="80" height="40"
+              class="s_gray sw_05 f_none" />
+    </clipPath>
+
+    <clipPath id="curveClip">
+        <desc>A curved clipping region</desc>
+        <path id="curvePath"
+              d="M 5 55 C 25, 5 45 -25, 75 55, 85 85, 20 105, 40 55 Z"
+              class="s_black sw_1 f_none"  />
+    </clipPath>
+
+    <clipPath id="textClip">
+        <desc>Using text to define a clipping region</desc>
+        <text id="textClipText" x="20" y="20" transform="rotate(60)"
+              class="ff_sans fs_48 s_black f_none">
+              CLIP
+        </text>
+    </clipPath>
+
+    <!-- Clip specified by object bounding box.
+
+      When using object bounding box, coordinates of the clip object
+      are percentages relative to clipped drawing object, instead of
+      pixel coordinates relative to viewport.  -->
+    <clipPath id="circularClip" clipPathUnits="objectBoundingBox">
+        <desc>Circle defines clip. Using object bounding box</desc>
+        <circle cx="0.5" cy="0.5" r="0.5" />
+    </clipPath>
+
+    <!-- Some drawing objects. -->
+    <g id="clipShapes">
+      <desc>Some shapes to test with.</desc>
+      <rect x="0" y="50" width="90" height="60" class="f_gray" />
+      <circle cx="25" cy="25" r="25" class="f_graycharcoal" />
+      <polygon points="30 0, 80 0, 80 100" class="f_graylight" />
+    </g>
+
+    <g id="clipWords">
+      <text x="0" y="10" class="ff_sans fs_14">
+        <tspan x="0" y="19">If you have form'd a circle</tspan>
+        <tspan x="12" y="35">to go into,</tspan>
+        <tspan x="0" y="51">Go into it yourself</tspan>
+        <tspan x="12" y="67">and see how you would do.</tspan>
+        <tspan x="50" y="87">&#8212;William Blake</tspan>
+      </text>
+    </g>
+
+    <!-- Masking with opaque colors. The masks use colors with default
+        opacity (= max opacity) settings.
+        Use object bounding box units, and set rectangular masks for 100%
+        coverage starting at upper-left corner of bounding box. -->
+    <mask id="redmask" x="0" y="0" width="1" height="1"
+          maskContentUnits="objectBoundingBox">
+        <rect x="0" y="0" width="1" height="1" class="f_red" />
+    </mask>
+    <mask id="greenmask" x="0" y="0" width="1" height="1"
+          maskContentUnits="objectBoundingBox">
+        <rect x="0" y="0" width="1" height="1" class="f_green" />
+    </mask>
+    <mask id="bluemask" x="0" y="0" width="1" height="1"
+          maskContentUnits="objectBoundingBox">
+        <rect x="0" y="0" width="1" height="1" class="f_blue" />
+    </mask>
+    <mask id="whitemask" x="0" y="0" width="1" height="1"
+          maskContentUnits="objectBoundingBox">
+        <rect x="0" y="0" width="1" height="1" class="f_white" />
+    </mask>
+
+    <!-- Masking using white plus an opacity value. Since the masking algorithm
+         applied to white produces a value of 1.0, using it with an opacity
+         value is perhaps a bit more intuitive if not accustomed to thinking
+         in terms of color saturation. -->
+     <rect id="genWhitemask" x="0" y="0" width="1" height="1" class="f_white" />
+     <mask id="mask100" x="0" y="0" width="1" height="1"
+           maskContentUnits="objectBoundingBox">
+         <use xlink:href="#genWhitemask" class="fo_100" />
+     </mask>
+     <mask id="mask075" x="0" y="0" width="1" height="1"
+           maskContentUnits="objectBoundingBox">
+         <use xlink:href="#genWhitemask" class="fo_075" />
+     </mask>
+     <mask id="mask050" x="0" y="0" width="1" height="1"
+           maskContentUnits="objectBoundingBox">
+         <use xlink:href="#genWhitemask" class="fo_050" />
+     </mask>
+     <mask id="mask025" x="0" y="0" width="1" height="1"
+           maskContentUnits="objectBoundingBox">
+         <use xlink:href="#genWhitemask" class="fo_025" />
+     </mask>
+     <mask id="mask005" x="0" y="0" width="1" height="1"
+           maskContentUnits="objectBoundingBox">
+         <use xlink:href="#genWhitemask" class="fo_005" />
+     </mask>
+
+    <!-- Drawing objects for masking -->
+    <g id="showLuminance">
+      <desc>Rects showing natural brightness of masking colors.</desc>
+      <rect x="10" y="10" width="50" height="50" class="f_red" />
+      <rect x="70" y="10" width="50" height="50" class="f_green" />
+      <rect x="130" y="10" width="50" height="50" class="f_blue" />
+      <rect x="190" y="10" width="50" height="50" class="f_white s_black" />
+    </g>
+    <g id="showTransparency">
+      <desc>Rects demonstrating transparency of all masked objects.</desc>
+      <rect x="10" y="72" width="250" height="5" class="f_yellow" />
+      <rect x="10" y="112" width="250" height="5" class="f_yellow" />
+    </g>
+
+    <!-- Make a mask using a radial gradient. -->
+    <radialGradient id="fade">
+      <stop offset=".0" class="stop_white so_100" />
+      <stop offset=".85" class="stop_white so_050" />
+      <stop offset="1.0" class="stop_white so_005" />
+    </radialGradient>
+    <mask id="fademask" maskContentUnits="objectBoundingBox">
+      <rect x="0" y="0" width="1" height="1" style="fill: url(#fade);" />
+    </mask>
+
+  </defs>
+
+  <!-- Render -->
+
+  <!-- Clipped items -->
+  <g transform="translate(10, 0)">
+    <!-- Couple of notes:
+        1) When linking to an external SVG object like this, it did not work if
+            referenced inside of a "def" object.
+        2) The application of clip-path also does not carry forward if it
+           is declared as part of a "def". Seems like clip-path has to be a
+           style on a rendered drawing object. -->
+    <use xlink:href="cat.svg#cat" style="clip-path: url(#rectClip);" />
+  </g>
+  <g transform="translate(120, 0)">
+    <!-- Showing clip rectangle on cat for instructional purposes -->
+    <use xlink:href="#clipRect"/>
+    <use xlink:href="cat.svg#cat"/>
+  </g>
+
+  <g transform="translate(300, 10)">
+    <use xlink:href="#clipShapes" style="clip-path: url(#curveClip);" />
+  </g>
+  <g transform="translate(400, 10)">
+    <!-- Showing clip path for instructional purposes -->
+    <use xlink:href="#clipShapes"/>
+    <use xlink:href="#curvePath"/>
+  </g>
+
+  <g transform="translate(500, 10)">
+    <use xlink:href="#clipShapes" style="clip-path: url(#textClip);" />
+  </g>
+  <g transform="translate(600, 10)">
+    <!-- Showing clip text for instructional purposes -->
+    <use xlink:href="#clipShapes"/>
+    <use xlink:href="#textClipText"/>
+  </g>
+
+  <g transform="translate(10, 200)">
+    <use xlink:href="#clipShapes" style="clip-path: url(#circularClip);" />
+  </g>
+  <g transform="translate(150, 200)">
+    <use xlink:href="#clipWords" style="clip-path: url(#circularClip);" />
+  </g>
+
+    <!-- Masked items -->
+  <g transform="translate(400, 200)" class="fs_14 f_black ta_middle">
+    <use xlink:href="#showLuminance" />
+    <use xlink:href="#showTransparency" />
+    <g style="mask: url(#redmask);">
+      <circle cx="35" cy="115" r="25" />
+      <text x="35" y="80">Red</text>
+    </g>
+    <g style="mask: url(#greenmask);">
+      <circle cx="95" cy="115" r="25" />
+      <text x="95" y="80">Green</text>
+    </g>
+    <g style="mask: url(#bluemask);">
+      <circle cx="155" cy="115" r="25" />
+      <text x="155" y="80">Blue</text>
+    </g>
+    <g style="mask: url(#whitemask);">
+      <circle cx="215" cy="115" r="25" />
+      <text x="215" y="80">White</text>
+    </g>
+  </g>
+
+  <g transform="translate(20, 350)" class="fs_14 ta_middle f_black">
+    <rect x="0" y="35" width="310" height="5" class="f_yellow" />
+    <rect x="0" y="72" width="310" height="5" class="f_yellow" />
+    <g style="mask: url(#mask100);">
+      <circle cx="35" cy="35" r="25" class="f_black" />
+      <text x="35" y="80">100%</text>
+    </g>
+    <g style="mask: url(#mask075);">
+      <circle cx="95" cy="35" r="25" class="f_black" />
+      <text x="95" y="80">75%</text>
+    </g>
+    <g style="mask: url(#mask050);">
+      <circle cx="155" cy="35" r="25" class="f_black" />
+      <text x="155" y="80">50%</text>
+    </g>
+    <g style="mask: url(#mask025);">
+      <circle cx="215" cy="35" r="25" class="f_black" />
+      <text x="215" y="80">25%</text>
+    </g>
+    <g style="mask: url(#mask005);">
+      <circle cx="275" cy="35" r="25" class="f_black" />
+      <text x="275" y="80">5%</text>
+    </g>
+  </g>
+
+  <g transform="translate(10, 420)">
+    <desc>Plonk an image on top of yin-yang. Hmm... a little boring.</desc>
+    <use xlink:href="yinyang.svg#yinyang" />
+    <image xlink:href="alf.jpg" x="72" y="92" width="160" height="120" />
+  </g>
+  <g transform="translate(400, 420)">
+    <desc>Apply a radial fade mask to the plonked-on image.</desc>
+    <use xlink:href="yinyang.svg#yinyang" />
+    <image xlink:href="alf.jpg" x="82" y="102" width="160" height="120"
+        style="mask: url(#fademask);"/>
+  </g>
+</svg>

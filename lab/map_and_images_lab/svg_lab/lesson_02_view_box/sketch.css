@@ -1,0 +1,55 @@
+body {
+  font-size: 1em;
+  font-family: "Gill Sans", Verdana, Arial, Helvetica, sans-serif;
+  text-shadow: none;
+  margin: 3em 3em 2em 4em;
+  padding: 0.8em 0.5em 0.5em 1.3em;
+}
+h1 {
+  margin-top: 0.1em;
+}
+
+svg {
+  display: block;
+  width: 200px;
+  height: 200px;
+  margin: auto;
+  border: 1px solid red;
+  float: left;
+}
+
+.box {
+  max-width: 30%;
+  height: 80px;
+  border: 3px solid gray;
+  font-size: 80%;
+}
+
+.bigger {
+  width: 300px;
+  height: 300px;
+}
+.squished {
+  width: 500px;
+  height: 100px;
+}
+.lesssquished {
+  width: 500px;
+  height: 200px;
+}
+.moresquished {
+  width: 100px;
+  height: 300px;
+}
+.tiny {
+  width: 100px;
+  height: 100px;
+}
+
+
+.white {
+  color: white;
+}
+.gold {
+  color: gold;
+}

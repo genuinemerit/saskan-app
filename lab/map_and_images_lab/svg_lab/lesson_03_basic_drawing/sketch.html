@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<!-- This lesson examines the fundamental drawing commands in SVG.
+-->
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Sketchbook</title>
+  <!-- In this lesson we are going to do everything in-line. No CSS. -->
+</head>
+
+<body>
+  <h1>Lines, Rectangles, Circles, Polys and Caps</h1>
+
+  <!-- ************** LET'S DO SOME LINES ********************* -->
+
+  <!-- A line goes from point (x1,y1) to (x2,y2). A stroke defaults to none.
+      Note that we can xlink to anything, not only to grouped attributes.
+      Hey, this is me getting a little more DRY... :-)  -->
+  <svg style="border: 1px solid red; float: left;"
+       width="200" height="200" viewbox="0 0 100 100"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <line x1="10" y1="10" x2="90" y2="10" style="stroke: black;" id="horz" />
+    <line x1="10" y1="20" x2="10" y2="90" style="stroke: black;" id="vert" />
+    <line x1="10" y1="15" x2="90" y2="90" style="stroke: black;" id="diag" />
+  </svg>
+
+  <!--A "stroke" describes the "pen" used to draw a line. Its basic quality is
+     color, but it can also have: width, opacity and make a dasharray.  -->
+  <svg style="border: 1px solid blue; float: left;"
+       width="200" height="200" viewbox="0 0 100 100"
+      xmlns:xlink="http://www.w3.org/1999/xlink">
+      <!-- Cannot OVERRIDE a style of the used element, but can add to it.
+        Here my "red" override is ignored but the stroke-width is added. -->
+      <use xlink:href="#horz" style="stroke-width: 5; stroke: red;"/>
+      <use xlink:href="#vert" style="stroke-width: 5;"/>
+      <use xlink:href="#diag" style="stroke-width: 5;"/>
+  </svg>
+
+  <!-- All of the typical color naming methods are supported in SVG, though
+    GUI editors like Inkscape may not yet support all of them. Remember that
+    the default for a stroke is "none"! -->
+<svg style="border: 1px solid green; float: left;"
+    width="200" height="200" viewbox="0 0 100 100"
+   xmlns:xlink="http://www.w3.org/1999/xlink">
+   <g id="colors">
+      <line x1="10" y1="10" x2="90" y2="10"
+            style="stroke: green; stroke-width: 5" />
+      <line x1="10" y1="20" x2="90" y2="20"
+            style="stroke: rgb(100, 100, 50); stroke-width: 5" />
+      <line x1="10" y1="30" x2="90" y2="30"
+            style="stroke: #DD55CC; stroke-width: 5" />
+      <line x1="10" y1="40" x2="90" y2="40"
+            style="stroke: hsl(0, 100%, 50%); stroke-width: 5" />
+      <line x1="10" y1="50" x2="60" y2="50"
+            style="stroke: rgba(200, 50, 50, 0.25); stroke-width: 5" />
+      <line x1="40" y1="50" x2="90" y2="50"
+            style="stroke: rgba(50, 50, 200, 0.25); stroke-width: 5" />
+      <line x1="10" y1="60" x2="60" y2="60"
+            style="stroke: hsla(41, 100%, 50%, 0.5); stroke-width: 5" />
+      <line x1="40" y1="60" x2="90" y2="60"
+            style="stroke: hsla(73, 100%, 50%, 0.5); stroke-width: 5" />
+      <line x1="10" y1="70" x2="90" y2="70"
+            style="stroke: rgb(60%, 20%, 60%); stroke-width: 5" />
+      <line x1="10" y1="80" x2="90" y2="80"
+            style="stroke: #9f9; stroke-width: 5" />
+      <line x1="10" y1="90" x2="90" y2="90"
+            style="stroke: transparent; stroke-width: 5" />
+    </g>
+</svg>
+<!-- Playing around with the aspect ratio by adjusting the viewport.-->
+<svg style="border: 1px solid darkgreen; float: left;"
+  width="50" height="200" viewbox="0 0 100 100"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <use xlink:href="#colors" style="stroke-width: 5;"/>
+</svg>
+<!-- Playing around with the aspect ratio by adjusting the viewbox.-->
+<svg style="border: 1px solid darkgreen; float: left;"
+  width="200" height="200" viewbox="0 0 200 100"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <use xlink:href="#colors" style="stroke-width: 5;"/>
+</svg>
+<!-- Playing around with the aspect ratio by adjusting both.-->
+<svg style="border: 1px solid darkgreen; float: left;"
+  width="50" height="200" viewbox="0 0 100 200"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <use xlink:href="#colors" style="stroke-width: 5;"/>
+</svg>
+
+<!-- We can adjust the opacity (transparency) of a line using stroke-opacity.
+   It works just like the transparency (alpha) value in rgba and hlsa. 0 is
+   completely transparent; 1 is completely opaque. Values < 0 become 0; values
+   > 1 become 1. -->
+<svg style="border: 1px solid aqua; float: left;"
+     width="150" height="150" viewbox="0 0 100 100"
+    xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use xlink:href="#horz" style="stroke-width: 7; stroke-opacity: 0.53;"/>
+    <use xlink:href="#vert" style="stroke-width: 7; stroke-opacity: 0.71;"/>
+    <use xlink:href="#diag" style="stroke-width: 5; stroke-opacity: 0.11"/>
+</svg>
+
+<!-- We can create dashed lines using stroke-dasharray. The array contains
+  instructions for dash-length, gap-length, .. The sequence can be of any
+  length. It repeats for the length of the line. It is sensible to have an
+  even number of lengths and consistent gap sizes. Commas are optional. -->
+<svg style="border: 1px solid goldenrod; float: left;"
+    width="300" height="300" viewbox="0 0 100 100"
+   xmlns:xlink="http://www.w3.org/1999/xlink">
+   <use xlink:href="#horz" style="stroke-dasharray: 5, 2;"/>
+   <use xlink:href="#vert" style="stroke-dasharray: 5, 2, 2, 2"/>
+   <use xlink:href="#diag" style="stroke-dasharray: 1 1 2 1 3 1"/>
+</svg>
+
+<!-- *********  GO AHEAD AND BOX ME IN ************** -->
+
+<!-- A rectangle is defined as having a top-left (x,y) followed by its width
+   and height. Its line is a stroke and it also has a fill. The default fill is
+   black. Setting it to "none" is the same as the color "transparent" (which is rgba(0,0,0,0)).  A fill-opacity is available via SVG. The default stroke is
+   none. Omitted x and y values default to 0 (zero). -->
+
+ <svg style="border: 1px solid magenta; float: left;"
+   width="200" height="200" viewbox="0 0 100 100">
+     <!-- No stroke. Default black fill. -->
+     <rect x="5" y="5" width="45" height="20" />
+     <!-- No fill. Black stroke, default width/opacity/dash. -->
+     <rect x="50" y="5" width="45" height="20"
+        style="fill: none; stroke: black;" />
+     <!-- A very thick border overlaps fill. It can appear as two borders. --->
+     <rect x="5" y="40" width="90" height="20"
+      style="fill: blue; stroke: red; stroke-width: 7; stroke-opacity: 0.5;" />
+     <rect x="5" y="75" width="90" height="20"
+        style="fill: yellow; fill-opacity: 0.5;
+        stroke: green; stroke-width: 2; stroke-dasharray: 5 2;" />
+ </svg>
+
+<!-- Corner curvature is defined as x and y radius (rx and ry).
+      rx max is 1/2 rect width. ry max is 1/2 rect height. If only rx or ry
+      is specified, they are assumed equal.  Using "use" does not
+      appear to let me extend an existing rect's rx and ry. Presumably because
+      they have already been defaulted to 0. -->
+   <svg style="border: 1px solid darkgray; float: left;"
+     width="200" height="200" viewbox="0 0 100 100">
+    <rect x="5" y="5" width="45" height="20" rx="2" ry="2" />
+    <rect x="50" y="5" width="45" height="20" rx="5"
+       style="fill: none; stroke: black;" />
+   <rect x="5" y="40" width="90" height="20" rx="10" ry="5"
+    style="fill: blue; stroke: red; stroke-width: 7; stroke-opacity: 0.5;" />
+   <rect x="5" y="75" width="90" height="20" rx="5" ry="10"
+      style="fill: yellow; fill-opacity: 0.5;
+      stroke: green; stroke-width: 2; stroke-dasharray: 5 2;" />
+  </svg>
+
+  <!-- A rectangle with sufficiently rounded corners becomes an ellipse. -->
+  <svg style="border: 1px solid indianred; float: left;"
+   width="200" height="200" viewbox="0 0 100 100">
+  <rect x="5" y="5" width="45" height="20" rx="5" ry="5" />
+  <rect x="50" y="5" width="45" height="20" rx="15"
+     style="fill: none; stroke: black;" />
+  <rect x="5" y="40" width="90" height="20" rx="45" ry="6"
+  style="fill: blue; stroke: red; stroke-width: 7; stroke-opacity: 0.5;" />
+  <rect x="5" y="75" width="90" height="20" rx="10" ry="36"
+    style="fill: yellow; fill-opacity: 0.5;
+    stroke: green; stroke-width: 2; stroke-dasharray: 5 2;" />
+  </svg>
+
+  <!-- *********  LIFE GOES ROUND IN CIRCLES ************** -->
+
+  <!-- Circles and ellipses start with a center x and y (cx, cy).
+       A circle has a single radius (r). An ellipse has both an x-radius
+       and a y-radius (rx, ry). Omitted cx or cy is assumed 0 (zero).
+       Radii cannot be zero or negative. All the usual fill and stroke
+       options are available. I like to use a viewbox of 100, 100 because
+       then I can easily think of locations within the box in terms of
+       percentages. -->
+   <svg style="border: 1px solid green; float: left;"
+    width="300" height="300" viewbox="0 0 100 100">
+      <circle cx="15" cy="15" r="15" />
+      <circle cx="50" cy="15" r="15" style="fill: none; stroke: black;" />
+      <circle cx="85" cy="15" r="15" style="fill: purple; fill-opacity: 0.5;
+        stroke: yellow; stroke-width: 6; stroke-opacity: 0.5;" />
+
+      <ellipse cx="15" cy="70" rx="5" ry="15" />
+      <ellipse cx="50" cy="70" rx="20" ry="5"
+        style="fill: none; stroke: blue;" />
+      <ellipse cx="85" cy="70" rx="10" ry="25"
+        style="fill: none; stroke: blue;
+        stroke-width: 2; stroke-dasharray: 1 1 2 1 3 1;" />
+  </svg>
+
+
+    <!-- *********  GON, BABY, GON ************** -->
+
+    <!-- A polygon is a fill defined by a series of (x y) points.
+        There must be an even number of points. The shape will automatically
+        be closed. The  usual stroke and fill notes apply. Coords can be
+        delimited by commas.  Decimals are cool. Polygons with intersecting
+        lines can be filled using fill-rule attributes:
+          "nonzero" (the default): fill anything inside the outer bounds
+          "evenodd": fill alternating enclosed spaces
+          -->
+    <svg style="border: 1px solid blue; float: left;"
+     width="300" height="300" viewbox="0 0 100 100">
+     <!-- Triangles -->
+     <polygon points="0 10, 10 0, 20 10"/>
+     <polygon points="0 10, 20 10, 10 20" style="fill: red;"/>
+     <!-- Parallelograms -->
+     <polygon points="25 5, 45 5, 40 15, 20 15"
+      style="fill:none; stroke: blue" />
+      <polygon points="45 5, 65 5, 60 15, 40 15" style="fill:blue;" />
+      <!-- Ugly, mis-shapen five-pointed star -->
+      <polygon points="20 20, 23 25, 27 25, 25 29, 27 32, 20 29, 15 32, 17 29,
+        15 25, 18 25" style="fill: none; stroke:limegreen; stroke-width: 0.2"/>
+      <polygon points="40 20, 43 25, 47 25, 45 29, 47 32, 40 29, 35 32, 37 29,
+        35 25, 38 25" style="fill: red;"/>
+      <!-- Random-ish shape that might be part of a map. Notice how I
+        cleverly use prime numbers to create an illusion of natural
+        unqiueness. -->
+      <polygon points="2 29, 3 97, 5 89, 7 71, 11 67, 13 59, 17 83, 19 61"  style="fill: tan; fill-opacity: 0.75; stroke: brown; stroke-width: 0.5;
+        stroke-dasharray: 1 1; stroke-opacity: 0.2"/>
+      <!-- Nicer 5-pointed stars showing use of fill-rule -->
+      <polygon points="40 32, 25 68, 60 45, 20 45, 55 68"
+        style="fill: yellow;" />
+      <polygon points="40 62, 25 98, 60 75, 20 75, 55 98"
+        style="fill: orange; fill-rule: nonzero;" />
+      <polygon points="80 32, 65 68, 100 45, 60 45, 95 68"
+        style="fill: blue; fill-rule: evenodd;" />
+      <polygon points="80 62, 65 98, 100 75, 60 75, 95 98"
+        style="fill: green; fill-rule: evenodd; stroke: black;" />
+      <!-- A polyline is the same thing as a polygon except that it does not
+        automatically get closed.  Despite this, it is always good practice
+        to include "fill: none" because some SVG viewers will still try to
+        close the shape even though they are not supposed to. -->
+      <!-- Something like a circuit diagram:  -->
+      <polyline points="57 25, 62.5 25, 65 20, 70 30, 75 20, 80 30, 85 20,
+      90 30, 92.5 25, 98 25"
+        style="fill: none; stroke: black; stroke-width: 1.5;" />
+   </svg>
+
+  <!-- *********  FINALLY, TO CAP THINGS OFF... ************** -->
+
+  <!-- As we do in Processing, SVG has options for specifying the endpoints of
+       lines and polygons.  We use the "stroke-linecap" property to pick the
+       type of endcap. Options are:
+          butt:  a squared ending with no cap
+          round: a rounded cap
+          square: a squared cap
+      And we use the "stroke-linejoin" property to specify how lines connect
+      at corners. Options are:
+          miter:  meaning "pointed"
+          round:  just what you might think
+          bevel:  flat
+      There is also something called the "stroke-miterlimit" but we will look
+      at that another time. In fact, there are a whole boatload of other
+      properties, which you can see in Appendix B of "SVG Essentials" book.
+  -->
+    <svg style="border: 1px solid black; float: left;"
+    width="200" height="300" viewbox="0 0 100 150">
+
+      <!-- "stroke-linecap" is about open line endings: -->
+      <text x="5" y="14" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">Butt</text>
+      <polyline points="50 10, 90 10" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linecap: butt;" />
+      <text x="5" y="24" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">Round</text>
+      <polyline points="50 20, 90 20" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linecap: round;" />
+      <text x="5" y="34" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">Square</text>
+      <polyline points="50 30, 90 30" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linecap: square;" />
+
+      <!-- "stroke-linejoin" is about corners: -->
+      <text x="18" y="50" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">Miter</text>
+      <polyline points="20 65, 30 55, 40 65" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linejoin: miter;" />
+      <text x="51" y="50" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">+Round</text>
+      <polyline points="60 65, 70 55, 80 65" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linecap: round; stroke-linejoin: miter;" />
+
+      <text x="16" y="80" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">Round</text>
+      <polyline points="20 95, 30 85, 40 95" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linejoin: round;" />
+      <text x="51" y="80" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">+Square</text>
+      <polyline points="60 95, 70 85, 80 95" style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linecap: square; stroke-linejoin: round;" />
+
+      <text x="16" y="110" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">Bevel</text>
+      <polyline points="20 125, 30 115, 40 125"
+        style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linejoin: bevel;" />
+      <text x="51" y="110" style="font-family: sans-serif; font-size: 8pt;
+        stroke: none; fill: black;">+Round</text>
+      <polyline points="60 125, 70 115, 80 125"
+        style="fill: none; stroke: black;
+        stroke-width: 5; stroke-linecap: round; stroke-linejoin: bevel;" />
+    </svg>
+</body>
+
+</html>

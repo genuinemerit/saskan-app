@@ -1,0 +1,296 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="transforms.css" type="text/css" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file explains how coordinate system transforms work, and also
+     demonstrates the various types of transforms for SVG objects.
+     Translate:
+      A "use" that "moves" the object to specified target (x,y) is actually
+      "translating" the entire viewbox (the coordinate system). This is made
+      more explicit using the "transform=translate()" command, as shown below.
+    Other transforms:
+      Scale, Rotate, Skew
+
+  NB: Newbie note. As far as I can tell, we can only have one "svg" element
+     in an SVG XML file. Makes sense I guess. On another note, according to
+     wikipedia it is perfectly OK to embed JavaScript/ECMAScript inside of an
+     SVG. (Oh boy!)  My other observation for today is that making the viewbox
+     equal in size to the canvas can also simplify doing the math in your head,
+     although it may make it harder later on to consider effect of resizings.
+
+     Also note how an external style sheet was referenced BEFORE the DOCTYPE.
+     In the next lesson we will see an alternative syntax for this.
+-->
+<svg width="300" height="700" viewbox="0 0 300 700"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!--
+    NB: I did need to include the xlink namespace here for it to work.
+    More precisely, these are "simple" Xlinks. Draft SVG 1.2 proposes use of
+    "extended" XLinks as well. See: https://en.wikipedia.org/wiki/XLink.
+    Mozilla Firefox supports XLinks for SVG and MathML. Chrome seems fine
+    with them too. In other words, I did not need to specify the namespace
+    __in the HTML__ for xlink to work within embedded SVG's.
+  -->
+  <title>Transforms</title>
+  <desc>Examples of moves and transforms</desc>
+  <defs>
+    <!-- Define, but do not display some squares. I go ahead and offset
+      them somewhat from (0,0) because that suits my purposes. -->
+    <g id="square">
+      <rect x="5" y="5" width="20" height="20" class="f_black s2_black" />
+    </g>
+    <g id="box">
+      <rect x="5" y="5" width="20" height="20" class="f_none s2_black" />
+    </g>
+    <g id="group1">
+      <rect x="40" y="15" width="20" height="20" class="f_red s1_blue" />
+      <rect x="65" y="15" width="20" height="20" class="f_blue s1_red" />
+    </g>
+  </defs>
+
+  <!-- ========== TRANSLATE =============== -->
+  <!-- Move the viewbox to (50,50). -->
+  <use xlink:href="#square" x="50" y="50" />
+  <!-- Move the viewbox to (100, 100). -->
+  <use xlink:href="#square" transform="translate(100, 100)" />
+  <!-- In both cases, the (x,y) of the square is still (0,0) within the
+      local coordinate system (viewbox). This is somewhat conceptual in the
+      sense that the browser simply sees a "use" item as an empty (undefined)
+      "element {}". It becomes more relevant as we apply other types of
+      transforms to the translated object, as we will see below... -->
+
+  <!-- ========== SCALE and SEQUENCE =============== -->
+  <!-- Translate-only to see original, unscaled shape of "box".
+       When using multiple transform commands, just separate them by a comma or
+       a space.  Remember that the sequence of transforms often DOES matter.
+    -->
+  <use xlink:href="#box" transform="translate(100, 0)" />
+  <!-- NB: When applying a scale, the ENTIRE viewbox is scaled. So the stroke
+     border appears to have expanded because the entire viewbox has expanded,
+     and keeping the aspect ratio, we appear to see a "thicker" border. -->
+  <!-- Provide a single value: scale both x and y by this factor. -->
+  <use xlink:href="#box" transform="scale(2)" />
+  <!-- Provide (x,y): multiply (x,y) respectively by provided factor. -->
+  <use xlink:href="#box" transform="translate(0, 100) scale(2, 3)" />
+  <!-- As always, decimals are cool. This also demonstrates that the
+      "distortion" of stroke borders is proportional to the scaling.  -->
+  <use xlink:href="#box" transform="translate(150, 75), scale(1.27, 3.14159)" />
+  <!-- Reversing the sequence of the transforms produces a different result. -->
+  <use xlink:href="#box" transform="scale(1.27, 3.14159), translate(150, 75)" />
+  <!-- We can scale a group just like a single object.  -->
+  <use xlink:href="#group1" transform="translate(10, 10) scale(2)" />
+  <use xlink:href="#group1" transform="scale(2) translate(10, 10)" />
+  <!-- NB: Remember that each transform affects the entire viewbox. -->
+
+  <!-- Just FYI: can also apply transforms to a single or to a "g" directly,
+    if not doing a "use". Using that  method, the viewbox is transformed
+    BEFORE local (x,y) values are applied.
+  -->
+
+  <!-- ========== CARTESIAN COORDINATES =============== -->
+  <!-- Many statistical and big-data-oriented visualization systems use the
+    "mathematically correct" :-) Cartesian coordinate system, where (0,0) is
+    at the bottom-left of a coordinate system using positive (x,y) values. In
+    other words, y increases "upward" rather than "downward".
+    Strictly speaking (0,0) is at the center with negative values extending to
+    the left for x and down for y. The y-axis is "upside down" vs. the SVG
+    (and other "video-game-oriented") coordinate systems, which don't need to
+    be concerned with visualizing negative numbers. The example below
+    demonstrates techniques for translating from Cartesian to SVG coordinates.
+  -->
+    <defs>
+      <g id="axes">
+        <desc>Visualize the coordinate system</desc>
+        <line x1="0" y1="0" x2="100" y2="0" class="s1_black" />
+        <line x1="0" y1="0" x2="0" y2="100" class="s1_black" />
+
+        <line x1="20" y1="0" x2="20" y2="100" class="s1_trans" />
+        <line x1="40" y1="0" x2="40" y2="100" class="s1_trans" />
+        <line x1="60" y1="0" x2="60" y2="100" class="s1_trans" />
+        <line x1="80" y1="0" x2="80" y2="100" class="s1_trans" />
+        <line x1="100" y1="0" x2="100" y2="100" class="s1_trans" />
+
+        <line x1="0" y1="20" x2="100" y2="20" class="s1_trans" />
+        <line x1="0" y1="40" x2="100" y2="40" class="s1_trans" />
+        <line x1="0" y1="60" x2="100" y2="60" class="s1_trans" />
+        <line x1="0" y1="80" x2="100" y2="80" class="s1_trans" />
+        <line x1="0" y1="100" x2="100" y2="100" class="s1_trans" />
+      </g>
+      <g id="cartesian_trapezoid">
+       <!-- Let's say we received the following coordinates from a result
+         produced by matplotlib in python, which uses cartesian coordinates.
+         For more about the very wonderful and amazing matplotlib, see:
+         http://matplotlib.org/ Of course, another approach is to export from
+         matplotlib to png or gif or jpg and just import that as an "image".
+         But this exercise assumes we want to transform the data itself and
+         use SVG to build the display.
+        -->
+       <polygon points="40 40, 100 40, 70 70, 40 70" class="f_gray s1_black" />
+      </g>
+    </defs>
+    <!-- This shows how the result looks unmodified.  It is "upside down"
+      from what matplotlib intended. Note that using <g> to apply the same
+      transform to both elements is a DRY-er solution than repeating the same
+      translate (move) transform on each. -->
+    <g transform="translate(5, 250)">
+      <use xlink:href="#axes" />
+      <use xlink:href="#cartesian_trapezoid" />
+    </g>
+    <!-- Scaling a shape by negative values reverses the order of coordinates.
+      Here is the trick for getting cartesian coordinates right:
+        1) Find the max (y) in the original cartesian drawing.
+        2) Enclose the entire drawing in a <g>.
+        3) Translate down by max-y.
+        4) Scale (y) by a factor of -1 and (x) by 1, that is, no change to x.
+      In our example, we include axes _and_ the polygon, so max-y is 100.
+    -->
+    <g transform="translate(5, 455) scale(1 -1)">
+      <use xlink:href="#axes" />
+      <use xlink:href="#cartesian_trapezoid" />
+    </g>
+    <!-- NB: If I was only wanting to flip the cartesian "in place", then
+     I would have used translate(0, 100) where 100 = max-y.  I added 5 to
+     x and 355 to y because I wanted to place it below my "original" and
+     "incorrectly rendered" version of the drawing. -->
+
+  <!-- ========== ROTATION =============== -->
+  <!-- The "rotate" transform takes an angle from the center of rotation or
+    what is sometimes called the pivot point.  It is defined as the horizontal
+    at 0 degrees. As with all SVG transforms, the entire viewbox,that is, the
+    entire coordinate system is being rotated. Default (positive) rotate
+    direction is clockwise. Later on we will get to the SMIL commands,
+    which provide for animation in SVG. In particular: <animateTransform>. -->
+    <defs>
+      <g id="mysquare">
+        <rect x="40" y="20" width="40" height="40" class="f_trans " />
+      </g>
+    </defs>
+    <g transform="translate(150, 350)">
+      <use xlink:href="#axes" />
+      <use xlink:href="#mysquare" class="s1_black" />
+      <!-- As usual, the transform also appears to "move" the object. -->
+      <use xlink:href="#mysquare" transform="rotate(45)" class="s1_green" />
+      <!-- Would need to do further translates to make it appear to rotate
+        in place. There is a shortcut version of rotate that supports just
+        that: rotate(angle, centerX, centerY). The (x,y) specify exactly
+        what should be the (temporary center-point) of the object for the
+        purpose of the roation. -->
+      <use xlink:href="#mysquare" transform="rotate(45, 40, 20)"
+            class="s1_blue" />
+      <use xlink:href="#mysquare" transform="rotate(45, 60, 40)"
+            class="s1_red" />
+
+    </g>
+    <!-- As we can see, it is not a trivial matter to identify the center
+      point for rotating. The above was done basically via hunt and peck.
+      In other words, I haven't quite figured out the math for it. For the
+      blue box, the "center point" (x y) appears to correspond to the
+      point where the original top-left is now located? For the red one,
+      it seems to be the actual center point of the rotated box. Hmmm?.. -->
+
+    <!-- The trick for _scaling_ around a center point is to choose a scale
+      factor and apply it consistently using this formula:
+        translate((-1 * center-x) * (factor - 1),
+                  (-1 * center-y) * (factor - 1) )
+        scale (factor)
+      And to adjust for the fact that the stroke will get "thicker" as the
+      viewbox "grows":
+        stroke-width = stroke-width / factor
+    -->
+    <g transform="translate(200, 470)">
+        <use xlink:href="#axes" />
+        <!-- Non-scaled rectangle -->
+        <use xlink:href="#mysquare" class="s1_black" />
+        <!-- Factor = 1.33 and the current centerpoint of box is 60, 40 so:
+          cx = -1 * 60 * (1.33 - 1) = (-60 * 0.33) = -20
+          cy = -1 * 40 * (1.33 - 1) = *-40 * 0.33) = -13.333
+          s-width = 1 / 1.33 = 0.75
+        -->
+        <use xlink:href="#mysquare" class="s075_red"
+             transform="translate(-20, -13.333) scale(1.333)"/>
+       <!-- Factor = 1.6667 so:
+         cx = -1 * 60 * (1.6667 - 1) = (-60 * 0.6667) = -40
+         cy = -1 * 40 * (1.6667 - 1) = *-40 * 0.6667) = -26.666
+         s-width = 1 / 1.6667 = 0.599999
+       -->
+       <use xlink:href="#mysquare" class="s059_green"
+            transform="translate(-40, -26.666) scale(1.6667)"/>
+        <!-- Factor = 2 so:
+          cx = -1 * 60 * (2 - 1) = -60
+          cy = -1 * 40 * (2 - 1) = -40
+          s-width = 1 / 2 = 0.5
+        -->
+        <use xlink:href="#mysquare" class="s05_blue"
+             transform="translate(-60, -40) scale(2)"/>
+    </g>
+
+    <!-- ========== SKEWS =============== -->
+    <!-- Has nothing to do with shish-kebab.  Get it? Skewers?...  Ho-ho!
+      Skewing refers to applying an angle to an axis.. skewX "pushes" all
+      x coords by the specified angle.  skewY pushes the y's.  In this example
+      we use multiple <g>'s to show a way of being very explicit about
+      sequencing of transforms.
+    -->
+    <defs>
+      <polyline points="50 0, 0 0, 0 50" id="myline" />
+    </defs>
+    <g transform="translate(5, 470)">
+      <g transform="skewX(30)">
+        <!-- It may seem a little counter-intuitive, but by "pushing" the
+        x coords, it is the vertical orientation that "moves". -->
+        <use xlink:href="#axes" />
+        <text x="20" y="20" class="sans_14 f_black s_none">skewX</text>
+      </g>
+    </g>
+
+    <g transform="translate(5, 570)">
+      <g transform="skewY(30)">
+        <!-- And by "pushing" the y coords, it is the vertical orientation
+         that "moves". -->
+        <use xlink:href="#axes" />
+        <text x="20" y="20" class="sans_14 f_black s_none">skewY</text>
+      </g>
+    </g>
+
+    <g transform="translate(150, 580)">
+      <!-- Here is non-adjusted coordinate system. In the following examples
+         it will NOT be skewed, so we that we can see the relative effect of
+         skews on "myline". -->
+      <use xlink:href="#axes" />
+      <!-- Unskewed "myline" is bold red. -->
+      <use xlink:href="#myline" class="f_none s4_red" />
+      <!-- And here you can see the effect of various skews... -->
+      <g transform="skewY(30)">
+        <use xlink:href="#myline" class="f_none s2_green" />
+      </g>
+      <g transform="skewX(30)">
+        <use xlink:href="#myline" class="f_none s2_blue" />
+      </g>
+      <g transform="skewX(20) skewY(20)">
+        <!-- It is possible to skew both x and y. -->
+        <use xlink:href="#myline" class="f_none s2_orange" />
+      </g>
+      <g transform="skewX(-20)">
+        <!-- And it is possible to skew in a negative direction,
+           which is left for x and __up__ for y. -->
+        <use xlink:href="#myline" class="f_none s075_red" />
+      </g>
+      <g transform="skewY(-20)">
+        <use xlink:href="#myline" class="f_none s075_red" />
+      </g>
+      <g transform="skewX(-20) translate(20, 0)">
+        <!-- Simulating italicized text by using skew.
+         NB: As in many cases, I need another translate to adjust for the
+         modified coordinate system.  -->
+        <text x="20" y="80" class="sans_14 f_black s_none">skewU (LOL)</text>
+      </g>
+    </g>
+
+    <!-- Work is being done (may already be done?) to provide similar
+     types of transforms in CSS.  The CSS transforms, while conceptually
+     similar, have a number of semantic and other differences to SVG, so
+     be careful to study them separately.  And remember: stylesheets always
+     have precdence over (SVG) "presentation-level" attribute values. -->
+
+</svg>

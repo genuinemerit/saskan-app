@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+<!-- <?xml-stylesheet href="paths.css" type="text/css" ?> -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file continues the lesson on curves, moving on to the more complex
+  ones: quadratic and cubic bezier curves. There are a number of on-line
+  resources describing the history and mathematics of Bezier curves. The
+  fundamental thing to remember is that we define a begin point, an end point
+  and a control point. This angle defines the "tent poles" and we can imagine
+  a connector between the center-point of the two "tent poles" that could move
+  as we move the control. The curve is described by movement of the center
+  point of that connector.  The apex of the arc is the midpoint of the
+  connector line when the control point is at the specified coordinates.
+
+  In programs like Photoshop, we can see the "tent poles" but not the connector.
+  There are good visualizations on the web which include the connector.
+  Cubic Beziers use two control points (so three "tent poles"). Then the
+  connector is made up of 3 lines: 2 between the midpoints of of the central
+  and side tent poles, and then one between the midpoints of those two,and
+  its midpoint still desribes the arc.
+
+  Quadratic beziers in SVG are defined using "Q" or "q" with PATH d=.
+  The formula is : d="M (from-x, from-y) Q (control-x, control-y) (to-x, to-y)"
+  Example: PATH d="M 30 75 Q 240 30, 300 120 [style..]" means, draw a quadratic
+   bezier starting at (30,75), ending at (300,120) with control at (240 30).
+
+  A poly-bezier is simply a line made up of multiple beziers which are
+  connected together. A smooth connection between two quadratic Beziers using
+  the same control point is done by indicating the 2nd end point with a "T". So:
+  d="M (from-x, from-y) Q (ctrl-x, ctrl-y) (to1-x, to2-y) T (to2-x, to2-y)"
+  In case like this there is actually a 2nd _implied_ control point.
+
+  Cubic beziers are defined using "C" or "c". It defines the first and second
+  control points, followed by the end point. Cubic poly-beziers simply add
+  additional sets of 2 controls + 1 end point.
+
+  Just as we used "T" as the "continuation" of quadratic, so we can use "S" to
+  "continue" or "join" cubic beziers.
+
+  NB: Be careful to not put commas BEFORE the letter-commands. It can be
+  tempting to separate ALL xy pairs with commas, but if you put a comma before
+  a "continuation" command like "T" or "S" the command will get lost.
+
+  Whew!
+
+  Concise sumamry of Path commmands:
+    M m   x y     Move to
+    L l   x y     Draw line to (polyline available)
+    H h   x       Draw horiz line to
+    V v   y       Draw vert line to
+    A a   rx ry x-rotate large-arc sweep x y     Elliptical arc
+    Q q   x1 y1 x y   Quadratic bezier (control, end-point)
+    T t   x y         Quadratic bezier extension (end-point)
+    C c   x1 y1 x2 y2 x y     Cubic bezier (ctl-1, ctl-2, end point)
+    S s   x2 y2 x y           Cubic bezier extension (ctl-4, end point)
+-->
+<svg width="800" height="800" viewbox="0 0 800 800"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="curves.css"  rel="stylesheet" type="text/css" />
+  <title>Paths</title>
+  <desc>Examples of Bézier curves</desc>
+
+<defs>
+  <g id="simpleQ1">
+    <desc>Simple example of a quadratic bezier curve.</desc>
+    <!-- The quadratic bezier curve -->
+    <path d="M 30 75 Q 240 30, 300,120" class="s05_blue" />
+    <!-- Tent poles, end points and control point. -->
+    <line x1="240" y1="30" x2="30" y2="75" class="s025_graydot" />
+    <line x1="240" y1="30" x2="300" y2="120" class="s025_graydot" />
+    <circle cx="30" cy="75" r="3" class="f_black" />
+    <circle cx="240" cy="30" r="3" class="f_red" />
+    <circle cx="300" cy="120" r="3" class="f_black" />
+    <!-- Connector whose midpoint describes the curve. -->
+    <line x1="135" y1="52.5" x2="270" y2="75" class="s025_graydot" />
+    <circle cx="135" cy="52.5" r="3" class="f_gray" />
+    <circle cx="270" cy="75" r="3" class="f_gray" />
+    <circle cx="202.5" cy="63.7575" r="3" class="f_blue" />
+    <text x="40" y="85">Simple quadratic with controls</text>
+  </g>
+
+  <g id="polyQ2">
+    <desc>Example of a poly-bezier curve, with two quadratics.</desc>
+    <!-- The two quadratic bezier curves. Second control point is implied. -->
+    <path d="M 30 75 Q 240 30, 200,150 T 360 50 " class="s05_blue" />
+    <circle cx="30" cy="75" r="3" class="f_black" />
+    <circle cx="240" cy="30" r="3" class="f_red" />
+    <circle cx="200" cy="150" r="3" class="f_black" />
+    <circle cx="360" cy="50" r="3" class="f_black" />
+    <!-- Tent Poles -->
+    <line x1="240" y1="30" x2="30" y2="75" class="s025_graydot" />
+    <line x1="240" y1="30" x2="200" y2="150" class="s025_graydot" />
+    <text x="40" y="85">Poly-quadratic bezier with </text>
+    <text x="40" y="100">2nd control point implied (T)</text>
+  </g>
+
+  <!-- Note that all the cubic example use the same start and end points.
+      Only the control points are modified. To find the midpoint of a line
+      segment, formula is ((x1 + x2) / 2 , (y1 + y2) / 2) -->
+
+  <g id="cubic_1">
+    <desc>First example of a cubic bezier. Wide parallel controls.</desc>
+    <path d="M 40 50 C 10 10, 140 10, 110 50 " class="s05_blue" />
+    <!-- Cubic control points -->
+    <circle cx="10" cy="10" r="3" class="f_red" />
+    <circle cx="140" cy="10" r="3" class="f_red" />
+    <!-- Cross-line between cubic controls -->
+    <line x1="10" y1="10" x2="140" y2="10" class="s025_orangedot" />
+    <!-- Cross-line midpoint (10 + 140) / 2 = 75  (10 + 10) / 2 = 10-->
+    <circle cx="75" cy="10" r="3" class="f_gray" />
+    <!-- Left cubic tent pole -->
+    <line x1="10" y1="10" x2="40" y2="50" class="s025_graydot" />
+    <!-- Left tent pole midpoint (40 + 10) / 2 = 25  (50 + 150) / 2 = 30-->
+    <circle cx="25" cy="30" r="3" class="f_gray" />
+    <!-- "Internal" left tent pole -->
+    <line x1="75" y1="10" x2="25" y2="30" class="s025_greendot" />
+    <!-- "Internal" left tent pole midpoint
+          (75 + 25) / 2 = 50 , (10 + 30) / 2 = 20 -->
+    <circle cx="50" cy="20" r="3" class="f_gray" />
+    <!-- Rightcubic tent pole -->
+    <line x1="140" y1="10" x2="110" y2="50" class="s025_graydot" />
+    <!-- Right tent pole midpoint (140 + 110) / 2 = 125  (10 + 50) / 2 = 30-->
+    <circle cx="125" cy="30" r="3" class="f_gray" />
+    <!-- "Internal" right tent pole -->
+    <line x1="75" y1="10" x2="125" y2="30" class="s025_greendot" />
+    <!-- "Internal" right tent pole midpoint
+          (75 + 125) / 2 = 100 , (10 + 30) / 2 = 20 -->
+    <circle cx="100" cy="20" r="3" class="f_gray" />
+    <!-- Cross-line between "Internal" tent pole midpoints -->
+    <line x1="50" y1="20" x2="100" y2="20" class="s025_bluedot" />
+    <!-- Mid-point on "internal" cross-line -->
+    <circle cx="75" cy="20" r="3" class="f_blue" />
+    <text x="100" y="70">Three examples of cubic beziers.</text>
+  </g>
+
+  <g id="cubic_2">
+    <desc>Second example of a cubic bezier. Close parallel controls.</desc>
+    <path d="M 40 50 C 60 10, 90 10, 110 50 " class="s05_green" />
+    <line x1="40" y1="50" x2="60" y2="10" class="s025_graydot" />
+    <line x1="110" y1="50" x2="90" y2="10" class="s025_graydot" />
+    <circle cx="60" cy="10" r="3" class="f_red" />
+    <circle cx="90" cy="10" r="3" class="f_red" />
+  </g>
+
+  <g id="cubic_3">
+    <desc>Third example of a cubic bezier. "Crossed-over" parallel  controls.
+    </desc>
+    <path d="M 40 50 C 110 10, 40 10, 110 50 " class="s05_orange" />
+    <line x1="40" y1="50" x2="110" y2="10" class="s025_graydot" />
+    <line x1="110" y1="50" x2="40" y2="10" class="s025_graydot" />
+    <circle cx="110" cy="10" r="3" class="f_red" />
+    <circle cx="40" cy="10" r="3" class="f_red" />
+  </g>
+
+  <g id="cubic_4">
+    <desc>Fourth example of a cubic bezier. Wide non-parallel controls.</desc>
+    <path d="M 40 50 C 10 10, 140 90, 110 50 " class="s05_blue" />
+    <line x1="40" y1="50" x2="10" y2="10" class="s025_graydot" />
+    <line x1="110" y1="50" x2="140" y2="90" class="s025_graydot" />
+    <circle cx="10" cy="10" r="3" class="f_red" />
+    <circle cx="140" cy="90" r="3" class="f_red" />
+    <text x="100" y="110">Three more examples of cubic beziers.</text>
+  </g>
+
+  <g id="cubic_5">
+    <desc>Fifth example of a cubic bezier. Close non-parallel controls.</desc>
+    <path d="M 40 50 C 60 10, 90 90, 110 50 " class="s05_green" />
+    <line x1="40" y1="50" x2="60" y2="10" class="s025_graydot" />
+    <line x1="110" y1="50" x2="90" y2="90" class="s025_graydot" />
+    <circle cx="60" cy="10" r="3" class="f_red" />
+    <circle cx="90" cy="90" r="3" class="f_red" />
+  </g>
+
+  <g id="cubic_6">
+    <desc>Sixth example of a cubic bezier. "Crossed-over" non-parallel controls.
+    </desc>
+    <path d="M 40 50 C 110 10, 40 90, 110 50 " class="s05_orange" />
+    <line x1="40" y1="50" x2="110" y2="10" class="s025_graydot" />
+    <line x1="110" y1="50" x2="40" y2="90" class="s025_graydot" />
+    <circle cx="110" cy="10" r="3" class="f_red" />
+    <circle cx="40" cy="90" r="3" class="f_red" />
+  </g>
+
+  <g id="polycubic_1">
+    <desc>First example of a poly-cubic bezier four controls, 2 end points.
+    </desc>
+    <!-- M (move-to origin) C (control-1, control-2) (endpoint-1)
+                              (control-3, control-4) (endpoint-2) -->
+    <path d="M 30 100 C 50 50, 70 20, 100 100,
+                      110 130, 45 150, 65 100"
+      class="s05_green" />
+    <line x1="30" y1="100" x2="50" y2="50" class="s025_graydot" />
+    <line x1="100" y1="100" x2="70" y2="20" class="s025_graydot" />
+    <line x1="100" y1="100" x2="110" y2="130" class="s025_bluedot" />
+    <line x1="65" y1="100" x2="45" y2="150" class="s025_bluedot" />
+    <circle cx="30" cy="100" r="3" class="f_black" />
+    <circle cx="100" cy="100" r="3" class="f_black" />
+    <circle cx="65" cy="100" r="3" class="f_black" />
+    <circle cx="50" cy="50" r="3" class="f_red" />
+    <circle cx="70" cy="20" r="3" class="f_red" />
+    <circle cx="110" cy="130" r="3" class="f_red" />
+    <circle cx="45" cy="150" r="3" class="f_red" />
+    <text x="25" y="170">Poly-cubic bezier.</text>
+  </g>
+
+  <g id="polycubic_2">
+    <desc>Second example of a poly-bezier using S as continuation.
+    </desc>
+    <!-- M (move-to origin) C (control-1, control-2) (endpoint-1)
+      (end = implied start) S (control-4) (endpoint-2)
+      and the 3rd control point is implied-->
+    <path d="M 30 100 C 50 30, 70 50, 100 100 S 150 40, 200 80"
+      class="s05_green" />
+
+    <line x1="30" y1="100" x2="50" y2="30" class="s025_graydot" />
+    <line x1="100" y1="100" x2="70" y2="50" class="s025_graydot" />
+    <line x1="200" y1="80" x2="150" y2="40" class="s025_bluedot" />
+
+    <circle cx="30" cy="100" r="3" class="f_black" />
+    <circle cx="100" cy="100" r="3" class="f_black" />
+    <circle cx="200" cy="80" r="3" class="f_black" />
+    <circle cx="50" cy="30" r="3" class="f_red" />
+    <circle cx="70" cy="50" r="3" class="f_red" />
+    <circle cx="150" cy="40" r="3" class="f_red" />
+    <text x="25" y="140">Poly-cubic bezier with</text>
+    <text x="25" y="155">3rd control point implied (S)</text>
+  </g>
+
+
+</defs>
+
+<use xlink:href="#simpleQ1" />
+<g transform="translate(0, 100)">
+  <use xlink:href="#polyQ2" />
+</g>
+
+<g transform="translate(400, 50)">
+  <use xlink:href="#cubic_1" />
+</g>
+<g transform="translate(520, 50)">
+  <use xlink:href="#cubic_2" />
+</g>
+<g transform="translate(640, 50)">
+  <use xlink:href="#cubic_3" />
+</g>
+<g transform="translate(400, 150)">
+  <use xlink:href="#cubic_4" />
+</g>
+<g transform="translate(520, 150)">
+  <use xlink:href="#cubic_5" />
+</g>
+<g transform="translate(640, 150)">
+  <use xlink:href="#cubic_6" />
+</g>
+<g transform="translate(20, 240)">
+  <use xlink:href="#polycubic_1" />
+</g>
+<g transform="translate(200, 260)">
+  <use xlink:href="#polycubic_2" />
+</g>
+
+
+
+</svg>

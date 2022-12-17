@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file wraps up the lesssons on patterns and gradients.
+
+  The gradientTransform attribute modifies patterns and gradients according to
+  skew, stretch and rotate instructions.  See lesson 5 for a refresher on how
+  these work.  Likewise use patternTransform for patterns.
+-->
+<svg width="800" height="1000" viewbox="0 0 800 1000"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="transforms.css" rel="stylesheet" type="text/css"/>
+  <title>Patterns and Gradient Transforms</title>
+  <desc>Applying Transforms to SVG Patterns and Gradients</desc>
+
+  <!-- Define -->
+  <defs>
+      <pattern id="s_tile" x="0" y="0" width="20%" height="20%"
+          patternUnits="objectBoundingBox">
+              <path d="M 0 0 Q 5 20, 10 10 T 20 20" class="f_none s_black "/>
+              <path d="M 0 0 h 20 v 20 h -20 z" class="f_none s_blue sw_025 "/>
+      </pattern>
+      <pattern id="tile_skewY" xlink:href="#s_tile"
+          patternTransform="skewY(50)" />
+      <pattern id="tile_skewX" xlink:href="#s_tile"
+          patternTransform="skewX(-50)" />
+
+      <linearGradient id="gpl">
+          <stop offset=".0" class="stop_gold" />
+          <stop offset=".3333" class="stop_pink" />
+          <stop offset="1.0" class="stop_lime" />
+      </linearGradient>
+      <linearGradient id="gpl_skewX" xlink:href="#gpl"
+          gradientTransform="skewX(40)" />
+      <linearGradient id="gpl_skewY" xlink:href="#gpl"
+          gradientTransform="skewY(-40)" />
+
+      <g id="rect_tfm">
+          <rect x="0" y="0" width="200" height="100" class="s_black" />
+      </g>
+      <g id="rect_s_tile_noskew">
+          <use xlink:href="#rect_tfm" style="fill: url(#s_tile);" />
+          <text x="5" y="110">Non-skewed pattern</text>
+      </g>
+      <g id="rect_s_tile_skewY">
+          <use xlink:href="#rect_tfm" style="fill: url(#tile_skewY);" />
+          <text x="5" y="110">Y-Skewed pattern: (+50)</text>
+      </g>
+      <g id="rect_s_tile_skewX">
+          <use xlink:href="#rect_tfm" style="fill: url(#tile_skewX);" />
+          <text x="5" y="110">X-Skewed pattern: (-50)</text>
+      </g>
+      <g id="rect_gpl_noskew">
+          <use xlink:href="#rect_tfm" style="fill: url(#gpl);" />
+          <text x="5" y="110">Non-skewed gradient</text>
+      </g>
+      <g id="rect_gpl_skewX">
+          <use xlink:href="#rect_tfm" style="fill: url(#gpl_skewX);" />
+          <text x="5" y="110">X-skewed gradient: (+40)</text>
+      </g>
+      <g id="rect_gpl_skewY">
+          <use xlink:href="#rect_tfm" style="fill: url(#gpl_skewY);" />
+          <text x="5" y="110">Y-skewed gradient: (-40)</text>
+          <text x="5" y="125">No effect because transition is horizontal</text>
+      </g>
+
+      <!-- Patterns and gradients can be applied to strokes as well as to
+        fills. Staight lines have zero-height, zero-width bounding boxes so
+        objectBoundingBox units are ignored... meaning the line won't be
+        drawn at all in those cases unless it has a fallback color style, like:
+        stroke: url(#rainbow) red. Fall fills and strokes are actually always
+        a good practice. -->
+
+      <linearGradient id="gpl_user" xlink:href="#gpl"
+          gradientUnits="userSpaceOnUse" />
+      <g id="line_gpl_horiz">
+          <line x1="0" y1="0" x2="100" y2="0" class="sw_5"
+                style="stroke: url(#gpl) red" />
+      </g>
+      <g id="line_gpl_vert">
+          <line x1="0" y1="0" x2="0" y2="100" class="sw_5"
+                style="stroke: url(#gpl) blue" />
+      </g>
+      <g id="line_gpl_diag">
+          <line x1="0" y1="0" x2="100" y2="100" class="sw_5"
+                style="stroke: url(#gpl) green" />
+          <text x="0" y="115">gradientUnits=default</text>
+          <text x="0" y="130">(=objectBoundingBox)</text>
+      </g>
+
+      <g id="line_gpl_horiz_user">
+          <line x1="0" y1="0" x2="100" y2="0" class="sw_5"
+                style="stroke: url(#gpl_user) red" />
+      </g>
+      <g id="line_gpl_vert_user">
+          <line x1="0" y1="0" x2="0" y2="100" class="sw_5"
+                style="stroke: url(#gpl_user) blue" />
+      </g>
+      <g id="line_gpl_diag_user">
+          <line x1="0" y1="0" x2="100" y2="100" class="sw_5"
+                style="stroke: url(#gpl_user) green" />
+          <text x="0" y="115">gradientUnits=userSpaceOnUse</text>
+      </g>
+
+  </defs>
+
+  <!-- Render -->
+  <g transform="translate(5, 5)">
+    <use xlink:href="#rect_s_tile_noskew"/>
+  </g>
+  <g transform="translate(220, 5)">
+    <use xlink:href="#rect_s_tile_skewY"/>
+  </g>
+  <g transform="translate(435, 5)">
+    <use xlink:href="#rect_s_tile_skewX"/>
+  </g>
+  <g transform="translate(5, 140)">
+    <use xlink:href="#rect_gpl_noskew"/>
+  </g>
+  <g transform="translate(220, 140)">
+    <use xlink:href="#rect_gpl_skewX"/>
+  </g>
+  <g transform="translate(435, 140)">
+    <use xlink:href="#rect_gpl_skewY"/>
+  </g>
+  <g transform="translate(5, 275)">
+    <use xlink:href="#line_gpl_horiz"/>
+  </g>
+  <g transform="translate(110, 275)">
+    <use xlink:href="#line_gpl_vert"/>
+  </g>
+  <g transform="translate(5, 275)">
+    <use xlink:href="#line_gpl_diag"/>
+  </g>
+  <g transform="translate(150, 275)">
+    <use xlink:href="#line_gpl_horiz_user"/>
+  </g>
+  <g transform="translate(255, 275)">
+    <use xlink:href="#line_gpl_vert_user"/>
+  </g>
+  <g transform="translate(150, 275)">
+    <use xlink:href="#line_gpl_diag_user"/>
+  </g>
+
+</svg>

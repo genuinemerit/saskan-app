@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="800" height="800" viewbox="0 0 800 800"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="masks.css"  rel="stylesheet" type="text/css" />
+  <title>Yin-Yang</title>
+  <desc>Pink and blue yin-yang symbols</desc>
+
+<defs>
+  <!-- yin-yang using ellipses and arcs. -->
+  <g id="yinyang">
+    <desc>Combine ellipse and arc shapes to make a yin-yang.</desc>
+    <g id="graydrop">
+      <desc>gray drop shadow</desc>
+      <ellipse cx="154" cy="154" rx="150" ry="120" class="f_gray" />
+    </g>
+    <g id="blueellipse">
+      <desc>light skyblue ellipse</desc>
+      <ellipse cx="152" cy="152" rx="150" ry="120" class="f_bluesky" />
+    </g>
+    <g id="pinksemi">
+      <desc>filled pink semicircle and filled small pink semicircle</desc>
+      <path d="M 302 152
+               A 150 120, 0, 1, 0, 2 152
+               A 75 60, 0, 1, 0, 152 152" class="f_pink" />
+    </g>
+    <g id="bluesemi">
+      <desc>filled small skyblue semicircle</desc>
+      <path d="M 152 152
+               A 75 60, 0, 1, 1, 302 152" class="f_bluesky" />
+    </g>
+  </g>
+</defs>
+
+<g transform="translate(420, 150)">
+  <use xlink:href="#yinyang" />
+</g>
+
+</svg>

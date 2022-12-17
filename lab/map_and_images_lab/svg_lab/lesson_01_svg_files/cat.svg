@@ -1,0 +1,63 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This is a "native" SVG file. Default measures are in pixels. Remember
+     that SVG is all about vector graphics, so it can be useful to think of
+     measures purely in relative terms, then manage sizing externally via CSS,
+     JS or HTML. XML uses the same type of comment tags as HTML. It best to
+     save a file like this with an ".svg" suffix. That makes it clear that it
+     is an image file and not just XML data.  Also cool OS's like Linux Mint
+     :-) will display a thumbnail of the image on the file icon! -->
+<svg width="140" height="170"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <!-- This is my drawing object. It has metadata in the svg tag which sizes
+      the native object, references its namespace, and then we have tags that
+      describe/represent it. -->
+  <title>Cat</title>
+  <desc>Stick Figure of a Cat</desc>
+  <!-- Followed by presentation / drawing instructions. -->
+  <!-- Head -->
+  <circle cx="70" cy="95" r="50" style="stroke: black; fill:none" />
+  <!-- Eyes -->
+  <circle cx="55" cy="80" r="5" stroke="black" fill="#339933" />
+  <circle cx="85" cy="80" r="5" stroke="black" fill="#339933" />
+  <!-- Whiskers are a grouped element, which gets an id. First we draw the
+       whiskers extending from left to right. -->
+  <g id="whiskers">
+    <line x1="75" y1="95" x2="135" y2="85" style="stroke: black;" />
+    <line x1="75" y1="95" x2="135" y2="105" style="stroke: black;" />
+  </g>
+  <!-- Next we "use" the grouped element in a transform. We flip the coordinate
+       system by multiplying x-coord by negative one. So (75, 95) is where
+       (-75, 95) would be in the original coordinate system. In the new coord
+       system, x increases to the left. To get us to the right starting point,
+       we also translate 140 pixels to the right, which we now express as a
+       negative number. (This is somewhat similar to how "translate" is used in
+       the Processing langauge.) This draws whiskers extending to the left.
+       Note that the whiskers id is referenced using an href to #.. just like
+       we would reference any internal URI in HTML. xlink is the fully
+       elaborated \version of such internal resource linking.  "href" is part
+       of the xlink namespace. -->
+  <use xlink:href="#whiskers" transform="scale(-1 1) translate(-140 0)" />
+  <!-- Ears... using polyline to define a series of five x y coordinate points.
+       The tuples can be defined as "x y," or as "x, y," doesn't matter. The
+       polyline will auto-fill if fill is not set to none. -->
+  <polyline points="108 62, 90 10, 70 45, 50, 10, 32, 62"
+            style="stroke: black; fill: none;"/>
+  <!-- Mouth... a 4-point polyline -->
+  <polyline points="35 110, 45 120, 95 120, 105, 110"
+            style="stroke: black; fill: none;"/>
+  <!-- Nose. The "path" element is the generlized "Ur" element. :-) It can be
+      used to draw almost anything in a very compact, if somewhat more obscure,
+      way. This instruction says: "Move to coord (75,90), Line to (65,90),
+      draw elliptical Arc with x-radius 5 and y-radius 10, finishing at
+      (75,90)" -->
+  <path d="M 75 90 L 65 90 A 5 10 0 0 0 75 90" style="stroke: black; fill: #ffcccc" />
+  <!-- We use "text" to label our beautiful artwork. Unlike the preceding it is
+       a container element, but of course has lots of styling. It is OK to line
+       break inside of a style. And note that while SVG style is very similar to
+       CSS it is not exactly the same thing. -->
+  <text x="60" y="165" style="font-family: sans-serif; font-size: 14pt;
+    stroke: none; fill: black;">Cat</text>
+</svg>

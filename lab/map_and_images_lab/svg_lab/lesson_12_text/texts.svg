@@ -1,0 +1,572 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file starts the lessons on Text in SVG.
+
+  See chapter 9 for a review of terminology: character, glyph, font, baseline,
+  ascent, descent, em-height, ex-height, and cap-height.  In the text tag,
+  x and y indicate location of the _baseline_ for the first character of the
+  text object. The default style for text in SVG is black fill with no stroke,
+  which is to say, no outline.
+-->
+<svg width="1200" height="1400" viewbox="0 0 1200 1400"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="texts.css" rel="stylesheet" type="text/css"/>
+  <title>Texts</title>
+  <desc>Manipulating Text in SVG</desc>
+
+  <!-- Define -->
+  <defs>
+      <!-- simple examples: no-outline, fill+outline, outline-only -->
+      <g id="textbox_01"
+         style="font-family: 'Gill Sans', Verdana, Arial, Helvetica, sans-serif;
+                font-size: 24pt">
+        <!-- guide lines -->
+        <path d="M 20 10, 20 120
+                 M 10 30, 100 30
+                 M 10 70, 100 70
+                 M 10 110, 100 110" class="s_gray sw_05" />
+        <text x="20" y="30">Default text, fill with no outline.</text>
+        <text x="20" y="70" class="s_black">Text is outlined and filled.</text>
+        <text x="20" y="110" class="f_none s_black sw_05">
+          Text is outlined only, stroke=0.5</text>
+      </g>
+      <!-- Many text attributes are the same in SVG as in CSS:
+            font-family:  comma-separated list, always include a generic
+            font-size:  points get converted to user units. Relative units
+                (em, ex, percentages) are computed relative to inherited size
+            font-weight:  mostly bold and normal will do
+            font-style:   mostly italic and normal will do
+            text-decoration:  most used are none, underline, overline and
+                line-through
+            word-spacing:  pt or user units. normal works. postive or negative
+               values expand or squeeze space on word boundaries
+            letter-spacing:  ditto.
+          There is no line-spacing (kerning) attribute. In SVG this is handled
+          by explicit placement of each text tag (x, y). -->
+      <g id="textbox_02" style="font-size: 12pt">
+        <!-- Default font-family is serif -->
+        <text x="0" y="0" style="font-weight: bold;">bold</text>
+        <text x="140" y="0" style="font-style: italic;">italic</text>
+        <text x="280" y="00" style="font-weight: bold; font-style: italic;">
+          bold-italic</text>
+      </g>
+      <g id="textbox_03" style="font-family: 'Droid Sans Fallback', sans-serif;
+                 font-size: 9pt">
+        <text x="0" y="0" style="text-decoration: underline;">
+            underlined</text>
+        <text x="140" y="0" style="text-decoration: overline;">
+            overlined</text>
+        <text x="280" y="0" style="text-decoration: line-through;">
+            line-through</text>
+      </g>
+      <g id="textbox_04" style="font-family: 'Droid Sans Fallback', sans-serif;
+                 font-size: 12pt">
+        <!-- These don't seem to have any affect in Firefox (both Linux and OSX)
+         but works fine in Midori/Linux, Chrome/OSX, Opera/OSX and Safari/OSX.
+         Bad Mozilla! Bad, bad Mozilla! :-)
+       -->
+        <text x="0" y="0">default word spacing</text>
+        <text x="0" y="24" style="word-spacing: 10pt;">
+            more word spacing</text>
+        <text x="0" y="48" style="word-spacing: -2pt;">
+            less word spacing</text>
+        <text x="0" y="72" style="letter-spacing: 6pt;">
+            wide letter spacing</text>
+        <text x="0" y="96" style="letter-spacing: -1pt;">
+            narrow letter spacing</text>
+        <text x="0" y="120" style="word-spacing: 3pt; letter-spacing: -1pt;">
+            tight letter, wide word spacing</text>
+      </g>
+      <g id="textbox_05">
+        <!-- These don't seem to have any affect either in Firefox, but work
+          fine in other browsers. -->
+        <text x="0" y="0"
+              style="font-family: 'Droid Sans Fallback', sans-serif;
+                     font-size: 12pt; word-spacing: 10;">
+        more word spacing</text>
+        <text x="0" y="24"
+              style="font-family: 'Droid Sans Fallback', sans-serif;
+                     font-size: 12pt; word-spacing: -2;">
+        less word spacing</text>
+        <text x="0" y="48"
+              style="font-family: 'Droid Sans Fallback', sans-serif;
+                     font-size: 12pt; letter-spacing: 6px;">
+        wide letter spacing</text>
+        <text x="0" y="72"
+              style="font-family: 'Droid Sans Fallback', sans-serif;
+                     font-size: 12pt; letter-spacing: -2px;">
+        narrow letter spacing</text>
+      </g>
+      <g id="textbox_06" class="ff_sans fs_12">
+        <!-- And again, don't seem to have any affect in Firefox, but work
+          exactly as expected in other browsers. -->
+        <text x="0" y="0" class="wdsp_10pt">
+            10pt word spacing</text>
+        <text x="0" y="24" class="wdsp_12px">
+            12px word spacing</text>
+        <text x="0" y="48" class="ltsp_wide">
+            wide letter spacing</text>
+        <text x="0" y="72" class="ltsp_tight">
+            tight letter spacing</text>
+      </g>
+
+      <!-- text=anchor alings text strings around the (x,y) as you might
+         expect. The default value is "start". Note that "start" and "end"
+         are used rather than "left" and "right" because it is actually
+         relative to whether the language is L-to-R or R-to-L (like Hebrew).
+        -->
+      <g id="textbox_07" class="ff_sans fs_12">
+        <path d="M 100 -12, 100 62
+                 M -30 0, 240 0
+                 M -30 30, 240 30
+                 M -30 60, 240 60"  class="f_none s_gray sw_05" />
+        <text x="100" y="0" style="text-anchor: start">
+            text-anchor: start</text>
+        <text x="100" y="30" style="text-anchor: middle">
+            text-anchor: middle</text>
+        <text x="100" y="60" style="text-anchor: end">
+            text-anchor: end</text>
+      </g>
+
+      <!-- The tspan element in SVG works just like the HTML span tag.
+        It provides a way to vary styles within a text block without having
+        to specify exactly what are the (x) offsets between words or glyphs.
+        It is a very commonly-used SVG element and something important to
+        remember. Here is a lovely example of using it effectively to present
+        a mathematical forumlation without using a specialized JS math rendering
+        system like MathJax (see: https://en.wikipedia.org/wiki/MathJax and
+        https://github.com/mathjax/MathJax/).
+        By the way, not a dig at MathJax. It is awesome, but requires a deeper
+        dive into LaTeX and/or MathML to use it. If your needs for mathematical
+        typography are relatively simple and rare, then this type of thing may
+        suffice...
+      -->
+      <g id="textbox_08" class="ff_serif fs_12">
+        <text x="0" y="0">Here is the
+          <tspan class="ff_mono fs_11">SVG_solution</tspan>
+          for presenting the
+          <tspan class="fw_bold">square root of two:</tspan>
+          <tspan class="ltsp_shrink_1pt">
+            <tspan class="fs_12">√</tspan><tspan class="td_over"> 2 </tspan>
+          </tspan>.
+        </text>
+      </g>
+
+      <!-- The dx and dy attributes change the position of characters in an
+        additive fashion. In other words, once you move the (x) or (y) up,
+        down, left or right, within a tspan, the offset remains in place for
+        that text. This helps explain why text blocks should always be defined
+        using tspans's within a text.
+      -->
+      <g id="textbox_09" class="ff_sans fs_11">
+        <!-- Without a space between the letters -->
+        <text x="0" y="0">F<tspan dy="4">a</tspan><tspan dy="8">l</tspan><tspan dy="12">l</tspan>
+        </text>
+        <!-- With space between letters due to line return whitespace -->
+        <text x="40" y="0">F
+            <tspan dy="4">a</tspan>
+            <tspan dy="8">l</tspan>
+            <tspan dy="12">l</tspan>
+        </text>
+        <!-- We can use dy to ensure consistent kerning in a text block.
+          In the first 3 lines, I "compute" the exact "y" offset, just as I
+          would if I was not using tspans within text. In the final line, I
+          just use an offet of dy=17, which I could have done for each line.-->
+        <text x="100" y="0">They dined on mince, and slices of quince,
+          <tspan x="110" y="17">Which they ate with a runcible spoon;</tspan>
+          <tspan x="100" y="34">And hand in hand, on the edge of the sand,</tspan>
+          <tspan x="110" dy="17">They danced by the light of the moon.</tspan>
+        </text>
+      </g>
+
+      <!-- dx and dy, as well as "rotate", can be "mapped" to a series of
+       letters in order to produce some fun effects. Check out the following
+       example. The offset using dy worked on all the browsers I tested,
+       including Firefox.
+     -->
+     <g id="textbox_10" class="ff_serif fs_18">
+       <path d="M 0 0, 500 0" class="f_none s_gray sw_05" />
+       <text x="0" y="0">It's
+       <!-- The dx, dy and rotate settings map to each letter in the tspan.
+       The final text, outside the tspan, has a y coord which corresponds to
+       the last setting of the dy sequence. -->
+        <tspan dx="0 4 -3 5 -4 6"
+               dy="0 -3 7 3 -2 -8"
+           rotate="5 10 -5 -20 0 15">shaken</tspan>, not stirred.
+       </text>
+       <!-- We have to adjust the last part of the string back down by 3 to
+        make it align with the initial part. -->
+       <text x="250" y="0">It's
+         <tspan dx="0 4 -3 5 -4 6"
+                dy="0 -3 7 3 -2 -8"
+            rotate="5 10 -5 -20 0 15">shaken</tspan>
+         <tspan dy="3">, not stirred.</tspan>
+       </text>
+     </g>
+
+     <!-- For handling of scientific and mathematical formulas, as well as
+       footnote numbering, the "baseline-shift" attribute is probably better
+       to use than dy.  It only stays in effect within the tspan and it can
+       take an em length or a percentage, along with the "sub" and "super"
+       values, in case you want to push the sub or super further than normal.
+       These attributes don't seem to be working in Firefox, neither on Linux
+       nor on OSX. Works as expected in Midori, Chrome, and Opera.
+     -->
+     <g id="textbox_11" class="ff_mono fs_11">
+       <text x="0" y="5">
+          <!-- Keeping it all on one line to avoid unwanted whitespace. -->
+           C<tspan class="bls_sub fs_8">12</tspan>H<tspan class="bls_sub fs_8">22</tspan>O<tspan class="bls_sub fs_8">11</tspan> (sugar)
+       </text>
+       <text x="0" y="45">
+         6.02 x 10<tspan class="bls_super fs_8">23</tspan> (Avogadro's number)
+       </text>
+     </g>
+
+     <!-- The textLength attribute is another way of squeezing or
+      stretching text.  Although we cannot determine the endpoint coords of
+      a string itself, we can define the size of the "text box" and make the
+      text fit into it, using lengthAdjust options: "spacing" (the default) or
+      "spacingAndGlyphs" to tweak how this is done. -->
+     <g id="textbox_12">
+       <path d="M 20 10 20 180 M 220 10 220 130" class="f_none s_gray sw_05" />
+       <text x="20" y="30">Two Words</text>
+       <text x="20" y="50" textLength="200">Two Words</text>
+       <text x="20" y="80" textLength="200" lengthAdjust="spacing">
+         Two Words</text>
+       <text x="20" y="110" textLength="200" lengthAdjust="spacingAndGlyphs">
+         Two Words</text>
+       <path d=" M 100 100 100 180" class="f_none s_gray sw_05" />
+       <text x="20" y="140" textLength="80" lengthAdjust="spacing">
+         Two Words</text>
+         <text x="20" y="170" textLength="80" lengthAdjust="spacingAndGlyphs">
+           Two Words</text>
+     </g>
+
+     <!-- For vertical text, obviously we could do a rotate by 90 degrees to
+     get text that reads "sideways". Another option is to use a writing-mode
+     of "tb" (top-to-bottom, like is doable in Chinese) together with a
+     glyph-orientation-vertical setting of 0 (zero). Writing mode tb without
+     the glyph orientation is almost exactly the same thing as rotate 90
+     with appropriate offset adjustments. Note that letter-spacing may be
+     useful when using the vertical glyph orientation. This worked fine in
+     Midori. In Firefox, the glyph-orientation-vertical had no effect but
+     applied the "tb" OK. In Chrome, "vertical" also had no effect except the
+     letter-spacing did scrunch it up so as to become unreadable.   -->
+     <g id="textbox_13">
+       <text x="0" y="0" transform="rotate(90, 10, 20)">Rotate 90</text>
+       <text x="30" y="0" transform="rotate(270, 65, 65)">Rotate 270</text>
+       <text x="60" y="0" style="writing-mode: tb;">writing-mode TB</text>
+       <text x="90" y="0"
+         style="writing-mode: tb; glyph-orientation-vertical: 0;">
+         vertical zero</text>
+         <text x="120" y="0" class="ltsp_tighter"
+           style="writing-mode: tb; glyph-orientation-vertical: 0; ">
+           vertical tight</text>
+     </g>
+
+     <!-- SVG is "smart enough" to know what languages (like Hebrew and
+     Arabic) are l-to-r rather than r-to-l. This is simply inherited from
+     Unicode metadata.  The directionality can also be modified intentionally
+     using the direction and unicode-bidi styles. -->
+     <g id="textbox_14">
+       <text class="ff_serif fs_12">
+         <tspan x="0" y="0">Greek: </tspan>
+            <tspan x="65">Αλζαβετ</tspan>
+         <tspan x="0" dy="18">Russian: </tspan>
+            <tspan x="65">Алжабет</tspan>
+         <tspan x="0" dy="18">Hebrew: </tspan>
+            <tspan style="text-anchor:end;" x="155">אבגדה אבגדה</tspan>
+         <tspan x="0" dy="18">Arabic: </tspan>
+            <tspan  style="text-anchor:end;" x="155">ذتؤآ؟ذ تؤآ؟</tspan>
+         <tspan x="0" dy="18">Reversed: </tspan>
+            <tspan x="165" style="direction: rtl; unicode-bidi: bidi-override;">
+              backward text</tspan>
+         <tspan x="0" dy="18">Reversed: </tspan>
+            <tspan x="65" style="direction: ltr; unicode-bidi: bidi-override;">
+            ذتؤآ؟ ذتؤآ؟</tspan>
+       </text>
+     </g>
+
+     <!-- The "switch" tag in SVG can be used to display different things
+      based on environmental settings than can be detected by SVG. One of
+      those is "systemLanguage". Supposed to be able to set language code in
+      the HTML tag and override it in local tags using lang= or xml:lang= but
+      for some reason I only seem to be getting "en" no matter what I do.
+      Hmm... tried a number of different things, none of which worked, so
+      will leave this in the 'It is a mystery.' box for now.  -->
+      <g id="textbox_15" class="ff_sans fs_12">
+        <circle cx="40" cy="40" r="20" class="f_none s_black" />
+        <switch>
+          <!-- A match on language code is sufficient, so any country or
+           dialect-specific checks must precede the generic language check. -->
+          <g systemLanguage="en-UK">
+            <text x="0" y="0">A circle without colour.</text>
+          </g>
+          <g systemLanguage="en-US">
+            <text x="0" y="0">A circle without color, dude.</text>
+          </g>
+          <g systemLanguage="en">
+            <text x="0" y="0">A circle without color.</text>
+          </g>
+          <g systemLanguage="es">
+            <text> x="0" y="0">Un circulo sin color.</text>
+          </g>
+          <g systemLanguage="fr">
+            <text> x="0" y="0">Un cercle sans couleur.</text>
+          </g>
+        </switch>
+      </g>
+
+      <!-- You can create customized fonts, pull in parts of Unicode sets,
+       and mess around with units-per-em, panose-1, ascent, desent, and
+       baseline, and even provide for missing glyphs, all within SVG. But
+       I will leave that for another time.  See pp. 137-138 of SVG Essentials
+       for a starting-point if that kind of thing becomes needed. -->
+
+
+      <!-- Text can follow any arbitrary path by using "textPath", which
+       refers to a previously-defined path via xlink:href. The path itself
+       can just be a "def"; it does not necessarily have to be displayed.
+       Attribute "startOffset" is a percentage that varies where along the
+       path the text will begin.  "text-anchor" {start, middle, end} as a text
+       style can be used in conjunction with "startOffset" on "textPath" in
+       order to center text on the path.  Text that is too long for the path or
+       which "falls off" either end is truncated.
+     -->
+     <path id="curvepath" d="M 30 40 C 50 10, 70 10, 120 40
+                             S 150 0, 200 50" class="s_gray sw_05 f_none" />
+     <path id="roundcorner" d="M 300 30 L 350 30 A 30 30 0 0 1 360 60
+                               L 360 110" class="s_gray sw_05 f_none" />
+     <path id="sharpcorner" d="M 500 30, 600 30, 600 80"
+                            class="s_gray sw_05 f_none" />
+     <path id="discontinuous" d="M 700 30 A 40 30 0 1 0 820 30 M 820 60, 840 90"
+                           class="s_gray sw_05 f_none" />
+
+     <g id="textbox_16">
+       <use xlink:href="#curvepath" />
+       <use xlink:href="#roundcorner" />
+       <use xlink:href="#sharpcorner" />
+       <use xlink:href="#discontinuous" />
+       <text>
+          <textPath xlink:href="#curvepath">
+            Following a cubic Bézier curve.
+         </textPath>
+       </text>
+       <text>
+          <textPath xlink:href="#roundcorner">
+            Going 'round the bend.
+         </textPath>
+       </text>
+       <text>
+          <textPath xlink:href="#sharpcorner">
+          Making a quick turn.
+         </textPath>
+       </text>
+       <text>
+          <textPath xlink:href="#discontinuous">
+          Text along a broken path.
+         </textPath>
+       </text>
+     </g>
+     <g id="textbox_17">
+       <use xlink:href="#curvepath" />
+       <use xlink:href="#roundcorner" transform="translate(-20, 0)" />
+       <use xlink:href="#sharpcorner" transform="translate(-20, 0)" />
+       <text>
+          <textPath xlink:href="#curvepath" startOffset="15%">
+            Following a cubic Bézier curve.
+         </textPath>
+       </text>
+       <text transform="translate(-20, 0)">
+          <textPath xlink:href="#roundcorner" startOffset="15%">
+            Going 'round the bend.
+         </textPath>
+       </text>
+       <text transform="translate(-20, 0)">
+          <textPath xlink:href="#sharpcorner" startOffset="15%">
+          Making a quick turn.
+         </textPath>
+       </text>
+       <text transform="translate(-15, 20)">
+          <textPath xlink:href="#discontinuous" startOffset="15%">
+        Text along a broken path.
+         </textPath>
+       </text>
+     </g>
+     <g id="textbox_18">
+        <text>
+          <textPath xlink:href="#curvepath">
+             Following a cubic Bézier curve.
+          </textPath>
+        </text>
+        <text transform="translate(-40, 0)">
+           <textPath xlink:href="#roundcorner">
+             Going 'round the bend.
+          </textPath>
+        </text>
+        <text transform="translate(-40, 0)">
+           <textPath xlink:href="#sharpcorner">
+           Making a quick turn.
+          </textPath>
+        </text>
+        <text transform="translate(-30, 30)">
+           <textPath xlink:href="#discontinuous">
+         Text along a broken path.
+          </textPath>
+        </text>
+     </g>
+     <g id="textbox_19">
+        <text style="text-anchor: middle;">
+          <textPath xlink:href="#curvepath" startOffset="50%">
+             Following a cubic Bézier curve.
+          </textPath>
+        </text>
+        <text transform="translate(-60, 0)" style="text-anchor: middle;">
+           <textPath xlink:href="#roundcorner" startOffset="50%">
+             Going 'round the bend.
+          </textPath>
+        </text>
+        <text transform="translate(-60, 0)" style="text-anchor: middle;">
+           <textPath xlink:href="#sharpcorner" startOffset="50%">
+           Making a quick turn.
+          </textPath>
+        </text>
+        <text transform="translate(-45, 40)" style="text-anchor: middle;">
+           <textPath xlink:href="#discontinuous" startOffset="50%">
+         Text along a broken path.
+          </textPath>
+        </text>
+     </g>
+
+
+     <!-- OK..Here is an interesting departure from HTML. You know multiple
+      whitespace including line returns gets collapsed until you the "pre"
+      tag in HTML? SVG text behaves the same way by default. This is actually
+      controlled by the "xml:space" attribute, which has a default value of
+      "default". It it is set to "preserve" then tabs and newlines are still
+      converted to a blank but blanks (spaces) are not collapsed. SVG never
+      recognizes newlines because it is designed for use with graphics, not
+      for display of blocks of textual content. xml:space attribute can be
+      used on any relevant SVG element. -->
+      <g id="textbox_20">
+        <text class="ff_sans fs_8">
+          <tspan>Here    is some    text
+           with       various breaks in it.
+           Using xml:space     default.
+          </tspan>
+          <tspan x="0" dy="20" xml:space="preserve">Here    is some    text
+           with       various breaks in it.
+           Using xml:space     =    "preserve".
+          </tspan>
+        </text>
+      </g>
+      <!-- A final notes: MIX and MATCH!!
+       For integrating text with graphics, combine the lessons here with
+      those from other areas, especially the PATH lessons.  Typically, mixing
+      text with graphics in an integral manner will mean alinging the text to
+      one of the paths used in the drawing.  -->
+  </defs>
+
+  <!-- Render -->
+  <g transform="translate(0, 0)">
+    <use xlink:href="#textbox_01"/>
+  </g>
+  <g transform="translate(20, 145)">
+    <use xlink:href="#textbox_02"/>
+  </g>
+  <g transform="translate(20, 180)">
+    <use xlink:href="#textbox_03"/>
+  </g>
+  <g transform="translate(450, 145)">
+    <use xlink:href="#textbox_04"/>
+  </g>
+  <g transform="translate(20, 230)">
+    <use xlink:href="#textbox_05"/>
+  </g>
+  <g transform="translate(20, 350)">
+    <use xlink:href="#textbox_06"/>
+  </g>
+  <g transform="translate(400, 300)">
+    <use xlink:href="#textbox_07"/>
+  </g>
+  <g transform="translate(410, 400)">
+    <use xlink:href="#textbox_08"/>
+  </g>
+  <g transform="translate(20, 450)">
+    <use xlink:href="#textbox_09"/>
+  </g>
+  <g transform="translate(450, 450)">
+    <use xlink:href="#textbox_10"/>
+  </g>
+  <g transform="translate(450, 480)">
+    <use xlink:href="#textbox_11"/>
+  </g>
+  <g transform="translate(0, 550)">
+    <use xlink:href="#textbox_12" class="ff_sans fs_18"/>
+  </g>
+  <g transform="translate(250, 550)">
+    <use xlink:href="#textbox_12" class="ff_sans fs_12"/>
+  </g>
+  <g transform="translate(500, 550)">
+    <use xlink:href="#textbox_12" class="ff_serif fs_12"/>
+  </g>
+  <g transform="translate(750, 550)">
+    <use xlink:href="#textbox_12" class="ff_serif fs_18"/>
+  </g>
+  <g transform="translate(700, 50)">
+    <use xlink:href="#textbox_13"/>
+  </g>
+  <g transform="translate(870, 50)">
+    <use xlink:href="#textbox_14"/>
+  </g>
+  <g transform="translate(870, 200)">
+    <use xlink:href="#textbox_15"/>
+  </g>
+
+  <g transform="translate(0, 750)">
+    <use xlink:href="#textbox_16" class="ff_sans fs_12"/>
+  </g>
+  <g transform="translate(0, 780)">
+    <use xlink:href="#textbox_17" class="ff_sans fs_12"/>
+  </g>
+  <g transform="translate(0, 810)">
+    <use xlink:href="#textbox_18" class="ff_sans fs_12"/>
+  </g>
+  <g transform="translate(0, 840)">
+    <use xlink:href="#textbox_19" class="ff_sans fs_12"/>
+  </g>
+
+  <g transform="translate(0, 950)">
+    <use xlink:href="#textbox_16" class="ff_sans fs_8"/>
+  </g>
+  <g transform="translate(0, 980)">
+    <use xlink:href="#textbox_17" class="ff_sans fs_8"/>
+  </g>
+  <g transform="translate(0, 1010)">
+    <use xlink:href="#textbox_18" class="ff_sans fs_8"/>
+  </g>
+  <g transform="translate(0, 1040)">
+    <use xlink:href="#textbox_19" class="ff_sans fs_8"/>
+  </g>
+
+  <g transform="translate(0, 1150)">
+    <use xlink:href="#textbox_16" class="ff_serif fs_18"/>
+  </g>
+  <g transform="translate(0, 1180)">
+    <use xlink:href="#textbox_17" class="ff_serif fs_18"/>
+  </g>
+  <g transform="translate(0, 1210)">
+    <use xlink:href="#textbox_18" class="ff_serif fs_18"/>
+  </g>
+  <g transform="translate(0, 1240)">
+    <use xlink:href="#textbox_19" class="ff_serif fs_18"/>
+  </g>
+
+  <g transform="translate(650, 325)">
+    <use xlink:href="#textbox_20"/>
+  </g>
+
+
+</svg>

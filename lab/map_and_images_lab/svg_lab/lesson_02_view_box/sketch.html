@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<!-- Measures in SVG tend to end up being relative, so it is common to just use
+     an integer with no unit specified. This is actually a default for pixels.
+     SVG supports all of the following units in relation to the viewport (the
+     canvas):
+        em, ex (height of an 'x'), px, pt, pc (pica), cm, mm, in and %
+
+    The standard coordinate system for SVG is to increment x to right and to
+    increment y going DOWN. So it follows the old video game standard, NOT the
+    scientific/mathematical standard for y. The origin (0,0) is at upper-left
+    of the viewport.
+-->
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Sketchbook</title>
+  <link href="sketch.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+  <!-- No height or width provided. It is set by CSS. All "internal" measures
+       are relative to the viewBox. Picture is smaller than the canvas, so
+       no scaling.
+  -->
+  <h1>Viewboxen and Viewports: Getting Coordinated</h1>
+  <svg viewbox="0 0 140 170" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Cat</title>
+    <desc>Sticky at</desc>
+    <g id="cat">
+      <circle cx="70" cy="95" r="50" style="stroke: black; fill:none" />
+      <circle cx="55" cy="80" r="5" stroke="black" fill="#339933" />
+      <circle cx="85" cy="80" r="5" stroke="black" fill="#339933" />
+      <g id="whiskers">
+        <line x1="75" y1="95" x2="135" y2="85" style="stroke: black;" />
+        <line x1="75" y1="95" x2="135" y2="105" style="stroke: black;" />
+      </g>
+      <use xlink:href="#whiskers" transform="scale(-1 1) translate(-140 0)" />
+      <polyline points="108 62, 90 10, 70 45, 50, 10, 32, 62" style="stroke: black; fill: none;" />
+      <polyline points="35 110, 45 120, 95 120, 105, 110" style="stroke: black; fill: none;" />
+      <path d="M 75 90 L 65 90 A 5 10 0 0 0 75 90" style="stroke: black; fill: #ffcccc" />
+      <text x="60" y="165" style="font-family: sans-serif; font-size: 14pt;
+          stroke: black; fill: black;">Cat</text>
+    </g>
+  </svg>
+  <!-- Height and width specified, but it is overridden by the CSS. The shape
+      is sized in pixels and is smaller than the actual canvas, so not scaled.
+  -->
+  <svg width="200" height="200">
+    <rect x="10" y="10" width="50" height="30"
+    style="stroke: black; fill:purple;" />
+  </svg>
+  <!-- Height and width set by CSS. Shape sized in inches. OK to mix & match.
+       Developer tools like Firefox's will translate everything to pixels.
+  -->
+  <svg>
+    <rect x="0.25in" y="0.25in" width="1in" height="0.75in"
+    style="stroke: black; fill:turquoise;" />
+  </svg>
+  <!-- Height and width set by CSS. Shape sized as percentage of container.
+  -->
+  <svg>
+    <rect x="5%" y="5%" width="90%" height="90%"
+    style="stroke: black; fill:magenta;" />
+  </svg>
+  <!-- ViewBox imposes a coordinate system. The first two are minimum-x and
+     minimum-y, then width and height of the coordinate sytem. This can be
+     combined with width and height to specify particular systems. More
+     generally, it can be used to set up a reference system that is internally
+     consistent. -->
+  <svg viewbox="0 0 64 80" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Within my coordinate system, "64" is the right edge and "80" is the
+         bottom. Let's draw a little house. I put the peak of the house at y=
+         7.5 simply to demonstrate that all SVG coordinates support decimal
+         compution, even extremely precise ones. Integers, of course, are nice
+         but they are not required. Scientific notation can be used in fact. -->
+    <g id="myhouse">
+      <!-- house frame -->
+      <rect x="10" y="35" width="40" height="40"
+      style="stroke: black; fill:none;" />
+      <!-- roof -->
+      <polyline points="10 35, 30 7.5, 50 35"
+      style="stroke: black; fill:none;" />
+      <!-- door -->
+      <polyline points="30 75, 30 55, 40 55, 40 75"
+      style="stroke: black; fill:none;" />
+    </g>
+  </svg>
+  <!-- I can "use" a drawing from one inline svg in another inline svg. -->
+  <svg viewbox="0 0 64 80" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <!-- Using a bigger viewport/canvas, I get a bigger house but maintain my
+        aspect ratio. -->
+  <svg class="bigger" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <!-- In SVG, resized viewports auto-maintain the aspect ratio. -->
+  <svg class="squished" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <svg class="lesssquished" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <svg class="moresquished" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <!-- We can manage the aspect ratio explicitly by specifying Min, Mid and Max
+    for X and Y. This refers to how to align the x,y value of the the viewBox
+    with respect to the left, center, right / top, center, bottom edge of the
+    viewport. And we can choose to "meet" or "slice".  -->
+
+  <!-- Examples of preserveAscpectRatio with "meet". It moves the image to
+    "meet" the designated edges, maintaining the resized aspect ratio. -->
+  <svg class="squished" preserveaspectratio="xMinYMin meet" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMinYMin meet">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <svg class="squished" preserveaspectratio="xMidYMid meet" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMidYMid meet">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <svg class="squished" preserveaspectratio="xMaxYMax meet" viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMaxYMax meet">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <svg class="moresquished" preserveaspectratio="xMaxYMax meet"
+        viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMaxYMax meet">
+    <use xlink:href="#myhouse" />
+  </svg>
+  <svg class="moresquished" preserveaspectratio="xMidYMin meet"
+        viewbox="0 0 64 80"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMidYMin meet">
+    <use xlink:href="#myhouse" />
+  </svg>
+
+  <!-- Examples of preserveAscpectRatio with "slice". It aligns the ratio'd
+  image with the designated edge, "slicing" off the part the fits. -->
+  <svg class="moresquished" preserveaspectratio="xMinYMin slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMinYMin slice">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="moresquished" preserveaspectratio="xMidYMid slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMidYMid slice">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="moresquished" preserveaspectratio="xMaxYMax slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMaxYMax slice">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="squished" preserveaspectratio="xMinYMin slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMinYMin slice">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="squished" preserveaspectratio="xMidYMid slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMidYMid">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="squished" preserveaspectratio="xMaxYMax slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMaxYMax">
+    <use xlink:href="#cat" />
+  </svg>
+
+  <!-- In a viewport smaller than then viewbox -->
+  <svg class="tiny" preserveaspectratio="xMinYMin slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMinYMin slice">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="tiny" preserveaspectratio="xMaxYMax slice"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMaxYMax slice">
+    <use xlink:href="#cat" />
+  </svg>
+  <svg class="tiny" preserveaspectratio="xMidYMid meet"
+        viewbox="0 0 140 170"
+       xmlns:xlink="http://www.w3.org/1999/xlink" title="xMinYMin meet">
+    <use xlink:href="#cat" />
+  </svg>
+
+  <!-- Examples of preserveAscpectRatio with "none". It is like filling a
+   background image. Scaling is modified to that of the viewport instead of
+   maintaing the aspect ratio set by the viewbox. Note that this is still not
+   exactly the same thing as a background "fill".   -->
+   <svg class="squished" preserveaspectratio="none"
+         viewbox="0 0 140 170"
+        xmlns:xlink="http://www.w3.org/1999/xlink" title="none">
+     <use xlink:href="#cat" />
+   </svg>
+   <svg class="moresquished" preserveaspectratio="none"
+         viewbox="0 0 140 170"
+        xmlns:xlink="http://www.w3.org/1999/xlink" title="none">
+     <use xlink:href="#cat" />
+   </svg>
+   <svg class="moresquished" preserveaspectratio="none"
+         viewbox="0 0 64 80"
+        xmlns:xlink="http://www.w3.org/1999/xlink" title="none">
+     <use xlink:href="#myhouse" />
+   </svg>
+   <svg class="squished" preserveaspectratio="none"
+         viewbox="0 0 140 170"
+        xmlns:xlink="http://www.w3.org/1999/xlink" title="none">
+     <use xlink:href="#myhouse" />
+   </svg>
+
+   <!-- Use SVG elements. modifying both height/width and viewbox, along with
+     using preserveaspectratio, to manage multiple and nested coordinate
+     systems.
+      NB: It is not a bad idea to assign an id to everything. You might want
+      to reference it. And in rendering systems like Inkscape it will assign
+      one for you anyway.
+    -->
+</body>
+
+</html>

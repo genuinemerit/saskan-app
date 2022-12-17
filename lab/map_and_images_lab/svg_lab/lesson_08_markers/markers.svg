@@ -1,0 +1,249 @@
+<?xml version="1.0"?>
+<!-- <?xml-stylesheet href="paths.css" type="text/css" ?> -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file wraps up the lessons on curves.  It has some notes or reminders
+  on how fills work when there are "holes" in the shape. And it reviews the
+  use of the marker element when drawing PATHs in SVG. In the previous lesson
+  we drew our own markers. This lesson shows how to use SVG to do it a bit
+  more eloquently.
+
+    Concise summary of Path commmands:
+      M m   x y     Move to
+      L l   x y     Draw line to (polyline available)
+      H h   x       Draw horiz line to
+      V v   y       Draw vert line to
+      A a   rx ry x-rotate large-arc sweep x y     Elliptical arc
+      Q q   x1 y1 x y   Quadratic bezier (control, end-point)
+      T t   x y         Quadratic bezier extension (end-point)
+      C c   x1 y1 x2 y2 x y     Cubic bezier (ctl-1, ctl-2, end point)
+      S s   x2 y2 x y           Cubic bezier extension (ctl-4, end point)
+      Z             Explicit line close instruction
+-->
+<svg width="800" height="800" viewbox="0 0 800 800" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="markers.css" rel="stylesheet" type="text/css"/>
+  <title>Markers</title>
+  <desc>Examples of use of markers in curves</desc>
+
+  <defs>
+    <g id="clock_default">
+      <desc>Clockwise holes with default fill rule</desc>
+      <!-- Box within a box. One Path. Clockwise drawing. When enclosed shapes
+         are drawn in the same direction using a single PATH and the fill-rule
+         is nonzero (also the default), then the inner space is not considered
+         to be outside of the line, and so it gets filled. When the internal
+         shape is drawn in the opposite direction, or if evenodd fill-rule is
+         used, then total number of lines is used and direction is irrelevant.
+     -->
+      <g id="path_clockwise">
+        <path d="M 0 0, 60 0, 60 60, 0 60 Z
+               M 15 15, 45 15, 45 45, 15 45 Z" class="s05_blue f_green"/>
+      </g>
+      <text x="-10" y="75">Clockwise paths</text>
+      <text x="-10" y="90">Default fill-rule</text>
+    </g>
+
+    <g id="clock_nonzero">
+      <desc>Clockwise holes with nonzero fill rule</desc>
+      <use xlink:href="#path_clockwise" fill-rule="nonzero"/>
+      <text x="-10" y="75">Clockwise paths</text>
+      <text x="-10" y="90">fill-rule: nonzero</text>
+    </g>
+
+    <g id="clock_evenodd">
+      <desc>Clockwise holes with evenodd fill rule</desc>
+      <use xlink:href="#path_clockwise" fill-rule="evenodd"/>
+      <text x="-10" y="75">Clockwise paths</text>
+      <text x="-10" y="90">fill-rule: evenodd</text>
+    </g>
+
+    <g id="widder_default">
+      <desc>Clockwise outer, widdershin inner, with default fill rule</desc>
+      <!-- Box within a box. One Path. Clockwise drawing for outer box;
+        counter-clockwise (widdershins) for inner box. Default fill. -->
+      <g id="path_widder">
+        <path d="M 0 0, 60 0, 60 60, 0 60 Z
+               M 15 15, 15 45, 45 45, 45 15 Z" class="s05_blue f_green"/>
+      </g>
+      <text x="-10" y="75">Opposing paths</text>
+      <text x="-10" y="90">Default fill-rule</text>
+    </g>
+
+    <g id="widder_nonzero">
+      <desc>Opposite holes with nonzero fill rule</desc>
+      <use xlink:href="#path_widder" fill-rule="nonzero"/>
+      <text x="-10" y="75">Opposing paths</text>
+      <text x="-10" y="90">fill-rule: nonzero</text>
+    </g>
+
+    <g id="widder_evenodd">
+      <desc>Opposite holes with evenodd fill rule</desc>
+      <use xlink:href="#path_widder" fill-rule="evenodd"/>
+      <text x="-10" y="75">Opposing paths</text>
+      <text x="-10" y="90">fill-rule: evenodd</text>
+    </g>
+
+  <!--Lines and Markers. A marker is a tag used like <g> to describe an object
+      once. Then it is used as url reference for marker-start, marker-mid or
+      marker-end. "References" (like offsets) are used in order to place a
+      marker at the right spot relative to the path that it is marking.
+
+      First example is a starting marker, defined as a small circle. -->
+    <g id="line01_womarks">
+      <desc>An elliptical arc plus 2 lines</desc>
+      <!-- NB: The first "L" is implied. -->
+      <g id="line01">
+        <path d="M 10 20, 100 20 A 20 30, 0 0 1, 120 50 L 120 110"
+              class="s05_black"/>
+      </g>
+    </g>
+
+    <g id="smallRedCircle">
+      <desc>Red circle at (5,5) with radius 4</desc>
+      <circle cx="5" cy="5" r="4" class="f_none s1_red"/>
+    </g>
+    <marker id="mCircle" markerWidth="10" markerHeight="10">
+      <desc>A marker object that is 10 x 10 and contains a circle</desc>
+      <use xlink:href="#smallRedCircle" />
+    </marker>
+
+    <g id="line01_wmarks">
+      <desc>Lines plus arc with starting marker</desc>
+      <use xlink:href="#line01" style="marker-start: url(#mCircle);"/>
+    </g>
+
+    <marker id="mCircleRef" markerWidth="10" markerHeight="10"
+                            refX="5" refY="5">
+      <desc>The circle marker, referenced to start at (5,5)</desc>
+      <use xlink:href="#smallRedCircle" />
+    </marker>
+    <g id="line02_wmarks">
+      <desc>Lines plus arc with referenced starting marker</desc>
+      <use xlink:href="#line01" style="marker-start: url(#mCircleRef);" />
+    </g>
+
+    <!-- Next lesson, we try to use three markers: our starter plus triangle
+     shapes, unfilled for mid and filled for end. The first time we do not
+     use the orient attribute, which means that the direction of the marker
+     is not necessarily aligned to the angle/direction of the line. -->
+    <g id="blueTriangle">
+      <desc>Small blue equilateral triangle. Stroke only.</desc>
+      <path d="M 0 0, 4 4, 0 8" class="f_none s1_blue" />
+    </g>
+   <g id="blackTriangle">
+     <desc>Small black equilateral triangle. Fill only, no stroke.</desc>
+     <path d="M 0 0, 5 5, 0 10 Z" class="f_black" />
+   </g>
+    <marker id="mArrow" markerWidth="4" markerHeight="8" refX="0" refY="4">
+      <desc>4 X 8 marker referenced at (0,4)</desc>
+      <use xlink:href="#blueTriangle" />
+    </marker>
+   <marker id="mTriangle" markerWidth="5" markerHeight="10" refX="5" refY="5">
+     <desc>5 X 10 marker referenced at (5,5)</desc>
+     <use xlink:href="#blackTriangle" />
+   </marker>
+   <g id="line03_wmarks">
+     <desc>Lines plus arc with referenced start, mid and end markers</desc>
+     <use xlink:href="#line01" style="marker-start: url(#mCircleRef);
+                                      marker-mid: url(#mArrow);
+                                      marker-end: url(#mTriangle)" />
+   </g>
+   <!-- Add an orientation to the markers. -->
+   <marker id="mArrowAutoOrient" markerWidth="4" markerHeight="8"
+           refX="0" refY="4" orient="auto">
+      <desc>4 X 8 marker referenced at (0,4) and auto-oriented</desc>
+      <use xlink:href="#blueTriangle" />
+   </marker>
+   <marker id="mTriangleAutoOrient" markerWidth="5" markerHeight="10"
+           refX="5" refY="5" orient="auto">
+     <desc>5 X 10 marker referenced at (5,5) and auto-oriented</desc>
+     <use xlink:href="#blackTriangle" />
+   </marker>
+   <g id="line04_wmarks">
+     <desc>Lines plus arc with referenced start, mid and end markers</desc>
+     <use xlink:href="#line01" style="marker-start: url(#mCircleRef);
+                                      marker-mid: url(#mArrowAutoOrient);
+                                      marker-end: url(#mTriangleAutoOrient)" />
+   </g>
+  <!-- Finally, If we just use a style of "marker" then the same object is
+       applied to start, mid and end. -->
+   <g id="line05_wmarks">
+     <desc>Lines plus arc with same marker for start, mid and end</desc>
+     <use xlink:href="#line01" style="marker: url(#mCircleRef)" />
+   </g>
+   <!-- Some closing notes:
+
+        For fine-tuning of marker sizes in relationship to object sizes,
+        read up on the markerUnits and userSpaceOnUse attributes, which affect
+        the coordinate system of the marker. Default is markerUnits=stroke-width which is typically what you want. It is also possible to use viewBox
+        and preserveAspectRatio on markers rather than using refX and refY.
+
+        Nested markers are possible, but not a very good idea.
+
+        Markers can be applied to polygon, polyline and line as well as to
+        path.
+
+        It is entirely possible to define the marker _attribute_ in CSS, like:
+          path { marker: url(#star) }
+   -->
+</defs>
+
+<!-- Boxes in boxes -->
+<g transform="translate(20, 10)">
+  <use xlink:href="#clock_default"/>
+</g>
+<g transform="translate(150, 10)">
+  <use xlink:href="#clock_nonzero"/>
+</g>
+<g transform="translate(280, 10)">
+  <use xlink:href="#clock_evenodd"/>
+</g>
+<g transform="translate(20, 120)">
+  <use xlink:href="#widder_default"/>
+</g>
+<g transform="translate(150, 120)">
+  <use xlink:href="#widder_nonzero"/>
+</g>
+<g transform="translate(280, 120)">
+  <use xlink:href="#widder_evenodd"/>
+</g>
+
+<!-- Lines and markers -->
+<g transform="translate(380, 0)">
+  <use xlink:href="#line01_womarks"/>
+  <text x="10" y="40">Lines and arc</text>
+  <text x="10" y="55">w/ no markers</text>
+</g>
+<g transform="translate(500, 0)">
+  <use xlink:href="#line01_wmarks"/>
+  <text x="10" y="40">Lines and arc</text>
+  <text x="10" y="55">w/ non-referenced</text>
+  <text x="10" y="70">starter</text>
+</g>
+<g transform="translate(620, 0)">
+  <use xlink:href="#line02_wmarks"/>
+  <text x="10" y="40">Lines and arc</text>
+  <text x="10" y="55">w/ referenced</text>
+  <text x="10" y="70">starter</text>
+</g>
+<g transform="translate(380, 100)">
+  <use xlink:href="#line03_wmarks"/>
+  <text x="10" y="40">Lines and arc</text>
+  <text x="10" y="55">w/ referenced</text>
+  <text x="10" y="70">start, mid, &amp; end;</text>
+  <text x="10" y="85">but disoriented</text>
+  <text x="10" y="100">on vertical line</text>
+</g>
+<g transform="translate(500, 100)">
+  <use xlink:href="#line04_wmarks"/>
+  <text x="10" y="40">Lines and arc</text>
+  <text x="10" y="55">w/ referenced</text>
+  <text x="10" y="70">start, mid &amp; end;</text>
+  <text x="10" y="85">and auto-oriented</text>
+</g>
+<g transform="translate(620, 100)">
+  <use xlink:href="#line05_wmarks"/>
+  <text x="10" y="40">Lines and arc</text>
+  <text x="10" y="55">w/ same marker</text>
+  <text x="10" y="70">@ start, mid &amp; end</text>
+</g>
+</svg>

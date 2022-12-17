@@ -1,0 +1,18 @@
+## Allow specific ports
+# http -- standard ones
+80
+8080
+# bow and private HTML ports
+8090
+8223
+# https
+443
+# ssh
+openssh
+# samba, netbios-ssn
+139
+445
+# postgresql
+5432
+# git
+9418

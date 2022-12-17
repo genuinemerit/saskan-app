@@ -1,0 +1,87 @@
+/* ============= SVG Styles ============== */
+
+svg {
+  border: 0.2px solid rgba(0, 0, 0, 0.2);
+  float: left;
+}
+
+/* Default text */
+text {
+  font-family: "Gill Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  fill: black;
+  stroke: none;
+  stroke-width: 0.4;
+}
+/* Default path */
+path {
+  fill: none;
+}
+
+/* Fills */
+.f_none {
+  fill: none;
+}
+.f_black {
+  fill: black;
+}
+.f_blue {
+  fill: blue;
+}
+.f_gray {
+  fill: gray;
+}
+.f_green {
+  fill: green;
+}
+.f_orange {
+  fill: orange;
+}
+.f_red {
+  fill: red;
+}
+
+/* Stroke colors */
+.s_none {
+  stroke: none;
+}
+.s_black {
+  stroke: black;
+}
+.s_blue {
+  stroke: blue;
+}
+.s_gray {
+  stroke: gray;
+}
+.s_green {
+  stroke: green;
+}
+.s_orange {
+  stroke: orange;
+}
+.s_red {
+  stroke: red;
+}
+
+/* Stroke widths */
+.sw_01 {
+  stroke-width: 0.01;
+}
+.sw_025 {
+  stroke-width: 0.25;
+}
+.sw_05 {
+  stroke-width: 0.5;
+}
+.sw_1 {
+  stroke-width: 1.0;
+}
+.sw_5 {
+  stroke-width: 5.0;
+}
+
+/* Dashed stroke patterns */
+.s_dash_4_4 {
+  stroke-dasharray: 4 4;
+}

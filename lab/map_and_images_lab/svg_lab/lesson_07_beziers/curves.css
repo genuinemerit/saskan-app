@@ -1,0 +1,82 @@
+/* ============= SVG Styles ============== */
+
+svg {
+  border: 0.2px solid rgba(0, 0, 0, 0.2);
+  float: left;
+}
+
+/* Default text */
+text {
+  font-family: "Gill Sans", Verdana, Arial, Helvetica, sans-serif;
+  font-size: 9pt;
+  fill: black;
+  stroke: none;
+  stroke-width: 0.4;
+}
+/* Default path */
+path {
+  fill: none;
+}
+
+/* Fills */
+
+.f_black {
+  fill: black;
+}
+.f_blue {
+  fill: blue;
+}
+.f_gray {
+  fill: gray;
+}
+.f_orange {
+  fill: orange;
+}
+.f_red {
+  fill: red;
+}
+
+/* Strokes */
+.s_none {
+  stroke: none;
+}
+.s025_bluedot {
+  stroke: blue;
+  stroke-width: 0.25;
+  stroke-dasharray: 4 4;
+}
+.s025_graydot {
+  stroke: gray;
+  stroke-width: 0.25;
+  stroke-dasharray: 4 4;
+}
+.s025_greendot {
+  stroke: green;
+  stroke-width: 0.25;
+  stroke-dasharray: 4 4;
+}
+.s025_orangedot {
+  stroke: orange;
+  stroke-width: 0.25;
+  stroke-dasharray: 4 4;
+}
+.s05_black {
+  stroke: black;
+  stroke-width: 0.5;
+}
+.s05_blue {
+  stroke: blue;
+  stroke-width: 0.5;
+}
+.s05_green {
+  stroke: green;
+  stroke-width: 0.5;
+}
+.s05_orange {
+  stroke: orange;
+  stroke-width: 0.5;
+}
+.s05_red {
+  stroke: red;
+  stroke-width: 0.5;
+}

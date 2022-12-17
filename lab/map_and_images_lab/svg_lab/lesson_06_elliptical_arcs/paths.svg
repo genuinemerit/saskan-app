@@ -1,0 +1,339 @@
+<?xml version="1.0"?>
+<!-- <?xml-stylesheet href="paths.css" type="text/css" ?> -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file explains how to use the SVG path element. The <path> is the
+ "uber" SVG element. Everything we have looked at so far are all "shortcuts"
+ to the path.  And it is better to use them for the standard shapes.  The
+ real strength in understanding how to use <path> is when you need to draw
+ complex curves and integrate them with other lines, shapes and drawings.
+
+ The fundamental path attribute is d="".  The "d" simply stands for "data".
+ Within the "d" we indicate various types of drawing commands using one-letter
+ commands such as:
+  M = moveto absolute (x y) or (x,y); m = moveto relative (x y)
+  L = lineto (x y) or (x,y); l = lineto relative (x y)
+  Z = closepath
+  H n (or h n) = horizontal lineto (omits the y coordinate)
+  V n (or v n) = vertical lineto (omits the x coordinate)
+  Implied L or l = just list points after L or l, as with <polyline>
+  Implied L = just list points after M (x y)
+-->
+<svg width="800" height="800" viewbox="0 0 800 800"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- A somewhat more modern approach to including a stylesheet in a svg
+     uses the XHTML link and a more typical HTML-ish reference syntax.
+     Nice that it is no loger outside of the DOCTYPE scope. Still doesn't
+     help with the fact that Inkscape can't deal with externalized styles,
+     but it will pull the css into developer tools now.  -->
+  <xhtml:link href="paths.css"  rel="stylesheet" type="text/css" />
+  <title>Paths</title>
+  <desc>Examples of native path commands</desc>
+
+<!-- ===== THERE IS NO WAY TO THE PATH, THE PATH IS THE WAY =====  -->
+<!-- Here I pay closer attention to using id's and desc's. It does make for
+  more readable code and seems to be especially helpful when I look at it
+  using an Inspector. I can also imagine where this is much better for
+  meeting accessibility needs. The g-level id's help a good bit too.
+  Also, in the interest of DRY-ness, I set fill:none for all path in CSS. -->
+<defs>
+
+  <g id="basiclines" class="s1_black">
+    <g id="simpleline">
+      <desc>Draw a line, padawan.</desc>
+      <path d="M 0 0 L 100 10" />
+      <!-- Style for all text objects set in the CSS. -->
+      <text x="110" y="10">slanted line</text>
+    </g>
+    <g id="rightangle">
+      <desc>Line plus a right angle.</desc>
+      <path d="M 10,20 L 100,20 L 100,50" />
+      <text x="110" y="35">right angle</text>
+    </g>
+    <g id="twoangles">
+      <desc>Two non-contiguous 30-degree angles.</desc>
+      <path d="M 40 60  L 10 60  L 40 42.68
+               M 60 60  L 90 60  L 60 42.68" />
+      <text x="110" y="60">30 degree angles</text>
+    </g>
+    <g id="tworects">
+      <desc>Two ways of drawing a rectangle</desc>
+      <g id="4linerect">
+        <desc>Draw a rectangle using four explicit lines.</desc>
+        <path d="M 10 70  L 40 70  L 40 90 L 10 90  L 10 70" />
+      </g>
+      <g id="3Zlinerect">
+        <desc>Draw a rectangle using three lines and a closepath.</desc>
+        <path d="M 60 70  L 90 70  L 90 90 L 60 90  Z" />
+      </g>
+      <text x="110" y="85">4-line vs. 3-line rectangles</text>
+    </g>
+    <g id="twotriangles">
+      <desc>Draw two 30 degree right triangles using closepath.</desc>
+      <path d="M 40 120  L 10 120  L 40 102.68 Z
+               M 60 120  L 90 120  L 60 102.68 Z" />
+      <text x="110" y="115">30 degree triangles</text>
+    </g>
+  </g>
+
+  <g id="thicklines" class="s8_black">
+    <desc>Thick rects demonstrate advantage of using Z to close path.</desc>
+    <g id="twothickrects">
+      <path d="M 10 130  L 80 130  L 80 150 L 10 150  L 10 130" />
+      <!-- Closepath rectangle. The entire line is considered a single stroke,
+        so the closing corner is consistent regarding linejoins and linecaps.
+        This difference is more evident with thicker strokes.  -->
+      <path d="M 140 130  L 210 130  L 210 150 L 140 150  Z" />
+    </g>
+  </g>
+
+  <g id="relatives" class="s1_blue">
+    <desc>Demo absolute vs. relative path syntax.</desc>
+    <g id="absolutelines">
+      <desc>Absolute syntax uses uppercase/capital/majascule.</desc>
+      <path d="M 0 0    L 10 0   L 10 20
+               M 30 30  L 45 25" />
+      <text x="0" y="50">Absolute</text>
+    </g>
+    <g id="relativelines">
+      <desc>Relative syntax uses lowercase/miniscule.</desc>
+      <path d="M 50 0   l 10 0   l 0 20
+               m 20 10  l 15 -5" />
+      <text x="50" y="50">Relative</text>
+    </g>
+  </g>
+
+  <g id="shortcuts" class="s1_green">
+    <desc>Examples using V (go vertically) and H (go horizontally) and implied
+      L and implied l (absolute and relative line-to). m at start is same as
+      an M at start.  Shortcuts work with contiguous implied H and V too.
+      But that is not very interesting unless we're drawing a marker.
+    </desc>
+    <g id="Vshortcut">
+      <desc>Don't need to specify the x value when V is used.</desc>
+      <path d="M 0 0   L 55 5  V 30  Z" />
+    </g>
+    <g id="Hshortcut">
+      <desc>Don't need to specify the y value when H is used.</desc>
+      <path d="M 65 0  H 115   V 35  Z" />
+    </g>
+    <g id="implied_l">
+      <desc>Implied that all subsequent points are relative line-to's.</desc>
+      <path d="m 125 0 l 50,0 0,20 -10,0 -5,-10 Z" />
+    </g>
+    <g id="implied_L">
+      <desc>Implied that all subsequent points are absolute line-to's.</desc>
+      <path d="M 185 0  195,-10  210,0  240,25
+                 240,52.345, 230,47  220,42  210,32  Z" />
+    </g>
+    <text x="50" y="50">Various Shortcut Examples</text>
+  </g>
+
+</defs>
+
+<use xlink:href="#basiclines" />
+<g>
+  <use xlink:href="#thicklines" />
+  <text x="220" y="140">4 vs. 3 line thick rects w/o linejoins</text>
+</g>
+<g transform="translate(0, 30)" style="stroke-linejoin: bevel;">
+  <use xlink:href="#thicklines" />
+  <text x="220" y="140">4 vs. 3 line thick rects w/ bevel joins</text>
+</g>
+<g transform="translate(10, 200)">
+  <use xlink:href="#relatives" />
+</g>
+<g transform="translate(100, 200)">
+  <use xlink:href="#shortcuts" />
+</g>
+
+<!-- ===== ELLIPTICAL CURVES =====  -->
+<!-- An elliptical arc is a section of an ellipse.
+     In SVG, they are drawn using the PATH command.
+  It is worth reviewing page 91 / figure 7.5 of SVG Essentials if the concepts
+  have gotten rusty. There are numerous tutorials and guides on the web also.
+
+  The basics include:
+    * Think of an elliptical curve as that part of an ellipse identified by
+      the intersection of two ellipses. Obviously, this has four solutions, two
+      for each of the intersecting ellipses.
+    * We can identify which of them we want by using the following indicators:
+      ** large-arc-flag: {1: use an arc = or > 180 degrees; 0: arc < 180}
+      ** sweep-flag: {1: select arc drawn in positive angle direction (clock-
+         wise); 0: select arc drawn in negative angle direction (counter-clock-
+         wise)}
+  The data points used to define an elliptical arc in SVG are:
+    * x- and y- radius of the ellipse on which the selected arc lies
+    * x-axis-rotation of the ellipse
+    * large-arc-flag: 0 or 1
+    * sweep-flag: 0 or 1
+    * x- and y- coordinates of the starting point, defined as the MoveTo (M) pt
+    * ending x- and y- coordinates of the ending pt
+-->
+<defs>
+  <!-- Here are few simple arcs showing the basic syntax and how the arcs
+      align to the (imputed) ellipses. No elliptical centerpoint is specified
+      explicitly since with the arc syntax we really are _implying_ __two__
+      ellipses.  -->
+  <g id="arcb">
+    <desc>M [move-to] (x, y) = (125, 75),
+          A [arc]
+            radius(x, y) = (100, 50),
+            x-axis rotation = 0 (none),
+            large arc zero = 0 (use the arc lt 180 degrees),
+            sweep flag zero = 0 (use arc drawn in negative [counter-clockwise]
+              direction),
+            end(x, y)</desc>
+    <path d="M 125,75 A 100,50, 0, 0, 0 225,125" class="s2_black" />
+    <text x="150" y="125">B</text>
+  </g>
+
+  <g id="arcc">
+    <desc>Same as arc B except sweep flag = 1 (use the arc drawn in positive
+      [clockwise] direction).</desc>
+    <path d="M 125,75 A 100,50, 0, 0, 1 225,125" class="s2_blue" />
+    <text x="150" y="73">C</text>
+  </g>
+
+  <g id="arcd">
+    <desc>Same as arc B except large arc flag = 1 (use the "big" segment, the
+      one that is equal or greater to 180 degrees of arc).</desc>
+    <path d="M 125,75 A 100,50, 0, 1, 0 225,125" class="s2_green" />
+    <text x="27" y="160">D</text>
+  </g>
+
+  <g id="arce">
+    <desc>Same as arc B except sweep flag = 1 (clockwise) and large arc flag
+      = 1 (bigger)</desc>
+    <path d="M 125,75 A 100,50, 0, 1, 1 225,125" class="s2_orange" />
+    <text x="240" y="20">E</text>
+  </g>
+
+  <g id="pointα">
+    <desc>The "move to" point in initial set of examples.</desc>
+    <circle cx="125" cy="75" r="3" class="f_red" />
+    <text x="116" y="70">α</text>
+  </g>
+  <g id="pointβ">
+    <desc>The "draw to" point in initial set of examples.</desc>
+    <circle cx="225" cy="125" r="3" class="f_red" />
+    <text x="230" y="137">β</text>
+  </g>
+
+  <!-- Drawing a yin-yang using ellipses and arcs. -->
+  <g id="yinyang">
+    <desc>Combine ellipse and arc shapes to make a yin-yang.</desc>
+
+    <g id="graydrop">
+      <desc>gray drop shadow</desc>
+      <ellipse cx="154" cy="154" rx="150" ry="120" class="f_gray" />
+      <line x1="248" y1="248" x2="260" y2="260" class="s1_trans" />
+      <text x="264" y="268">drop</text>
+      <text x="264" y="280">shadow</text>
+      <text x="264" y="292">ellipse</text>
+    </g>
+    <g id="blueellipse">
+      <desc>light skyblue ellipse</desc>
+      <ellipse cx="152" cy="152" rx="150" ry="120" class="f_skyblue" />
+      <line x1="32" y1="224" x2="18" y2="240" class="s1_trans" />
+      <text x="0" y="248">blue</text>
+      <text x="0" y="260">ellipse</text>
+    </g>
+    <g id="pinksemi">
+      <desc>filled pink semicircle and filled small pink semicircle</desc>
+      <path d="M 302 152
+               A 150 120, 0, 1, 0, 2 152
+               A 75 60, 0, 1, 0, 152 152" class="f_pink" />
+      <text x="100" y="75">big red semi</text>
+      <text x="45" y="180">little red semi</text>
+    </g>
+    <g id="bluesemi">
+      <desc>filled small skyblue semicircle</desc>
+      <path d="M 152 152
+               A 75 60, 0, 1, 1, 302 152" class="f_skyblue" />
+      <text x="185" y="130">little blue semi</text>
+    </g>
+    <g id="centerdot">
+      <desc>center of the skyblue ellipse</desc>
+      <circle cx="152" cy="152" r="3" class="f_red" />
+    </g>
+    <g id="centerline">
+      <desc>border for the semi-circles</desc>
+      <line x1="2" y1="152" x2="302" y2="152" class="s1_trans" />
+    </g>
+  <!-- end yinyang-->
+  </g>
+    <!-- The SVG approach to arcs is slightly eccentric in that it treats them
+      as line segments rather than defining a centerpoint, radius, start angle
+      and arc-extent.  This is because the SVG arc is designed assuming in most
+      case it needs to be part of a larger PATH and have specific endponts,
+      not just be a "standalone" object where it may be difficult to know where
+      the line segment starts and ends.
+
+      Converting from a "center-and-angles" spec to the SVG-style "endpoint-and-
+      sweep" is not hard. This algorithm is shown below. Going the other way, as
+      I have guessed, is harder math. Appendix F of the SVG Essentials book
+      covers it, as does the SVG specification from W3C.
+    -->
+    <g id="hemisamples">
+      <desc>Collection of arcs showing algorithm to convert center-and-angles
+        to endpoint-and-sweep.</desc>
+
+      <g id="baseellipse">
+        <desc>Assume an ellipse with cx="cx" cy="cy" rx="rx" ry="ry"</desc>
+        <ellipse cx="200" cy="100" rx="170" ry="70" class="s8_black f_none" />
+      </g>
+
+      <g id="northern_hemi">
+        <desc>d="M (cx - rx) cy [M (200-170) 100]
+                 A rx ry, 0, 1, 1, (cx + rx) cy
+                 [A 170 70, 0, 1, 1, (200 + 170) 100]"</desc>
+        <path d="M 30 100 A 170 70, 0, 1, 1, 370 100" class="s2_red" />
+      </g>
+      <g id="southern_hemi">
+        <desc>d="M (cx - rx) cy [M (200-170) 100]
+                 A rx ry, 0, 1, 0, (cx + rx) cy
+                 [A 170 70, 0, 1, 0, (200 + 170) 100]"</desc>
+        <path d="M 30 100 A 170 70, 0, 1, 0, 370 100" class="s2_blue" />
+      </g>
+
+      <g transform="translate(0, 150)">
+        <use xlink:href="#baseellipse" />
+
+        <g id="eastern_hemi">
+          <desc>d="M cx (cy - ry) [M 200 (100-70)]
+                   A rx ry, 0, 1, 1, cx (cy + ry)
+                   [A 170 70, 0, 1, 1, 200 (100 + 70)]"</desc>
+          <path d="M 200 30 A 170 70, 0, 1, 1, 200 170" class="s2_green" />
+        </g>
+        <g id="western_hemi">
+          <desc>d="M cx (cy - ry) [M 200 (100-70)]
+                   A rx ry, 0, 1, 0, cx (cy + ry)
+                   [A 170 70, 0, 1, 1, 200 (100 + 70)]"</desc>
+          <path d="M 200 30 A 170 70, 0, 1, 0, 200 170" class="s2_orange" />
+        </g>
+      </g>
+
+    </g>
+  </defs>
+
+<g transform="translate(0, 250)">
+  <use xlink:href="#arcb" />
+  <use xlink:href="#arcc" />
+  <use xlink:href="#arcd" />
+  <use xlink:href="#arce" />
+  <use xlink:href="#pointα" />
+  <use xlink:href="#pointβ" />
+</g>
+
+<g transform="translate(420, 150)">
+  <use xlink:href="#yinyang" />
+</g>
+
+<g transform="translate(30, 420)">
+  <use xlink:href="#hemisamples" />
+</g>
+
+</svg>

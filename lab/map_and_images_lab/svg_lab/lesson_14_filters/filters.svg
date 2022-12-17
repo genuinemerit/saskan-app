@@ -1,0 +1,392 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file starts the lessons on Filters in SVG.
+
+Concepts:
+  Filter effects are the kind of thing more commonly associated with bitmap
+  editors. Think of all the "GIMP-fu" kinds of filters. Applying "filter" to an
+  SVG object renders it into a temporary bitmap, applies the filter, then
+  renders the final object.  The final result can vary a good bit depending
+  on resolution and so forth.
+
+  General advice:
+    1) Use filters judiciously. Don't overdo it.
+    2) Experiment with the filter before using it.
+       An ugly filter is worse than no filter.
+-->
+<svg width="1200" height="1400" viewbox="0 0 1200 1400"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="filters.css" rel="stylesheet" type="text/css"/>
+  <title>Filters</title>
+  <desc>Filter effects in SVG</desc>
+
+  <!-- Define -->
+  <defs>
+
+    <!-- Components of the flower -->
+    <g id="pistil">
+      <circle cx="80" cy="80" r="15" class="s_none f_gray" />
+    </g>
+    <g id="stem">
+      <path d="M 95 95 Q 225 185, 175 240 T 135 285"
+            class="s_greenforest sw_5 f_none" />
+    </g>
+    <g id="leaf">
+      <path d="M 175 170 Q 217 120, 260 150
+                         Q 217 150, 185 180"
+            class="s_none f_greenforest" />
+    </g>
+    <g id="petal">
+      <path d="M 72,72 A 45,45, 0, 0, 0, 20,20
+                       A 45,45, 0, 0, 0, 70,70"
+            class="s_black sw_05 f_yellow" />
+    </g>
+
+    <g id="flower" transform="scale(0.75)">
+      <desc>Basic vector graphic: a flower</desc>
+      <use xlink:href="#pistil" />
+      <use xlink:href="#stem" />
+      <use xlink:href="#leaf" />
+      <use xlink:href="#petal" />
+      <use xlink:href="#petal" transform="rotate(23, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(67, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(112, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(158, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(202, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(248, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(270, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(292, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(338, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(45, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(90, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(135, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(180, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(225, 80, 80)"/>
+      <use xlink:href="#petal" transform="rotate(315, 80, 80)"/>
+    </g>
+
+    <g id="flowerText">
+      <desc>Basic text to go with the flower</desc>
+      <text x="0" y="0" class="ff_sans fs_18 s_none f_turquoise">
+          <tspan>Spring</tspan>
+          <tspan x="0" dy="30">Flower</tspan>
+      </text>
+    </g>
+
+    <!-- Unlike "clipPath", default units for "filter" are "objectBoundingBox".
+      To override with user coordinates, set "filterUnits" to "userSpaceOnUse".
+      A "filter" creates a clipping region as pct or factor of the filtered
+       object's bounding box. Default values are:
+            x: -0.1 y: -0.1  width: 1.2 height: 1.2
+       in order to make room for extending the object for shadows and such.
+
+      Filter primitives are used inside of "filter".
+      For filter primitives, "primitiveUnits" has local coord units as default.
+      Using bounding box coordinates has to be set.
+     -->
+     <filter id="drop-shadow_1">
+       <desc>A gaussian blur that produce a drop shadow object.</desc>
+       <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+     </filter>
+     <!-- A more robust filter chains things together:
+         1) "result" is valued for the duration of the primitives.
+         2) "feOffset" provides relative offset and result for that.
+         3) "feMerge" encloses "feMergeNode" objects
+         "SourceGraphic" is generic input. This chained shadow can be applied
+         to any image.
+      -->>
+      <filter id="drop-shadow_2">
+        <desc>Chained gaussian blur plus offset for drop shadow.</desc>
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+        <feOffset in="blur" dx="3" dy="3" result="offsetBlur" />
+        <feMerge>
+            <desc>Layer blur in first then render source graphic.</desc>
+            <feMergeNode in="offsetBlur" />
+            <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+      <!-- "feColorMatrix" modifies any color or alpha of a pixel.
+        Its "matrix" form uses a series of 20 numbers: 4 rows of 5 numbers.
+        Rows represent red, green, blue and alpha.
+        Columns are multipled by input pixels R,G,B,A and the constant 1, then
+        summed to get the output value.
+
+        For transforms to paint all opaque areas the same color, just set the
+        alpha values in each row. In this example, green and blue alpha are
+        set to 0.9 and, well, I am not sure but I guess the 1 in the alpha
+        column in the alpha row is what we want.  This combination produces the
+        cyan or turquoise color that we want, closely matching the text color
+        but with a high alpha value so it is much more "diffused".
+
+        The values of the color matrix can also be adjusted using attributes:
+          hueRotate: "rotate" colors values by a number of degrees (?)
+          See: http://oreillymedia.github.io/svg-essentials-examples/
+                  ch11/hue_rotate.html
+          saturate:  range 0..1, the smaller, the more "washed out"
+          See: http://oreillymedia.github.io/svg-essentials-examples/
+                  ch11/saturate.html
+          luminanceToAlpha: translate luminance to an alpha value
+      -->
+      <filter id="cyan-glow">
+        <desc>A color matrix changes color values.</desc>
+        <!-- No "in" or "result" settings.  Output of color matrix is implicit
+          input into the next filter primitive, in this case the blur. -->
+        <feColorMatrix type="matrix"
+                values="0 0 0 0   0
+                        0 0 0 0.9 0
+                        0 0 0 0.9 0
+                        0 0 0 1   0" />
+        <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+        <!-- Not using offset because we want a generalized "glow" effect
+            around the text, not a drop shadow. -->
+        <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+
+      <!-- feImage uses an image as input to a filter. Alogn with using a
+           full image file, can also use a URL to an SVG fragment, although
+           that is not yet suppoted in Mozilla Firefox. -->
+      <filter id="skyshadow" filterUnits="objectBoundingBox">
+        <desc>Sizing an image as a background</desc>
+        <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                 x="-5" y="-5" width="90%" height="90%"
+                 preserveAspectRatio="none"/>
+        <!-- Applying the drop shadow a second time here. Could also just
+             apply the image filter against an already filtered object.
+             Using a double-drop-shadow against a background image gives
+             a pretty strong 3D effect. -->
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+        <feOffset in="blur" dx="3" dy="3" result="offsetBlur" />
+        <feMerge>
+          <feMergeNode in="sky" />
+          <feMergeNode in="offsetBlur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+      <!-- That discussion on color matrix was a little mind-boggling, yeah?
+           A more straightforward way of managing luminance (brightness)
+           is the feComponentTransfer filter. It is an easier way to manage
+           each color channel (Component). Adjust red, green, blue and
+           alpha using: feFuncR, feFuncG, feFuncB and feFuncA elements in the
+           feComponentTransfer filter.
+           Brightness (luminance) control is simulated using the "linear"
+           function = slope * C + intercept.  "intercept" is a "base value";
+           for result; "slope" is scaling factor; "C" is color value.  Not
+           sure what all that means - basically a "linear" transform adds and
+           multiplies the same amount to every color value in a channel.
+           See: http://oreillymedia.github.io/svg-essentials-examples/
+                   ch11/linear_transfer.html
+         -->
+      <filter id="brighterSky" filterUnits="objectBoundingBox">
+        <desc>Modifying brightness of the background</desc>
+        <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                 x="-5" y="-5" width="90%" height="90%"
+                 preserveAspectRatio="none"/>
+        <feComponentTransfer in="sky" result="sky">
+          <feFuncB type="linear" slope="3" intercept="0" />
+          <feFuncR type="linear" slope="1.5" intercept="0.2" />
+          <feFuncG type="linear" slope="1.5" intercept="0.2" />
+        </feComponentTransfer>
+        <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+        <feOffset in="blur" dx="3" dy="3" result="offsetBlur" />
+        <feMerge>
+          <feMergeNode in="sky" />
+          <feMergeNode in="offsetBlur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+      <!-- A "gamma" transform uses the formula: amplitude * c^exponent +
+          offset.  Offset is the "base value"; amplitude is scaling factor;
+          exponent makes the result "curved". The upshot is that brightness
+          is modified AND so is contrast.
+          See: http://oreillymedia.github.io/svg-essentials-examples/
+                  ch11/gamma_transfer.html
+          By the way, any color value greate than 1.0 gets set to 1.0.
+        -->
+       <filter id="contrastSky" filterUnits="objectBoundingBox">
+         <desc>Modifying brightness and contrast of the background</desc>
+         <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                  x="-5" y="-5" width="90%" height="90%"
+                  preserveAspectRatio="none"/>
+         <feComponentTransfer in="sky" result="sky">
+           <feFuncB type="gamma" amplitude="1" exponent="0.2" offset="0" />
+           <feFuncR type="gamma" amplitude="1" exponent="0.707" offset="0" />
+           <feFuncG type="gamma" amplitude="1" exponent="0.707" offset="0" />
+         </feComponentTransfer>
+         <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+         <feOffset in="blur" dx="3" dy="3" result="offsetBlur" />
+         <feMerge>
+           <feMergeNode in="sky" />
+           <feMergeNode in="offsetBlur" />
+           <feMergeNode in="SourceGraphic" />
+         </feMerge>
+       </filter>
+       <!-- There are more "transfers" that can be used with feComponentT..
+           identity, table, and discrete. And all can be mixed/matched.
+           Also check out the color-interpolation values, which come into
+           play when using gradients with filters. There are two RGB "spaces"
+           to select from: "linearRGB" (the default) and "sRGB" (which it
+           seems is the one you would usually want to use in a filter).  -->
+
+      <!-- The feComposite filter is kind of an alternative to feMergeNode.
+           It takes an "operator" (over, in, out, atop, xor, arithmetic)
+           and two input object attributes, "in" and "in2". feMergeNode is
+           actually a shortcut to feComposite with operator = "over", with
+           the added feature that you can layers multiple (more than 2) items
+           whereas feComposite assumes 2 objects. -->
+      <filter id="sky_under" filterUnits="objectBoundingBox">
+        <desc>The "in" object is layered over the "in2" object.</desc>
+        <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                 x="-5" y="-5" width="90%" height="90%"
+                 preserveAspectRatio="none"/>
+        <feComposite in="SourceGraphic" in2="sky" operator="over" />
+      </filter>
+      <filter id="sky_in" filterUnits="objectBoundingBox">
+         <desc>The "in" object is inside the "in2" shape.</desc>
+         <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                  x="-5" y="-5" width="90%" height="90%"
+                  preserveAspectRatio="none"/>
+         <feComposite in="sky" in2="SourceGraphic" operator="in" />
+      </filter>
+      <filter id="sky_cutout" filterUnits="objectBoundingBox">
+         <desc>The "in2" is cut out of the "in" shape.</desc>
+         <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                  x="-5" y="-5" width="90%" height="90%"
+                  preserveAspectRatio="none"/>
+         <feComposite in="sky" in2="SourceGraphic" operator="out" />
+      </filter>
+      <filter id="sky_bottom" filterUnits="objectBoundingBox">
+         <!-- Seems to be the same as "over" or "out" depending on in / in2 -->
+         <desc>The "in" object is layered atop the "in2" object.</desc>
+         <feImage xlink:href="cloud-fluffy-lamb.jpg" result="sky"
+                  x="-5" y="-5" width="90%" height="90%"
+                  preserveAspectRatio="none"/>
+         <feComposite in="SourceGraphic" in2="sky" operator="atop" />
+         <!-- <feComposite in="sky" in2="SourceGraphic" operator="atop" /> -->
+      </filter>
+
+      <!-- Filtered objects -->
+      <g id="flowershadow1">
+        <desc>The drop shadow created using gaussian blur.</desc>
+        <use xlink:href="#flower" filter="url(#drop-shadow_1)" />
+      </g>
+      <g id="flowershadow2">
+        <desc>Chained drop shadow under original vector graphic object.</desc>
+        <use xlink:href="#flower" filter="url(#drop-shadow_2)" />
+      </g>
+      <g id="flowerTextShadow">
+        <desc>The drop shadow doesn't look as impressive under text.</desc>
+        <use xlink:href="#flowerText" filter="url(#drop-shadow_2)" />
+      </g>
+      <g id="flowerTextBlur">
+        <desc>Matrixed cyan color glows nicely around the text.</desc>
+        <use xlink:href="#flowerText" filter="url(#cyan-glow)" />
+      </g>
+      <g id="flowerSky">
+        <desc>Image filter provides a right-sized background.
+              Apply drop chained drop shadow using skyshadow only. </desc>
+        <use xlink:href="#flower" filter="url(#skyshadow)" />
+      </g>
+      <g id="flowerSkyDoubleShadow">
+        <desc>Image filter provides a right-sized background.
+              Apply drop chained drop shadow twice. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#skyshadow)" />
+      </g>
+      <g id="flowerSkyBrighter">
+        <desc>Component Transfer linear filter brightens background. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#brighterSky)" />
+      </g>
+      <g id="flowerSkyContrast">
+        <desc>Component Transfer gamma filter contrasts background. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#contrastSky)" />
+      </g>
+      <g id="flowerSkyUnder">
+        <desc>Composite in using "over" operator. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#sky_under)" />
+      </g>
+      <g id="flowerSkyIn">
+        <desc>Composite in using "in" operator. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#sky_in)" />
+      </g>
+      <g id="flowerSkyOut">
+        <desc>Composite in using "out" operator. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#sky_cutout)" />
+      </g>
+      <g id="flowerSkyBottom">
+        <desc>Composite in using "atop" operator. </desc>
+        <use xlink:href="#flowershadow2" filter="url(#sky_bottom)" />
+      </g>
+
+  </defs>
+
+  <!-- Rendered items -->
+  <g transform="translate(20, 20)">
+    <desc>The basic vector graphic.</desc>
+    <use xlink:href="#flower" />
+  </g>
+  <g transform="translate(40, 180)">
+    <use xlink:href="#flowerText" />
+  </g>
+
+  <g transform="translate(200, 20)">
+    <use xlink:href="#flowershadow1" />
+  </g>
+
+  <g transform="translate(400, 20)">
+    <desc>Drop shadow plus original vector graphic object.</desc>
+    <use xlink:href="#flowershadow1" transform="translate(3, 3)" />
+    <use xlink:href="#flower" />
+  </g>
+
+  <g transform="translate(600, 20)">
+    <use xlink:href="#flowershadow2" />
+  </g>
+
+  <g transform="translate(20, 260)">
+    <use xlink:href="#flowershadow2" />
+  </g>
+  <g transform="translate(40, 420)">
+    <use xlink:href="#flowerTextShadow" />
+  </g>
+
+  <g transform="translate(200, 260)">
+    <use xlink:href="#flowershadow2" />
+  </g>
+  <g transform="translate(220, 420)">
+    <use xlink:href="#flowerTextBlur" />
+  </g>
+
+  <g transform="translate(405, 265)">
+    <use xlink:href="#flowerSky" />
+  </g>
+  <g transform="translate(645, 265)">
+    <use xlink:href="#flowerSkyDoubleShadow" />
+  </g>
+
+  <g transform="translate(25, 525)">
+    <use xlink:href="#flowerSkyBrighter" />
+  </g>
+  <g transform="translate(255, 525)">
+    <use xlink:href="#flowerSkyContrast" />
+  </g>
+  <g transform="translate(485, 525)">
+    <use xlink:href="#flowerSkyUnder" />
+  </g>
+  <g transform="translate(725, 525)">
+    <use xlink:href="#flowerSkyIn" />
+  </g>
+
+  <g transform="translate(25, 800)">
+    <use xlink:href="#flowerSkyOut" />
+  </g>
+    <g transform="translate(255, 800)">
+      <use xlink:href="#flowerSkyBottom" />
+    </g>
+
+
+
+</svg>

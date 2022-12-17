@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="sketch.css" type="text/css" ?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- We have included ^^ an external stylesheet within this SVG/XML file. -->
+<svg width="100" height="50" viewbox="0 0 100 50"
+  xmlns="http://www.w3.org/2000/svg">
+  <title>Samples</title>
+  <desc>Using external CSS in an SVG file</desc>
+   <circle class="bluegreen" cx="25" cy="25" r="23" />
+   <circle class="orangeyellow" cx="75" cy="25" r="23" />
+</svg>

@@ -1,0 +1,381 @@
+<?xml version="1.0"?>
+<!-- <?xml-stylesheet href="paths.css" type="text/css" ?> -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- This file continues the lesssons on patterns and gradients.
+
+  Like patterns and markers, there are special tags for defiing gradients:
+  linearGradient and radialGradient. And within those we use the "stop"
+  attribute to define gradient stops. We reference them in graphic objects as
+  fill, as we did with pattern.
+
+  Summary of Path commmands:
+    M m   x y     Move to
+    L l   x y     Draw line to (polyline available)
+    H h   x       Draw horiz line to
+    V v   y       Draw vert line to
+    A a   rx ry x-rotate large-arc sweep x y     Elliptical arc
+    Q q   x1 y1 x y   Quadratic bezier (control, end-point)
+    T t   x y         Quadratic bezier extension (end-point)
+    C c   x1 y1 x2 y2 x y     Cubic bezier (ctl-1, ctl-2, end point)
+    S s   x2 y2 x y           Cubic bezier extension (ctl-4, end point)
+    Z             Explicit line close instruction
+-->
+<svg width="800" height="1000" viewbox="0 0 800 1000"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <xhtml:link href="gradients.css" rel="stylesheet" type="text/css"/>
+  <title>Patterns and Gradients</title>
+  <desc>Basic methods for SVG Patterns and Gradients</desc>
+
+  <!-- Define -->
+  <defs>
+    <g id="rect_grad">
+      <desc>Rect to demonstrate horizontal linear gradients</desc>
+      <rect x="0" y="0" width="200" height="100" class="s_black" />
+    </g>
+    <!-- Stop offset is the point along a line at which the color should be
+       equal to stop-color. Can use either percents or factors from 0 to
+       1.0. stop-color can be specified either as its own attribute or as
+       a style. -->
+    <linearGradient id="gold_cyan">
+      <desc>Linear transition from goldish to blueish</desc>
+      <stop offset="0%" class="stop_gold" />
+      <stop offset="100%" stop-color="#0099cc" />
+    </linearGradient>
+    <!-- We can also set an opacity level as part of gradients.  This
+     example uses a single color with three stops at opacity settings. -->
+    <linearGradient id="ruby_fade">
+       <desc>3-stop transition from opaque to transparent</desc>
+       <stop offset="0%" class="stop_ruby" style="stop-opacity: 1.0" />
+       <stop offset="50%" class="stop_ruby" style="stop-opacity: 0.3" />
+       <stop offset="100%" class="stop_ruby" style="stop-opacity: 0.02" />
+    </linearGradient>
+
+    <g id="rect_gold_cyan">
+      <desc>Example of horizontal linear gradient with two colors</desc>
+      <use xlink:href="#rect_grad" style="fill: url(#gold_cyan)" />
+      <text x="20" y="115">offsets:0%,100%; 2 colors</text>
+    </g>
+    <g id="rect_ruby_fade">
+      <desc>Example of opacity gradient with one color</desc>
+      <use xlink:href="#rect_grad" style="fill: url(#ruby_fade)" />
+      <text x="-10" y="115">offsets:0%,50%,100%; 1 color; 3 opacities</text>
+    </g>
+
+    <!-- To make vertical or angled gradients, we provide (x1,y1) and (x2,y2)
+      _as percentages_ to define vector along which the gradient should flow,
+      as part of the gradient definition. In this example, we nest a 3-stop
+      color gradient in other gradients defining various lines. Note that we
+      use xlink:href as an attribute; it doesn't have to be in a "use".
+      When a percent for the gradient line is zero; it means, basically,
+     "from the edge" and 100% means "to the edge".
+
+      Similar with patterns, set gradientUnits to "userSpaceOnUse" instead of
+      default "objectBoundngBox" if you want to establish transition line
+      using container rather than gradient object coordinate system.  -->
+    <linearGradient id="gpl">
+      <stop offset="0%" class="stop_gold" />
+      <stop offset="33.33%" class="stop_pink" />
+      <stop offset="100%" class="stop_lime" />
+    </linearGradient>
+    <linearGradient id="RtoL_gpl" xlink:href="#gpl"
+                    x1="100%" y1="0%" x2="0%" y2="0%" />
+    <linearGradient id="down_gpl" xlink:href="#gpl"
+                    x1="0%" y1="0%" x2="0%" y2="100%" />
+    <linearGradient id="up_gpl" xlink:href="#gpl"
+                    x1="0%" y1="100%" x2="0%" y2="0%" />
+    <linearGradient id="diag1_gpl" xlink:href="#gpl"
+                    x1="0%" y1="0%" x2="100%" y2="100%" />
+    <linearGradient id="diag2_gpl" xlink:href="#gpl"
+                    x1="100%" y1="0%" x2="0%" y2="100%" />
+    <linearGradient id="diag3_gpl" xlink:href="#gpl"
+                    x1="100%" y1="100%" x2="0%" y2="0%" />
+    <marker id="mStart" markerWidth="4" markerHeight="4" refX="3" refY="3">
+      <desc>Transparent blue circle marker</desc>
+      <circle cx="3" cy="3" r="2" class="f_bluetrans s_none" />
+    </marker>
+    <marker id="mEnd" markerWidth="5" markerHeight="10" refX="5" refY="5"
+            orient="auto">
+      <desc>Transparent blue triangle marker</desc>
+      <path d="M 0 0, 5 5, 0 10" class="f_bluetrans s_none" />
+    </marker>
+    <g id="rect_gpl01">
+      <use xlink:href="#rect_grad" style="fill: url(#gpl)" />
+      <line x1="0" y1="50" x2="200" y2="50" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="40" y="115">default, left to right</text>
+    </g>
+    <g id="rect_gpl02">
+      <use xlink:href="#rect_grad" style="fill: url(#RtoL_gpl)" />
+      <line x1="200" y1="50" x2="0" y2="50" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="50" y="115">right to left</text>
+    </g>
+    <g id="rect_gpl03">
+      <use xlink:href="#rect_grad" style="fill: url(#down_gpl)" />
+      <line x1="100" y1="0" x2="100" y2="100" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="50" y="115">top to bottom</text>
+    </g>
+    <g id="rect_gpl04">
+      <use xlink:href="#rect_grad" style="fill: url(#up_gpl)" />
+      <line x1="100" y1="100" x2="100" y2="0" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="50" y="115">bottom to top</text>
+    </g>
+    <g id="rect_gpl05">
+      <use xlink:href="#rect_grad" style="fill: url(#diag1_gpl)" />
+      <line x1="0" y1="0" x2="200" y2="100" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="10" y="115">diagonal top-left to bottom-right</text>
+    </g>
+    <g id="rect_gpl06">
+      <use xlink:href="#rect_grad" style="fill: url(#diag2_gpl)" />
+      <line x1="200" y1="0" x2="0" y2="100" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="10" y="115">diagonal top-right to bottom-left</text>
+    </g>
+    <g id="rect_gpl07">
+      <use xlink:href="#rect_grad" style="fill: url(#diag3_gpl)" />
+      <line x1="200" y1="100" x2="0" y2="0" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="10" y="115">diagonal bottom-right to top-left</text>
+    </g>
+
+    <!-- The spreadMethod is used when the gradient transition line
+      is inside the 0..100 range. It specifies what to do with the color
+      outside of the grandient range.  Default is "pad".
+          pad:      extend begin/end stops to edges
+          repeat:   repeat gradient until it reaches the edges
+          reflect:  reflect gradient until it reaches the edges
+      Examples... -->
+    <linearGradient id="partial"
+      x1=".2" y1=".3" x2=".4" y2=".8">
+      <stop offset=".0" class="stop_gold" />
+      <stop offset=".3333" class="stop_pink" />
+      <stop offset="1.0" class="stop_lime" />
+    </linearGradient>
+    <linearGradient id="pad" xlink:href="#partial" spreadMethod="pad" />
+    <linearGradient id="repeat" xlink:href="#partial" spreadMethod="repeat" />
+    <linearGradient id="reflect" xlink:href="#partial" spreadMethod="reflect" />
+    <g id="mDiag">
+      <title>Marker Line</title>
+      <line x1="20" y1="30" x2="40" y2="80" class="s_white sw_1"
+          style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+    </g>
+    <g id="square">
+      <rect x="0" y="0" width="100" height="100" class="s_black sw_05" />
+    </g>
+    <g id="square_diag">
+      <use xlink:href="#square" />
+      <use xlink:href="#mDiag" />
+      <text x="0" y="115">(20,30 .. 40,80)</text>
+    </g>
+    <g id="square_partial">
+      <use xlink:href="#square_diag" style="fill: url(#partial);" />
+      <text x="0" y="130">default spreadMethod</text>
+    </g>
+    <g id="square_pad">
+      <use xlink:href="#square_diag" style="fill: url(#pad);" />
+      <text x="0" y="130">spreadMethod=pad</text>
+    </g>
+    <g id="square_repeat">
+      <use xlink:href="#square_diag" style="fill: url(#repeat);" />
+      <text x="0" y="130">spreadMethod=repeat</text>
+    </g>
+    <g id="square_reflect">
+      <use xlink:href="#square_diag" style="fill: url(#reflect);" />
+      <text x="0" y="130">spreadMethod=reflect</text>
+    </g>
+
+    <!-- The radialGradient works in much the same way as linearGradient,
+     except that it creates gradients that radiate outward in a circular
+     pattern from a focal point.-->
+    <radialGradient id="slr">
+      <stop offset=".0" class="stop_salmon" />
+      <stop offset=".5" class="stop_lime2" />
+      <stop offset="1.0" class="stop_ruby" />
+    </radialGradient>
+    <g id="square_radial">
+      <use xlink:href="#square" style="fill: url(#slr);" />
+      <line x1="50" y1="50" x2="0" y2="0" class="s_white sw_1"
+         style="marker-end: url(#mEnd);" />
+      <line x1="50" y1="50" x2="100" y2="100" class="s_white sw_1"
+         style="marker-end: url(#mEnd);" />
+      <line x1="50" y1="50" x2="0" y2="100" class="s_white sw_1"
+         style="marker-end: url(#mEnd);" />
+      <line x1="50" y1="50" x2="100" y2="0" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="0" y="115">(0..50..100) radial</text>
+      <text x="0" y="130">cx, cy=(default)</text>
+      <text x="0" y="145">focal point: (50,50)</text>
+    </g>
+
+    <!-- Transition limit for radialGradients is set for the outerbound only
+     using circle attributes in the radialGradient tag. We can easily
+     adjust the focal point and the "stretchiness" or "extent" of the radial
+     gradient. As with the transition lines for linear gradients, the values
+     are expressed as percents or factors. The defaults are:
+        cx = center of bounding box (50%)
+        cy = center of bounding box (50%)
+         r = half width/ehight of bounding box (50%)
+        fx = cx
+        fy = cy -->
+    <radialGradient id="slr_off1" xlink:href="#slr"
+        cx="0%" cy="0%" r="141%" />
+    <radialGradient id="slr_off2" xlink:href="#slr"
+        cx="0%" cy="0%" r="100%" />
+    <!-- The focal point refers to where the radial is centered in relation to
+      to the containg graphic object. Above and in following example, the
+      focal point is set implicitly, not explicitly. -->
+    <g id="radial_off1">
+      <use xlink:href="#square" style="fill: url(#slr_off1);" />
+      <line x1="0" y1="0" x2="141" y2="141" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="0" y="115">cx, cy=(0,0)</text>
+      <text x="0" y="130">focal point: (0,0)</text>
+      <text x="0" y="145">radius=141%</text>
+      <text x="0" y="160">1.41=</text>
+      <text x="34" y="160" style="font-size: 10pt;">√</text>
+      <text x="41" y="160" style="text-decoration: overline;">2</text>
+      <text x="50" y="160"> = the</text>
+      <text x="0" y="175">ratio of a diagonal</text>
+      <text x="0" y="190">to sides of a square</text>
+    </g>
+    <g id="radial_off2">
+      <use xlink:href="#square" style="fill: url(#slr_off2);" />
+      <line x1="0" y1="0" x2="100" y2="100" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="0" y="115">cx, cy=(0,0)</text>
+      <text x="0" y="130">focal point: (0,0)</text>
+      <text x="0" y="145">radius=100%</text>
+    </g>
+    <!-- The focal point can be set explicitly using fx and fy in the
+      radialGradient as attributes. This has the effect of "shifting the
+      center of gravity" in relationship to cx and cy. These are also
+      expressed as percentages or factors. -->
+    <radialGradient id="slr_off3" xlink:href="#slr"
+        cx="0%" cy="0%" r="100%" fx="50%" fy="50%" />
+    <radialGradient id="slr_off4" xlink:href="#slr"
+        cx="0" cy="0" r="1.41" fx=".5" fy=".5" />
+    <g id="radial_off3">
+      <use xlink:href="#square" style="fill: url(#slr_off3);" />
+      <line x1="0" y1="0" x2="100" y2="100" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="0" y="115">cx, cy=(0,0)</text>
+      <text x="0" y="130">fx=50%, fy=50%</text>
+      <text x="0" y="145">focal point: (0,0)+(50,50)</text>
+      <text x="0" y="160">radius=100%</text>
+    </g>
+    <g id="radial_off4">
+      <use xlink:href="#square" style="fill: url(#slr_off4);" />
+      <line x1="0" y1="0" x2="141" y2="141" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <text x="0" y="115">cx, cy=(0,0)</text>
+      <text x="0" y="130">fx=50%, fy=50%</text>
+      <text x="0" y="145">focal point: (0,0)+(50,50)</text>
+      <text x="0" y="160">radius=141%</text>
+    </g>
+
+    <!-- Radial gradients support the same spreadMethod values as linear
+     gradients:  pad, repeat, reflect. Default is pad. -->
+   <radialGradient id="slr_pad" xlink:href="#slr" cx="0%" cy="0%" r="70%"
+        spreadMethod="pad" />
+   <radialGradient id="slr_repeat" xlink:href="#slr" cx="0%" cy="0%" r="70%"
+        spreadMethod="repeat" />
+   <radialGradient id="slr_reflect" xlink:href="#slr" cx="0%" cy="0%" r="70%"
+        spreadMethod="reflect" />
+    <g id="rad_trans_text">
+       <text x="0" y="115">cx, cy=(0,0)</text>
+       <text x="0" y="130">radius=70%</text>
+    </g>
+    <g id="radial_pad">
+      <use xlink:href="#square" style="fill: url(#slr_pad);" />
+      <line x1="0" y1="0" x2="70" y2="70" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <use xlink:href="#rad_trans_text" />
+      <text x="0" y="145">spreadMethod=pad</text>
+    </g>
+    <g id="radial_repeat">
+      <use xlink:href="#square" style="fill: url(#slr_repeat);" />
+      <line x1="0" y1="0" x2="70" y2="70" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <use xlink:href="#rad_trans_text" />
+      <text x="0" y="145">spreadMethod=repeat</text>
+    </g>
+    <g id="radial_reflect">
+      <use xlink:href="#square" style="fill: url(#slr_reflect);" />
+      <line x1="0" y1="0" x2="70" y2="70" class="s_white sw_1"
+         style="marker-start: url(#mStart); marker-end: url(#mEnd);" />
+      <use xlink:href="#rad_trans_text" />
+      <text x="0" y="145">spreadMethod=reflect</text>
+    </g>
+
+</defs>
+
+  <!-- Render -->
+  <g transform="translate(5, 5)">
+    <use xlink:href="#rect_gold_cyan"/>
+  </g>
+  <g transform="translate(225, 5)">
+    <use xlink:href="#rect_ruby_fade"/>
+  </g>
+  <g transform="translate(445, 5)">
+    <use xlink:href="#rect_gpl01"/>
+  </g>
+  <g transform="translate(5, 145)">
+    <use xlink:href="#rect_gpl02"/>
+  </g>
+  <g transform="translate(225, 145)">
+    <use xlink:href="#rect_gpl03"/>
+  </g>
+  <g transform="translate(445, 145)">
+    <use xlink:href="#rect_gpl04"/>
+  </g>
+  <g transform="translate(5, 285)">
+    <use xlink:href="#rect_gpl05"/>
+  </g>
+  <g transform="translate(225, 285)">
+    <use xlink:href="#rect_gpl06"/>
+  </g>
+  <g transform="translate(445, 285)">
+    <use xlink:href="#rect_gpl07"/>
+  </g>
+  <g transform="translate(5, 425)">
+    <use xlink:href="#square_partial"/>
+  </g>
+  <g transform="translate(145, 425)">
+    <use xlink:href="#square_pad"/>
+  </g>
+  <g transform="translate(285, 425)">
+    <use xlink:href="#square_repeat"/>
+  </g>
+  <g transform="translate(425, 425)">
+    <use xlink:href="#square_reflect"/>
+  </g>
+  <g transform="translate(5, 575)">
+    <use xlink:href="#square_radial"/>
+  </g>
+  <g transform="translate(165, 575)">
+    <use xlink:href="#radial_off1"/>
+  </g>
+  <g transform="translate(325, 575)">
+    <use xlink:href="#radial_off2"/>
+  </g>
+  <g transform="translate(485, 575)">
+    <use xlink:href="#radial_off3"/>
+  </g>
+  <g transform="translate(645, 575)">
+    <use xlink:href="#radial_off4"/>
+  </g>
+  <g transform="translate(5, 785)">
+    <use xlink:href="#radial_pad"/>
+  </g>
+  <g transform="translate(165, 785)">
+    <use xlink:href="#radial_repeat"/>
+  </g>
+  <g transform="translate(325, 785)">
+    <use xlink:href="#radial_reflect"/>
+  </g>
+</svg>

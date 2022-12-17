@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<!-- This lesson examines the structure and presentation of SVG code, looking
+     at things like styles, grouping, referencing, symbols and images.
+-->
+<html>
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Sketchbook</title>
+  <!-- CSS-type styling for SVG properties works fine. In a .css file, an
+      editor that has a CSS lint program turned on will flag these as
+      possible problems or errors, but it will still work fine. -->
+  <style type="text/css">
+    .yelloworange {
+      fill: yellow;
+      stroke: orange;
+      stroke-width: 1.25;
+      stroke-dasharray: 2 2;
+    }
+  </style>
+  <link href="sketch.css" rel="stylesheet" type="text/css" />
+</head>
+
+<body>
+  <h1>Presentation, Grouping and Referencing</h1>
+
+  <!-- As we have learned, SVG uses a specialized in-line style property.
+      It is possible (and likely preferable in most cases) to use CSS to
+      define SVG styles.  This can be done in an external CSS file, in a
+      "<style>" element with the HTML head, or within an SVG element wrapped
+      with "<defs>" tag, which is how to define but not display stuff within
+      an SVG element. In older browsers or HTML prior to HTML5, the styling
+      inside a "<defs>" also needs to be wrapped with "<![CDATA[..]]>" but
+      thankfully with HTML5 that mess is gone.
+  -->
+
+<!-- =================== BASIC STYLING ==================== -->
+
+<!-- SVG also supports independent attributes for each style property.
+    This is probably the worst way to think about these style properties. -->
+<svg style="border: 0.25px solid rgba(0,0,0,0.1); float: left;"
+   width="50" height="50" viewbox="0 0 100 100">
+   <circle cx="50" cy="50" r="47" stroke="orange" stroke-width="1.5"
+    fill="#43BFC7" fill-opacity="1.6" />
+</svg>
+
+<!-- Inline "style" is still somewhat verbose and WET, but perhaps more
+     "honest".  Using "style" or stylesheets (as below) should always be
+     the first choice. -->
+<svg style="border: 0.25px solid rgba(0,0,0,0.1); float: left;"
+   width="50" height="50" viewbox="0 0 100 100">
+   <circle cx="50" cy="50" r="47" style="stroke: black; stroke-width: 1.5;
+    fill: blue; fill-opacity: 1.6"/>
+</svg>
+
+<!-- The somewhat DRY-er inline defs-method of styling. Here is an important
+  note: There is a PRIORITY to where styles are derived from. The
+  "presentation" style shown above (first example) is at the bottom of the
+  list.  If I were to define a CSS style (using whatever mode) for "circle",
+  rather than a class-level one like I am showing below, then that style will
+  override any "presentation"-level properties. -->
+<svg style="border: 0.25px solid rgba(0,0,0,0.1); float: left;"
+ width="50" height="50" viewbox="0 0 100 100">
+ <defs>
+   <style type="text/css">
+      .blueme {
+        fill: lightblue;
+        stroke: blue;
+        stroke-width: 1.75;
+        stroke-dasharray: 5 3;
+      }
+   </style>
+ </defs>
+ <circle class="blueme" cx="50" cy="50" r="47" />
+</svg>
+
+<!-- Using an external style defined in the HTML document.
+    Just use a regular CSS class. Nice. Getting DRY-er now...
+    although the svg border should probably be externalized too. -->
+<svg style="border: 0.25px solid rgba(0,0,0,0.1); float: left;"
+ width="50" height="50" viewbox="0 0 100 100">
+ <circle class="yelloworange" cx="50" cy="50" r="47" />
+</svg>
+
+<!-- Using an external style defined in the CSS document. -->
+<svg style="border: 0.25px solid rgba(0,0,0,0.1); float: left;"
+width="50" height="50" viewbox="0 0 100 100">
+<circle class="orangeyellow" cx="50" cy="50" r="47" />
+</svg>
+
+<!-- Take a look at the styles.svg file in this lesson folder. It shows how
+  to reference an extenal CSS file from within the SVG document.
+  WHen I display it as an image, the referenced CSS gets lost. -->
+<img src="styles.svg" style="float: left;">
+<!-- But when I display it as an object, the referenced CSS is used.. -->
+<object data="styles.svg" type="image/svg+xml" style="float: left;">
+  <p>Get a newer browser you neanderthal!</p>
+</object>
+
+<!-- =============== ALL ABOUT THE G-SPOT  ============== -->
+
+<!-- Using "title" and "desc" is good practice, especially for hi-level grouped
+  elements.  Will make your graphics more accessible to visually impaired,
+  as well as helping with understanding/documentation. Styles set at the
+  "g" level (either inline or by styling the id) apply to all children.
+  This is another step towards DRY goodness. It is also possible to nest
+  groupings. Conceptually, a "<g>" in SVG is similar to layers in Gimp or
+  Photoshop.  -->
+
+  <!-- Simple example of some g's.  -->
+  <svg style="border: 0.25px solid rgba(0,0,0,0.1); float: left;"
+  width="240" height="600" viewbox="0 0 240 600">
+    <g id="stickfamily" style="fill: none; stroke: black;">
+
+      <title>Grouped Drawing</title>
+      <desc>My stick-house and its stick-family</desc>
+
+      <g id="house" >
+        <desc>House with door</desc>
+        <rect x="6" y="50" width="60" height="60" />         <!-- frame -->
+        <polyline points="6 50, 36 9, 66 50" />              <!-- roof -->
+        <polyline points="36 110, 36 80, 50 80, 50 110" />   <!-- door -->
+      </g>
+
+      <g id="man" >
+        <desc>Male stick-human</desc>
+        <circle cx="85" cy="56" r="10" />             <!-- head -->
+        <line x1="85" y1="66" x2="85" y2="85" />      <!-- torso -->
+        <polyline points="76 70, 85 76, 94 70" />     <!-- arms -->
+        <polyline points="76 104, 85 80, 94 104" />   <!-- legs -->
+      </g>
+
+      <g id="woman" >
+        <desc>Female stick-human</desc>
+        <circle cx="110" cy="56" r="10" />           <!-- head -->
+        <polyline points="110 66, 110 80,
+                  100 90, 120 90, 110 80"
+                  style="stroke-linejoin:round;"/>  <!-- torso and skirt -->
+        <polyline points="101 70, 110 76, 119 70" /> <!-- arms -->
+        <line x1="104" y1="104" x2="108" y2="90" />  <!-- her right leg -->
+        <line x1="112" y1="90" x2="116" y2="104" />  <!-- her left leg -->
+      </g>
+      <!-- I can reference an item within the same SVG and do not need to
+          explicitly identify the xlink namespace.
+          The (x, y) coords on the "use" are effectively MoveTo commands,
+          that is, they show how far to move the referenced object from its
+          original-copy location.
+          They are NOT absolute coordinates of the copied object.  -->
+      <use xlink:href="#house" x="70" y="100" />
+      <use xlink:href="#woman" x="-80" y="100" />
+      <use xlink:href="#man" x="-30" y="100" />
+    </g>
+    <!-- By referencing the elements outside of the containing "g", I lose
+       the style provided at the container level. You can see here why
+       it is necessary to explicity "fill:none" on polylines. To avoid this,
+       I could have done the group-level styling on each sub-group instead of
+       at the uber-group level.  -->
+    <use xlink:href="#house" x="70" y="200" />
+    <use xlink:href="#woman" x="-80" y="200" />
+    <use xlink:href="#man" x="-30" y="200" />
+    <!-- And here is copy of the containing group, which contains both the
+        original drawing and the copy stored within it. -->
+    <use xlink:href="#stickfamily" x="0" y="300" />
+  </svg>
+
+  <!-- =============== THIS IS DEF GETTIN INNERESTIN ============== -->
+
+  <!-- "<defs>" allows us to define objects without displaying them.
+      Really good SVG puts everything in "defs" before rendering it.
+      This is analogous to building up a lib of sprites and widgets before
+      deploying them. After we "def" stuff, then we "use" them. And.. light
+      dawns on marble head... if we set (x y) on the defs to (0 0) then our
+      "use" moves become absolute coordinates.
+    -->
+
+      <!-- Simple example of some g's.  -->
+  <svg style="border: 0.25px solid rgba(0,0,0,0.1);
+    position: absolute; left: 1em; top: 12em;"
+  width="480" height="240" viewbox="0 0 480 240">
+    <title>Stickyville</title>
+    <desc>A grouped drawing using defs</desc>
+    <!-- Us cool cats use defs...-->
+    <defs>
+      <g id="dhouse" style="stroke: black;">
+        <!-- I leave fill set to none in the def -->
+        <desc>House with door</desc>
+        <!-- And I use a (0,0) frame of reference for each object -->
+        <rect x="0" y="41" width="60" height="60" />
+        <polyline points="0 41, 30 0, 60 41" />
+        <polyline points="30 101, 30 71, 44 71, 44 101" />
+      </g>
+
+      <g id="dman" style="fill:none; stroke: black;">
+        <!-- I always want my man to be sticky, so fill him with none. -->
+        <desc>Male stick-human</desc>
+        <!-- And I think in terms of (0,0) top-left origin because I want to
+           be able to easily take my man anywhere. -->
+        <circle cx="10" cy="10" r="10" />
+        <line x1="10" y1="20" x2="10" y2="44" />
+        <polyline points="1 58, 10 44, 19 58" />
+        <polyline points="1 24, 10 30, 19 24" />
+      </g>
+
+      <g id="dwoman" style="fill:none; stroke: black;">
+        <desc>Female stick-human</desc>
+        <circle cx="10" cy="10" r="10" />
+        <polyline points="10 20, 10 34, 0 44, 20 44, 10 34" />
+        <polyline points="1 24, 10 30, 19 24" />
+        <line x1="4" y1="58" x2="8" y2="44" />
+        <line x1="12" y1="44" x2="16" y2="58" />
+      </g>
+
+      <g id="mfcouple">
+        <!-- Still in def, I can define sub-groupings.
+            And I still think in terms of a (0,0) origin when I do... -->
+        <desc>Hetero stick-couple</desc>
+        <use xlink:href="#dman" x="0" y="0" />
+        <use xlink:href="#dwoman" x="25" y="0" />
+      </g>
+
+      <g id="mmcouple">
+        <desc>Gay Male stick-couple</desc>
+        <use xlink:href="#dman" x="0" y="0" />
+        <use xlink:href="#dman" x="25" y="0" />
+      </g>
+
+      <g id="ffcouple">
+        <desc>Gay Female stick-couple</desc>
+        <use xlink:href="#dwoman" x="0" y="0" />
+        <use xlink:href="#dwoman" x="25" y="0" />
+      </g>
+
+    </defs>
+    <!-- And now I can mix and match however I like.  -->
+    <use xlink:href="#dhouse" x="0" y="0" style="fill:#cfc;" />
+    <use xlink:href="#mfcouple" x="70" y="40" />
+
+    <use xlink:href="#dhouse" x="130" y="0" style="fill:pink;" />
+    <use xlink:href="#mmcouple" x="200" y="40" />
+
+    <use xlink:href="#dhouse" x="260" y="0" style="fill:lavender;" />
+    <use xlink:href="#ffcouple" x="330" y="40" />
+
+    <use xlink:href="#dwoman" x="5" y="160" />
+    <use xlink:href="#dman" x="30" y="160" />
+    <use xlink:href="#dman" x="55" y="160" />
+    <use xlink:href="#dhouse" x="95" y="120"
+      style="fill:rgba(255, 153, 0, 0.5);" />
+
+    <use xlink:href="#dman" x="175" y="160" />
+    <use xlink:href="#dwoman" x="200" y="160" />
+    <use xlink:href="#dman" x="225" y="160" />
+    <use xlink:href="#dhouse" x="265" y="120"
+      style="fill:rgba(120, 81, 169, 0.5);" />
+  </svg>
+
+  <!-- It is at least theoretically possible to reference SVG-defined
+     objects in an external file using an href like "myfile.svg#myobject".
+     Results may vary. IE will barf for sure. Others may expect specific
+     configuration at the domain or server level to allow it or to constrain
+     it in various ways, for obvious reasons. -->
+
+<!-- ==== <SYMBOL> OF YOUR DEDICATION IF YOU GOT THIS FAR  ========= -->
+<!-- Not going to bother with an example.  "<symbol>" works just like "<g>",
+   but also preserves a viewbox that is associated specifically with the
+   grouped item or items, including any preserveAspectRatio settings. This
+   is how you carry foward slice & meet logic into a "use".  -->
+
+<!-- ==== <IMAGE>ine YOU CAN DROP PICS INTO YOUR SVG. Well, YOU CAN! ====== -->
+
+<!-- "use" is about reusing portions or elements of an SVG. "image" is about
+   embedding an entire image file of whatever type into an SVG. Most
+   browsers will support JPG, PNG and GIF along with other SVG's.  The
+   embedded image is scaled to fit in the specific target dimensions. Again,
+   it appears that explicitly calling out the xlink namespace is no longer
+   needed, but probably still a good practice? -->
+  <svg style="border: none; position: absolute; left: 3em; top: 27em;"
+  width="360" height="280" viewbox="0 0 360 280">
+    <!-- Nice: A gray ellipse to simulate a drop shadow. Note the thought
+      process about layering. By default, things get rendered/layered in the
+      order they are coded. -->
+    <ellipse cx="154" cy="154" rx="150" ry="120" style="fill: #999;"/>
+    <!-- Main ellipse to frame my image.. -->
+    <ellipse cx="152" cy="152" rx="150" ry="120" style="fill: #cef;"/>
+    <!-- SVG-style Image link, with coords and sizing for the image
+       in relation to my viewbox. -->
+    <image xlink:href="../../../images/angel_icon.png"
+      x="70" y="88" width="168" height="120" />
+  </svg>
+</body>
+
+</html>
