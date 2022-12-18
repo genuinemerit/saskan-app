@@ -15,7 +15,7 @@ import shutil
 
 from os import path, remove, system
 from pathlib import Path
-# from pprint import pprint as pp
+from pprint import pprint as pp
 
 from io_shell import ShellIO       # type: ignore
 
@@ -27,22 +27,100 @@ class FileIO(object):
 
     def __init__(self):
         """Initialize FileIO object."""
-        self.d = self.get_metadata("d_dirs")
-        self.c = self.get_metadata("c_context")
-        self.t = self.get_metadata(f"t_texts_{self.c['lang']}")
-        self.g = self.get_metadata("g_frame")
-        self.g = self.g | self.get_metadata("g_menus")
-        self.g = self.g | self.get_metadata("g_windows")
-        self.g = self.g | self.get_metadata("g_html")
+        self.D = self.get_configs("d_dirs")
+        self.C = self.get_configs("c_context")
+        self.T = self.get_configs(f"t_texts_{self.C['lang']}")
+        self.G = self.get_configs("g_frame")
+        self.G = self.G | self.get_configs("g_menus")
+        self.G = self.G | self.get_configs("g_windows")
+        self.G = self.G | self.get_configs("g_uri")
 
-    def get_log_settings(self) -> dict:
-        """Get logging settings.
+    # Read-only methods
+    # ==============================================================
+    def get_dir(self,
+                p_path: str) -> tuple:
+        """Read a directory and return its contents.
 
-        Returns:
-            (Dict): Logging settings.
+        Args:
+            p_path (str): Legit path to directory location.
+        Return
+            (Tuple): (Status (bool), Message (text or None),
+                      Directory content (List or None))
         """
-        return self.get_metadata("l_log")
+        try:
+            if Path(p_path).exists() and Path(p_path).is_dir():
+                files = [f for f in Path(p_path).iterdir()]
+                return (True, None, files)
+            else:
+                return (False, "not found", None)
+        except Exception as err:
+            return (False, err, None)
 
+    def get_file(self,
+                 p_path: str) -> tuple:
+        """Read in an entire file and return its contents.
+
+        @DEV:
+        - Try changing to aiofiles
+        - Remove return() logic and make this an async function.
+        - Verify success elsewhere.
+
+        Args:
+            p_path (str): Legit path to file location.
+        Return
+            (Tuple): (Status (bool),
+                      Message (text or None),
+                      File content (Text, Bytes or None))
+        """
+        content = None
+        try:
+            if Path(p_path).exists():
+                with open(p_path, "r") as f:
+                    content = f.read().strip()
+                f.close()
+                return (True, None, content)
+            else:
+                return (False, "not found", None)
+        except Exception as err:
+            return (False, err, None)
+
+    def get_configs(self,
+                    p_cfg_nm: str) -> dict:
+        """"Read configuration data...
+        - from shared memory pickle if it exists (full path)
+        - else from app space if it exists (path relative to app PY)
+        - else from git project JSON file  (path relative to git project)
+
+        Returns: (dict) Directory values or exception.
+        """
+        try:
+            self.D
+            self.C
+            self.T
+            self.G['frame']
+            self.G['windows']
+            self.G['menus']
+            self.G['uri']
+            pk_file = path.join(f"{self.D['MEM']}",
+                                f"{self.D['APP']}",
+                                f"{self.D['ADIRS']['NS']}",
+                                f"{self.D['NSDIRS']['CFG']}",
+                                f"{p_cfg_nm}.pickle")
+            _, _, cfg = self.unpickle_object(pk_file)
+        except (AttributeError, KeyError):
+            cfg_file_nm = f"{p_cfg_nm}.json"
+            ok, err, cfg_j =\
+                self.get_file(path.join("../data/config", cfg_file_nm))
+            if not ok:
+                ok, err, cfg_j =\
+                    self.get_file(path.join("config", cfg_file_nm))
+                if not ok:
+                    raise Exception(f"Error reading config file: {err}")
+            cfg = json.loads(cfg_j)
+        return (cfg)
+
+    # CHMOD methods
+    # ==============================================================
     def make_readable(self,
                       p_path: str) -> tuple:
         """Make file at path readable for all.
@@ -103,6 +181,8 @@ class FileIO(object):
         except Exception as err:
             return (False, err)
 
+    # Write methods
+    # ==============================================================
     def make_dir(self,
                  p_path: str) -> tuple:
         """Create directory at specified location.
@@ -201,6 +281,10 @@ class FileIO(object):
 
         Create file if it does not already exist.
 
+        @DEV:
+        - Do away with return and make this an async function.
+        - Use a separate function to check if file exists.
+
         Args:
             p_path (str): Legit path to a file location.
             p_data (str): Text to append to the file.
@@ -214,48 +298,6 @@ class FileIO(object):
         except Exception as err:
             return (False, err)
         return (True, None)
-
-    def get_dir(self,
-                p_path: str) -> tuple:
-        """Read a directory and return its contents.
-
-        Args:
-            p_path (str): Legit path to directory location.
-        Return
-            (Tuple): (Status (bool), Message (text or None),
-                      Directory content (List or None))
-        """
-        try:
-            if Path(p_path).exists() and Path(p_path).is_dir():
-                files = [f for f in Path(p_path).iterdir()]
-                return (True, None, files)
-            else:
-                return (False, "not found", None)
-        except Exception as err:
-            return (False, err, None)
-
-    def get_file(self,
-                 p_path: str) -> tuple:
-        """Read in an entire file and return its contents.
-
-        Args:
-            p_path (str): Legit path to file location.
-        Return
-            (Tuple): (Status (bool),
-                      Message (text or None),
-                      File content (Text, Bytes or None))
-        """
-        content = None
-        try:
-            if Path(p_path).exists():
-                with open(p_path, "r") as f:
-                    content = f.read().strip()
-                f.close()
-                return (True, None, content)
-            else:
-                return (False, "not found", None)
-        except Exception as err:
-            return (False, err, None)
 
     def pickle_object(self,
                       p_path: str,
@@ -298,32 +340,8 @@ class FileIO(object):
             ok = False
         return (ok, msg, obj)
 
-    def get_metadata(self,
-                     p_meta_nm: str) -> dict:
-        """"Read metadata...
-        - from shared memory pickle if it exists (hard-coded path)
-        - else from app JSON file if it exists.  (relative path)
-        - else from git project JSON file.       (relative path)
-
-        Returns: (dict) Directory values or exception.
-        """
-        pk_file = path.join("/dev/shm/saskan/data/config",
-                            f"{p_meta_nm}.pickle")
-        ok, msg, meta = self.unpickle_object(pk_file)
-        if not ok:
-            ok, msg, meta = self.get_file(
-                    path.join("../data/config", f"{p_meta_nm}.json"))
-            if ok:
-                meta = json.loads(meta)
-            else:
-                ok, msg, meta =\
-                    self.get_file(path.join("config", f"{p_meta_nm}.json"))
-                if ok:
-                    meta = json.loads(meta)
-                else:
-                    raise Exception(f"Error reading metadata: {msg}")
-        return (meta)
-
+    # Special-purpose methods
+    # ==============================================================
     def pickle_saskan(self):
         """Set up shared memory directories for saskan app and pickle...
         - configs
@@ -379,7 +397,7 @@ class FileIO(object):
         def pickle_config_objects():
             """Pickle dict versions of config json files.
             """
-            src_dir = path.join(self.d['TGT'], self.d['APP'], "data/config")
+            src_dir = path.join(self.APP, "data/config")
             ok, err, files = self.get_dir(src_dir)
             if not ok:
                 raise Exception(f"{self.t['err_file']} {src_dir} {err}")

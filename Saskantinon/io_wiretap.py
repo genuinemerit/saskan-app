@@ -6,6 +6,7 @@
 """
 
 import hashlib
+import logging
 import json
 import secrets
 import sys
@@ -22,10 +23,26 @@ FI = FileIO()
 
 
 class WireTap(object):
-    """Interface to Log and Monitor name spaces.
-    Write and read Log or Monitor data.
-    These are proprietary logger functions,
-    not standard Python Logging module.
+    """Interface for writing to Log and Monitor name spaces.
+
+    Logging occurs based on what value logging level is set to.
+    These are standard values.
+
+    The log levels work in a hierarchy. If DEBUG is set, then all
+        levels above it are "on" too. If INFO is set, all levels above are "on"
+        but level below (i.e., DEBUG) is off.
+
+    All messages likewise have a log level, also standard.
+    When a message is logged, it is written to the log namespace _only_
+        if the message level is "within" the currently-configured log level.
+
+    We also have these two special settings, which are for tracing.
+        - traced = "DOCS" | "NODOCS" | "NOTRACE"
+        - tracef = "DOCS" | "NODOCS" | "NOTRACE"
+    Trace settings are off ("NOTRACE") or set to verbose ("DOCS")
+        or non-verbose ("NODOCS").
+    traced is for tracing what module was executed.
+    tracef is for tracing what function was executed.
 
     @DEV:
     - Use services instead of direct calls.
@@ -35,14 +52,65 @@ class WireTap(object):
         """Initialize WireTap object.
 
         Default settings for log, trace, debug configs are set
-        as part of saskan_install.
-
-        Modify them manually or using options in saskan_eye.py.
+        as part of saskan_install. See config/t_texts_*.json,
         """
-        self.loglv = FI.get_log_settings()
+        self.mon_ns = path.join(FI.d["MEM"], FI.d["monitor"])
+        self.llvl = {
+            "CRITICAL": 50,
+            "ERROR": 40,
+            "WARNING": 30,
+            "INFO": 20,
+            "DEBUG": 10,
+            "NOTSET": 0}
+        self.CRITICAL: int = 50
+        self.ERROR: int = 40
+        self.WARNING: int = 30
+        self.INFO: int = 20
+        self.DEBUG: int = 10
+        self.NOTSET: int = 0
+        self.set_log()
+        self.set_mon()
+
+    def set_log(self) -> None:
+        """Define logging settings.
+
+        @DEV:
+        - Need to do anything to check if log has already been set?
+        """
+        self.log = logging.getLogger("wiretap")
+        self.log_level = self.llvl[FI.d["LOGCFG"]]
+        self.log.setLevel(self.log_level)
+        self.log_dir_nm = path.join(FI.d["MEM"], FI.d["APP"], FI.d["log"])
+        self.log_file_nm = (FI.d["log_file"] + "_" +
+                            self.get_iso_timestamp() + ".log")
+        logFile = logging.FileHandler(
+            path.join(self.log_dir_nm, self.log_file_nm))
+        logFile.setLevel(self.llvl[FI.d["LOGCFG"]])
+        self.log.addHandler(logFile)
+
+    def set_mon(self) -> None:
+        """Define monitoring settings."""
+        self.mon_file = path.join(self.mon_ns, FI.d["monitor_file"] + "_" +
+                                  self.get_iso_timestamp() + ".mon")
 
     # Helper functions
     # =========================================================================
+    @classmethod
+    def bump_underbars(cls, text) -> str:
+        """Remove stray underbars
+
+        - Remove leading or trailing underbars
+        - Reduce multiple underbars to single underbars
+        """
+        r_str = text
+        while "__" in r_str:
+            r_str = r_str.replace("__", "_")
+        while r_str[-1:] == "_":
+            r_str = r_str[:-1]
+        while r_str[:1] == "_":
+            r_str = r_str[1:]
+        return r_str
+
     @classmethod
     def convert_dict_to_bytes(self,
                               p_msg: dict) -> object:
@@ -69,10 +137,18 @@ class WireTap(object):
 
     @classmethod
     def get_iso_timestamp(cls,
-                          p_dt: datetime) -> str:
+                          p_dt: datetime = None) -> str:
         """Return current timestamp w/ microseconds in ISO format as string"""
+        p_dt = datetime.now() if p_dt is None else p_dt
         ts = p_dt.replace(tzinfo=timezone.utc).isoformat()
         return ts
+
+    @classmethod
+    def get_token(cls) -> str:
+        """Generate a cryptographically strong unique ID.
+        """
+        return (str(uuid.UUID(bytes=secrets.token_bytes(16)).hex) +
+                str(uuid.UUID(bytes=secrets.token_bytes(16)).hex))
 
     @classmethod
     def set_version(cls,
@@ -102,30 +178,7 @@ class WireTap(object):
         return m_ver
 
     @classmethod
-    def get_token(cls) -> str:
-        """Generate a cryptographically strong unique ID.
-        """
-        return (str(uuid.UUID(bytes=secrets.token_bytes(16)).hex) +
-                str(uuid.UUID(bytes=secrets.token_bytes(16)).hex))
-
-    @classmethod
-    def bump_underbars(cls, text) -> str:
-        """Remove stray underbars
-
-        - Remove leading or trailing underbars
-        - Reduce multiple underbars to single underbars
-        """
-        r_str = text
-        while "__" in r_str:
-            r_str = r_str.replace("__", "_")
-        while r_str[-1:] == "_":
-            r_str = r_str[:-1]
-        while r_str[:1] == "_":
-            r_str = r_str[1:]
-        return r_str
-
-    @classmethod
-    def get_expire_dt(cls,
+    def set_expire_dt(cls,
                       p_expire: int = 0) -> str:
         """Compute expiration date-time.
         Default is 60 days from now.
@@ -140,49 +193,26 @@ class WireTap(object):
         exp_dt = WireTap.get_iso_timestamp(expire_dt)
         return exp_dt
 
-    @classmethod
-    def do_insert(cls,
-                  p_ns: str,
-                  p_rec: dict,
-                  p_expire: int = 0):
-        """Insert a pickled record to shared memory.
-           Set its expiration time.
-           For now, assuming it is in hours.
-
-        @DEV: Consider...
-        - Using a hash instead of a pickle?
-        - Methods for handling overwrites?
-
-        Args:
-        - p_ns: str - Namespace to write to
-        - p_rec: dict - Record to write
-        - p_expire: int - Expiration time in full hours
-        """
-        expire_dt = WireTap.get_expire_dt(p_expire)
-        dir_nm = path.join(FI.d["MEM"], FI.d["APP"], "data", p_ns)
-        uuid = WireTap.get_token()
-        rec_nm = p_rec["name"] + "~" + expire_dt + "~" + uuid
-        path_nm = path.join(dir_nm, rec_nm)
-        ok, msg = FI.pickle_object(path_nm, p_rec)
-        if not ok:
-            raise Exception(f"{FI.t['err_file']} {path_nm} {msg}")
-
-    @classmethod
-    def write_log(cls,
+    def write_log(self,
                   p_log_msg: str,
                   p_expire: int = 0):
-        """Write a record to "log" namespace.
+        """Write a record to Log namespace.
+
+        @DEV:
+        - Can this be an async function?
+
         Log record format:
         - `name`: `log:` + {expire_timestamp} is the key
-        - `msg`: the log message / content
-        Default expiration is never."""
+        - `msg`: the log message / content"""
         log_dt = WireTap.get_iso_timestamp(datetime.utcnow())
-        log_rec = {"name": f"log:{log_dt}", "msg": p_log_msg}
-        WireTap.do_insert("log", log_rec, p_expire)
+        expire_dt = WireTap.set_expire_dt(p_expire)
+        uuid = WireTap.get_token()
+        rec_nm = (f"log~{log_dt}~{expire_dt}~{uuid}")
+        FI.write_file(path.join(self.log_dir_nm, rec_nm), p_log_msg)
 
-    def write_to_mon(self,
-                     p_mon_rec: dict,
-                     p_expire: int = 0):
+    def write_mon(self,
+                  p_mon_rec: dict,
+                  p_expire: int = 0):
         """Monitor records have a specific format."""
         pass
 
@@ -193,14 +223,21 @@ class WireTap(object):
                    p_name,
                    p_self,
                    p_expire: int = 24):
-        """Trace module name, class name on log ns."""
-        if self.loglv["traced"] != "NOTRACE":
+        """Trace module name, class name on log ns.
+
+        @FIX:
+        - trace request will be called seaprately from log request
+        - indicate module or fucntion in request param instead of
+          calling two different methods.
+        - why "TRACED" instead of "TRACEM"?
+        """
+        if self.log_levels["traced"] != "NOTRACE":
             log_msg = f"TRACED: {p_file}"
-            if self.loglv["traced"] == "DOCS":
+            if self.log_levels["traced"] == "DOCS":
                 log_msg += f"\n{sys.modules[p_name].__doc__}"
             log_msg +=\
                 f"\nclass: {p_self.__class__.__name__}()"
-            if self.loglv["traced"] == "DOCS":
+            if self.log_levels["traced"] == "DOCS":
                 log_msg += f"\n{p_self.__doc__}"
             WireTap.write_log(log_msg, p_expire)
 
@@ -210,12 +247,12 @@ class WireTap(object):
                      p_expire: int = 24,
                      p_parent_func=None):
         """Trace function or subfunction on log db."""
-        if self.loglv["tracef"] != "NOTRACE":
+        if self.log_levels["tracef"] != "NOTRACE":
             cpfx = f"TRACEF: {p_self.__class__.__name__}."
             ppfx = "" if p_parent_func is None\
                 else f"{p_parent_func.__name__}."
             log_msg = f"{cpfx}{ppfx}{p_func.__name__}()"
-            if self.loglv["tracef"] == "DOCS":
+            if self.log_levels["tracef"] == "DOCS":
                 log_msg += f"\n\t{p_func.__doc__}"
             WireTap.write_log(log_msg, p_expire)
 
@@ -223,28 +260,39 @@ class WireTap(object):
                 p_msg_lvl: str,
                 p_msg: str,
                 p_expire: int = 24):
-        """Write a regular log message or a debug message to log db.
-
-        @DEV
-        - Not entirely sure what rule I am going for here.
-        - Work on documenting that more carefully.
+        """Write a log message to log namespace.
 
         Args:
-        - p_msg_lvl: str in ("info", "debug", "error", "warn")
-        - p_msg: str is the message to write to log db
-        - p_expire: int is the number of hours to expire the log record
-          (default = 24). If < 1, the record will never expire.l.
+        - p_msg_lvl: standard string index to log level
+        - p_msg: message to be logged
+        - p_expire: int number of hours in which to expire the log record.
+          If < 1, empty, or null, default is set per set_expire_dt() method.
         """
-        if ((p_msg_lvl.lower() == "debug" and
-             self.loglv["debug"] == FI.t["val_debug"])
-            or (p_msg_lvl.lower() == "info" and
-                self.loglv["info"] == FI.t["val_info"])
-            or (p_msg_lvl.lower() == "warn" and
-                self.loglv["info"] == FI.t["val_warn"])
-            or (p_msg_lvl.lower() == "error" and
-                self.loglv["info"] == FI.t["val_error"])):
-            log_msg = f"\t{p_msg_lvl.upper()}: {p_msg}"
-            WireTap.write_log(log_msg, p_expire)
+        if self.log_level > self.llvl["NOTSET"]:
+            msg = (p_msg_lvl.upper() + ":" +
+                   self.get_iso_timestamp() + ":" +
+                   str(p_msg).strip())
+            msg_lvl = self.llvl[p_msg_lvl.upper()]
+            if msg_lvl <= self.llvl["CRITICAL"]:
+                logging.fatal(msg)
+            elif msg_lvl <= self.llvl["ERROR"] and\
+                    self.log_level <= self.llvl["ERROR"]:
+                logging.error(msg)
+            elif msg_lvl <= self.llvl["WARNING"] and\
+                    self.log_level <= self.llvl["WARNING"]:
+                logging.warning(msg)
+            elif msg_lvl <= self.llvl["INFO"] and\
+                    self.log_level <= self.llvl["INFO"]:
+                logging.info(msg)
+            elif msg_lvl <= self.llvl["DEBUG"] and\
+                    self.log_level <= self.llvl["DEBUG"]:
+                logging.debug(msg)
+
+        # Alternatively... write each record as a file...
+        # May want to keep this method for monitoring and if the logger
+        # slows things down too much.
+
+        # WireTap.write_log(log_msg, p_expire)
 
     # Generic DDL functions
     # =========================================================================
@@ -289,6 +337,7 @@ class WireTap(object):
     # =========================================================================
     def dump_log(self):
         """Dump all log records to console.
+        Move this to a reporting module.
         """
         log_recs = WireTap.get_records("log", "log:")
         for rec in log_recs:

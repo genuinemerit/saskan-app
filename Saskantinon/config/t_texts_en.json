@@ -15,18 +15,7 @@
     "err_process" : "Process aborted: ",
     "err_record" : "Bad record: ",
     "rec_ok" : "ok: ",
-    "val_debug" : "DEBUG",
-    "val_error" : "ERROR",
     "val_group" : "Group",
-    "val_info" : "INFO",
-    "val_nodebug" : "NODEBUG",
-    "val_noerror" : "NOERROR",
-    "val_noinfo" : "NOINFO",
-    "val_notrace" : "NOTRACE",
-    "val_nowarn" : "NOWARN",
     "val_ok" : "OK",
-    "val_traced" : "DOCS",
-    "val_tracef" : "NODOCS",
-    "val_ul" : "=============================================",
-    "val_warn" : "WARN"
+    "val_ul" : "============================================="
 }

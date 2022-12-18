@@ -1,10 +1,17 @@
 {
     "APP": "saskan",
-    "APPDIRS": ["data", "images", "python", "save"],
-    "DATADIRS": ["config", "harvest", "log", "monitor", "schema"],
-    "LOGCFG": ["debug", "error", "info", "traced", "tracef", "warn"],
     "BIN": "/usr/local/bin",
     "MEM": "/dev/shm",
-    "SRC": "/home/bow/Dropbox/GitHub/saskan-app/Saskantinon",
-    "TGT": "/home/bow"
+    "ADIRS": {"CFG": "config",
+              "IMG": "images",
+              "ONT": "schema",
+              "PY": "python",
+              "SAV": "cache"},
+    "NSDIRS": {"SVC": "harvest",
+               "LOG": "log",
+               "MON": "monitor"},
+    "LOGFILE": "saskan_log",
+    "MONFILE": "saskan_monitor",
+    "TRCCFG": "NOTRACE",
+    "LOGCFG": "WARNING"
 }
