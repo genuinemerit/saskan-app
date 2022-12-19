@@ -36,14 +36,6 @@ class WireTap(object):
     When a message is logged, it is written to the log namespace _only_
         if the message level is "within" the currently-configured log level.
 
-    We also have these two special settings, which are for tracing.
-        - traced = "DOCS" | "NODOCS" | "NOTRACE"
-        - tracef = "DOCS" | "NODOCS" | "NOTRACE"
-    Trace settings are off ("NOTRACE") or set to verbose ("DOCS")
-        or non-verbose ("NODOCS").
-    traced is for tracing what module was executed.
-    tracef is for tracing what function was executed.
-
     @DEV:
     - Use services instead of direct calls.
     """
@@ -54,7 +46,9 @@ class WireTap(object):
         Default settings for log, trace, debug configs are set
         as part of saskan_install. See config/t_texts_*.json,
         """
-        self.mon_ns = path.join(FI.d["MEM"], FI.d["monitor"])
+        self.mon_ns = path.join(FI.D["MEM"], FI.D["APP"],
+                                FI.D['ADIRS']["SAV"],
+                                FI.D['NSDIRS']["MON"])
         self.llvl = {
             "CRITICAL": 50,
             "ERROR": 40,
@@ -78,19 +72,21 @@ class WireTap(object):
         - Need to do anything to check if log has already been set?
         """
         self.log = logging.getLogger("wiretap")
-        self.log_level = self.llvl[FI.d["LOGCFG"]]
+        self.log_level = self.llvl[FI.D["LOGCFG"]]
         self.log.setLevel(self.log_level)
-        self.log_dir_nm = path.join(FI.d["MEM"], FI.d["APP"], FI.d["log"])
-        self.log_file_nm = (FI.d["log_file"] + "_" +
+        self.log_dir_nm = path.join(FI.D["MEM"], FI.D["APP"],
+                                    FI.D['ADIRS']["SAV"],
+                                    FI.D['NSDIRS']["LOG"])
+        self.log_file_nm = (FI.D["LOGFILE"] + "_" +
                             self.get_iso_timestamp() + ".log")
         logFile = logging.FileHandler(
             path.join(self.log_dir_nm, self.log_file_nm))
-        logFile.setLevel(self.llvl[FI.d["LOGCFG"]])
+        logFile.setLevel(self.llvl[FI.D["LOGCFG"]])
         self.log.addHandler(logFile)
 
     def set_mon(self) -> None:
         """Define monitoring settings."""
-        self.mon_file = path.join(self.mon_ns, FI.d["monitor_file"] + "_" +
+        self.mon_file = path.join(self.mon_ns, FI.D["MONFILE"] + "_" +
                                   self.get_iso_timestamp() + ".mon")
 
     # Helper functions
@@ -187,9 +183,9 @@ class WireTap(object):
         Return: expiration date-time as a string
         """
         if p_expire == 0 or p_expire is None:
-            expire_dt = datetime.utcnow() + timedelta(days=+60)
+            expire_dt = datetime.utcnow() + timedelta(days=60)
         else:
-            expire_dt = datetime.utcnow() + timedelta(hours=+p_expire)
+            expire_dt = datetime.utcnow() + timedelta(hours=int(p_expire))
         exp_dt = WireTap.get_iso_timestamp(expire_dt)
         return exp_dt
 
@@ -218,43 +214,36 @@ class WireTap(object):
 
     # Logger functions
     # ==============================================================
-    def log_module(self,
+
+    def trace_code(self,
                    p_file,
                    p_name,
                    p_self,
-                   p_expire: int = 24):
-        """Trace module name, class name on log ns.
-
-        @FIX:
-        - trace request will be called seaprately from log request
-        - indicate module or fucntion in request param instead of
-          calling two different methods.
-        - why "TRACED" instead of "TRACEM"?
+                   p_m_or_f="module",
+                   p_expire=24,
+                   p_par_f=None):
+        """Trace code name for functions and classes.
+        Traces are logged only if TRCCFG is set to "NODOCS" or "DOCS".
+        If "DOCS" then inline documentation is included in the log.
         """
-        if self.log_levels["traced"] != "NOTRACE":
-            log_msg = f"TRACED: {p_file}"
-            if self.log_levels["traced"] == "DOCS":
-                log_msg += f"\n{sys.modules[p_name].__doc__}"
-            log_msg +=\
-                f"\nclass: {p_self.__class__.__name__}()"
-            if self.log_levels["traced"] == "DOCS":
-                log_msg += f"\n{p_self.__doc__}"
-            WireTap.write_log(log_msg, p_expire)
-
-    def log_function(self,
-                     p_func,
-                     p_self,
-                     p_expire: int = 24,
-                     p_parent_func=None):
-        """Trace function or subfunction on log db."""
-        if self.log_levels["tracef"] != "NOTRACE":
-            cpfx = f"TRACEF: {p_self.__class__.__name__}."
-            ppfx = "" if p_parent_func is None\
-                else f"{p_parent_func.__name__}."
-            log_msg = f"{cpfx}{ppfx}{p_func.__name__}()"
-            if self.log_levels["tracef"] == "DOCS":
-                log_msg += f"\n\t{p_func.__doc__}"
-            WireTap.write_log(log_msg, p_expire)
+        modl = True if p_m_or_f.lower() in ("module", "mod", "m") else False
+        if FI.D["TRCCFG"] != "NOTRACE":
+            if modl:
+                log_msg = (p_file +
+                           f"\t{p_self.__class__.__name__}()")
+            else:
+                par_nm = "" if p_par_f is None else p_par_f.__name__
+                log_msg = (p_self.__class__.__name__ + "." + par_nm)
+            if FI.D["TRCCFG"] == "DOCS":
+                if modl:
+                    log_msg += f"\n{sys.modules[p_name].__doc__}"
+                    log_msg += f"\n{p_self.__doc__}"
+                else:
+                    log_msg += f"\n\t{p_file.__doc__}"
+            msg = ("TRACE:" +
+                   self.get_iso_timestamp() + ":" +
+                   str(log_msg).strip())
+            logging.info(msg)
 
     def log_msg(self,
                 p_msg_lvl: str,
@@ -269,28 +258,27 @@ class WireTap(object):
           If < 1, empty, or null, default is set per set_expire_dt() method.
         """
         if self.log_level > self.llvl["NOTSET"]:
-            msg = (p_msg_lvl.upper() + ":" +
-                   self.get_iso_timestamp() + ":" +
+            msg = (self.get_iso_timestamp() + ":" +
                    str(p_msg).strip())
             msg_lvl = self.llvl[p_msg_lvl.upper()]
-            if msg_lvl <= self.llvl["CRITICAL"]:
+            if msg_lvl == self.llvl["CRITICAL"]:
                 logging.fatal(msg)
-            elif msg_lvl <= self.llvl["ERROR"] and\
+            elif msg_lvl == self.llvl["ERROR"] and\
                     self.log_level <= self.llvl["ERROR"]:
                 logging.error(msg)
-            elif msg_lvl <= self.llvl["WARNING"] and\
+            elif msg_lvl == self.llvl["WARNING"] and\
                     self.log_level <= self.llvl["WARNING"]:
                 logging.warning(msg)
-            elif msg_lvl <= self.llvl["INFO"] and\
+            elif msg_lvl == self.llvl["INFO"] and\
                     self.log_level <= self.llvl["INFO"]:
                 logging.info(msg)
-            elif msg_lvl <= self.llvl["DEBUG"] and\
+            elif msg_lvl == self.llvl["DEBUG"] and\
                     self.log_level <= self.llvl["DEBUG"]:
                 logging.debug(msg)
 
         # Alternatively... write each record as a file...
-        # May want to keep this method for monitoring and if the logger
-        # slows things down too much.
+        # May want to revert to this method for monitoring and if
+        # standard logger slows things down too much.
 
         # WireTap.write_log(log_msg, p_expire)
 
@@ -301,7 +289,7 @@ class WireTap(object):
                   p_ns: str,
                   p_key_pattern: str):
         """Return keys of records that match search pattern."""
-        dir_nm = path.join(FI.d["MEM"], FI.d["APP"], "data", p_ns)
+        dir_nm = path.join(FI.D["MEM"], FI.D["APP"], "data", p_ns)
         _, _, keys = FI.get_dir(dir_nm)
         keys = [f for f in keys if p_key_pattern in str(f)]
         return sorted(keys)
