@@ -250,7 +250,7 @@ class FileIO(object):
                 ok, err = self.copy_file(str(f), tgt_file)
                 if not ok:
                     raise Exception(
-                        f"{self.t['err_file']} {tgt_file} {err}")
+                        f"{self.T['err_file']} {tgt_file} {err}")
 
     def append_file(self,
                     p_path: str,
@@ -342,79 +342,76 @@ class FileIO(object):
 
     # Special-purpose methods
     # ==============================================================
-    def pickle_saskan(self):
-        """Set up shared memory directories for saskan app and pickle...
-        - configs
+    def pickle_saskan(self,
+                      p_app_dir):
+        """Set up shared memory directories for saskan app.
+        Pickle saskan files to shared memory.
 
-        @DEV
-        Will need to work on how to handle permissions for shared memory
-        write and delete.
-
-        Args:
-            p_mem (str): Legit path to shared memory location.
+        :Args:
+        - p_app (path): Path to Saskan app directory
         """
+        def create_sub_dir(sub_dir):
+            """Create shared memory directories for saskan app.
+            - shared mem app sub dirs
+            - shared mem data sub dirs
+            """
+            ok, result = self.make_dir(sub_dir)
+            if ok:
+                ok, result = self.make_writable(sub_dir)
+            if not ok:
+                raise Exception(f"{self.T['err_file']} {sub_dir} {result}")
 
         def create_mem_dirs():
             """Wipe out shared memory data dirs if they exist.
             Create shared memory directories for saskan app.
             - shared mem parent dir
-            - shared mem app sub dirs, includes 'data' dir
+            - shared mem app sub dirs
             - shared mem data sub dirs
             """
-            app_d = path.join(self.d["MEM"], "saskan")
-            ok, _, _ = self.get_dir(app_d)
+            app_d = path.join(self.D["MEM"], self.D["APP"])
+            ok, result, _ = self.get_dir(app_d)
             if ok:
                 app_files = app_d + "/*"
                 ok, result = SI.run_cmd([f"rm -rf {app_files}"])
-                if not ok:
-                    raise Exception(result)
-                ok, result = SI.run_cmd([f"rmdir {app_d}"])
-                if not ok:
-                    raise Exception(result)
-            ok, msg = self.make_dir(app_d)
+                if ok:
+                    ok, result = SI.run_cmd([f"rmdir {app_d}"])
+                else:
+                    raise Exception(f"{self.T['err_process']} {result}")
+            ok, result = self.make_dir(app_d)
+            if ok:
+                ok, result = self.make_writable(app_d)
             if not ok:
-                raise Exception(f"{self.t['err_file']} {app_d} {msg}")
-            ok, result = SI.run_cmd(f"chmod u=rwx,g=rwx,o=rwx {app_d}")
-            if not ok:
-                raise Exception(f"{self.t['err_file']} {app_d} {result}")
-            for sd in self.d["APPDIRS"]:
-                app_sd = path.join(app_d, sd)
-                ok, msg = self.make_dir(app_sd)
-                if not ok:
-                    raise Exception(f"{self.t['err_file']} {app_sd} {msg}")
-                ok, result = SI.run_cmd(f"chmod u=rwx,g=rwx,o=rwx {app_sd}")
-                if not ok:
-                    raise Exception(f"{self.t['err_file']} {app_sd} {result}")
-            for dd in self.d["DATADIRS"]:
-                data_d = path.join(app_d, "data", dd)
-                ok, msg = self.make_dir(data_d)
-                if not ok:
-                    raise Exception(f"Failed to create dir: {data_d} {msg}")
-                ok, result = SI.run_cmd(f"chmod u=rwx,g=rwx,o=rwx {data_d}")
-                if not ok:
-                    raise Exception(f"{self.t['err_file']} {data_d} {result}")
+                raise Exception(f"{self.T['err_file']} {app_d} {result}")
+            for _, sd in self.D["ADIRS"].items():
+                create_sub_dir(path.join(app_d, sd))
+            for _, dd in self.D["NSDIRS"].items():
+                create_sub_dir(path.join(app_d, self.D['ADIRS']['SAV'], dd))
 
-        def pickle_config_objects():
-            """Pickle dict versions of config json files.
+        def pickle_config_and_schema_objects(p_app_dir):
+            """Pickle dict versions of config and schema json files.
+
+            @DEV:
+            - Pickle or copy any other files to shared memory? images?
             """
-            src_dir = path.join(self.APP, "data/config")
-            ok, err, files = self.get_dir(src_dir)
-            if not ok:
-                raise Exception(f"{self.t['err_file']} {src_dir} {err}")
-            for f in files:
-                if Path(f).is_file():
-                    file_nm = str(f).split("/")[-1]
-                    if file_nm.endswith(".json"):
-                        mem_file = path.join(
-                            self.d['MEM'], self.d['APP'], "data/config",
-                            file_nm.replace(".json", ".pickle"))
-                        _, _, cfg_data = self.get_file(f)
-                        ok, err = self.pickle_object(mem_file,
-                                                     json.loads(cfg_data))
-                        if not ok:
-                            raise Exception(
-                                f"{self.t['err_file']} {mem_file} {err}")
+            for j_dir in (self.D['ADIRS']['CFG'], self.D['ADIRS']['ONT']):
+                src_dir = path.join(p_app_dir, j_dir)
+                ok, err, files = self.get_dir(src_dir)
+                if not ok:
+                    raise Exception(f"{self.T['err_file']} {src_dir} {err}")
+                for f in files:
+                    if Path(f).is_file():
+                        file_nm = str(f).split("/")[-1]
+                        if file_nm.endswith(".json"):
+                            mem_file = path.join(
+                                self.D['MEM'], self.D['APP'], j_dir,
+                                file_nm.replace(".json", ".pickle"))
+                            _, _, j_data = self.get_file(f)
+                            ok, err = self.pickle_object(
+                                    mem_file, json.loads(j_data))
+                            if not ok:
+                                raise Exception(
+                                    f"{self.T['err_file']} {mem_file} {err}")
         # pickle_saskan() main
         # ====================
         create_mem_dirs()
-        pickle_config_objects()
+        pickle_config_and_schema_objects(p_app_dir)

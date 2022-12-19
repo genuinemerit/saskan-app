@@ -45,9 +45,7 @@ class SaskanInstall(object):
         self.install_app_files()
         self.copy_python_scripts()
         self.copy_bash_files()
-        """
-        FI.pickle_saskan()
-        """
+        FI.pickle_saskan(self.APP)
 
     # Helpers
     # ==============================================================
