@@ -12,6 +12,6 @@
                "MON": "monitor"},
     "LOGFILE": "saskan_log",
     "MONFILE": "saskan_monitor",
-    "TRCCFG": "NOTRACE",
-    "LOGCFG": "WARNING"
+    "TRCCFG": "DOCS",
+    "LOGCFG": "DEBUG"
 }

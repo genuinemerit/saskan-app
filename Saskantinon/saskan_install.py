@@ -8,16 +8,8 @@ Requires sudo privs to execute properly.
 Writes bash files to /usr/local/bin
 Launch it by running sudo ./saskan_install from the git project directory,
 e.g. (saskan) ~/../Saskantinon/saskan_install
-
-@DEV:
-- Consider using a get_cwd() method to get current working directory when
-  installing from the git project directory. Then pull the name of the
-  home directory from that path to derive the target directory.
-
-@FIX:
-- Note simplications for handling of log and monitor info.
 """
-import json
+# import json
 
 from os import path
 from pathlib import Path

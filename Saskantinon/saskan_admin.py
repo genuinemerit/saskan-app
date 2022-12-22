@@ -11,6 +11,8 @@ import sys
 import webbrowser
 
 from dataclasses import dataclass
+from os import path
+from pathlib import Path
 from pprint import pprint as pp     # noqa: F401
 
 from io_file import FileIO          # type: ignore
@@ -55,31 +57,31 @@ class PG:
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
 
     # Window / Canvas / Display
-    pg.display.set_caption(FI.g["frame"]["ttl"])
-    WIN_W = FI.g["frame"]["sz"]["w"]
-    WIN_H = FI.g["frame"]["sz"]["h"]
+    pg.display.set_caption(FI.G["frame"]["ttl"])
+    WIN_W = FI.G["frame"]["sz"]["w"]
+    WIN_H = FI.G["frame"]["sz"]["h"]
     WIN_MID = (WIN_W / 2, WIN_H / 2)
     WIN = pg.display.set_mode((WIN_W, WIN_H))
     # Menu Bar
-    MBAR_X = FI.g["menus"]["bar"]["x"]
-    MBAR_Y = FI.g["menus"]["bar"]["y"]
+    MBAR_X = FI.G["menus"]["bar"]["x"]
+    MBAR_Y = FI.G["menus"]["bar"]["y"]
     # Note: MBAR_W is the width of each individual menu bar menu.
-    MBAR_W = FI.g["menus"]["bar"]["w"]
-    MBAR_H = FI.g["menus"]["bar"]["h"]
-    MBAR_MARGIN = FI.g["menus"]["bar"]["margin"]
+    MBAR_W = FI.G["menus"]["bar"]["w"]
+    MBAR_H = FI.G["menus"]["bar"]["h"]
+    MBAR_MARGIN = FI.G["menus"]["bar"]["margin"]
     MBAR_LOC = (MBAR_X, MBAR_Y)
     # Page Header
-    PHDR_LOC = (FI.g["frame"]["pg_hdr"]["x"],
-                FI.g["frame"]["pg_hdr"]["y"])
+    PHDR_LOC = (FI.G["frame"]["pg_hdr"]["x"],
+                FI.G["frame"]["pg_hdr"]["y"])
     # Info Bar / Dock
-    IBAR_X = FI.g["frame"]["ibar"]["x"]
-    IBAR_Y = FI.g["frame"]["ibar"]["y"]
+    IBAR_X = FI.G["frame"]["ibar"]["x"]
+    IBAR_Y = FI.G["frame"]["ibar"]["y"]
     IBAR_LOC = (IBAR_X, IBAR_Y)
     # Services Admin Window
-    PSRV_LOC = (FI.g["windows"]["srv"]["x"],
-                FI.g["windows"]["srv"]["x"])
-    PSRV_W = FI.g["windows"]["srv"]["w"]
-    PSRV_h = FI.g["windows"]["srv"]["w"]
+    PSRV_LOC = (FI.G["windows"]["srv"]["x"],
+                FI.G["windows"]["srv"]["x"])
+    PSRV_W = FI.G["windows"]["srv"]["w"]
+    PSRV_h = FI.G["windows"]["srv"]["w"]
 
     # Other
     KEYMOD_NONE = 4096
@@ -380,6 +382,9 @@ class TextInputGroup(pg.sprite.Group):
         self.current = None     # ID currently-selected text input widget.
 
 
+# ====================================================
+#  SASKAN ADMIN
+# ====================================================
 class SaskanAdmin(object):
     """PyGame GUI for controlling Saskantinon functions.
     Initiated and executed by __main__.
@@ -390,8 +395,8 @@ class SaskanAdmin(object):
         Initialize counters, modes, trackers, widgets.
         Execute the main event loop.
         """
-        FI.pickle_saskan()
-        WT.log_module(__file__, __name__, self)
+        FI.pickle_saskan(path.join("/home", Path.cwd().parts[2], FI.D['APP']))
+        WT.trace_code(__file__, __name__, self, "class")
 
         # Mouse tracking
         self.mouse_loc = (0, 0)
@@ -410,19 +415,20 @@ class SaskanAdmin(object):
         # Menu bars and items
         self.MEG = MenuGroup()
         prev_x = PG.MBAR_X
-        for _, mn in FI.g["menus"]["menu"].items():
+        for _, mn in FI.G["menus"]["menu"].items():
             mn_nm = mn["nm"]
             self.MEG.add_bar(MenuBar(mn_nm, prev_x))
             prev_x = self.MEG.mbars[mn_nm].mbox.right
             mil = [(mi_id, mi['nm']) for mi_id, mi in mn["items"].items()]
             self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn_nm]))
         # Page header
-        self.PHDR = PageHeader(FI.g["frame"]["pg_hdr"]["default_text"])
+        self.PHDR = PageHeader(FI.G["frame"]["pg_hdr"]["default_text"])
         # External windows
         # webbrowser.register('firefox')
         self.WHTML = HtmlDisplay()
 
         # Test log message
+        WT.trace_code(__file__, __name__, self, "function")
         WT.log_msg("info", "Mouse location: " + str(self.mouse_loc))
         # Test log report
         # WT.dump_log()
@@ -493,11 +499,11 @@ class SaskanAdmin(object):
             self.exit_app()
         elif "help" in m_item_id:
             if m_item_id == "pg_help":
-                self.WHTML.draw(FI.g["html"]["help"]["pygame"])
+                self.WHTML.draw(FI.G["html"]["help"]["pygame"])
             elif m_item_id == "app_help":
-                self.WHTML.draw(FI.g["html"]["help"]["app"])
+                self.WHTML.draw(FI.G["html"]["help"]["app"])
             elif m_item_id == "game_help":
-                self.WHTML.draw(FI.g["html"]["help"]["game"])
+                self.WHTML.draw(FI.G["html"]["help"]["game"])
 
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
