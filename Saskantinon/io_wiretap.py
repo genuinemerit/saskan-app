@@ -8,7 +8,6 @@
 import hashlib
 import json
 import secrets
-import sys
 import uuid
 import zlib
 
@@ -124,11 +123,11 @@ class WireTap(object):
 
     @classmethod
     def get_token(cls,
-                  p_len = 32) -> str:
+                  p_len=32) -> str:
         """Generate a cryptographically strong unique ID.
         """
         token = (str(uuid.UUID(bytes=secrets.token_bytes(16)).hex) +
-                str(uuid.UUID(bytes=secrets.token_bytes(16)).hex))
+                 str(uuid.UUID(bytes=secrets.token_bytes(16)).hex))
         if p_len > 10 and p_len < 32:
             token = token[:p_len]
         return token
@@ -176,109 +175,66 @@ class WireTap(object):
         exp_dt = WireTap.get_iso_timestamp(expire_dt)
         return exp_dt
 
-    def write_log(self,
-                  p_lvl: str,
-                  p_msg: str,
-                  p_expire: int = 0):
-        """Write a record to Log namespace.
-
-        Log record format:
-        - name: `log:` + {level}: + {expire_timestamp} is the key
-        - content: the log message"""
-        log_dt = WireTap.get_iso_timestamp(datetime.utcnow())
-        expire_dt = WireTap.set_expire_dt(p_expire)
-        uuid = WireTap.get_token(16)
-        rec_nm = (f"log~{p_lvl}~{log_dt}~{expire_dt}~{uuid}")
-        msg = p_lvl + "~" + p_msg
-        FI.write_file(path.join(self.log_dir_nm, rec_nm), msg)
-
-    def write_trace(self,
-                    p_lvl: str,
-                    p_rec: str,
-                    p_expire: int = 0):
-        """Trace records have a specific format and are written
-        to the monitoring namespace.
-
-        Trace record format:
-        - name: `mon:` + {level}: + {expire_timestamp} is the key
-        - content: the trace record"""
-        mon_dt = WireTap.get_iso_timestamp(datetime.utcnow())
-        expire_dt = WireTap.set_expire_dt(p_expire)
-        uuid = WireTap.get_token(16)
-        rec_nm = (f"trace~{p_lvl}~{mon_dt}~{expire_dt}~{uuid}")
-        rec = p_lvl + "~" + p_rec
-        FI.write_file(path.join(self.mon_dir_nm, rec_nm), rec)
-
-    # Logger functions
+    # Logger function
     # ==============================================================
-
-    def trace_code(self,
-                   p_file,
-                   p_name,
-                   p_self,
-                   p_c_or_f="class",
-                   p_expire=24,
-                   p_parnt_f=None):
-        """Trace code name for functions and classes.
-        Traces are logged only if TRCCFG is set to "NODOCS" or "DOCS",
-        which is to say it NOT set to "NOTRACE".
-        If "DOCS", then inline documentation is included in the trace.
-
-        @DEV: Needs work...
-        """
-        is_cls = True if p_c_or_f.lower() in ("class", "cls", "c") else False
-        is_fnc = True if p_c_or_f.lower() in\
-            ("function", "func", "f") else False
-        if FI.D["TRCCFG"] != "NOTRACE":
-            if is_cls:
-                trc_msg = (p_file +
-                           f"\t{p_self.__class__.__name__}()")
-            elif is_fnc:
-                par_nm = "" if p_parnt_f is None else p_parnt_f.__name__
-                trc_msg = (p_self.__class__.__name__ + "." + par_nm)
-            if FI.D["TRCCFG"] == "DOCS":
-                if is_cls:
-                    trc_msg += f"\n{sys.modules[p_name].__doc__}"
-                    trc_msg += f"\n{p_self.__doc__}"
-                elif is_fnc:
-                    trc_msg += f"\n\t{p_file.__doc__}"
-            msg = str(trc_msg).strip()
-            self.write_trace(p_c_or_f.upper(), msg, p_expire)
-
-    def log_msg(self,
-                p_lvl,
-                p_msg: str,
-                p_expire: int = 24):
+    def log(self,
+            p_lvl,
+            p_msg: str,
+            p_file=None,
+            p_name=None,
+            p_self=None,
+            p_frame=None):
         """Write a log message to log namespace.
+        If file, name, self and frame objects provided, then trace the call.
 
         Args:
         - p_lvl: standard string index to log level
         - p_msg: message to be logged
-        - p_expire: int number of hours in which to expire the log record.
-          If < 1, empty, or null, default is set per set_expire_dt() method.
+        - p_file: __file__ object of calling function
+        - p_name: __name__ object of calling function
+        - p_self: self object of calling function
+        - p_frame: sys._getframe() from calling function
         """
+        def trace_msg(p_msg):
+            if (p_file is not None and p_name is not None and
+                    p_self is not None and p_frame is not None):
+                p_msg += (f"\n{p_file} : {p_name}\n" +
+                          f"{p_self.__class__.__name__} : " +
+                          f"{p_frame.f_back.f_code.co_name} : " +
+                          f"{p_frame.f_code.co_name} : " +
+                          f"line {p_frame.f_lineno}\n")
+            return p_msg
+
+        def write_log(p_lvl, p_msg):
+            log_dt = WireTap.get_iso_timestamp(datetime.utcnow())
+            expire_dt = WireTap.set_expire_dt()
+            uuid = WireTap.get_token(16)
+            rec_nm = (f"log~{p_lvl}~{log_dt}~{expire_dt}~{uuid}")
+            msg = p_lvl + "~" + p_msg
+            FI.write_file(path.join(self.log_dir_nm, rec_nm), msg)
+
         if self.log_level > self.llvl["NOTSET"]:
-            msg = str(p_msg).strip()
+            msg = trace_msg(str(p_msg).strip() + "\n")
             msg_lvl = self.llvl[p_lvl.upper()]
             if (msg_lvl == self.llvl["CRITICAL"] or
-                    p_msg.upper() in ("FATAL", "CRITICAL")):
-                self.write_log('FATAL', msg, p_expire)
+                    p_lvl.upper() in ("FATAL", "CRITICAL")):
+                write_log('FATAL', msg)
             elif ((msg_lvl == self.llvl["ERROR"] or
-                    p_msg.upper() == "ERROR") and
+                    p_lvl.upper() == "ERROR") and
                     self.log_level <= self.llvl["ERROR"]):
-                self.write_log('ERROR', msg, p_expire)
+                write_log('ERROR', msg)
             elif ((msg_lvl == self.llvl["WARNING"] or
-                    p_msg.upper() == 'WARNING') and
+                    p_lvl.upper() == 'WARNING') and
                     self.log_level <= self.llvl["WARNING"]):
-                self.write_log('WARNING', msg, p_expire)
+                write_log('WARNING', msg)
             elif ((msg_lvl == self.llvl["INFO"] or
-                    p_msg.upper() == 'INFO') and
+                    p_lvl.upper() == 'INFO') and
                     self.log_level <= self.llvl["INFO"]):
-                self.write_log('INFO', msg, p_expire)
+                write_log('INFO', msg)
             elif ((msg_lvl == self.llvl["DEBUG"] or
-                    p_msg.upper() == 'DDEBUG') and
+                    p_lvl.upper() == 'DDEBUG') and
                     self.log_level <= self.llvl["DEBUG"]):
-                self.write_log('DEBUG', msg, p_expire)
+                write_log('DEBUG', msg)
 
     # Generic DDL functions
     # =========================================================================

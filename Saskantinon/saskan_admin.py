@@ -396,7 +396,7 @@ class SaskanAdmin(object):
         Execute the main event loop.
         """
         FI.pickle_saskan(path.join("/home", Path.cwd().parts[2], FI.D['APP']))
-        WT.trace_code(__file__, __name__, self, "class")
+        WT.log("info", "", __file__, __name__, self, sys._getframe())
 
         # Mouse tracking
         self.mouse_loc = (0, 0)
@@ -428,8 +428,8 @@ class SaskanAdmin(object):
         self.WHTML = HtmlDisplay()
 
         # Test log message
-        WT.trace_code(__file__, __name__, self, "function")
-        WT.log_msg("info", "Mouse location: " + str(self.mouse_loc))
+        msg = "Mouse location: " + str(self.mouse_loc)
+        WT.log("info", msg, __file__, __name__, self, sys._getframe())
         # Test log report
         # WT.dump_log()
 
@@ -563,6 +563,7 @@ class SaskanAdmin(object):
         - Handle data load events (F7, F8)
         - Handle mouse events
         """
+        WT.log("info", "", __file__, __name__, self, sys._getframe())
         while True:
             self.track_state()
 
