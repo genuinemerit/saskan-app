@@ -8,12 +8,12 @@
             "margin": 6},
         "menu": {
             "file": {
-                "nm": "File",
+                "nm": "Saskan Admin",
                 "items": {
                     "exit": {
                         "nm":"Quit (Q or ESC)"}}},
             "view": {
-                "nm": "View",
+                "nm": "Windows",
                 "items": {
                     "anim_stop": {
                         "nm":"Freeze (F7)"},
@@ -32,6 +32,8 @@
             "services": {
                 "nm": "Services",
                 "items": {
+                    "show": {
+                        "nm":"Show|Hide"},
                     "start": {
                         "nm":"Start"},
                     "stop": {
@@ -54,12 +56,10 @@
                     "images": {
                         "nm":"Images"}}},
             "monitor": {
-                "nm": "Monitor",
+                "nm": "Reports",
                 "items": {
                     "msg": {
                         "nm":"Service Logs"},
-                    "trace": {
-                        "nm":"Trace Logs"},
                     "debug": {
                         "nm":"App Logs"},
                     "pressure": {
@@ -68,9 +68,9 @@
                 "nm": "Help",
                 "items": {
                     "app_help": {
-                        "nm": "Saskan Eyes (admin)"},
+                        "nm": "Saskan Admin"},
                     "game_help": {
-                        "nm": "Saskantinon (game)"},
+                        "nm": "Saskantinon"},
                     "pg_help": {
                         "nm": "PyGame"}}}}
     }

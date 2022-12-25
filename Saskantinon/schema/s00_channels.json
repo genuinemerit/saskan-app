@@ -2,7 +2,7 @@
     "channels": {
         "resources": {
             "hosts": ["mahaka"],
-            "ports": {"low": 61001, "high": 63000}
+            "ports": {"low": 61001, "high": 61201}
         },
         "named": {
             "avatar_motion": {

@@ -1,8 +1,8 @@
 {
     "frame": {
-        "ttl": "Saskan Eyes",
-        "dsc": "Control, Monitor, Test, Edit Saskan Services.\n Version: 0.0.1",
-        "nm": "saskan_eyes_frame",
+        "ttl": "Saskan Admin",
+        "dsc": "Control, Monitor, Test, Edit, Play Saskantinon.\n Version: 0.0.1",
+        "nm": "saskan_admin_frame",
         "sz": {
             "w": 1200,
             "h": 900},
@@ -15,7 +15,7 @@
             "y": 10,
             "w": 1080,
             "h": 20,
-            "default_text": "Saskan Eyes"
+            "default_text": "Saskan Admin"
         }
     }
 }

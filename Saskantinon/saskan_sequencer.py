@@ -1,7 +1,7 @@
 #!python
 """
-:module:    msg_sequencer.py
-:class:     MsgSequencer
+:module:    saskan_sequencer.py
+:class:     SaskanSequencer
 
 Handle package size and payload sequencing.
 Used across apps and components.
@@ -19,7 +19,7 @@ Main behaviors:
 from asyncio import StreamReader, StreamWriter
 
 
-class MsgSequencer(object):
+class SaskanSequencer(object):
     """Generic message handling."""
 
     async def read_msg(self, stream: StreamReader) -> bytes:

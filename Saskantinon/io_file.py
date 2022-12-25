@@ -15,7 +15,7 @@ import shutil
 
 from os import path, remove, system
 from pathlib import Path
-from pprint import pprint as pp
+from pprint import pprint as pp    # noqa: F401
 
 from io_shell import ShellIO       # type: ignore
 
@@ -34,6 +34,8 @@ class FileIO(object):
         self.G = self.G | self.get_configs("g_menus")
         self.G = self.G | self.get_configs("g_windows")
         self.G = self.G | self.get_configs("g_uri")
+        self.S = self.get_schema("s00_channels")
+        self.S = self.S | self.get_schema("s10_topics")
 
     # Read-only methods
     # ==============================================================
@@ -110,7 +112,7 @@ class FileIO(object):
         except (AttributeError, KeyError):
             cfg_file_nm = f"{p_cfg_nm}.json"
             ok, err, cfg_j =\
-                self.get_file(path.join("../data/config", cfg_file_nm))
+                self.get_file(path.join("../config", cfg_file_nm))
             if not ok:
                 ok, err, cfg_j =\
                     self.get_file(path.join("config", cfg_file_nm))
@@ -118,6 +120,35 @@ class FileIO(object):
                     raise Exception(f"Error reading config file: {err}")
             cfg = json.loads(cfg_j)
         return (cfg)
+
+    def get_schema(self,
+                   p_sch_nm: str) -> dict:
+        """"Read schema JSON data...
+        - from shared memory pickle if it exists (full path)
+        - else from app space if it exists (path relative to app PY)
+        - else from git project JSON file  (path relative to git project)
+
+        Returns: (dict) Directory values or exception.
+        """
+        try:
+            self.S
+            pk_file = path.join(f"{self.D['MEM']}",
+                                f"{self.D['APP']}",
+                                f"{self.D['ADIRS']['NS']}",
+                                f"{self.D['NSDIRS']['ONT']}",
+                                f"{p_sch_nm}.pickle")
+            _, _, sch = self.unpickle_object(pk_file)
+        except (AttributeError, KeyError):
+            sch_file_nm = f"{p_sch_nm}.json"
+            ok, err, sch_j =\
+                self.get_file(path.join("../schema", sch_file_nm))
+            if not ok:
+                ok, err, sch_j =\
+                    self.get_file(path.join("schema", sch_file_nm))
+                if not ok:
+                    raise Exception(f"Error reading schema file: {err}")
+            sch = json.loads(sch_j)
+        return (sch)
 
     # CHMOD methods
     # ==============================================================

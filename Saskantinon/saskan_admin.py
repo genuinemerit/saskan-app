@@ -499,11 +499,11 @@ class SaskanAdmin(object):
             self.exit_app()
         elif "help" in m_item_id:
             if m_item_id == "pg_help":
-                self.WHTML.draw(FI.G["html"]["help"]["pygame"])
+                self.WHTML.draw(FI.G["uri"]["help"]["pygame"])
             elif m_item_id == "app_help":
-                self.WHTML.draw(FI.G["html"]["help"]["app"])
+                self.WHTML.draw(FI.G["uri"]["help"]["app"])
             elif m_item_id == "game_help":
-                self.WHTML.draw(FI.G["html"]["help"]["game"])
+                self.WHTML.draw(FI.G["uri"]["help"]["game"])
 
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
@@ -528,6 +528,7 @@ class SaskanAdmin(object):
         """
         self.mouse_loc = pg.mouse.get_pos()
 
+        # For managing text input boxes:
         # if self.TIG.current is None:
         #     pg.mouse.set_cursor(pg.cursors.Cursor())
 

@@ -37,6 +37,7 @@ class SaskanInstall(object):
         self.install_app_files()
         self.copy_python_scripts()
         self.copy_bash_files()
+        self.set_topics(self.set_channels())
         FI.pickle_saskan(self.APP)
 
     # Helpers
@@ -111,7 +112,7 @@ class SaskanInstall(object):
         """
         ok, err, files = FI.get_dir(Path.cwd())
         if not ok:
-            raise Exception(f"{FI.t['err_file']} {Path.cwd()} {err}")
+            raise Exception(f"{FI.T['err_file']} {Path.cwd()} {err}")
         py_files = [f for f in files if str(f).endswith(".py") and
                     "_install" not in str(f)]
         tgt_dir = path.join(self.APP, FI.D['ADIRS']['PY'])
@@ -121,7 +122,7 @@ class SaskanInstall(object):
                 ok, err = FI.copy_file(str(f), tgt_file)
                 if not ok:
                     raise Exception(
-                        f"{FI.t['err_file']} {tgt_file} {err}")
+                        f"{FI.T['err_file']} {tgt_file} {err}")
 
     def copy_bash_files(self):
         """Copy /bash to /usr/local/bin
@@ -134,20 +135,131 @@ class SaskanInstall(object):
         py_dir = path.join(self.APP, FI.D['ADIRS']['PY'])
         ok, err, files = FI.get_dir(src_dir)
         if not ok:
-            raise Exception(f"{FI.t['err_file']} {src_dir} {err}")
+            raise Exception(f"{FI.T['err_file']} {src_dir} {err}")
         for bf in files:
             bf_name = str(bf).split("/")[-1]
             tgt_file = path.join(FI.D['BIN'], bf_name)
             ok, err, bf_code = FI.get_file(str(bf))
             if not ok:
-                raise Exception(f"{FI.t['err_file']} {bf} {err}")
+                raise Exception(f"{FI.T['err_file']} {bf} {err}")
             bf_code = bf_code.replace("~APP_DIR~", py_dir)
             ok, err = FI.write_file(tgt_file, bf_code)
             if not ok:
-                raise Exception(f"{FI.t['err_file']} {tgt_file} {err}")
+                raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
             ok, err = FI.make_executable(tgt_file)
             if not ok:
-                raise Exception(f"{FI.t['err_file']} {tgt_file} {err}")
+                raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
+
+    def set_channels(self):
+        """Set channel info based on schema metadata"""
+
+        def get_host_IPs():
+            """Convert host name(s) to IP address(es)"""
+            for host in FI.S['channels']['resources']['hosts']:
+                ok, result = SI.run_cmd([f"grep {host} /etc/hosts"])
+                if ok:
+                    hosts = [h for h in result.split() if h != host] + [host]
+            return hosts
+
+        def init_channels():
+            """Initialize channel dictionary"""
+            total_port_cnt = 0
+            channels = dict()
+            for ch_nm, port_meta in FI.S['channels']['named'].items():
+                channels[ch_nm] = {"hosts": hosts,
+                                   "send": [0],
+                                   "recv": [0],
+                                   "duplex": [0]}
+                port_cnt = port_meta['recommended_ports']
+                total_port_cnt += port_cnt
+                if port_meta['separate_send_receive']:
+                    channels[ch_nm]["send"] = [round(port_cnt / 2)]
+                    channels[ch_nm]["recv"] =\
+                        [port_cnt - channels[ch_nm]["send"][0]]
+                else:
+                    channels[ch_nm]["duplex"] = [port_cnt]
+            return (total_port_cnt, channels)
+
+        def init_ports(p_port_cnt):
+            """Get list of available ports"""
+            ports = list()
+            lo_port = FI.S['channels']['resources']['ports']['low']
+            net_stat_tcp = ok, result = SI.run_cmd(["netstat -lant"])
+            net_stat_udp = ok, result = SI.run_cmd(["netstat -lanu"])
+            while len(ports) < p_port_cnt:
+                for port in range(lo_port, lo_port + p_port_cnt + 1):
+                    if port in net_stat_tcp or port in net_stat_udp:
+                        print(f"Port {str(port)} is in use")
+                    elif port not in ports:
+                        ports.append(port)
+            return ports
+
+        def assign_ports(channels, ports):
+            """Assign ports to channels"""
+            for nm, ch_meta in channels.items():
+                for port_typ in ["duplex", "send", "recv"]:
+                    for _ in range(0, ch_meta[port_typ][0]):
+                        port = ports.pop(0)
+                        ok, result = SI.run_cmd(f"ufw allow {port}/tcp")
+                        if ok:
+                            channels[nm][port_typ].append(port)
+                        else:
+                            raise Exception(f"{FI.T['err_cmd']} {result}")
+                    channels[nm][port_typ].pop(0)
+            ok, result = SI.run_cmd("ufw reload")
+            if ok:
+                print(result)
+                ok, result = SI.run_cmd("ufw enable")
+            if ok:
+                print(result)
+            else:
+                raise Exception(f"{FI.T['err_cmd']} {result}")
+            return channels
+
+        # set_channels main:
+        # ==================
+        hosts = get_host_IPs()
+        total_port_cnt, channels = init_channels()
+        ports = init_ports(total_port_cnt)
+        channels = assign_ports(channels, ports)
+        return channels
+
+    def set_topics(self, channels):
+        """Set topic info based on schema metadata
+
+        @DEV:
+        - Fire up an instance of saskan_server for each channel.
+        - Save the channel info in config directory.
+        """
+
+        def set_topic_name(ch_nm, broker_typ, broker_meta, channels):
+            """Set topic name based on channel name, broker and traffic type"""
+            for trf_typ in broker_meta['traffic']:
+                topic_nm = f"/{ch_nm}/{broker_typ}/{trf_typ}"
+                if broker_typ in ("broadcast",
+                                  "publish_subscribe",
+                                  "recipient_list"):
+                    topic_nm = "/queue" + topic_nm
+                if len(channels[ch_nm]["duplex"]["ports"]) > 1:
+                    channels[ch_nm]["duplex"]["topics"].append(topic_nm)
+                else:
+                    channels[ch_nm][trf_typ]["topics"].append(topic_nm)
+            return channels
+
+        # set_topics main:
+        # ================
+        pp((FI.S["topics"]))
+        for ch_nm in channels.keys():
+            for trf_typ in ("send", "recv", "duplex"):
+                channels[ch_nm][trf_typ] = {"ports": channels[ch_nm][trf_typ],
+                                            "topics": []}
+                channels[ch_nm]["desc"] = {}
+        for ch_nm, topic_meta in FI.S["topics"].items():
+            for broker_typ, broker_meta in topic_meta.items():
+                channels = set_topic_name(ch_nm, broker_typ, broker_meta,
+                                          channels)
+                channels[ch_nm]["desc"][broker_typ] = broker_meta["description"]
+        pp((channels))
 
 
 if __name__ == '__main__':

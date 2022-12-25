@@ -28,6 +28,9 @@ dependencies:
 # May be added later:
 #  - odfpy
 
+# Required at OS level:
+# - netstat (via net-tools installed with apt-get)
+
 # 2021-10-10  11:00
 # Path: saskan.yml
 

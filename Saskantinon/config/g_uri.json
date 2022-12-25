@@ -2,7 +2,7 @@
     "uri": {
         "help": {
             "pygame": "https://www.pygame.org/docs/",
-            "app": "html/app_help.html",
-            "game": "html/saskan_help.html"}
+            "game": "https://github.com/genuinemerit/saskan-wiki/wiki/Game",
+            "app": "https://github.com/genuinemerit/saskan-wiki/wiki"}
     }
 }
