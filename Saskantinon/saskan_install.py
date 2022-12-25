@@ -9,11 +9,13 @@ Writes bash files to /usr/local/bin
 Launch it by running sudo ./saskan_install from the git project directory,
 e.g. (saskan) ~/../Saskantinon/saskan_install
 """
-# import json
+import json
+import os
 
 from os import path
 from pathlib import Path
 from pprint import pprint as pp     # noqa: F401
+# from time import sleep
 
 from io_file import FileIO          # type: ignore
 from io_shell import ShellIO        # type: ignore
@@ -39,6 +41,7 @@ class SaskanInstall(object):
         self.copy_bash_files()
         self.set_topics(self.set_channels())
         FI.pickle_saskan(self.APP)
+        self.start_servers()
 
     # Helpers
     # ==============================================================
@@ -196,11 +199,14 @@ class SaskanInstall(object):
 
         def assign_ports(channels, ports):
             """Assign ports to channels"""
+            print("Setting Unix firewall rules for game ports...")
             for nm, ch_meta in channels.items():
                 for port_typ in ["duplex", "send", "recv"]:
                     for _ in range(0, ch_meta[port_typ][0]):
                         port = ports.pop(0)
-                        ok, result = SI.run_cmd(f"ufw allow {port}/tcp")
+                        # ok, result = SI.run_cmd(f"ufw delete allow {port}")
+                        # Do I need to allow OUT as well as IN?
+                        ok, result = SI.run_cmd(f"ufw allow {port}")
                         if ok:
                             channels[nm][port_typ].append(port)
                         else:
@@ -212,7 +218,10 @@ class SaskanInstall(object):
                 ok, result = SI.run_cmd("ufw enable")
             if ok:
                 print(result)
-            else:
+                ok, result = SI.run_cmd("ufw status numbered")
+                if ok:
+                    print(result)
+            if not ok:
                 raise Exception(f"{FI.T['err_cmd']} {result}")
             return channels
 
@@ -229,16 +238,17 @@ class SaskanInstall(object):
 
         @DEV:
         - Fire up an instance of saskan_server for each channel.
-        - Save the channel info in config directory.
+        - Figure out if "/queue" is appropriate for a send toapic or
+          only for receives
         """
 
-        def set_topic_name(ch_nm, broker_typ, broker_meta, channels):
+        def set_topic_name(ch_nm, brk_typ, brk_meta, channels):
             """Set topic name based on channel name, broker and traffic type"""
-            for trf_typ in broker_meta['traffic']:
-                topic_nm = f"/{ch_nm}/{broker_typ}/{trf_typ}"
-                if broker_typ in ("broadcast",
-                                  "publish_subscribe",
-                                  "recipient_list"):
+            for trf_typ in brk_meta['traffic']:
+                topic_nm = f"/{ch_nm}/{brk_typ}/{trf_typ}"
+                if brk_typ in ("broadcast",
+                               "publish_subscribe",
+                               "recipient_list"):
                     topic_nm = "/queue" + topic_nm
                 if len(channels[ch_nm]["duplex"]["ports"]) > 1:
                     channels[ch_nm]["duplex"]["topics"].append(topic_nm)
@@ -248,18 +258,56 @@ class SaskanInstall(object):
 
         # set_topics main:
         # ================
-        pp((FI.S["topics"]))
         for ch_nm in channels.keys():
             for trf_typ in ("send", "recv", "duplex"):
                 channels[ch_nm][trf_typ] = {"ports": channels[ch_nm][trf_typ],
                                             "topics": []}
                 channels[ch_nm]["desc"] = {}
         for ch_nm, topic_meta in FI.S["topics"].items():
-            for broker_typ, broker_meta in topic_meta.items():
-                channels = set_topic_name(ch_nm, broker_typ, broker_meta,
-                                          channels)
-                channels[ch_nm]["desc"][broker_typ] = broker_meta["description"]
-        pp((channels))
+            for brk_typ, brk_meta in topic_meta.items():
+                channels = set_topic_name(ch_nm, brk_typ, brk_meta, channels)
+                channels[ch_nm]["desc"][brk_typ] = brk_meta["description"]
+        FI.write_file(path.join(self.APP, FI.D['ADIRS']['CFG'],
+                                "s_channels.json"), json.dumps(channels))
+
+    def start_servers(self):
+        """Start a saskan_server instance for each channel"""
+        pypath = path.join(self.APP, FI.D['ADIRS']['PY'])
+        logpath = path.join(FI.D['MEM'], FI.D['APP'],
+                            FI.D['ADIRS']['SAV'], FI.D['NSDIRS']['LOG'])
+        channels_cfg =\
+            path.join(self.APP, FI.D['ADIRS']['CFG'], "s_channels.json")
+        ok, err, channels_j = FI.get_file(path.join(channels_cfg))
+        if ok:
+            channels = json.loads(channels_j)
+        else:
+            raise Exception(f"{FI.T['err_file']} {err} {channels_cfg}")
+        # pp(("channels", channels))
+        for ch_nm, ch_meta in channels.items():
+            host = ch_meta["hosts"][len(ch_meta["hosts"]) - 1]
+            for trf_typ in ("send", "recv", "duplex"):
+                for port in ch_meta[trf_typ]["ports"]:
+                    svc_nm = f"/{ch_nm}/{trf_typ}:{port}"
+                    cmd = ("nohup python -u " +
+                           f"{pypath}/sv_server.py " +
+                           f"'{svc_nm}' {host} {port} > " +
+                           f"{logpath}/sv_server_" +
+                           f"{svc_nm.replace('/', '_')}.log 2>&1 &")
+                    try:
+                        # print(f"Trying: {cmd} on {host}:{port}")
+                        # Before bringing up the server, see if it is
+                        # already running. If so, kill it.
+                        # Do "ps -ef | grep sv_server", get the pid, kill it
+                        # See io_shell:stop_running_services()
+                        os.system(cmd)
+                        # sleep(0.5)
+                    except Exception as e:
+                        raise Exception(f"{FI.T['err_cmd']} {e} {cmd}")
+        ok, result = SI.run_cmd("ps -ef | grep sv_server")
+        if ok:
+            print(result)
+        else:
+            raise Exception(f"{FI.T['err_cmd']} {result}")
 
 
 if __name__ == '__main__':

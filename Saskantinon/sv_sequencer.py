@@ -19,7 +19,7 @@ Main behaviors:
 from asyncio import StreamReader, StreamWriter
 
 
-class SaskanSequencer(object):
+class MsgSequencer(object):
     """Generic message handling."""
 
     async def read_msg(self, stream: StreamReader) -> bytes:
