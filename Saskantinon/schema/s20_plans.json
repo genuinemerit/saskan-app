@@ -1,58 +1,47 @@
 {
 "plans": {
-        "avatar_motion.request_response": {
+        "/avatar_motion/req_rep": {
             "client_type": ["transactional"],
             "action": {
                 "evaluate_move": ["request", "response"],
                 "do_move": ["request", "request_cancel",
-                            "response", "log_response",
-                            "response_cancel"]}
+                            "response", "response_log", "response_cancel"]}
         },
-        "avatar_motion.broadcast": {
+        "/avatar_motion/b_cast": {
             "client_type": ["polling", "event-driven"],
             "action": {
-                "notify": ["recipient_list",
-                    {"trigger":
-                        {"topic": "avatar_motion.request_response",
-                            "plan": "do_move", "service": "log_response"}}]}
+                "subscribe": ["request",
+                              "response", "reponse_cancel", "response_log"],
+                "notify": ["response",
+                    {"trigger": ["/avatar_motion/req_rep/do_move"]}]}
         },
-        "marketplace.datatype_requests": {
+        "/marketplace/req_chain": {
             "client_type": ["transactional", "event-driven"],
             "action": {
                 "inventory_list": ["request", "response"],
-                "commodity_available": ["request", "response", "log_response"],
-                "price_ask": ["request", "response", "response_cancel", "log_response",
-                    {"trigger":
-                        {"topic": "avatar_motion.marketplace",
-                            "plan": "commodity_available", "service": "log_response"}}],
-                "price_offer": ["request", "response", "log_response",
-                    {"trigger":
-                        {"topic": "avatar_motion.marketplace",
-                            "plan": "price_ask", "service": "log_response"}}],
-                "price_agree": ["request", "request_cancel", "response", "log_response",
-                    {"trigger":
-                        {"topic": "avatar_motion.marketplace",
-                            "plan": "price_offer", "service": "log_response"}}],
-                "purchase": ["request", "request_cancel", "response", "log_response",
-                    {"trigger":
-                        {"topic": "avatar_motion.marketplace",
-                            "plan": "price_agree", "service": "log_response"}}],
-                "transfer": ["request", "response", "log_response",
-                    {"trigger":
-                        {"topic": "avatar_motion.marketplace",
-                            "plan": "price_agree", "service": "log_response"}}]
-            }
+                "commodity_available": ["request", "response", "response_log"],
+                "price_ask": ["request", "response", "response_cancel", "response_log",
+                    {"trigger": ["/marketplace/req_chain/commodity_available"]}],
+                "price_offer": ["request", "response", "response_log",
+                    {"trigger": ["/marketplace/req_chain/price_ask"]}],
+                "price_agree": ["request", "request_cancel", "response", "response_log",
+                    {"trigger": ["/marketplace/req_chain/price_offer"]}],
+                "purchase": ["request", "request_cancel", "response", "response_log",
+                    {"trigger": ["/marketplace/req_chain/price_agree"]}],
+                "transfer": ["request", "response", "response_log",
+                    {"trigger": ["/marketplace/req_chain/purchase"]}]}
         },
-        "gametime.request_response": {
+        "/gametime/req_rep": {
             "client_type": ["transactional"],
             "action": {
                 "get_time": ["request", "response"]}
         },
-        "gametime.publish_subscribe": {
+        "/gametime/pub_sub": {
             "client_type": ["polling", "event-driven"],
             "action": {
-                "subscribe": ["request", "response", "reponse_cancel", "log_response"],
-                "notify": ["publish_list"]}
+                "subscribe": ["request", "response", "reponse_cancel", "response_log"],
+                "notify": ["response",
+                    {"trigger": ["/avatar_motion/req_rep/do_move"]}]}
         }
     }
 }

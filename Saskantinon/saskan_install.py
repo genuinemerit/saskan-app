@@ -154,10 +154,20 @@ class SaskanInstall(object):
                 raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
 
     def set_channels(self):
-        """Set channel info based on schema metadata"""
+        """Set channel info based on schema metadata
+
+        @DEV:
+        - Move some of this io_shell(), some to a reporter class.
+        - Much of it may be desirable to have as admin functions,
+          not just at install.  Consider this a prototype...
+        """
 
         def get_host_IPs():
-            """Convert host name(s) to IP address(es)"""
+            """Convert host name(s) to IP address(es)
+
+            @DEV:
+            - Turns out I don't use the IP numbers. Can remove this.
+            """
             for host in FI.S['channels']['resources']['hosts']:
                 ok, result = SI.run_cmd([f"grep {host} /etc/hosts"])
                 if ok:
@@ -218,9 +228,10 @@ class SaskanInstall(object):
                 ok, result = SI.run_cmd("ufw enable")
             if ok:
                 print(result)
-                ok, result = SI.run_cmd("ufw status numbered")
-                if ok:
-                    print(result)
+                # Move to a monitor or reporter class
+                # ok, result = SI.run_cmd("ufw status numbered")
+                # if ok:
+                #     print(result)
             if not ok:
                 raise Exception(f"{FI.T['err_cmd']} {result}")
             return channels
@@ -237,22 +248,24 @@ class SaskanInstall(object):
         """Set topic info based on schema metadata
 
         @DEV:
-        - Fire up an instance of saskan_server for each channel.
-        - Figure out if "/queue" is appropriate for a send toapic or
-          only for receives
+        - Do I really need to persist the channels/topics at this point?
         """
 
         def set_topic_name(ch_nm, brk_typ, brk_meta, channels):
-            """Set topic name based on channel name, broker and traffic type"""
+            """Set topic name based on channel name, broker and traffic type
+
+            @DEV:
+            - Don't need to add "/send" or "/recv" to topic name unless
+              using a duplex channel
+            - We'll be augmenting the topics with plan names, which all have
+              "request" or "response" in them.
+            """
             for trf_typ in brk_meta['traffic']:
-                topic_nm = f"/{ch_nm}/{brk_typ}/{trf_typ}"
-                if brk_typ in ("broadcast",
-                               "publish_subscribe",
-                               "recipient_list"):
-                    topic_nm = "/queue" + topic_nm
                 if len(channels[ch_nm]["duplex"]["ports"]) > 1:
+                    topic_nm = f"/{ch_nm}/{brk_typ}/{trf_typ}"
                     channels[ch_nm]["duplex"]["topics"].append(topic_nm)
                 else:
+                    topic_nm = f"/{ch_nm}/{brk_typ}"
                     channels[ch_nm][trf_typ]["topics"].append(topic_nm)
             return channels
 
@@ -269,9 +282,17 @@ class SaskanInstall(object):
                 channels[ch_nm]["desc"][brk_typ] = brk_meta["description"]
         FI.write_file(path.join(self.APP, FI.D['ADIRS']['CFG'],
                                 "s_channels.json"), json.dumps(channels))
+        # Or just return channels config, pass along to the next step....
 
     def start_servers(self):
-        """Start a saskan_server instance for each channel"""
+        """Start a saskan_server instance for each channel
+
+        @DEV:
+        - Break this down a bit. See io_shell.py - can we use generic
+        functions to start, stop, show status for servers?
+        - Reading channels config data should be done by io_file,
+          like with other config files.
+        """
         pypath = path.join(self.APP, FI.D['ADIRS']['PY'])
         logpath = path.join(FI.D['MEM'], FI.D['APP'],
                             FI.D['ADIRS']['SAV'], FI.D['NSDIRS']['LOG'])
@@ -282,11 +303,21 @@ class SaskanInstall(object):
             channels = json.loads(channels_j)
         else:
             raise Exception(f"{FI.T['err_file']} {err} {channels_cfg}")
-        # pp(("channels", channels))
+        ok, result = SI.run_cmd("ps -ef | grep sv_server")
+        if not ok:
+            raise Exception(f"{FI.T['err_cmd']} {result}")
+        running_jobs = result.split("\n")
+        # pp((running_jobs))
         for ch_nm, ch_meta in channels.items():
             host = ch_meta["hosts"][len(ch_meta["hosts"]) - 1]
             for trf_typ in ("send", "recv", "duplex"):
                 for port in ch_meta[trf_typ]["ports"]:
+                    for jx, job in enumerate(running_jobs):
+                        if ":" + str(port) in job:
+                            job_pid = job.split()[1].strip()
+                            ok, result = SI.run_cmd(f"kill -9 {job_pid}")
+                            # print(f"Deleted running job for {host}:{port}")
+                            break
                     svc_nm = f"/{ch_nm}/{trf_typ}:{port}"
                     cmd = ("nohup python -u " +
                            f"{pypath}/sv_server.py " +
@@ -294,15 +325,10 @@ class SaskanInstall(object):
                            f"{logpath}/sv_server_" +
                            f"{svc_nm.replace('/', '_')}.log 2>&1 &")
                     try:
-                        # print(f"Trying: {cmd} on {host}:{port}")
-                        # Before bringing up the server, see if it is
-                        # already running. If so, kill it.
-                        # Do "ps -ef | grep sv_server", get the pid, kill it
-                        # See io_shell:stop_running_services()
                         os.system(cmd)
-                        # sleep(0.5)
                     except Exception as e:
                         raise Exception(f"{FI.T['err_cmd']} {e} {cmd}")
+        # move to a monitor or reporter class
         ok, result = SI.run_cmd("ps -ef | grep sv_server")
         if ok:
             print(result)

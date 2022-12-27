@@ -24,7 +24,7 @@ SUBSCRIBERS: DefaultDict[bytes, Deque] = defaultdict(deque)
 
 
 async def server(reader: StreamReader, writer: StreamWriter):
-    """Handle traffic for a single channel = unique combo of hosts:ports
+    """Handle traffic for a single channel = unique combo of host:port.
     """
     peername = writer.get_extra_info('peername')
     subscribe_chan = await MS.read_msg(reader)
@@ -35,7 +35,9 @@ async def server(reader: StreamReader, writer: StreamWriter):
             data = await MS.read_msg(reader)
             print(f'Sending to {channel_name!r}: {data[:19]!r}...')
             conns = SUBSCRIBERS[channel_name]
-            if conns and channel_name.startswith(b'/queue'):
+            if (conns and
+                    ("/b_cast" in channel_name or
+                     "/pub_sub" in channel_name)):
                 conns.rotate()
                 conns = deque([conns[0]])
             await gather(*[MS.send_msg(c, data) for c in conns])
