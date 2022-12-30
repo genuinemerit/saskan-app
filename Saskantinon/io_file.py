@@ -36,6 +36,7 @@ class FileIO(object):
         self.G = self.G | self.get_configs("g_uri")
         self.S = self.get_schema("s00_channels")
         self.S = self.S | self.get_schema("s10_topics")
+        self.S = self.S | self.get_schema("s20_plans")
 
     # Read-only methods
     # ==============================================================
@@ -149,6 +150,19 @@ class FileIO(object):
                     raise Exception(f"Error reading schema file: {err}")
             sch = json.loads(sch_j)
         return (sch)
+
+    """
+    def get_svc_meta_file(self):
+        #
+        svc_cfg =\
+            path.join(self.APP, FI.D['ADIRS']['CFG'], "s_svc.json")
+        ok, err, svc_j = FI.get_file(path.join(svc_cfg))
+        if ok:
+            svc = json.loads(svc_j)
+        else:
+            raise Exception(f"{FI.T['err_file']} {err} {svc_cfg}")
+        return svc
+    """
 
     # CHMOD methods
     # ==============================================================

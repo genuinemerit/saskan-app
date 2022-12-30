@@ -9,8 +9,8 @@ Writes bash files to /usr/local/bin
 Launch it by running sudo ./saskan_install from the git project directory,
 e.g. (saskan) ~/../Saskantinon/saskan_install
 """
-import json
-import os
+# import json
+# import os
 
 from os import path
 from pathlib import Path
@@ -19,9 +19,11 @@ from pprint import pprint as pp     # noqa: F401
 
 from io_file import FileIO          # type: ignore
 from io_shell import ShellIO        # type: ignore
+from saskan_report import SaskanReport  # type: ignore
 
 FI = FileIO()
 SI = ShellIO()
+SR = SaskanReport()
 
 
 class SaskanInstall(object):
@@ -39,9 +41,13 @@ class SaskanInstall(object):
         self.install_app_files()
         self.copy_python_scripts()
         self.copy_bash_files()
-        self.set_topics(self.set_channels())
+        port_cnt, svc = self.init_svc_config()
+        svc = self.set_ports_config(port_cnt, svc)
+        svc = self.set_topics_config(svc)
+        pp((svc))
         FI.pickle_saskan(self.APP)
-        self.start_servers()
+        self.start_servers(svc)
+        # self.start_clients()
 
     # Helpers
     # ==============================================================
@@ -153,187 +159,238 @@ class SaskanInstall(object):
             if not ok:
                 raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
 
-    def set_channels(self):
-        """Set channel info based on schema metadata
-
-        @DEV:
-        - Move some of this io_shell(), some to a reporter class.
-        - Much of it may be desirable to have as admin functions,
-          not just at install.  Consider this a prototype...
+    def init_svc_config(self):
+        """Initialize svc config dictionary.
+        Start by identifying how many ports need to be allocated
+        for each traffic-type (send, receive or duplex) in channel
         """
+        port_cnt = 0
+        svc = dict()
+        for c_nm, c_meta in FI.S['channel']['name'].items():
+            port_cnt += c_meta['port_cnt']
+            svc[c_nm] = {"host": FI.S['channel']['resource']['host']}
+            if c_meta["duplex"]:
+                svc[c_nm]["duplex"] = c_meta['port_cnt']
+            else:
+                svc[c_nm]["send"] = round(c_meta['port_cnt'] / 2)
+                svc[c_nm]["recv"] = c_meta['port_cnt'] - svc[c_nm]["send"]
+        return (port_cnt, svc)
 
-        def get_host_IPs():
-            """Convert host name(s) to IP address(es)
-
-            @DEV:
-            - Turns out I don't use the IP numbers. Can remove this.
-            """
-            for host in FI.S['channels']['resources']['hosts']:
-                ok, result = SI.run_cmd([f"grep {host} /etc/hosts"])
-                if ok:
-                    hosts = [h for h in result.split() if h != host] + [host]
-            return hosts
-
-        def init_channels():
-            """Initialize channel dictionary"""
-            total_port_cnt = 0
-            channels = dict()
-            for ch_nm, port_meta in FI.S['channels']['named'].items():
-                channels[ch_nm] = {"hosts": hosts,
-                                   "send": [0],
-                                   "recv": [0],
-                                   "duplex": [0]}
-                port_cnt = port_meta['recommended_ports']
-                total_port_cnt += port_cnt
-                if port_meta['separate_send_receive']:
-                    channels[ch_nm]["send"] = [round(port_cnt / 2)]
-                    channels[ch_nm]["recv"] =\
-                        [port_cnt - channels[ch_nm]["send"][0]]
-                else:
-                    channels[ch_nm]["duplex"] = [port_cnt]
-            return (total_port_cnt, channels)
-
-        def init_ports(p_port_cnt):
-            """Get list of available ports"""
-            ports = list()
-            lo_port = FI.S['channels']['resources']['ports']['low']
-            net_stat_tcp = ok, result = SI.run_cmd(["netstat -lant"])
-            net_stat_udp = ok, result = SI.run_cmd(["netstat -lanu"])
-            while len(ports) < p_port_cnt:
-                for port in range(lo_port, lo_port + p_port_cnt + 1):
-                    if port in net_stat_tcp or port in net_stat_udp:
-                        print(f"Port {str(port)} is in use")
-                    elif port not in ports:
-                        ports.append(port)
-            return ports
-
-        def assign_ports(channels, ports):
-            """Assign ports to channels"""
-            print("Setting Unix firewall rules for game ports...")
-            for nm, ch_meta in channels.items():
-                for port_typ in ["duplex", "send", "recv"]:
-                    for _ in range(0, ch_meta[port_typ][0]):
-                        port = ports.pop(0)
-                        # ok, result = SI.run_cmd(f"ufw delete allow {port}")
-                        # Do I need to allow OUT as well as IN?
-                        ok, result = SI.run_cmd(f"ufw allow {port}")
-                        if ok:
-                            channels[nm][port_typ].append(port)
-                        else:
-                            raise Exception(f"{FI.T['err_cmd']} {result}")
-                    channels[nm][port_typ].pop(0)
-            ok, result = SI.run_cmd("ufw reload")
-            if ok:
-                print(result)
-                ok, result = SI.run_cmd("ufw enable")
-            if ok:
-                print(result)
-                # Move to a monitor or reporter class
-                # ok, result = SI.run_cmd("ufw status numbered")
-                # if ok:
-                #     print(result)
-            if not ok:
-                raise Exception(f"{FI.T['err_cmd']} {result}")
-            return channels
-
-        # set_channels main:
-        # ==================
-        hosts = get_host_IPs()
-        total_port_cnt, channels = init_channels()
-        ports = init_ports(total_port_cnt)
-        channels = assign_ports(channels, ports)
-        return channels
-
-    def set_topics(self, channels):
-        """Set topic info based on schema metadata
-
-        @DEV:
-        - Do I really need to persist the channels/topics at this point?
+    def set_ports_config(self, p_port_cnt, svc):
+        """Get list of available ports using netstat to identify
+        active TCP and UDP ports. Assign selected ports to svc config.
+        N.B. "ALLOW IN" means that the port allows both outgoing and
+        inbound transmission. Default is to allow OUT, deny IN. So
+        adding ALLOW IN is necessary to allow inbound transmission.
+        For a more sophisticated firewall, we'd probably assign
+        exactly what IPs are allowed IN (and maybe OUT). For example,
+        if all my clients use a specific set of IPs (and ports). For
+        the current prototype, everything is on the a single monolith,
+        so it doesn't matter.
         """
-
-        def set_topic_name(ch_nm, brk_typ, brk_meta, channels):
-            """Set topic name based on channel name, broker and traffic type
-
-            @DEV:
-            - Don't need to add "/send" or "/recv" to topic name unless
-              using a duplex channel
-            - We'll be augmenting the topics with plan names, which all have
-              "request" or "response" in them.
-            """
-            for trf_typ in brk_meta['traffic']:
-                if len(channels[ch_nm]["duplex"]["ports"]) > 1:
-                    topic_nm = f"/{ch_nm}/{brk_typ}/{trf_typ}"
-                    channels[ch_nm]["duplex"]["topics"].append(topic_nm)
-                else:
-                    topic_nm = f"/{ch_nm}/{brk_typ}"
-                    channels[ch_nm][trf_typ]["topics"].append(topic_nm)
-            return channels
-
-        # set_topics main:
-        # ================
-        for ch_nm in channels.keys():
-            for trf_typ in ("send", "recv", "duplex"):
-                channels[ch_nm][trf_typ] = {"ports": channels[ch_nm][trf_typ],
-                                            "topics": []}
-                channels[ch_nm]["desc"] = {}
-        for ch_nm, topic_meta in FI.S["topics"].items():
-            for brk_typ, brk_meta in topic_meta.items():
-                channels = set_topic_name(ch_nm, brk_typ, brk_meta, channels)
-                channels[ch_nm]["desc"][brk_typ] = brk_meta["description"]
-        FI.write_file(path.join(self.APP, FI.D['ADIRS']['CFG'],
-                                "s_channels.json"), json.dumps(channels))
-        # Or just return channels config, pass along to the next step....
-
-    def start_servers(self):
-        """Start a saskan_server instance for each channel
-
-        @DEV:
-        - Break this down a bit. See io_shell.py - can we use generic
-        functions to start, stop, show status for servers?
-        - Reading channels config data should be done by io_file,
-          like with other config files.
-        """
-        pypath = path.join(self.APP, FI.D['ADIRS']['PY'])
-        logpath = path.join(FI.D['MEM'], FI.D['APP'],
-                            FI.D['ADIRS']['SAV'], FI.D['NSDIRS']['LOG'])
-        channels_cfg =\
-            path.join(self.APP, FI.D['ADIRS']['CFG'], "s_channels.json")
-        ok, err, channels_j = FI.get_file(path.join(channels_cfg))
-        if ok:
-            channels = json.loads(channels_j)
-        else:
-            raise Exception(f"{FI.T['err_file']} {err} {channels_cfg}")
-        ok, result = SI.run_cmd("ps -ef | grep sv_server")
-        if not ok:
-            raise Exception(f"{FI.T['err_cmd']} {result}")
-        running_jobs = result.split("\n")
-        # pp((running_jobs))
-        for ch_nm, ch_meta in channels.items():
-            host = ch_meta["hosts"][len(ch_meta["hosts"]) - 1]
-            for trf_typ in ("send", "recv", "duplex"):
-                for port in ch_meta[trf_typ]["ports"]:
-                    for jx, job in enumerate(running_jobs):
-                        if ":" + str(port) in job:
-                            job_pid = job.split()[1].strip()
-                            ok, result = SI.run_cmd(f"kill -9 {job_pid}")
-                            # print(f"Deleted running job for {host}:{port}")
-                            break
-                    svc_nm = f"/{ch_nm}/{trf_typ}:{port}"
-                    cmd = ("nohup python -u " +
-                           f"{pypath}/sv_server.py " +
-                           f"'{svc_nm}' {host} {port} > " +
-                           f"{logpath}/sv_server_" +
-                           f"{svc_nm.replace('/', '_')}.log 2>&1 &")
-                    try:
-                        os.system(cmd)
-                    except Exception as e:
-                        raise Exception(f"{FI.T['err_cmd']} {e} {cmd}")
-        # move to a monitor or reporter class
-        ok, result = SI.run_cmd("ps -ef | grep sv_server")
+        print("Selecting ports and setting firewall for game ports...")
+        ports = list()
+        port = FI.S['channel']['resource']['port_low']
+        ok, net_stat_result = SI.run_cmd(["netstat -lantu"])
+        while len(ports) < p_port_cnt:
+            if str(port) not in net_stat_result:
+                ports.append(port)
+            port += 1
+        for c_nm, c_meta in svc.items():
+            for p_typ in [pt for pt in c_meta.keys() if pt != "host"]:
+                port_cnt = c_meta[p_typ]
+                svc[c_nm][p_typ] = {"port": []}
+                for _ in range(0, port_cnt):
+                    port = ports.pop(0)
+                    ok, result = SI.run_cmd(f"ufw allow in {port}")
+                    if ok:
+                        svc[c_nm][p_typ]["port"].append(port)
+                    else:
+                        raise Exception(f"{FI.T['err_cmd']} {result}")
+        ok, result = SI.run_cmd("ufw reload")
         if ok:
             print(result)
-        else:
+            ok, result = SI.run_cmd("ufw enable")
+        if ok:
+            print(result)
+        if not ok:
             raise Exception(f"{FI.T['err_cmd']} {result}")
+        return svc
+
+    def set_topics_config(self, svc):
+        """Set service config based on topic and broker-type metadata
+        """
+        for c_nm, c_meta in svc.items():
+            for p_typ in [pt for pt in c_meta.keys() if pt != "host"]:
+                svc[c_nm][p_typ]["topic"] = {}
+            svc[c_nm]["desc"] = {}
+        for c_nm, t_meta in FI.S["topic"].items():
+            for t_nm, b_meta in t_meta.items():
+                svc[c_nm]["desc"][t_nm] = b_meta["desc"]
+                for d_typ in b_meta['direction']:
+                    if "duplex" in svc[c_nm].keys():
+                        topic_nm = t_nm + "_" + d_typ
+                        d_typ = "duplex"
+                    else:
+                        topic_nm = t_nm
+                    svc[c_nm][d_typ]["topic"][topic_nm] = {"action": {}}
+        return svc
+
+    def start_servers(self, svc):
+        """Start a saskan_server instance for each channel.
+        The server module receives messages from clients, sends them
+        to message gateway (backend processors), which is turn sends
+        links or fail messages to clients.
+
+        :Args:
+        - svc: service config dictionary
+        """
+        pgm_nm = "sv_server"
+        SI.kill_jobs(pgm_nm)
+        # Launch new sv_server instances
+        pypath = path.join(self.APP, FI.D['ADIRS']['PY'], f"{pgm_nm}.py")
+        logpath = path.join(FI.D['MEM'], FI.D['APP'],
+                            FI.D['ADIRS']['SAV'], FI.D['NSDIRS']['LOG'])
+        for c_nm, c_meta in svc.items():
+            for p_typ in [pt for pt in c_meta.keys()
+                          if pt not in ("host", "desc")]:
+                for port in c_meta[p_typ]["port"]:
+                    SI.run_nohup_py(pypath,
+                                    logpath,
+                                    f"/{c_nm}/{p_typ}:{port}",
+                                    c_meta['host'],
+                                    port,
+                                    pgm_nm)
+        result, _ = SR.rpt_jobs(pgm_nm)
+        print("Servers started or restarted:")
+        print(result)
+
+    def start_clients(self):
+        """Start a saskan_request instance for each plan + client-type.
+        Note that "requestors" need to be renamed to "clients".
+        They do more than send requests; they also take some kind of
+        functional action based on the response message. Modify wiki
+        and code accordingly. The "request" handlers should be named
+        like *_client.py, not *_request.py. In some more complex cases
+        I may find that *_client_request and *_client_response_handler
+        need to be separated too. Keep it consolildated to start with.
+
+        The client modules can be "brokers" in the sense that they
+        might be used by more than one application-level GUI or CLI or
+        business logic module. Might think of the client module as the
+        "front end traffic cop". (*_reponse.py modules are the "back end"
+        traffic handlers, and I suppose the *_server.py modules could be
+        referred to as the "middleware managers".)
+
+        There are (so far) 3 types of clients:
+        - transactional: one-one txns, a caller triggers it & handles reply,
+            which is targeted to that specific client
+
+        - polling: send multiple copies of the reply to a subscriber list.
+            Of which there are two sub-flavors, which have to do mainly with
+            how a client gets on the subscriber list. The underlying mechanisms
+            are similar. Broadcast is like a simpler version of pub-sub.
+
+            - broadcast: subscribers are identified by a system configuration
+                setting and it is a fairly static subscriber list.
+
+            - publish-subscribe: subscribers are identified by request messages
+                (subscribe requests) and are more dynamic. Subs may have an
+                expiration limit. Subs may be "one-shot" or "recurring". There
+                is an "unsubscribe" option.
+
+        - event-driven: a chain of transactional clients, where each request
+            is triggered by a previous response. The first request is sent by
+            a regular transactional client, then a chain of events rolls out.
+            Sort of like an ETL pipeline.  Can trigger other txns, polling, or
+            both.
+
+        A client-type can be both transactional and event-driven.
+        Or polling and event-driven.
+        It would be odd to be only event-driven, but maybe it could happen.
+
+        ===
+
+        Maybe update the service config file ("s_channels.json" for now...
+        should be renamed to "s_services.json") to include a "clients" section
+        or something. The next level of meta-data will be the "plans".
+
+        A plan defines:
+        - actions, which consist of an action name and a set of one to many
+          event names associated with a topic. The events  have either
+          "request" or "reponse" in their name.  In  JSON file, associate them
+          with a send or receive channel respectively. (Not 100% sure about
+          that, but it seems to make sense for now.)  If the channel for that
+          topic is duplex, then all the actions/events are associated with a
+          single channel and send/receive is designated by the topic name.
+        - Optionally, a set of triggers associated with an action. These are
+          used to define the chain of events for event-driven clients. The
+          trigger identifies what topic + plan(s) trigger the action.
+        """
+        def update_service_meta(svc: dict):
+            """Update service meta-data with action/event information.
+
+            @DEV:
+            With respect to designing the client modules:
+            - Action/event is only the high level. Like "what actions
+              are supported by this module".
+            - The client module will also need to...
+                - handle specific message structures for each action/event.
+                - listen for, handle a response message, which is a link to a
+                Harvest message, a simple ack, or an error message.
+            - Not sure if this can all be genericized completely, i.e.,
+              probably using pickled objects to define the events and messages,
+              or if I'll need a collection of python modules -- possibly auto-
+              generated ones.
+            - Even if I can generecize the client.py, will still want to
+              have multiples instances in all likelihood. Need to think about
+              that. Having dedicated ports might help; may or may not want to
+              use the same ones that the server.py's are using? Or is this more
+              like just need a bunch of them available round-robin style, maybe
+              served up on a Nginx or twisted server?
+
+            For now, continue to generate  consolidated services meta-config,
+            which can be pickled and should provide prototype for
+            how any message should be handled.
+            """
+            def set_event_typ(p_meta):
+                e_typ = ""
+                if "transactional" in p_meta['client_type']:
+                    e_typ += "txn_"
+                if "polling" in p_meta['client_type']:
+                    e_typ += "poll_"
+                if "event-driven" in p_meta['client_type']:
+                    e_typ += "event_"
+                return e_typ[:-1]
+
+            def set_actions(svc, p_meta, action_nm,
+                            c_typ, s_top_nm, e_typ):
+                svc[c_nm][c_typ]["topics"][s_top_nm]["action"][action_nm] = []
+                for event_nm in p_meta['action'][action_nm]:
+                    if (("response" in event_nm and
+                            (c_typ == "send" or "send" in s_top_nm)) or
+                        ("request" in event_nm and
+                            (c_typ == "recv" or "recv" in s_top_nm))):
+                        svc[c_nm][c_typ]["topics"][s_top_nm]["action"][action_nm].append(  # noqa: E501
+                            e_typ + "_" + event_nm)
+                return svc
+
+            for p_top_nm, p_meta in FI.S['plans'].items():
+                c_nm = p_top_nm.split('/')[1]
+                e_typ = set_event_typ(p_meta)
+                for action_nm in p_meta['action'].keys():
+                    for c_typ in ("duplex", "recv", "send"):
+                        for s_top_nm in svc[c_nm][c_typ]["topics"].keys():
+                            svc = set_actions(svc, p_meta, action_nm,
+                                              c_typ, s_top_nm, e_typ)
+
+            return svc
+
+        # ====================
+        # start_clients (main)
+        # ====================
+        svc = update_service_meta(self.get_svc_meta_file())
+        pp(svc)
 
 
 if __name__ == '__main__':

@@ -1,21 +1,21 @@
 {
-    "channels": {
-        "resources": {
-            "hosts": ["mahaka"],
-            "ports": {"low": 61001, "high": 61201}
+    "channel": {
+        "resource": {
+            "host": "mahaka",
+            "port_low": 61001
         },
-        "named": {
+        "name": {
             "avatar_motion": {
-                "recommended_ports": 5,
-                "separate_send_receive": true
+                "port_cnt": 5,
+                "duplex": false
             },
             "marketplace": {
-                "recommended_ports": 5,
-                "separate_send_receive": true
+                "port_cnt": 5,
+                "duplex": false
             },
             "gametime": {
-                "recommended_ports": 2,
-                "separate_send_receive": false
+                "port_cnt": 2,
+                "duplex": true
             }
         }
     }
