@@ -1,0 +1,19 @@
+{
+"gate": {
+        "avatar_gateway": {
+            "description": "A backend module responding to avatar movement requests."
+        },
+        "monitored_gateway": {
+            "description": "A backend module that responding to monitoring and logging requests. For example, when a response needs to be logged so that it can trigger other events."
+        },
+        "inventory_gateway": {
+            "description": "A backend module responding to game world requests relating to collections of things, such as what is being carried by another object or handling of market transactions."
+        },
+        "gametime_gateway": {
+            "description": "A backend module responding to requests to compute, record orcommunicate game time information in multiple modalities."
+        },
+        "subscriber_gateway": {
+            "description": "A backend module responding to requests regarding subscriber and recipient lists."
+        }
+    }
+}

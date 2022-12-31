@@ -44,9 +44,10 @@ class SaskanInstall(object):
         port_cnt, svc = self.init_svc_config()
         svc = self.set_ports_config(port_cnt, svc)
         svc = self.set_topics_config(svc)
+        svc = self.set_actions_config(svc)
         pp((svc))
         FI.pickle_saskan(self.APP)
-        self.start_servers(svc)
+        # self.start_servers(svc)
         # self.start_clients()
 
     # Helpers
@@ -236,6 +237,84 @@ class SaskanInstall(object):
                     svc[c_nm][d_typ]["topic"][topic_nm] = {"action": {}}
         return svc
 
+    def set_actions_config(self, svc):
+        """
+        There are (so far) 3 types of clients:
+        - transactional: one-one txns, a clinet triggers an action & handles
+        the reply, which is honed for that specific client
+
+        - polling: send multiple copies of a reply to a subscriber list.
+          Two sub-flavors, which relate to how subscriber list is managed:
+
+            - publish-subscribe: subscribers identified by request messages
+                (subscriber requests) and are dynamic. Subs may have an
+                expiration limit, may be "one-shot", or "recurring". There
+                is an "unsubscribe" option.
+            - broadcast: subscribers identified by a system configuration
+                setting; a mostly static subscriber list.
+                Broadcast is like a simpler version of pub-sub.
+
+        - event-driven: chain of transactional clients, each request triggered
+          by a previous response. First request in chain sent by regular
+          transactional client, then a chain of events rolls out.
+          Like an ETL pipeline.  Can trigger other txns, polling, or both.
+
+        Client-type can be transactional and event-driven.
+        Or polling and event-driven.
+        It would be odd to be only event-driven, but maybe it could happen.
+
+        A plan defines:
+
+        - actions, which consist of an action name and a set of one to many
+          event names associated with a topic. The events  have either
+          "request" or "reponse" in their name.  In  svc config, associate them
+          with a send or receive channel respectively. If channel is duplex,
+          then all the actions/events are associated with a single channel;
+          so send/receive are designated by the topic name.
+
+        - Optionally, an action can have a set of triggers. They define the
+          chain of events for event-driven clients, what topic + plan(s)
+          trigger the action. May need some additional work regarding what
+          exactly is the trigger for a request vs. a response event.
+        """
+        def set_event_typ(p_meta):
+            e_typ = ""
+            if "transactional" in p_meta['client_type']:
+                e_typ += "txn_"
+            if "polling" in p_meta['client_type']:
+                e_typ += "poll_"
+            if "event-driven" in p_meta['client_type']:
+                e_typ += "event_"
+            return e_typ[:-1]
+
+        def set_actions(svc, p_meta, a_nm, p_typ, t_nm, e_typ):
+            svc_action = svc[c_nm][p_typ]["topic"][t_nm]["action"]
+            svc_action[a_nm] = {"events": []}
+            for event_nm in p_meta['action'][a_nm]:
+                if (("response" in event_nm and
+                        (p_typ == "send" or "send" in t_nm)) or
+                    ("request" in event_nm and
+                        (p_typ == "recv" or "recv" in t_nm))):
+                    svc_action[a_nm]["events"].append(e_typ + "_" + event_nm)
+                elif (isinstance(event_nm, dict) and
+                        list(event_nm.keys())[0] == "trigger"):
+                    svc_action[a_nm]["trigger"] = event_nm["trigger"]
+            return svc
+
+        # set_actions_config:
+        # ===================
+        for p_t_nm, p_meta in FI.S['plan'].items():
+            c_nm = p_t_nm.split('/')[1]
+            e_typ = set_event_typ(p_meta)
+            for a_nm in p_meta['action'].keys():
+                for p_typ in [pt for pt in svc[c_nm]
+                              if pt not in ["host", "desc"]]:
+                    for t_nm in svc[c_nm][p_typ]["topic"].keys():
+                        svc = set_actions(svc, p_meta, a_nm,
+                                          p_typ, t_nm, e_typ)
+
+        return svc
+
     def start_servers(self, svc):
         """Start a saskan_server instance for each channel.
         The server module receives messages from clients, sends them
@@ -246,7 +325,7 @@ class SaskanInstall(object):
         - svc: service config dictionary
         """
         pgm_nm = "sv_server"
-        SI.kill_jobs(pgm_nm)
+        SI.kill_jobs("/" + pgm_nm)
         # Launch new sv_server instances
         pypath = path.join(self.APP, FI.D['ADIRS']['PY'], f"{pgm_nm}.py")
         logpath = path.join(FI.D['MEM'], FI.D['APP'],
@@ -261,136 +340,83 @@ class SaskanInstall(object):
                                     c_meta['host'],
                                     port,
                                     pgm_nm)
-        result, _ = SR.rpt_jobs(pgm_nm)
+        result, _ = SR.rpt_jobs("/" + pgm_nm)
         print("Servers started or restarted:")
         print(result)
 
-    def start_clients(self):
+    def start_clients(self, svc):
         """Start a saskan_request instance for each plan + client-type.
-        Note that "requestors" need to be renamed to "clients".
-        They do more than send requests; they also take some kind of
-        functional action based on the response message. Modify wiki
-        and code accordingly. The "request" handlers should be named
-        like *_client.py, not *_request.py. In some more complex cases
-        I may find that *_client_request and *_client_response_handler
-        need to be separated too. Keep it consolildated to start with.
+        Cleints initiate actions and also take a functional followup,
+        which may or may not involve a subsequent message, based on
+        response messages.  In some more complex cases it may be useful
+        to separate *_client_request and *_client_response_handler
+        modules, but keep it consolildated to start with.
 
-        The client modules can be "brokers" in the sense that they
-        might be used by more than one application-level GUI or CLI or
-        business logic module. Might think of the client module as the
-        "front end traffic cop". (*_reponse.py modules are the "back end"
-        traffic handlers, and I suppose the *_server.py modules could be
-        referred to as the "middleware managers".)
+        Client modules can be "brokers" in that they could be used by more
+        than one app-level GUI or game logic module.
 
         There are (so far) 3 types of clients:
-        - transactional: one-one txns, a caller triggers it & handles reply,
-            which is targeted to that specific client
+        - transactional: one-one txns, a clinet triggers an action & handles
+        the reply, which is honed for that specific client
 
-        - polling: send multiple copies of the reply to a subscriber list.
-            Of which there are two sub-flavors, which have to do mainly with
-            how a client gets on the subscriber list. The underlying mechanisms
-            are similar. Broadcast is like a simpler version of pub-sub.
+        - polling: send multiple copies of a reply to a subscriber list.
+          Two sub-flavors, which relate to how subscriber list is managed:
 
-            - broadcast: subscribers are identified by a system configuration
-                setting and it is a fairly static subscriber list.
-
-            - publish-subscribe: subscribers are identified by request messages
-                (subscribe requests) and are more dynamic. Subs may have an
-                expiration limit. Subs may be "one-shot" or "recurring". There
+            - publish-subscribe: subscribers identified by request messages
+                (subscriber requests) and are dynamic. Subs may have an
+                expiration limit, may be "one-shot", or "recurring". There
                 is an "unsubscribe" option.
+            - broadcast: subscribers identified by a system configuration
+                setting; a mostly static subscriber list.
+                Broadcast is like a simpler version of pub-sub.
 
-        - event-driven: a chain of transactional clients, where each request
-            is triggered by a previous response. The first request is sent by
-            a regular transactional client, then a chain of events rolls out.
-            Sort of like an ETL pipeline.  Can trigger other txns, polling, or
-            both.
+        - event-driven: chain of transactional clients, each request triggered
+          by a previous response. First request in chain sent by regular
+          transactional client, then a chain of events rolls out.
+          Like an ETL pipeline.  Can trigger other txns, polling, or both.
 
-        A client-type can be both transactional and event-driven.
+        Client-type can be transactional and event-driven.
         Or polling and event-driven.
         It would be odd to be only event-driven, but maybe it could happen.
 
         ===
-
-        Maybe update the service config file ("s_channels.json" for now...
-        should be renamed to "s_services.json") to include a "clients" section
-        or something. The next level of meta-data will be the "plans".
-
         A plan defines:
+
         - actions, which consist of an action name and a set of one to many
           event names associated with a topic. The events  have either
-          "request" or "reponse" in their name.  In  JSON file, associate them
-          with a send or receive channel respectively. (Not 100% sure about
-          that, but it seems to make sense for now.)  If the channel for that
-          topic is duplex, then all the actions/events are associated with a
-          single channel and send/receive is designated by the topic name.
-        - Optionally, a set of triggers associated with an action. These are
-          used to define the chain of events for event-driven clients. The
-          trigger identifies what topic + plan(s) trigger the action.
+          "request" or "reponse" in their name.  In  svc config, associate them
+          with a send or receive channel respectively. If channel is duplex,
+          then all the actions/events are associated with a single channel;
+          so send/receive are designated by the topic name.
+
+        - Optionally, an action can have a set of triggers. They define the
+          chain of events for event-driven clients, what topic + plan(s)
+          trigger the action.
+
+        @DEV:
+        With respect to designing the client modules:
+        - Action/event is only the high level. Like "what actions
+            are supported by this module".
+        - The client module will also need to...
+            - handle specific message structures for each action/event.
+            - listen for, handle a response message, which is a link to a
+            Harvest message, a simple ack, or an error message.
+        - Not sure if this can all be genericized completely, i.e.,
+            probably using pickled objects to define the events and messages,
+            or if I'll need a collection of python modules -- possibly auto-
+            generated ones.
+        - Even if I can generecize the client.py, will still want to
+            have multiples instances in all likelihood. Need to think about
+            that. Having dedicated ports might help; may or may not want to
+            use the same ones that the server.py's are using? Or is this more
+            like just need a bunch of them available round-robin style, maybe
+            served up on a Nginx or twisted server?
+
+        For now, continue to generate  consolidated services meta-config,
+        which can be pickled and should provide prototype for
+        how any message should be handled.
         """
-        def update_service_meta(svc: dict):
-            """Update service meta-data with action/event information.
-
-            @DEV:
-            With respect to designing the client modules:
-            - Action/event is only the high level. Like "what actions
-              are supported by this module".
-            - The client module will also need to...
-                - handle specific message structures for each action/event.
-                - listen for, handle a response message, which is a link to a
-                Harvest message, a simple ack, or an error message.
-            - Not sure if this can all be genericized completely, i.e.,
-              probably using pickled objects to define the events and messages,
-              or if I'll need a collection of python modules -- possibly auto-
-              generated ones.
-            - Even if I can generecize the client.py, will still want to
-              have multiples instances in all likelihood. Need to think about
-              that. Having dedicated ports might help; may or may not want to
-              use the same ones that the server.py's are using? Or is this more
-              like just need a bunch of them available round-robin style, maybe
-              served up on a Nginx or twisted server?
-
-            For now, continue to generate  consolidated services meta-config,
-            which can be pickled and should provide prototype for
-            how any message should be handled.
-            """
-            def set_event_typ(p_meta):
-                e_typ = ""
-                if "transactional" in p_meta['client_type']:
-                    e_typ += "txn_"
-                if "polling" in p_meta['client_type']:
-                    e_typ += "poll_"
-                if "event-driven" in p_meta['client_type']:
-                    e_typ += "event_"
-                return e_typ[:-1]
-
-            def set_actions(svc, p_meta, action_nm,
-                            c_typ, s_top_nm, e_typ):
-                svc[c_nm][c_typ]["topics"][s_top_nm]["action"][action_nm] = []
-                for event_nm in p_meta['action'][action_nm]:
-                    if (("response" in event_nm and
-                            (c_typ == "send" or "send" in s_top_nm)) or
-                        ("request" in event_nm and
-                            (c_typ == "recv" or "recv" in s_top_nm))):
-                        svc[c_nm][c_typ]["topics"][s_top_nm]["action"][action_nm].append(  # noqa: E501
-                            e_typ + "_" + event_nm)
-                return svc
-
-            for p_top_nm, p_meta in FI.S['plans'].items():
-                c_nm = p_top_nm.split('/')[1]
-                e_typ = set_event_typ(p_meta)
-                for action_nm in p_meta['action'].keys():
-                    for c_typ in ("duplex", "recv", "send"):
-                        for s_top_nm in svc[c_nm][c_typ]["topics"].keys():
-                            svc = set_actions(svc, p_meta, action_nm,
-                                              c_typ, s_top_nm, e_typ)
-
-            return svc
-
-        # ====================
-        # start_clients (main)
-        # ====================
-        svc = update_service_meta(self.get_svc_meta_file())
-        pp(svc)
+        pass
 
 
 if __name__ == '__main__':

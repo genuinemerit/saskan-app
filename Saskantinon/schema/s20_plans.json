@@ -1,5 +1,5 @@
 {
-"plans": {
+"plan": {
         "/avatar_motion/req_rep": {
             "client_type": ["transactional"],
             "action": {
@@ -11,7 +11,7 @@
             "client_type": ["polling", "event-driven"],
             "action": {
                 "subscribe": ["request",
-                              "response", "reponse_cancel", "response_log"],
+                              "response", "response_cancel", "response_log"],
                 "notify": ["response",
                     {"trigger": ["/avatar_motion/req_rep/do_move"]}]}
         },
@@ -39,7 +39,7 @@
         "/gametime/pub_sub": {
             "client_type": ["polling", "event-driven"],
             "action": {
-                "subscribe": ["request", "response", "reponse_cancel", "response_log"],
+                "subscribe": ["request", "response", "response_cancel", "response_log"],
                 "notify": ["response",
                     {"trigger": ["/avatar_motion/req_rep/do_move"]}]}
         }

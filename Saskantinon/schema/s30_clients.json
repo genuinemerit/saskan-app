@@ -1,0 +1,19 @@
+{
+"client": {
+        "robot_player": {
+            "description": "A client broker representing a player of the game driven by AI."
+        },
+        "human_player": {
+            "description": "A client broker representing a human player of the game."
+        },
+        "player_avatar": {
+            "description": "A client broker representing a game world avatar driven by a human or robot player."
+        },
+        "npc_avatar": {
+            "description": "A client broker representing a game avatar not driven by a human or robot player. A Non-Player Character. For example, a non-sentient animal, or a stock character with limited actions."
+        },
+        "map_context_object": {
+            "description": "A client broker representing a non-Player game object that is relatively more static than a NPC. For example, a building, a tree, an organizational ledger, an automatic town crier."
+        }
+    }
+}
