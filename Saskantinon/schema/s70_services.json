@@ -1,167 +1,167 @@
 {
 "service": {
-        "/avatar_motion/req_rep/evaluate_move": {
+        "avatar_motion/req_rep/evaluate_move": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "avatar_gateway"
             }
         },
-        "/avatar_motion/req_rep/do_move": {
+        "avatar_motion/req_rep/do_move": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "request_cancel": {
                 "client": ["player_avatar"],
-                "reply": ["ack", "in_process"]
+                "signal_msg": ["ack", "in_process"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "avatar_gateway"
             },
             "response_cancel": {
-                "key": "[client_id]~[service_name].response_cancel~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "avatar_gateway"
             },
             "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
+                "key": "[datetime]~~[msg_name]~~[uuid]",
                 "router": "log_router",
                 "gate": "monitored_gateway"
             }
         },
-        "/avatar_motion/b_cast/notify": {
+        "avatar_motion/b_cast/notify": {
             "recipient_list": {
-                "subscribers": ["map_context_object"],
-                "key": "[object_id]~[service_name].recipient_list~[datetime]~[expiretime]~[uuid]",
+                "subscribers": ["map_context"],
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "triggers_router",
                 "gate": "subscriber_gateway"
             }},
-        "/marketplace/req_chain/inventory_list": {
+        "marketplace/req_chain/inventory_list": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "triggers_router",
                 "gate": "inventory_gateway"
             }},
-        "/marketplace/req_chain/commodity_available": {
+        "marketplace/req_chain/commodity_available": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
-                "router": "triggers_router",
-                "gate": "inventory_gateway"
-            },
-            "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
-                "router": "log_router",
-                "gate": "monitored_gateway"
-            }},
-        "/marketplace/req_chain/price_ask": {
-            "request": {
-                "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
-            },
-            "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "triggers_router",
                 "gate": "inventory_gateway"
             },
             "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
+                "key": "[datetime]~~[msg_name]~~[uuid]",
                 "router": "log_router",
                 "gate": "monitored_gateway"
             }},
-        "/marketplace/req_chain/price_offer": {
+        "marketplace/req_chain/price_ask": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "triggers_router",
                 "gate": "inventory_gateway"
             },
             "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
+                "key": "[datetime]~~[msg_name]~~[uuid]",
                 "router": "log_router",
                 "gate": "monitored_gateway"
             }},
-        "/marketplace/req_chain/purchase": {
+        "marketplace/req_chain/price_offer": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "triggers_router",
                 "gate": "inventory_gateway"
             },
             "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
+                "key": "[datetime]~~[msg_name]~~[uuid]",
                 "router": "log_router",
                 "gate": "monitored_gateway"
             }},
-        "/marketplace/req_chain/transfer": {
+        "marketplace/req_chain/purchase": {
             "request": {
                 "client": ["player_avatar", "npc_avatar"],
-                "reply": ["ack", "in_process", "reject"]
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "triggers_router",
                 "gate": "inventory_gateway"
             },
             "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
+                "key": "[datetime]~~[msg_name]~~[uuid]",
                 "router": "log_router",
                 "gate": "monitored_gateway"
             }},
-        "/gametime/req_rep/get_time": {
+        "marketplace/req_chain/transfer": {
             "request": {
-                "client": ["player_avatar", "npc_avatar", "map_context_object"],
-                "reply": ["ack", "in_process", "reject"]
+                "client": ["player_avatar", "npc_avatar"],
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
+                "router": "triggers_router",
+                "gate": "inventory_gateway"
+            },
+            "response_log": {
+                "key": "[datetime]~~[msg_name]~~[uuid]",
+                "router": "log_router",
+                "gate": "monitored_gateway"
+            }},
+        "gametime/req_rep/get_time": {
+            "request": {
+                "client": ["player_avatar", "npc_avatar", "map_context"],
+                "signal_msg": ["ack", "in_process", "reject"]
+            },
+            "response": {
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "gametime_gateway"
             }},
-        "/gametime/pub_sub/subscribe": {
+        "gametime/pub_sub/subscribe": {
             "request": {
-                "client": ["map_context_object"],
-                "reply": ["ack", "in_process", "reject"]
+                "client": ["map_context"],
+                "signal_msg": ["ack", "in_process", "reject"]
             },
             "response": {
-                "key": "[client_id]~[service_name].response~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "subscriber_gateway"
             },
             "response_cancel": {
-                "key": "[client_id]~[service_name].response_cancel~[datetime]~[expiretime]~[uuid]",
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "subscriber_gateway"
             },
             "response_log": {
-                "key": "[datetime]~[service_name].log~[uuid]",
+                "key": "[datetime]~~[msg_name]~~[uuid]",
                 "router": "log_router",
                 "gate": "subscriber_gateway"
             }},
-        "/gametime/pub_sub/notify": {
+        "gametime/pub_sub/notify": {
             "publish_list": {
-                "subscribers": ["map_context_object"],
-                "key": "[object_id]~[service_name].publish_list~[datetime]~[expiretime]~[uuid]",
+                "subscribers": ["map_context"],
+                "key": "[client_id].[datetime]~~[msg_name]~~[expiretime]~[uuid]",
                 "router": "game_router",
                 "gate": "subscriber_gateway"
             }

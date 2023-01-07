@@ -37,6 +37,11 @@ class FileIO(object):
         self.S = self.get_schema("s00_channels")
         self.S = self.S | self.get_schema("s10_topics")
         self.S = self.S | self.get_schema("s20_plans")
+        self.S = self.S | self.get_schema("s30_clients")
+        self.S = self.S | self.get_schema("s40_routers")
+        self.S = self.S | self.get_schema("s50_gates")
+        self.S = self.S | self.get_schema("s60_messages")
+        self.S = self.S | self.get_schema("s70_services")
 
     # Read-only methods
     # ==============================================================
@@ -437,25 +442,26 @@ class FileIO(object):
 
             @DEV:
             - Pickle or copy any other files to shared memory? images?
+            - Is it really necessary to pickle ontology/schema files?
             """
             for j_dir in (self.D['ADIRS']['CFG'], self.D['ADIRS']['ONT']):
-                src_dir = path.join(p_app_dir, j_dir)
-                ok, err, files = self.get_dir(src_dir)
+                the_dir = path.join(p_app_dir, j_dir)
+                ok, err, files = self.get_dir(the_dir)
+                if ok:
+                    for f in files:
+                        if Path(f).is_file():
+                            file_nm = str(f).split("/")[-1]
+                            if file_nm.endswith(".json"):
+                                the_dir = path.join(
+                                    self.D['MEM'], self.D['APP'], j_dir,
+                                    file_nm.replace(".json", ".pickle"))
+                                _, _, j_data = self.get_file(f)
+                                ok, err = self.pickle_object(
+                                        the_dir, json.loads(j_data))
+                                if not ok:
+                                    break
                 if not ok:
-                    raise Exception(f"{self.T['err_file']} {src_dir} {err}")
-                for f in files:
-                    if Path(f).is_file():
-                        file_nm = str(f).split("/")[-1]
-                        if file_nm.endswith(".json"):
-                            mem_file = path.join(
-                                self.D['MEM'], self.D['APP'], j_dir,
-                                file_nm.replace(".json", ".pickle"))
-                            _, _, j_data = self.get_file(f)
-                            ok, err = self.pickle_object(
-                                    mem_file, json.loads(j_data))
-                            if not ok:
-                                raise Exception(
-                                    f"{self.T['err_file']} {mem_file} {err}")
+                    raise Exception(f"{self.T['err_file']} {the_dir} {err}")
         # pickle_saskan() main
         # ====================
         create_mem_dirs()

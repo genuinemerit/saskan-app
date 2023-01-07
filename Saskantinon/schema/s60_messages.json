@@ -1,0 +1,158 @@
+{
+"message": {
+        "ack": {
+            "message_received": {"desc": "datetime"},
+            "transaction_id": {"desc": "uuid"}},
+        "in_process": {
+            "transaction_id": {"desc": "uuid"},
+            "current_status": {"desc": ["pending", "in_process"],
+                               "enum": ["pending", "in_process"]},
+            "wait_time": {"desc": "seconds.milliseconds"}},
+        "reject": {
+            "transaction_id": {"desc": "uuid"},
+            "failure_reason": {"desc": "reason",
+                               "type": "string"}},
+        "log_response": {
+            "reponse": {"desc": "response_body",
+                        "type": "object"}},
+        "avatar_motion/req_rep/evaluate_move/request": {
+            "client_id": {"desc": "client_id",
+                          "type": "integer"},
+            "requesttime": {"desc": "gametime"},
+            "map_context_id": {"desc": "map_context_id"},
+            "current_coords": {"desc": "(x,y,z)",
+                               "type": "3-tuple of numbers"},
+            "target_coords": {"desc": "(x,y,z)"}},
+        "avatar_motion/req_rep/evaluate_move/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "success": {"desc": "yes or partial",
+                        "enum": ["yes", "partial"]},
+            "est_moved_coordinates": {"desc": "(x,y,z)"},
+            "est_movement_path": {"desc": "(x,y,z), ..."},
+            "est_movement_duration": {"desc": "gametime"}},
+        "avatar_motion/req_rep/do_move/request": {
+            "client_id": {"desc": "client_id"},
+            "requesttime": {"desc": "gametime"},
+            "map_context_id": {"desc": "map_context_id"},
+            "current_coordinates": {"desc": "(x,y,z)"},
+            "target_coordinates": {"desc": "(x,y,z)"}},
+        "avatar_motion/req_rep/do_move/request_cancel": {
+            "transaction_id": {"desc": "uuid"}},
+        "avatar_motion/req_rep/do_move/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "success": {"desc": "yes or partial"},
+            "moved_coordinates": {"desc": "(x,y,z)"},
+            "movement_path": {"desc": "(x,y,z), ..."},
+            "movement_duration": {"desc": "gametime"}},
+        "avatar_motion/req_rep/do_move/response_cancel": {
+            "transaction_id": {"desc": "uuid"},
+            "cancel_reason": {"desc": "reason"}},
+        "avatar_motion/b_cast/notify/recipient_list": {
+            "client_id": {"desc": "client_id"},
+            "prev_coordinates": {"desc": "(x,y,z)"},
+            "moved_coordinates": {"desc": "(x,y,z)"}},
+        "marketplace/req_chain/inventory_list/request": {
+            "client_id": {"desc": "client_id"},
+            "requesttime": {"desc": "gametime"},
+            "market_id": {"desc": "game_market_id"},
+            "inventory_categories": {"desc": "category 1, category 2, ..."}},
+        "marketplace/req_chain/inventory_list/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "market_id": {"desc": "game_market_id"},
+            "inventory_categories": {"desc": "category 1, category 2, ..."}},
+        "marketplace/req_chain/commodity_available/request": {
+            "client_id": {"desc": "client_id"},
+            "requesttime": {"desc": "gametime"},
+            "market_id": {"desc": "game_market_id"},
+            "commodity_id": {"desc": "game_prop_id"}},
+        "marketplace/req_chain/commodity_available/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "market_id": {"desc": "game_market_id"},
+            "commodity_id": {"desc": "game_prop_id"},
+            "commodity_desc": {"desc": "field 1: value 1; field n: value n"}},
+        "marketplace/req_chain/price_ask/request": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "requesttime": {"desc": "gametime"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"}},
+        "marketplace/req_chain/price_ask/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"},
+            "currency": {"desc": "currency_id"},
+            "amount": {"desc": "currency_value"}},
+        "marketplace/req_chain/price_offer/request": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "requesttime": {"desc": "gametime"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"},
+            "currency": {"desc": "currency_id"},
+            "amount": {"desc": "currency_value"}},
+        "marketplace/req_chain/price_offer/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"},
+            "accept_price": {"desc": "yes or no"}},
+        "marketplace/req_chain/purchase/request": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "requesttime": {"desc": "gametime"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"},
+            "currency": {"desc": "currency_id"},
+            "amount": {"desc": "currency_value"}},
+        "marketplace/req_chain/purchase/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"},
+            "currency": {"desc": "currency_id"},
+            "amount": {"desc": "currency_value"}},
+        "marketplace/req_chain/transfer/request": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "requesttime": {"desc": "gametime"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"}},
+        "marketplace/req_chain/transfer/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "market_id": {"desc": "game_market_id"},
+            "quantity": {"desc": "amount"},
+            "commodity_id": {"desc": "game_prop_id"}},
+        "gametime/req_rep/get_time/request": {
+            "client_id": {"desc": "client_id"},
+            "calendar": {"desc": "game_calendar_id"}},
+        "gametime/req_rep/get_time/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "calendar": {"desc": "game_calendar_id"},
+            "current_datetime": {"desc": "game_datetime"}},
+        "gametime/pub_sub/subscribe/request": {
+            "client_id": {"desc": "client_id"},
+            "calendars_requested": {"desc": "calendar_id 1. calendar_id n, ..."}},
+        "gametime/pub_sub/subscribe/response": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "calendars_subscribed": {"desc": "calendar_id 1. calendar_id n, ..."}},
+        "gametime/pub_sub/subscribe/notify": {
+            "client_id": {"desc": "client_id"},
+            "transaction_id": {"desc": "uuid"},
+            "current_gametime": {"desc": "calendar_id 1: game_datetime 1, calendar_id n: game_datetime n"}}
+        }
+}

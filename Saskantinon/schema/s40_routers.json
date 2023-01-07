@@ -1,16 +1,16 @@
 {
 "router": {
         "admin_router": {
-            "description": "A routing module that determines which gate receives which requests relating to use of the admin tools."
+            "desc": "A routing module that determines which gate receives which requests relating to use of the admin tools."
         },
         "game_router": {
-            "description": "A routing module that determines which gate receives requests for events relating to in-game play."
+            "desc": "A routing module that determines which gate receives requests for events relating to in-game play."
         },
         "log_router": {
-            "description": "A router that directs requests to logging and monitoring gates."
+            "desc": "A router that directs requests to logging and monitoring gates."
         },
         "triggers_router": {
-            "description": "A router that determines what gates to call based on triggered service activity associated with multi-step event chain service paths."
+            "desc": "A router that determines what gates to call based on triggered service activity associated with multi-step event chain service paths."
         }
     }
 }

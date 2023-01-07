@@ -29,7 +29,7 @@ SR = SaskanReport()
 class SaskanInstall(object):
     """Configure and install set-up for Saskan apps.
 
-    Bootstrap dirs configuration metadata from project directory.
+    Bootstrap config and schema metadata from project directory.
     Use current working directory (git project) to derive home directory.
     """
     def __init__(self):
@@ -42,12 +42,16 @@ class SaskanInstall(object):
         self.copy_python_scripts()
         self.copy_bash_files()
         port_cnt, svc = self.init_svc_config()
-        svc = self.set_ports_config(port_cnt, svc)
-        svc = self.set_topics_config(svc)
-        svc = self.set_actions_config(svc)
+        svc = self.set_ports(port_cnt, svc)
+        svc, svc_about = self.set_topics(svc)
+        svc = self.set_plans(svc)
+        svc_about = self.set_descs(svc_about)
+        svc_msgs = self.set_msgs()
         pp((svc))
+        pp((svc_about))
+        pp((svc_msgs))
         FI.pickle_saskan(self.APP)
-        # self.start_servers(svc)
+        self.start_servers(svc)
         # self.start_clients()
 
     # Helpers
@@ -177,9 +181,9 @@ class SaskanInstall(object):
                 svc[c_nm]["recv"] = c_meta['port_cnt'] - svc[c_nm]["send"]
         return (port_cnt, svc)
 
-    def set_ports_config(self, p_port_cnt, svc):
-        """Get list of available ports using netstat to identify
-        active TCP and UDP ports. Assign selected ports to svc config.
+    def set_firewall(self, ports, svc):
+        """
+        Set firewall rules for each port.
         N.B. "ALLOW IN" means that the port allows both outgoing and
         inbound transmission. Default is to allow OUT, deny IN. So
         adding ALLOW IN is necessary to allow inbound transmission.
@@ -189,14 +193,6 @@ class SaskanInstall(object):
         the current prototype, everything is on the a single monolith,
         so it doesn't matter.
         """
-        print("Selecting ports and setting firewall for game ports...")
-        ports = list()
-        port = FI.S['channel']['resource']['port_low']
-        ok, net_stat_result = SI.run_cmd(["netstat -lantu"])
-        while len(ports) < p_port_cnt:
-            if str(port) not in net_stat_result:
-                ports.append(port)
-            port += 1
         for c_nm, c_meta in svc.items():
             for p_typ in [pt for pt in c_meta.keys() if pt != "host"]:
                 port_cnt = c_meta[p_typ]
@@ -218,16 +214,31 @@ class SaskanInstall(object):
             raise Exception(f"{FI.T['err_cmd']} {result}")
         return svc
 
-    def set_topics_config(self, svc):
+    def set_ports(self, p_port_cnt, svc):
+        """Get list of available ports using netstat to identify
+        active TCP and UDP ports. Assign selected ports to svc config.
+        """
+        print("Selecting ports and setting firewall for game ports...")
+        ports = list()
+        port = FI.S['channel']['resource']['port_low']
+        ok, net_stat_result = SI.run_cmd(["netstat -lantu"])
+        while len(ports) < p_port_cnt:
+            if str(port) not in net_stat_result:
+                ports.append(port)
+            port += 1
+        svc = self.set_firewall(ports, svc)
+        return (svc)
+
+    def set_topics(self, svc):
         """Set service config based on topic and broker-type metadata
         """
+        svc_about = {"server": {}, "client": {}, "router": {}, "gate": {}}
         for c_nm, c_meta in svc.items():
             for p_typ in [pt for pt in c_meta.keys() if pt != "host"]:
                 svc[c_nm][p_typ]["topic"] = {}
-            svc[c_nm]["desc"] = {}
         for c_nm, t_meta in FI.S["topic"].items():
             for t_nm, b_meta in t_meta.items():
-                svc[c_nm]["desc"][t_nm] = b_meta["desc"]
+                svc_about["server"][c_nm + "/" + t_nm] = b_meta["desc"]
                 for d_typ in b_meta['direction']:
                     if "duplex" in svc[c_nm].keys():
                         topic_nm = t_nm + "_" + d_typ
@@ -235,9 +246,9 @@ class SaskanInstall(object):
                     else:
                         topic_nm = t_nm
                     svc[c_nm][d_typ]["topic"][topic_nm] = {"action": {}}
-        return svc
+        return svc, svc_about
 
-    def set_actions_config(self, svc):
+    def set_plans(self, svc):
         """
         There are (so far) 3 types of clients:
         - transactional: one-one txns, a clinet triggers an action & handles
@@ -272,12 +283,12 @@ class SaskanInstall(object):
           then all the actions/events are associated with a single channel;
           so send/receive are designated by the topic name.
 
-        - Optionally, an action can have a set of triggers. They define the
-          chain of events for event-driven clients, what topic + plan(s)
-          trigger the action. May need some additional work regarding what
-          exactly is the trigger for a request vs. a response event.
+        - Optionally, an action can also have (a set of) triggers.
+        They define the chain of events for event-driven clients,
+        what topic + plan(s) trigger the action. Needs more work
+        regarding what exactly is trigger request vs. response event.
         """
-        def set_event_typ(p_meta):
+        def set_event_type(p_meta):
             e_typ = ""
             if "transactional" in p_meta['client_type']:
                 e_typ += "txn_"
@@ -287,39 +298,99 @@ class SaskanInstall(object):
                 e_typ += "event_"
             return e_typ[:-1]
 
-        def set_actions(svc, p_meta, a_nm, p_typ, t_nm, e_typ):
+        def set_events(c_nm, p_typ, t_nm, a_nm, events, svc):
             svc_action = svc[c_nm][p_typ]["topic"][t_nm]["action"]
-            svc_action[a_nm] = {"events": []}
-            for event_nm in p_meta['action'][a_nm]:
-                if (("response" in event_nm and
+            svc_action[a_nm] = {"event": []}
+            for e_nm in events:
+                if (("response" in e_nm and
                         (p_typ == "send" or "send" in t_nm)) or
-                    ("request" in event_nm and
+                    ("request" in e_nm and
                         (p_typ == "recv" or "recv" in t_nm))):
-                    svc_action[a_nm]["events"].append(e_typ + "_" + event_nm)
-                elif (isinstance(event_nm, dict) and
-                        list(event_nm.keys())[0] == "trigger"):
-                    svc_action[a_nm]["trigger"] = event_nm["trigger"]
+                    svc_action[a_nm]["event"].append(e_typ + "/" + e_nm)
+                elif (isinstance(e_nm, dict) and
+                        list(e_nm.keys())[0] == "trigger"):
+                    svc_action[a_nm]["trigger"] = e_nm["trigger"]
             return svc
 
-        # set_actions_config:
+        # set_plans:
         # ===================
-        for p_t_nm, p_meta in FI.S['plan'].items():
-            c_nm = p_t_nm.split('/')[1]
-            e_typ = set_event_typ(p_meta)
-            for a_nm in p_meta['action'].keys():
-                for p_typ in [pt for pt in svc[c_nm]
-                              if pt not in ["host", "desc"]]:
-                    for t_nm in svc[c_nm][p_typ]["topic"].keys():
-                        svc = set_actions(svc, p_meta, a_nm,
-                                          p_typ, t_nm, e_typ)
+        for p_nm, p_meta in FI.S['plan'].items():
+            c_nm = p_nm.split('/')[0]
+            t_nm = p_nm.split('/')[1]
+            e_typ = set_event_type(p_meta)
 
+            for a_nm in p_meta['action'].keys():
+                events = p_meta['action'][a_nm]
+                for p_typ in [pt for pt in svc[c_nm].keys()
+                              if pt not in ["host", "desc"]]:
+                    if "duplex" in svc[c_nm].keys():
+                        for d_typ in ["send", "recv"]:
+                            svc = set_events(c_nm, p_typ, t_nm + "_" + d_typ,
+                                             a_nm, events, svc)
+                    else:
+                        svc = set_events(c_nm, p_typ, t_nm, a_nm, events, svc)
         return svc
+
+    def set_descs(self, svc_about):
+        """Set descriptions for clients, routers and gateways.
+        """
+        for about in ("client", "router", "gate"):
+            for obj_nm, abt_meta in FI.S[about].items():
+                svc_about[about][obj_nm] = abt_meta["desc"]
+        return svc_about
+
+    def set_msgs(self):
+        """Set named message/record structures.
+        """
+        svc_msgs = dict()
+        for m_nm, m_fields in FI.S["message"].items():
+            svc_msgs[m_nm] = {"fields": {}}
+            for f_nm, r_values in m_fields.items():
+                svc_msgs[m_nm]["fields"][f_nm] = dict()
+                if "desc" in r_values.keys():
+                    svc_msgs[m_nm]["fields"][f_nm]["desc"] = r_values["desc"]
+                if "type" in r_values.keys():
+                    svc_msgs[m_nm]["fields"][f_nm]["type"] = r_values["type"]
+                if "enum" in r_values.keys():
+                    svc_msgs[m_nm]["fields"][f_nm]["enum"] = r_values["enum"]
+
+        return svc_msgs
 
     def start_servers(self, svc):
         """Start a saskan_server instance for each channel.
         The server module receives messages from clients, sends them
-        to message gateway (backend processors), which is turn sends
-        links or fail messages to clients.
+        to router , which sends them to a message gateway (backend processors),
+        which is turn sends links to reply packages, or fail messages, or
+        ack messages to clients (via the message broker/server if I'm not
+        mistaken).
+
+        The way these are set up, there are multiple instances of some
+        channels, but each resides on a different port. So, not a load
+        balancing kind of thing per se, with round-robin launches of servers,
+        just "twin" (or "triplet" or whatever) servers on different ports.
+
+        Not sure how this gets handled, actually. How does the client
+        "know" which port to connect to? Is it a random choice? Or is
+        there in fact some kind of load balancing needed "in front of"
+        the ports. Do I do that with Nginx or twisted? Or is it
+        already being handled by asyncio? Not sure yet...
+
+        Since the server/message broker activity is pretty generic, there
+        is a single python server module, saskan_server.py, which gets
+        launched multiple times, sending it parameters relevant to the
+        channel (topics) it is handling.
+
+        'run nohup' means it will run in the background, and will not
+        write to the terminal. The output gets written to a log file.
+
+        So far, it looks to me like the servers I have expect a "subscriber"
+        model, where a message is simply bounced to a specified list of
+        "listeners" (e.g. the SUBSCRIBERS)? The channels are associated with
+        "responders" (routers, which then call gateways), which in turn
+        send replies to intended for a subscriber list, which this time
+        are the appropriate clients. As I'm understanding it, the server
+        actually does the routing, and the clients are just "listeners"
+        when they are not sending requests.
 
         :Args:
         - svc: service config dictionary
@@ -334,29 +405,26 @@ class SaskanInstall(object):
             for p_typ in [pt for pt in c_meta.keys()
                           if pt not in ("host", "desc")]:
                 for port in c_meta[p_typ]["port"]:
-                    SI.run_nohup_py(pypath,
-                                    logpath,
+                    SI.run_nohup_py(pypath, logpath,
                                     f"/{c_nm}/{p_typ}:{port}",
-                                    c_meta['host'],
-                                    port,
-                                    pgm_nm)
+                                    c_meta['host'], port, pgm_nm)
         result, _ = SR.rpt_jobs("/" + pgm_nm)
-        print("Servers started or restarted:")
+        print("Servers (message brokers) started or restarted:")
         print(result)
 
     def start_clients(self, svc):
-        """Start a saskan_request instance for each plan + client-type.
+        """Start a 'saskan_client' instance for each plan + client-type.
         Cleints initiate actions and also take a functional followup,
-        which may or may not involve a subsequent message, based on
-        response messages.  In some more complex cases it may be useful
+        which may involve a subsequent message, based on responses.
+        In some more complex cases it may be useful
         to separate *_client_request and *_client_response_handler
-        modules, but keep it consolildated to start with.
+        modules. Keep it consolildated to start with.
 
-        Client modules can be "brokers" in that they could be used by more
+        Client modules are "brokers" in that they can be called by more
         than one app-level GUI or game logic module.
 
         There are (so far) 3 types of clients:
-        - transactional: one-one txns, a clinet triggers an action & handles
+        - transactional: one-one txns, a client triggers an action & handles
         the reply, which is honed for that specific client
 
         - polling: send multiple copies of a reply to a subscriber list.
@@ -383,21 +451,21 @@ class SaskanInstall(object):
         A plan defines:
 
         - actions, which consist of an action name and a set of one to many
-          event names associated with a topic. The events  have either
-          "request" or "reponse" in their name.  In  svc config, associate them
+          event names associated with a topic. The events have either
+          "request" or "response" in their name.  In svc config, associate them
           with a send or receive channel respectively. If channel is duplex,
           then all the actions/events are associated with a single channel;
           so send/receive are designated by the topic name.
 
         - Optionally, an action can have a set of triggers. They define the
-          chain of events for event-driven clients, what topic + plan(s)
-          trigger the action.
+          chain of events for event-driven clients, i.e., what topic + plan(s)
+          (can) trigger the action.
 
         @DEV:
         With respect to designing the client modules:
         - Action/event is only the high level. Like "what actions
             are supported by this module".
-        - The client module will also need to...
+        - The client module _also_ needs to...
             - handle specific message structures for each action/event.
             - listen for, handle a response message, which is a link to a
             Harvest message, a simple ack, or an error message.
@@ -405,19 +473,40 @@ class SaskanInstall(object):
             probably using pickled objects to define the events and messages,
             or if I'll need a collection of python modules -- possibly auto-
             generated ones.
-        - Even if I can generecize the client.py, will still want to
-            have multiples instances in all likelihood. Need to think about
-            that. Having dedicated ports might help; may or may not want to
-            use the same ones that the server.py's are using? Or is this more
-            like just need a bunch of them available round-robin style, maybe
-            served up on a Nginx or twisted server?
+        - Even if I can genericize the client.py, likely still want/need
+            multiples instances. Need to think about that.
+            Having dedicated ports for clients might help.  May want to
+            use the same ones that the server.py's are using. Or not.
+            May want a bunch of them available round-robin style on the
+            same port, maybe served up on a Nginx or twisted server?
 
-        For now, continue to generate  consolidated services meta-config,
-        which can be pickled and should provide prototype for
-        how any message should be handled.
+        For now, continue to generate consolidated svc meta-config,
+        which can be pickled and should provide prototype/basics for
+        how any message should be handled. If that ends up getting
+        hard-coded by generating python modules, it may not be necessary.
+
+        Stick with plain-vanilla asyncio based modules for now.
+        Once feeling good about it, maybe try another library like Trio
+        and / or use one of those AI coders to generate the modules.
+        See OpenAI and ChatGPT here: https://openai.com/api/
         """
         pass
 
+    def start_responders(self, svc):
+        """
+        Should be sufficient metadata in svc to generate modules or
+        instances of modules for each needed router and messaging
+        gateway. The router simply routes incoming requests to the
+        appropriate gateway, which then does backend work to craft a
+        response message, writes the message to the Harvest namespace,
+        and then responds to the server (message broker) with either
+        a link to the Harvest reccord, or a simple ack, or an error.
+
+        As with clients, not sure if I need ports devoted to the routers
+        and gateways. Probably yes. And if I need mulitple instances
+        of each, that is, some kind of load balancing.  Probably yes.
+        """
+        pass
 
 if __name__ == '__main__':
     SI = SaskanInstall()
