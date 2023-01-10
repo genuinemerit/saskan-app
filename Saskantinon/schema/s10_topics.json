@@ -2,28 +2,23 @@
 "topic": {
         "avatar_motion": {
             "req_rep": {
-                "desc": "Handle avatar movement within maps or scenes.",
-                "direction": ["send", "recv"]
+                "desc": "Handle avatar movement within maps or scenes."
             },
             "b_cast": {
-                "desc": "Notify contextual objects about avatar movements.",
-                "direction": ["send", "recv"]
+                "desc": "Notify contextual objects about avatar movements."
             }
         },
         "marketplace": {
             "req_chain": {
-                "desc": "Handle marketplace transactions: inventory, pricing, purchase, delivery.",
-                "direction": ["send", "recv"]
+                "desc": "Handle marketplace transactions: inventory, pricing, purchase, delivery."
             }
         },
         "gametime": {
             "req_rep": {
-                "desc": "Provide current game time in requested modality.",
-                "direction": ["send", "recv"]
+                "desc": "Provide current game time in requested modality."
             },
             "pub_sub": {
-                "desc": "Broadcast current game time in multiple modalities.",
-                "direction": ["send", "recv"]
+                "desc": "Broadcast current game time in multiple modalities."
             }
         }
     }

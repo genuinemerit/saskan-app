@@ -1,47 +1,53 @@
 {
 "plan": {
-        "avatar_motion/req_rep": {
-            "client_type": ["transactional"],
-            "action": {
-                "evaluate_move": ["request", "response"],
-                "do_move": ["request", "request_cancel",
-                            "response", "response_log", "response_cancel"]}
+        "avatar_motion": {
+            "req_rep": {
+                "client_type": ["transactional"],
+                "action": {
+                    "evaluate_move": ["request", "response"],
+                    "do_move": ["request", "request_cancel",
+                                "response", "response_log", "response_cancel"]}
+            },
+            "b_cast": {
+                "client_type": ["polling", "event-driven"],
+                "action": {
+                    "subscribe": ["request",
+                                  "response", "response_cancel", "response_log"],
+                    "notify": ["response",
+                               {"trigger": ["avatar_motion/req_rep/do_move"]}]}
+            }
         },
-        "avatar_motion/b_cast": {
-            "client_type": ["polling", "event-driven"],
-            "action": {
-                "subscribe": ["request",
-                              "response", "response_cancel", "response_log"],
-                "notify": ["response",
-                    {"trigger": ["avatar_motion/req_rep/do_move"]}]}
+        "marketplace": {
+            "req_chain": {
+                "client_type": ["transactional", "event-driven"],
+                "action": {
+                    "inventory_list": ["request", "response"],
+                    "commodity_available": ["request", "response", "response_log"],
+                    "price_ask": ["request", "response", "response_cancel", "response_log",
+                        {"trigger": ["marketplace/req_chain/commodity_available"]}],
+                    "price_offer": ["request", "response", "response_log",
+                        {"trigger": ["marketplace/req_chain/price_ask"]}],
+                    "price_agree": ["request", "request_cancel", "response", "response_log",
+                        {"trigger": ["marketplace/req_chain/price_offer"]}],
+                    "purchase": ["request", "request_cancel", "response", "response_log",
+                        {"trigger": ["marketplace/req_chain/price_agree"]}],
+                    "transfer": ["request", "response", "response_log",
+                        {"trigger": ["marketplace/req_chain/purchase"]}]}
+            }
         },
-        "marketplace/req_chain": {
-            "client_type": ["transactional", "event-driven"],
-            "action": {
-                "inventory_list": ["request", "response"],
-                "commodity_available": ["request", "response", "response_log"],
-                "price_ask": ["request", "response", "response_cancel", "response_log",
-                    {"trigger": ["marketplace/req_chain/commodity_available"]}],
-                "price_offer": ["request", "response", "response_log",
-                    {"trigger": ["marketplace/req_chain/price_ask"]}],
-                "price_agree": ["request", "request_cancel", "response", "response_log",
-                    {"trigger": ["marketplace/req_chain/price_offer"]}],
-                "purchase": ["request", "request_cancel", "response", "response_log",
-                    {"trigger": ["marketplace/req_chain/price_agree"]}],
-                "transfer": ["request", "response", "response_log",
-                    {"trigger": ["marketplace/req_chain/purchase"]}]}
-        },
-        "gametime/req_rep": {
-            "client_type": ["transactional"],
-            "action": {
-                "get_time": ["request", "response"]}
-        },
-        "gametime/pub_sub": {
-            "client_type": ["polling", "event-driven"],
-            "action": {
-                "subscribe": ["request", "response", "response_cancel", "response_log"],
-                "notify": ["response",
-                    {"trigger": ["avatar_motion/req_rep/do_move"]}]}
+        "gametime": {
+            "req_rep": {
+                "client_type": ["transactional"],
+                "action": {
+                    "get_time": ["request", "response"]}
+            },
+            "pub_sub": {
+                "client_type": ["polling", "event-driven"],
+                "action": {
+                    "subscribe": ["request", "response", "response_cancel", "response_log"],
+                    "notify": ["response",
+                        {"trigger": ["avatar_motion/req_rep/do_move"]}]}
+            }
         }
     }
 }

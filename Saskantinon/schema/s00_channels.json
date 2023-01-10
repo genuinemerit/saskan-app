@@ -6,16 +6,15 @@
         },
         "name": {
             "avatar_motion": {
-                "port_cnt": 5,
-                "duplex": false
+                "send": 2,
+                "recv": 3
             },
             "marketplace": {
-                "port_cnt": 5,
-                "duplex": false
+                "send": 2,
+                "recv": 3
             },
             "gametime": {
-                "port_cnt": 2,
-                "duplex": true
+                "duplex": 2
             }
         }
     }

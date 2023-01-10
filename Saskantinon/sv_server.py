@@ -53,7 +53,7 @@ async def server(reader: StreamReader, writer: StreamWriter):
 
 
 async def main(*args, **kwargs):
-    """Launch a socket server on a channel.
+    """Launch a socket server on a channel.a/k/a/
 
     Args:
     - host: host name(s) or IP address(es)

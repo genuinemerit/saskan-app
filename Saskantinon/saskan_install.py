@@ -41,17 +41,17 @@ class SaskanInstall(object):
         self.install_app_files()
         self.copy_python_scripts()
         self.copy_bash_files()
-        port_cnt, svc = self.init_svc_config()
-        svc = self.set_ports(port_cnt, svc)
-        svc, svc_about = self.set_topics(svc)
-        svc = self.set_plans(svc)
-        svc_about = self.set_descs(svc_about)
-        svc_msgs = self.set_msgs()
+        svc = self.set_channels(dict())
+        svc = self.set_topics(svc)
+        # svc = self.set_plans(svc)
+        # svc_about = self.set_descs(svc_about)
+        # svc_msgs = self.set_msgs()
         pp((svc))
-        pp((svc_about))
-        pp((svc_msgs))
-        FI.pickle_saskan(self.APP)
-        self.start_servers(svc)
+        # pp((svc_d))
+        # pp((svc_about))
+        # pp((svc_msgs))
+        # FI.pickle_saskan(self.APP)
+        # self.start_servers(svc)
         # self.start_clients()
 
     # Helpers
@@ -164,129 +164,199 @@ class SaskanInstall(object):
             if not ok:
                 raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
 
-    def init_svc_config(self):
-        """Initialize svc config dictionary.
-        Start by identifying how many ports need to be allocated
-        for each traffic-type (send, receive or duplex) in channel
+    def set_hosts_and_port_cnt(self,
+                               p_meta_nm: str,
+                               p_svc: dict):
+        """
+        :args:
+        - p_meta: str: name of metadata schema for broker or peer
+        - p_svc: dict: service config data
+        :return: tuple:(int: msg broker ports for all channels,
+                        dict: persisted config metadata)
+
+        Identify host(s), how many message broker service ports needed
+        for each traffic-type (send, receive or duplex).
+        For each type, add one more port for load balancing.
         """
         port_cnt = 0
-        svc = dict()
-        for c_nm, c_meta in FI.S['channel']['name'].items():
-            port_cnt += c_meta['port_cnt']
-            svc[c_nm] = {"host": FI.S['channel']['resource']['host']}
-            if c_meta["duplex"]:
-                svc[c_nm]["duplex"] = c_meta['port_cnt']
-            else:
-                svc[c_nm]["send"] = round(c_meta['port_cnt'] / 2)
-                svc[c_nm]["recv"] = c_meta['port_cnt'] - svc[c_nm]["send"]
-        return (port_cnt, svc)
+        p_svc[p_meta_nm] = dict()
+        for m_nm, m_meta in FI.S[p_meta_nm]['name'].items():
+            p_svc[p_meta_nm][m_nm] = {
+                "host": FI.S[p_meta_nm]['resource']['host'],
+                "ports": dict()}
+            for p_typ, p_cnt in m_meta.items():
+                port_cnt += p_cnt + 1
+                p_svc[p_meta_nm][m_nm]['ports'][p_typ] = p_cnt
+                p_svc[p_meta_nm][m_nm]['ports']["load_bal"] = 1
+        return (port_cnt, p_svc)
 
-    def set_firewall(self, ports, svc):
+    def set_ports(self,
+                  p_next_port: int,
+                  p_port_cnt: int,
+                  p_ports: list = list()):
+        """Get a list of free ports
+        :args:
+        - next_port: next port to check
+        - p_port_cnt: number of ports to allocate
+        - ports: list of ports already allocated
+        :return: tuple: (list: assigned ports,
+                         int: next port to check)
+        """
+        print("Selecting available ports...")
+        _, net_stat_result = SI.run_cmd(["netstat -lant"])
+        cur_port_cnt = len(p_ports)
+        while len(p_ports) < (cur_port_cnt + p_port_cnt):
+            if str(p_next_port) not in net_stat_result and\
+               str(p_next_port) not in p_ports:
+                p_ports.append(p_next_port)
+            p_next_port += 1
+        return (p_ports, p_next_port)
+
+    def set_firewall(self,
+                     p_meta_nm: str,
+                     p_ports: list,
+                     p_svc: dict):
         """
         Set firewall rules for each port.
-        N.B. "ALLOW IN" means that the port allows both outgoing and
+        :args:
+        - p_meta_nm: name of metadata schema for broker or peer
+        - p_ports: list of port numbers to configure
+        - p_svc: dict of service metadata
+        :returns: dict: service metadata with ports assigned
+
+        Assign ports to services in the order they appear in
+        the svc config metadata.
+
+        "ALLOW IN" means that the port allows both outgoing and
         inbound transmission. Default is to allow OUT, deny IN. So
         adding ALLOW IN is necessary to allow inbound transmission.
         For a more sophisticated firewall, we'd probably assign
         exactly what IPs are allowed IN (and maybe OUT). For example,
         if all my clients use a specific set of IPs (and ports). For
-        the current prototype, everything is on the a single monolith,
-        so it doesn't matter.
+        the current prototype, it doesn't matter.
         """
-        for c_nm, c_meta in svc.items():
-            for p_typ in [pt for pt in c_meta.keys() if pt != "host"]:
-                port_cnt = c_meta[p_typ]
-                svc[c_nm][p_typ] = {"port": []}
-                for _ in range(0, port_cnt):
-                    port = ports.pop(0)
+        print("Setting firewall for ports...")
+        for m_nm, m_meta in p_svc[p_meta_nm].items():
+            for p_typ, p_cnt in m_meta["ports"].items():
+                p_svc[p_meta_nm][m_nm]["ports"][p_typ] = list()
+                for _ in range(0, p_cnt):
+                    port = p_ports.pop(0)
                     ok, result = SI.run_cmd(f"ufw allow in {port}")
-                    if ok:
-                        svc[c_nm][p_typ]["port"].append(port)
-                    else:
+                    if not ok:
                         raise Exception(f"{FI.T['err_cmd']} {result}")
+                    p_svc[p_meta_nm][m_nm]["ports"][p_typ].append(port)
         ok, result = SI.run_cmd("ufw reload")
         if ok:
             print(result)
             ok, result = SI.run_cmd("ufw enable")
-        if ok:
-            print(result)
+            if ok:
+                print(result)
         if not ok:
             raise Exception(f"{FI.T['err_cmd']} {result}")
+        return p_svc
+
+    def set_channels(self,
+                     p_svc: dict):
+        """Set hosts and ports for message brokers which manage
+        a specific channel.
+        :args: p_svc: dict: service metadata
+        :returns: dict: service metadata
+        """
+        port_cnt, svc = self.set_hosts_and_port_cnt('channel', p_svc)
+        ports, next_port = self.set_ports(
+            FI.S['channel']['resource']['port_low'], port_cnt)
+        p_svc["next_port"] = next_port
+        svc = self.set_firewall('channel', ports, p_svc)
         return svc
 
-    def set_ports(self, p_port_cnt, svc):
-        """Get list of available ports using netstat to identify
-        active TCP and UDP ports. Assign selected ports to svc config.
-        """
-        print("Selecting ports and setting firewall for game ports...")
-        ports = list()
-        port = FI.S['channel']['resource']['port_low']
-        ok, net_stat_result = SI.run_cmd(["netstat -lantu"])
-        while len(ports) < p_port_cnt:
-            if str(port) not in net_stat_result:
-                ports.append(port)
-            port += 1
-        svc = self.set_firewall(ports, svc)
-        return (svc)
+    def set_topics(self,
+                   p_svc):
+        """Assign topics to channels.
 
-    def set_topics(self, svc):
-        """Set service config based on topic and broker-type metadata
+        In my nomenclature, a "topic" is like a channel type,
+        or a messaging pattern. For example, "request-reply" or
+        "broadcast" or "publish-subscribe".
+
+        :args: p_svc: dict: service config data
+        :returns: dict: service config data
         """
-        svc_about = {"server": {}, "client": {}, "router": {}, "gate": {}}
-        for c_nm, c_meta in svc.items():
-            for p_typ in [pt for pt in c_meta.keys() if pt != "host"]:
-                svc[c_nm][p_typ]["topic"] = {}
-        for c_nm, t_meta in FI.S["topic"].items():
-            for t_nm, b_meta in t_meta.items():
-                svc_about["server"][c_nm + "/" + t_nm] = b_meta["desc"]
-                for d_typ in b_meta['direction']:
-                    if "duplex" in svc[c_nm].keys():
-                        topic_nm = t_nm + "_" + d_typ
-                        d_typ = "duplex"
-                    else:
-                        topic_nm = t_nm
-                    svc[c_nm][d_typ]["topic"][topic_nm] = {"action": {}}
-        return svc, svc_about
+        for m_nm in p_svc["channel"].keys():
+            p_svc["channel"][m_nm]["topic"] = {}
+            for t_nm, t_desc in FI.S["topic"][m_nm].items():
+                p_svc["channel"][m_nm]["topic"][t_nm] = t_desc
+        return p_svc
 
     def set_plans(self, svc):
         """
-        There are (so far) 3 types of clients:
-        - transactional: one-one txns, a clinet triggers an action & handles
-        the reply, which is honed for that specific client
+        In my terminology, a "plan" drills down on what type of peer
+        uses a given topic, such as what types of client/peer activity
+        are associated with the topic. A "peer" can refer to an "end user"
+        client-broker, or to a backend gateway. Any modules that can send
+        messages to and/or subscribe and receive messages from a message
+        broker are "peers".  Client is a synonym, but sometimes is used
+        to refer only to "front end" modules, so I like "peers" better
+        for referencing at this more abstract level.
+
+        Plan types include:
+
+        - transactional: request-reply
+          Two flavors:
+          - One-to-one txns, peer triggers an action, handles reply,
+            which is honed for that specific peer request
+          - Event-driven, aka chained request: chain of transactions, each
+            triggered by a previous response. First in chain is regular
+            one-to-one, then a series of events may cascade. Sort of like
+            an ETL pipeline.
 
         - polling: send multiple copies of a reply to a subscriber list.
-          Two sub-flavors, which relate to how subscriber list is managed:
+          Two flavors, related to how subscriber list is managed:
+            - publish-subscribe: subscriber list is dynamic, may have an
+              expiration limit, may be one-shot, or recurring, can be
+              unsubscribed from.
+            - broadcast: subscriber list set by system config setting,
+              is mostly static, like a simple preset version of pub-sub.
 
-            - publish-subscribe: subscribers identified by request messages
-                (subscriber requests) and are dynamic. Subs may have an
-                expiration limit, may be "one-shot", or "recurring". There
-                is an "unsubscribe" option.
-            - broadcast: subscribers identified by a system configuration
-                setting; a mostly static subscriber list.
-                Broadcast is like a simpler version of pub-sub.
-
-        - event-driven: chain of transactional clients, each request triggered
-          by a previous response. First request in chain sent by regular
-          transactional client, then a chain of events rolls out.
-          Like an ETL pipeline.  Can trigger other txns, polling, or both.
-
-        Client-type can be transactional and event-driven.
-        Or polling and event-driven.
-        It would be odd to be only event-driven, but maybe it could happen.
+        - a mix of the above, such as a chain that includes both polling
+          and subsequent transations.
 
         A plan defines:
 
-        - actions, which consist of an action name and a set of one to many
-          event names associated with a topic. The events  have either
-          "request" or "reponse" in their name.  In  svc config, associate them
-          with a send or receive channel respectively. If channel is duplex,
-          then all the actions/events are associated with a single channel;
-          so send/receive are designated by the topic name.
+        - actions: an action name + one to n event names.
+        - events: associated with a send or recv channel if those are
+          used in the channel associated with the topic, otherwise
+          the events use a duplex channel. Typically events have names
+          like "request_*" or "response_*".
+          - "request" events become associated with "receive" channels,
+            with messages sent to a channel by a client peer
+            like a GUI, or a business logic module.
+          - "response" events become associated with "send" channels,
+            with messages sent to a channel by a backend gateway.
+        - triggers: define the preceding event in a chain, named using
+          the "full path" of a message: channel.topic.action.event
 
-        - Optionally, an action can also have (a set of) triggers.
-        They define the chain of events for event-driven clients,
-        what topic + plan(s) trigger the action. Needs more work
-        regarding what exactly is trigger request vs. response event.
+        @DEV:
+        - the content-router calls backend "gate" modules, which go
+          backend business logic, craft responses, post response msgs
+          to ns_harvest.  The router interfaces with the channel and
+          therefore will have multiple instances behind a load balancer.
+        - client-peers ("front end") get triggered by a polling module,
+          running under cron most likely. The actual "end user" modules
+          don't send messages themselves, and there is no "calling" a
+          transactional peer module. Instead, they write to a queue and
+          the poller picks up the queue, crafts/sends a message to the
+          peer, gets the response and writes back to the queue. Then the
+          end-user program still has to poll the queue for responses.
+          - The peer is a kind of "broker". If it is likely to be used
+            alot, then there should be multiple instances behind a load
+            balancer.
+          - Likewise, a poller may serve multiple quuees, and should also
+            be multiplexed, though whether it needs a load balancer is
+            debatable.
+        - Subscriptions will need to be sent to ALL instances of a given
+          send or receive or duplex channel, so that the peer will get a
+          reponse no matter which instance of the channel it is connected
+          to.  OR, look into using a shared queue for subscribers. That might
+          be better...  Whew!  Fun stuff! (Weird, but fun!)
         """
         def set_event_type(p_meta):
             e_typ = ""
@@ -391,6 +461,26 @@ class SaskanInstall(object):
         are the appropriate clients. As I'm understanding it, the server
         actually does the routing, and the clients are just "listeners"
         when they are not sending requests.
+
+        Not sure that distinct send/receive servers is useful. A server
+        gets peers ("subscribers" -- "who will I send msgs to?"), reads
+        msgs from them, and sends them to a responder (router), which
+        in turn sends them to a gateway, which in turn sends them back
+        to the server, which in turn sends them to the appropriate
+        client-subscriber. Both respoders and clients are "peers". The
+        server has to both send and receive. I am thinking a one-directional
+        pipe is only useful if the server itself is a "broadcaster" or
+        perhaps a "logger", that is, the traffic iteself is only one-way.
+
+        I'm also thinking that the (duplex) ports assinged to a channel
+        DO need to be behind a proxy, so that the channel (server) can
+        be load balanced.
+
+        For TCP load balancing with Nginx see online article (bookmarked)
+        and example code in lab/service_lab/gallery_bal_56089.conf. That
+        is for http/https, but I think it will work with TCP as well.
+        Not sure if I really need to buy Nginx Plus for it to work.
+        If so, maybe look at using twisted instead.
 
         :Args:
         - svc: service config dictionary
