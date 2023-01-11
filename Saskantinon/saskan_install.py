@@ -43,7 +43,9 @@ class SaskanInstall(object):
         self.copy_bash_files()
         svc = self.set_channels(dict())
         svc = self.set_topics(svc)
-        # svc = self.set_plans(svc)
+        svc = self.set_plans(svc)
+        svc = self.set_clients(svc)
+        svc = self.set_routers(svc)
         # svc_about = self.set_descs(svc_about)
         # svc_msgs = self.set_msgs()
         pp((svc))
@@ -164,53 +166,25 @@ class SaskanInstall(object):
             if not ok:
                 raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
 
-    def set_hosts_and_port_cnt(self,
-                               p_meta_nm: str,
-                               p_svc: dict):
-        """
-        :args:
-        - p_meta: str: name of metadata schema for broker or peer
-        - p_svc: dict: service config data
-        :return: tuple:(int: msg broker ports for all channels,
-                        dict: persisted config metadata)
-
-        Identify host(s), how many message broker service ports needed
-        for each traffic-type (send, receive or duplex).
-        For each type, add one more port for load balancing.
-        """
-        port_cnt = 0
-        p_svc[p_meta_nm] = dict()
-        for m_nm, m_meta in FI.S[p_meta_nm]['name'].items():
-            p_svc[p_meta_nm][m_nm] = {
-                "host": FI.S[p_meta_nm]['resource']['host'],
-                "ports": dict()}
-            for p_typ, p_cnt in m_meta.items():
-                port_cnt += p_cnt + 1
-                p_svc[p_meta_nm][m_nm]['ports'][p_typ] = p_cnt
-                p_svc[p_meta_nm][m_nm]['ports']["load_bal"] = 1
-        return (port_cnt, p_svc)
-
     def set_ports(self,
                   p_next_port: int,
-                  p_port_cnt: int,
-                  p_ports: list = list()):
+                  p_request_port_cnt: int) -> tuple:
         """Get a list of free ports
         :args:
         - next_port: next port to check
-        - p_port_cnt: number of ports to allocate
-        - ports: list of ports already allocated
-        :return: tuple: (list: assigned ports,
-                         int: next port to check)
+        - p_request_port_cnt: number of ports to allocate
+        :return: (list: assigned ports,
+                  int: next port number to check)
         """
-        print("Selecting available ports...")
+        # print("Selecting available ports...")
         _, net_stat_result = SI.run_cmd(["netstat -lant"])
-        cur_port_cnt = len(p_ports)
-        while len(p_ports) < (cur_port_cnt + p_port_cnt):
+        ports: list = list()
+        while len(ports) < p_request_port_cnt:
             if str(p_next_port) not in net_stat_result and\
-               str(p_next_port) not in p_ports:
-                p_ports.append(p_next_port)
+               str(p_next_port) not in ports:
+                ports.append(p_next_port)
             p_next_port += 1
-        return (p_ports, p_next_port)
+        return (ports, p_next_port)
 
     def set_firewall(self,
                      p_meta_nm: str,
@@ -234,51 +208,78 @@ class SaskanInstall(object):
         exactly what IPs are allowed IN (and maybe OUT). For example,
         if all my clients use a specific set of IPs (and ports). For
         the current prototype, it doesn't matter.
+
+        @DEV:
+        - Make this generic. Don't use it to modify svc config.
+        - Caller should have already updated the ports list in svc.
+        - Should be able to just pass in the ports list.
+        - Do it once for all services, building a comprehensive
+          list of all the port numbers.
+        - Turn them all off before turning them back on?
+        - Them --> everything between "low" port and "next" port?
+        - Just do a reset..
         """
         print("Setting firewall for ports...")
-        for m_nm, m_meta in p_svc[p_meta_nm].items():
-            for p_typ, p_cnt in m_meta["ports"].items():
-                p_svc[p_meta_nm][m_nm]["ports"][p_typ] = list()
-                for _ in range(0, p_cnt):
-                    port = p_ports.pop(0)
-                    ok, result = SI.run_cmd(f"ufw allow in {port}")
-                    if not ok:
-                        raise Exception(f"{FI.T['err_cmd']} {result}")
-                    p_svc[p_meta_nm][m_nm]["ports"][p_typ].append(port)
-        ok, result = SI.run_cmd("ufw reload")
+        ok, result = SI.run_cmd("ufw reset")
         if ok:
-            print(result)
-            ok, result = SI.run_cmd("ufw enable")
+            for m_nm, m_meta in p_svc[p_meta_nm].items():
+                for p_typ, p_cnt in m_meta["port"].items():
+                    p_svc[p_meta_nm][m_nm]["port"][p_typ] = {"num": list()}
+                    if p_typ not in ("load_bal"):
+                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["que"] =\
+                            m_nm + "_" + p_typ + "_queue"
+                    for _ in range(0, p_cnt):
+                        port = p_ports.pop(0)
+                        ok, result = SI.run_cmd(f"ufw allow in {port}")
+                        if not ok:
+                            raise Exception(f"{FI.T['err_cmd']} {result}")
+                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["num"].append(port)
+            ok, result = SI.run_cmd("ufw reload")
             if ok:
                 print(result)
+                ok, result = SI.run_cmd("ufw enable")
+                if ok:
+                    print(result)
         if not ok:
             raise Exception(f"{FI.T['err_cmd']} {result}")
         return p_svc
 
     def set_channels(self,
-                     p_svc: dict):
-        """Set hosts and ports for message brokers which manage
-        a specific channel.
-        :args: p_svc: dict: service metadata
-        :returns: dict: service metadata
+                     p_svc: dict) -> dict:
         """
-        port_cnt, svc = self.set_hosts_and_port_cnt('channel', p_svc)
-        ports, next_port = self.set_ports(
-            FI.S['channel']['resource']['port_low'], port_cnt)
+        :args:
+        - p_svc: service config data
+        :return: modified svc config metadata
+
+        Identify host(s), how many message broker service ports needed
+        for each traffic-type (send, receive or duplex).
+        For each type, add one more port for load balancing.
+        """
+        p_svc["channel"] = dict()
+        next_port = FI.S['channel']['resource']['port_low']
+        for m_nm, m_meta in FI.S["channel"]['name'].items():
+            p_svc["channel"][m_nm] = {
+                "host": FI.S["channel"]['resource']['host'],
+                "port": dict()}
+            for p_typ, p_cnt in m_meta.items():
+                port_cnt = p_cnt + 1
+                ports, next_port = self.set_ports(next_port, port_cnt)
+                p_svc["channel"][m_nm]['port']["load_bal"] = {"num": ports[0]}
+                p_svc["channel"][m_nm]['port'][p_typ] = {"num": ports[1:]}
         p_svc["next_port"] = next_port
-        svc = self.set_firewall('channel', ports, p_svc)
-        return svc
+        return p_svc
 
     def set_topics(self,
-                   p_svc):
+                   p_svc: dict) -> dict:
         """Assign topics to channels.
 
         In my nomenclature, a "topic" is like a channel type,
         or a messaging pattern. For example, "request-reply" or
         "broadcast" or "publish-subscribe".
 
-        :args: p_svc: dict: service config data
-        :returns: dict: service config data
+        :args:
+        - p_svc: service config data
+        :returns: modified service config data
         """
         for m_nm in p_svc["channel"].keys():
             p_svc["channel"][m_nm]["topic"] = {}
@@ -286,8 +287,13 @@ class SaskanInstall(object):
                 p_svc["channel"][m_nm]["topic"][t_nm] = t_desc
         return p_svc
 
-    def set_plans(self, svc):
+    def set_plans(self,
+                  p_svc: dict) -> dict:
         """
+        :args:
+        - p_svc: dict: service config data
+        :returns: dict: modified service config data
+
         In my terminology, a "plan" drills down on what type of peer
         uses a given topic, such as what types of client/peer activity
         are associated with the topic. A "peer" can refer to an "end user"
@@ -322,6 +328,9 @@ class SaskanInstall(object):
         A plan defines:
 
         - actions: an action name + one to n event names.
+          - action name + event name = abbreviated message name
+          - should always be unique. Will be used as a key to get
+            message format and possibliy other metadata.
         - events: associated with a send or recv channel if those are
           used in the channel associated with the topic, otherwise
           the events use a duplex channel. Typically events have names
@@ -335,7 +344,7 @@ class SaskanInstall(object):
           the "full path" of a message: channel.topic.action.event
 
         @DEV:
-        - the content-router calls backend "gate" modules, which go
+        - the content-router calls backend "gate" modules, which do
           backend business logic, craft responses, post response msgs
           to ns_harvest.  The router interfaces with the channel and
           therefore will have multiple instances behind a load balancer.
@@ -357,49 +366,117 @@ class SaskanInstall(object):
           reponse no matter which instance of the channel it is connected
           to.  OR, look into using a shared queue for subscribers. That might
           be better...  Whew!  Fun stuff! (Weird, but fun!)
+          - I don't have a sub defined in the plan for all messages.
+            Might need to add that.
+          - Currently, only "request" events can be triggered. May need
+            to tweak that in order to support a chain of events that
+            includes broadcast/polling events, which may not need a
+            request.
         """
-        def set_event_type(p_meta):
-            e_typ = ""
-            if "transactional" in p_meta['client_type']:
-                e_typ += "txn_"
-            if "polling" in p_meta['client_type']:
-                e_typ += "poll_"
-            if "event-driven" in p_meta['client_type']:
-                e_typ += "event_"
-            return e_typ[:-1]
+        for c_nm, m_meta in FI.S["plan"].items():
+            for t_nm, p_meta in m_meta.items():
+                a_nm = c_nm + "/" + t_nm + "/"
+                p_svc['channel'][c_nm]['topic'][t_nm]['plan'] = dict()
+                plan = p_svc['channel'][c_nm]['topic'][t_nm]['plan']
+                for p_type in p_meta["type"]:
+                    a_nm += p_type + "_"
+                a_nm = a_nm[:-1]
+                for ae_nm in p_meta["action"].keys():
+                    e_list = [e for e in p_meta["action"][ae_nm]
+                              if not isinstance(e, dict)]
+                    action_nm = a_nm + "/" + ae_nm
+                    for e_nm in e_list:
+                        event_nm = action_nm + "/" + e_nm
+                        plan[ae_nm + "/" + e_nm] = {
+                            "msg": event_nm}
+                    trig = [t["trigger"] for t in p_meta["action"][ae_nm]
+                            if isinstance(t, dict)]
+                    if len(trig) > 0:
+                        plan[ae_nm + "/request"]["trigger"] = trig[0]
+        return p_svc
 
-        def set_events(c_nm, p_typ, t_nm, a_nm, events, svc):
-            svc_action = svc[c_nm][p_typ]["topic"][t_nm]["action"]
-            svc_action[a_nm] = {"event": []}
-            for e_nm in events:
-                if (("response" in e_nm and
-                        (p_typ == "send" or "send" in t_nm)) or
-                    ("request" in e_nm and
-                        (p_typ == "recv" or "recv" in t_nm))):
-                    svc_action[a_nm]["event"].append(e_typ + "/" + e_nm)
-                elif (isinstance(e_nm, dict) and
-                        list(e_nm.keys())[0] == "trigger"):
-                    svc_action[a_nm]["trigger"] = e_nm["trigger"]
-            return svc
+    def set_clients(self,
+                    p_svc: dict) -> dict:
+        """Allocate ports and polling queues for client peers.
 
-        # set_plans:
-        # ===================
-        for p_nm, p_meta in FI.S['plan'].items():
-            c_nm = p_nm.split('/')[0]
-            t_nm = p_nm.split('/')[1]
-            e_typ = set_event_type(p_meta)
+        :args:
+        - p_svc: service config data
+        :returns: modified service config data
+        """
+        p_svc["peer"] = {"client": {}}
+        for cl_nm, cl_meta in FI.S["client"].items():
+            port_cnt = cl_meta["ports"] + 2
+            ports, next_port = self.set_ports(
+                p_svc['next_port'], port_cnt)
+            p_svc["peer"]["client"][cl_nm] = {
+                "desc": cl_meta["desc"],
+                "port": {"load_bal": {"num": ports[0]},
+                         "polling": {"num": ports[1]},
+                         "duplex": {"num": ports[2:],
+                                    "que": cl_nm + "_que"}}}
+            p_svc['next_port'] = next_port
+        return p_svc
 
-            for a_nm in p_meta['action'].keys():
-                events = p_meta['action'][a_nm]
-                for p_typ in [pt for pt in svc[c_nm].keys()
-                              if pt not in ["host", "desc"]]:
-                    if "duplex" in svc[c_nm].keys():
-                        for d_typ in ["send", "recv"]:
-                            svc = set_events(c_nm, p_typ, t_nm + "_" + d_typ,
-                                             a_nm, events, svc)
-                    else:
-                        svc = set_events(c_nm, p_typ, t_nm, a_nm, events, svc)
-        return svc
+    def set_routers(self,
+                    p_svc: dict) -> dict:
+        """Allocate ports and polling queues for router and
+        sub-routers.  In my terminology, a router is a module
+        that evaluates the content of a message and routes it
+        to the appropriate backend "gateway" for business logic
+        processing and generation of a response.
+
+        I envision a single router module, which may have
+        multiple instances and be load balanced, which receives
+        signals (requests) from any message broker channel. It
+        CALLS one of serveral "sub-routers" that handle specific
+        categories of messages.
+
+        Once a sub-router determines what gateway to use, it
+        writes the following to its queue:
+        - What gateway to use
+        - The original message and its unique action-event name
+        - The channel to which the response should be sent
+        - A unique ID to use as a key to response on ns_harvest
+        - A status flag of "pending"
+
+        There is a queue for each sub-router and a polling module
+        for each queue. The polling module reads the queue, when it
+        finds a pending message, it either calls or sends a message
+        to the gateway module (not sure which yet). The gateway
+        modules (which can also be load balanced) update status to
+        "in process", does its works, writing a response to ns_harvetst,
+        then updating status to "ready".
+
+        When the polling modules finds a "ready" messages, it sends
+        that appropriate response to the designated message broker's
+        "send" channel and marks the item on the queue as "done" or
+        "sent" or maybe just removes it. I think this means that only
+        the "parent" (load balanced) router needs to subscribe to the
+        "receive" channels.
+
+        :args:
+        - p_svc: service config data
+        :returns: modified service config data
+        """
+        p_svc["peer"]["router"] = dict()
+        sub_routers = FI.S["router"]["sub_routers"]
+        basic_ports = FI.S["router"]["ports"]
+        port_cnt = basic_ports + len(sub_routers) + 1
+        ports, next_port = self.set_ports(
+            p_svc['next_port'], port_cnt)
+        p_svc["peer"]["router"]["ports"] = {
+            "load_bal": {"num": ports[0]},
+            "duplex": {"num": ports[1:basic_ports]}}
+        p_svc["peer"]["router"]["child"] = dict()
+        p_svc['next_port'] = next_port
+        port_i = basic_ports + 1
+        for r_nm, r_meta in sub_routers.items():
+            p_svc["peer"]["router"]["child"][r_nm] = {
+                "desc": r_meta["desc"],
+                "port": {"polling": {"num": ports[port_i]},
+                         "que": r_nm + "_que"}}
+            port_i += 1
+        return p_svc
 
     def set_descs(self, svc_about):
         """Set descriptions for clients, routers and gateways.

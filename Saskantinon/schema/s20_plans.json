@@ -2,51 +2,51 @@
 "plan": {
         "avatar_motion": {
             "req_rep": {
-                "client_type": ["transactional"],
+                "type": ["txn"],
                 "action": {
-                    "evaluate_move": ["request", "response"],
-                    "do_move": ["request", "request_cancel",
+                    "move_eval": ["request", "response"],
+                    "move_go": ["request", "request_cancel",
                                 "response", "response_log", "response_cancel"]}
             },
             "b_cast": {
-                "client_type": ["polling", "event-driven"],
+                "type": ["poll", "event"],
                 "action": {
-                    "subscribe": ["request",
+                    "move_sub": ["request",
                                   "response", "response_cancel", "response_log"],
-                    "notify": ["response",
-                               {"trigger": ["avatar_motion/req_rep/do_move"]}]}
+                    "move_notify": ["request", "response",
+                               {"trigger": "move_go/response"}]}
             }
         },
         "marketplace": {
             "req_chain": {
-                "client_type": ["transactional", "event-driven"],
+                "type": ["txn", "event"],
                 "action": {
-                    "inventory_list": ["request", "response"],
-                    "commodity_available": ["request", "response", "response_log"],
-                    "price_ask": ["request", "response", "response_cancel", "response_log",
-                        {"trigger": ["marketplace/req_chain/commodity_available"]}],
-                    "price_offer": ["request", "response", "response_log",
-                        {"trigger": ["marketplace/req_chain/price_ask"]}],
-                    "price_agree": ["request", "request_cancel", "response", "response_log",
-                        {"trigger": ["marketplace/req_chain/price_offer"]}],
-                    "purchase": ["request", "request_cancel", "response", "response_log",
-                        {"trigger": ["marketplace/req_chain/price_agree"]}],
-                    "transfer": ["request", "response", "response_log",
-                        {"trigger": ["marketplace/req_chain/purchase"]}]}
+                    "mkt_list": ["request", "response"],
+                    "mkt_avail": ["request", "response", "response_log"],
+                    "mkt_ask": ["request", "response", "response_cancel", "response_log",
+                        {"trigger": "mkt_avail/response"}],
+                    "mkt_offer": ["request", "response", "response_log",
+                        {"trigger": "mkt_ask/response"}],
+                    "mkt_agree": ["request", "request_cancel", "response", "response_log",
+                        {"trigger": "mkt_offer/response"}],
+                    "mkt_buy": ["request", "request_cancel", "response", "response_log",
+                        {"trigger": "mkt_agree/response"}],
+                    "mkt_transfer": ["request", "response", "response_log",
+                        {"trigger": "mkt_buy/response"}]}
             }
         },
         "gametime": {
             "req_rep": {
-                "client_type": ["transactional"],
+                "type": ["txn"],
                 "action": {
-                    "get_time": ["request", "response"]}
+                    "time_get": ["request", "response"]}
             },
             "pub_sub": {
-                "client_type": ["polling", "event-driven"],
+                "type": ["poll", "event"],
                 "action": {
-                    "subscribe": ["request", "response", "response_cancel", "response_log"],
-                    "notify": ["response",
-                        {"trigger": ["avatar_motion/req_rep/do_move"]}]}
+                    "time_sub": ["request", "response", "response_cancel", "response_log"],
+                    "time_notify": ["request", "response",
+                        {"trigger": "move_go/response"}]}
             }
         }
     }

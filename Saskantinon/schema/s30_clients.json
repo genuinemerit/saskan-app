@@ -1,19 +1,24 @@
 {
 "client": {
         "robot_player": {
-            "desc": "A client broker representing a player of the game driven by AI."
+            "desc": "A client peer representing a player of the game driven by AI.",
+            "ports": 2
         },
         "human_player": {
-            "desc": "A client broker representing a human player of the game."
+            "desc": "A client peer representing a human player of the game.",
+            "ports": 2
         },
         "player_avatar": {
-            "desc": "A client broker representing a game world avatar driven by a human or robot player."
+            "desc": "A client peer representing a game world avatar driven by a human or robot player.",
+            "ports": 5
         },
         "npc_avatar": {
-            "desc": "A client broker representing a game avatar not driven by a human or robot player. A Non-Player Character. For example, a non-sentient animal, or a stock character with limited actions."
+            "desc": "A client peer representing a game avatar not driven by a human or robot player. A Non-Player Character. For example, a non-sentient animal, or a stock character with limited actions.",
+            "ports": 5
         },
         "map_context": {
-            "desc": "A client broker representing a non-Player game object that is relatively more static than a NPC. For example, a building, a tree, an organizational ledger, an automatic town crier."
+            "desc": "A client peer representing a non-Player game object that is relatively more static than a NPC. For example, a building, a tree, an organizational ledger, an automatic town crier.",
+            "ports": 3
         }
     }
 }
