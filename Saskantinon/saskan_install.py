@@ -46,12 +46,10 @@ class SaskanInstall(object):
         svc = self.set_plans(svc)
         svc = self.set_clients(svc)
         svc = self.set_routers(svc)
-        # svc_about = self.set_descs(svc_about)
-        # svc_msgs = self.set_msgs()
+        # svc = self.set_msgs()
+        # svc = self.set_services()
         pp((svc))
         # pp((svc_d))
-        # pp((svc_about))
-        # pp((svc_msgs))
         # FI.pickle_saskan(self.APP)
         # self.start_servers(svc)
         # self.start_clients()
@@ -233,7 +231,7 @@ class SaskanInstall(object):
                         ok, result = SI.run_cmd(f"ufw allow in {port}")
                         if not ok:
                             raise Exception(f"{FI.T['err_cmd']} {result}")
-                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["num"].append(port)
+                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["num"].append(port)   # noqa: E501
             ok, result = SI.run_cmd("ufw reload")
             if ok:
                 print(result)
@@ -419,89 +417,102 @@ class SaskanInstall(object):
 
     def set_routers(self,
                     p_svc: dict) -> dict:
-        """Allocate ports and polling queues for router and
-        sub-routers.  In my terminology, a router is a module
-        that evaluates the content of a message and routes it
-        to the appropriate backend "gateway" for business logic
+        """Allocate ports and polling queues for routers.
+        In my terminology, routers evaluate content of a message
+        and direct it to a backend "gateway" module for business logic
         processing and generation of a response.
 
-        I envision a single router module, which may have
-        multiple instances and be load balanced, which receives
-        signals (requests) from any message broker channel. It
-        CALLS one of serveral "sub-routers" that handle specific
-        categories of messages.
+        I envision a set of router modules, which may have
+        multiple instances and be load balanced. They ALL subscribe
+        to ALL "recv" message broker channels. Each router handles
+        a grouping of backend categories.  Only the router that
+        identifies a message as belonging to its category will then
+        trigger gateway activity.
 
-        Once a sub-router determines what gateway to use, it
-        writes the following to its queue:
+        Once a router determines which gateway to use, it writes
+        to a queue:
         - What gateway to use
         - The original message and its unique action-event name
         - The channel to which the response should be sent
         - A unique ID to use as a key to response on ns_harvest
         - A status flag of "pending"
 
-        There is a queue for each sub-router and a polling module
-        for each queue. The polling module reads the queue, when it
-        finds a pending message, it either calls or sends a message
-        to the gateway module (not sure which yet). The gateway
-        modules (which can also be load balanced) update status to
-        "in process", does its works, writing a response to ns_harvetst,
-        then updating status to "ready".
+        There is a queue for each router and a polling module
+        for each queue. When the polling module finds a pending message,
+        it either calls or sends a message to the gateway module using
+        an async one-directional call.  The gateway module updates status
+        to "in process", does its works, writes response to ns_harvetst,
+        then updates queue item status to "ready".
 
-        When the polling modules finds a "ready" messages, it sends
+        When the polling modules finds a "ready" message, it sends
         that appropriate response to the designated message broker's
         "send" channel and marks the item on the queue as "done" or
-        "sent" or maybe just removes it. I think this means that only
-        the "parent" (load balanced) router needs to subscribe to the
-        "receive" channels.
+        "sent" or maybe just removes it. Polling modules do not need
+        to subscribe to any channels. They never receive messages.
 
         :args:
         - p_svc: service config data
         :returns: modified service config data
         """
         p_svc["peer"]["router"] = dict()
-        sub_routers = FI.S["router"]["sub_routers"]
-        basic_ports = FI.S["router"]["ports"]
-        port_cnt = basic_ports + len(sub_routers) + 1
-        ports, next_port = self.set_ports(
-            p_svc['next_port'], port_cnt)
-        p_svc["peer"]["router"]["ports"] = {
-            "load_bal": {"num": ports[0]},
-            "duplex": {"num": ports[1:basic_ports]}}
-        p_svc["peer"]["router"]["child"] = dict()
-        p_svc['next_port'] = next_port
-        port_i = basic_ports + 1
-        for r_nm, r_meta in sub_routers.items():
-            p_svc["peer"]["router"]["child"][r_nm] = {
-                "desc": r_meta["desc"],
-                "port": {"polling": {"num": ports[port_i]},
-                         "que": r_nm + "_que"}}
-            port_i += 1
+        router = p_svc["peer"]["router"]
+        for r_nm, r_meta in FI.S["router"].items():
+            router[r_nm] = {"desc": r_meta["desc"]}
+            ports, next_port = self.set_ports(
+                p_svc['next_port'], r_meta['ports'] + 2)
+            p_svc['next_port'] = next_port
+            router[r_nm]["ports"] = {
+                "load_bal": {"num": ports[0]},
+                "polling": {"num": ports[1],
+                            "que": r_nm + "_que"},
+                "duplex": {"num": ports[2:]},
+                "gateway": r_meta["gateway"]}
         return p_svc
 
-    def set_descs(self, svc_about):
-        """Set descriptions for clients, routers and gateways.
-        """
-        for about in ("client", "router", "gate"):
-            for obj_nm, abt_meta in FI.S[about].items():
-                svc_about[about][obj_nm] = abt_meta["desc"]
-        return svc_about
-
-    def set_msgs(self):
+    def set_msgs(self, p_svc):
         """Set named message/record structures.
-        """
-        svc_msgs = dict()
-        for m_nm, m_fields in FI.S["message"].items():
-            svc_msgs[m_nm] = {"fields": {}}
-            for f_nm, r_values in m_fields.items():
-                svc_msgs[m_nm]["fields"][f_nm] = dict()
-                if "desc" in r_values.keys():
-                    svc_msgs[m_nm]["fields"][f_nm]["desc"] = r_values["desc"]
-                if "type" in r_values.keys():
-                    svc_msgs[m_nm]["fields"][f_nm]["type"] = r_values["type"]
-                if "enum" in r_values.keys():
-                    svc_msgs[m_nm]["fields"][f_nm]["enum"] = r_values["enum"]
 
-        return svc_msgs
+        These can be stored either in svc or in a separate config struct.
+        Assign unique IDs -- using meaningful names -- to each message.
+        Avoid redundancy in defining message structures. Allow use of
+        layered message structures, i.e., where "primitive" types or
+        groups can be re-used.
+
+        Reference the message ID's in the service config data.
+
+        Probably want to move this up the list to be like s00_messages
+        since it will be used by other schema modules: routers and clients.
+        """
+        p_svc["msg"] = dict()
+        for m_nm, m_fields in FI.S["message"].items():
+            p_svc["msg"][m_nm] = {"field": dict()}
+            msgf = p_svc["msg"][m_nm]["field"]
+            for f_nm, r_values in m_fields.items():
+                msgf[f_nm] = dict()
+                for ftyp in ("desc", "type", "enum"):
+                    if ftyp in r_values.keys():
+                        msgf[f_nm][ftyp] = r_values[ftyp]
+
+        return p_svc
+
+    def set_services(self, svc):
+        """The idea of the service config data is to match up specific message
+        formats with specific action-event pairs, and to associate plans with
+        specific peers -- either routers or clients (or maybe both).
+
+        Modify the plans config to indicate what message
+        formats are used with each event. When it comes to ns-harvest keys,
+        we may want to simplify that down to just a UID, an expire date-time,
+        and maybe a status flag.  Don't think we need different key formats for
+        different message formats. They key is the value sent to the client.
+
+        The gate/router relationships are already defined in routers schema.
+
+        That just leaves associating peers with plans or action-event pairs.
+        Let's move that into the client and router schemas.
+        Drop the "services" schema.
+        """
+        pass
 
     def start_servers(self, svc):
         """Start a saskan_server instance for each channel.
@@ -674,6 +685,7 @@ class SaskanInstall(object):
         of each, that is, some kind of load balancing.  Probably yes.
         """
         pass
+
 
 if __name__ == '__main__':
     SI = SaskanInstall()

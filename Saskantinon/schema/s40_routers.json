@@ -1,18 +1,66 @@
 {
 "router": {
-        "ports": 5,
-        "sub_routers": {
-            "admin": {
-                "desc": "Determine which gate receives which requests relating to use of the admin tools."
-            },
-            "game": {
-                "desc": "Determine which gate receives requests for events relating to in-game play."
-            },
-            "log": {
-                "desc": "Direct requests to logging and monitoring gates."
-            },
-            "chains": {
-                "desc": "Determine which gate to handle triggered service activity associated with an event chain."
+        "admin": {
+            "desc": "Direct which gateway receives requests relating to use of the admin tools.",
+            "ports": 1,
+            "gateway": {
+                "start_stop": {
+                    "desc": "Handle requests to start and stop services."
+                },
+                "edit_gui_meta": {
+                    "desc": "Direct requests to edit game GUI metadata. For example, to change language."
+                },
+                "edit_schema": {
+                    "desc": "Direct request to modify game schema data. Would require a restart of game servers."
+                },
+                "monitor": {
+                    "desc": "Handle monitoring of service traffic. For example, what servers have heavier loads."
+                }
+            }
+        },
+        "game": {
+            "desc": "Direct to gateway for requests for events relating to in-game play.",
+            "ports": 3,
+            "gateway": {
+                "chat": {
+                    "desc": "Direct requests to chat gateway."
+                },
+                "social": {
+                    "desc": "Direct requests to social gateway."
+                },
+                "avatar_physics": {
+                    "desc": "Handle avatar movement and other physics requests."
+                },
+                "prop_physics": {
+                    "desc": "Handle prop movement and other physics requests."
+                },
+                "gametime": {
+                    "desc": "Respond to requests to compute, record or communicate game time information, in multiple modalities."
+                },
+                "inventory": {
+                    "desc": "Respond to requests relating to collections of things, such as what is being carried by another object or handling of some market transactions."
+                }
+            }
+        },
+        "flow": {
+            "desc": "Direct requests for handling orchestration of services.",
+            "ports": 2,
+            "gateway": {
+                "subscriber": {
+                    "desc": "Respond to requests regarding subscriber and recipient lists."
+                },
+                "chainer": {
+                    "desc": "Respond to requests regarding handling of chained events."
+                },
+                "logger": {
+                    "desc": "Respond to requests regarding writing to or reading from a log."
+                },
+                "poller": {
+                    "desc": "Respond to requests regarding throttling of polling."
+                },
+                "purger": {
+                    "desc": "Respond to requests regarding throttling of harvest purging."
+                }
             }
         }
     }

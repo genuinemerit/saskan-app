@@ -39,9 +39,8 @@ class FileIO(object):
         self.S = self.S | self.get_schema("s20_plans")
         self.S = self.S | self.get_schema("s30_clients")
         self.S = self.S | self.get_schema("s40_routers")
-        self.S = self.S | self.get_schema("s50_gates")
-        self.S = self.S | self.get_schema("s60_messages")
-        self.S = self.S | self.get_schema("s70_services")
+        self.S = self.S | self.get_schema("s50_messages")
+        self.S = self.S | self.get_schema("s60_services")
 
     # Read-only methods
     # ==============================================================
