@@ -43,10 +43,10 @@ class SaskanInstall(object):
         self.copy_bash_files()
         svc = self.set_channels(dict())
         svc = self.set_topics(svc)
+        svc = self.set_msgs(svc)
         svc = self.set_plans(svc)
         svc = self.set_clients(svc)
         svc = self.set_routers(svc)
-        # svc = self.set_msgs()
         # svc = self.set_services()
         pp((svc))
         # pp((svc_d))
@@ -285,6 +285,32 @@ class SaskanInstall(object):
                 p_svc["channel"][m_nm]["topic"][t_nm] = t_desc
         return p_svc
 
+    def set_msgs(self, p_svc):
+        """Set named message/record datatypes and structs.
+        """
+        p_svc["m"] = dict()
+        p_svc["m"]["dtype"] = dict()
+        p_svc["m"]["rec"] = dict()
+        p_svc["m"]["rec"]["f"] = dict()
+        p_svc["m"]["rec"]["g"] = dict()
+        p_svc["m"]["msg"] = dict()
+        p_svc["m"]["msg"]["req"] = dict()
+        p_svc["m"]["msg"]["resp_d"] = dict()
+        p_svc["m"]["msg"]["resp_h"] = dict()
+        for m_nm, m_meta in FI.S["datatype"].items():
+            p_svc["m"]["dtype"][m_nm] = m_meta["desc"]
+        for m_nm, m_meta in FI.S["record"]["field"].items():
+            p_svc["m"]["rec"]["f"][m_nm] = m_meta
+        for m_nm, m_meta in FI.S["record"]["group"].items():
+            p_svc["m"]["rec"]["g"][m_nm] = m_meta
+        for m_nm, m_meta in FI.S["msg"]["request"].items():
+            p_svc["m"]["msg"]["req"][m_nm] = m_meta
+        for m_nm, m_meta in FI.S["msg"]["direct_response"].items():
+            p_svc["m"]["msg"]["resp_d"][m_nm] = m_meta
+        for m_nm, m_meta in FI.S["msg"]["harvest_response"].items():
+            p_svc["m"]["msg"]["resp_h"][m_nm] = m_meta
+        return p_svc
+
     def set_plans(self,
                   p_svc: dict) -> dict:
         """
@@ -434,18 +460,18 @@ class SaskanInstall(object):
         - What gateway to use
         - The original message and its unique action-event name
         - The channel to which the response should be sent
-        - A unique ID to use as a key to response on ns_harvest
+        - A unique ID to use as a key to response stored on ns_harvest
         - A status flag of "pending"
 
         There is a queue for each router and a polling module
         for each queue. When the polling module finds a pending message,
-        it either calls or sends a message to the gateway module using
+        it either calls, or sends a message to, the gateway module using
         an async one-directional call.  The gateway module updates status
         to "in process", does its works, writes response to ns_harvetst,
         then updates queue item status to "ready".
 
         When the polling modules finds a "ready" message, it sends
-        that appropriate response to the designated message broker's
+        the appropriate response to the designated message broker's
         "send" channel and marks the item on the queue as "done" or
         "sent" or maybe just removes it. Polling modules do not need
         to subscribe to any channels. They never receive messages.
@@ -469,32 +495,6 @@ class SaskanInstall(object):
                 "gateway": r_meta["gateway"]}
         return p_svc
 
-    def set_msgs(self, p_svc):
-        """Set named message/record structures.
-
-        These can be stored either in svc or in a separate config struct.
-        Assign unique IDs -- using meaningful names -- to each message.
-        Avoid redundancy in defining message structures. Allow use of
-        layered message structures, i.e., where "primitive" types or
-        groups can be re-used.
-
-        Reference the message ID's in the service config data.
-
-        Probably want to move this up the list to be like s00_messages
-        since it will be used by other schema modules: routers and clients.
-        """
-        p_svc["msg"] = dict()
-        for m_nm, m_fields in FI.S["message"].items():
-            p_svc["msg"][m_nm] = {"field": dict()}
-            msgf = p_svc["msg"][m_nm]["field"]
-            for f_nm, r_values in m_fields.items():
-                msgf[f_nm] = dict()
-                for ftyp in ("desc", "type", "enum"):
-                    if ftyp in r_values.keys():
-                        msgf[f_nm][ftyp] = r_values[ftyp]
-
-        return p_svc
-
     def set_services(self, svc):
         """The idea of the service config data is to match up specific message
         formats with specific action-event pairs, and to associate plans with
@@ -502,8 +502,8 @@ class SaskanInstall(object):
 
         Modify the plans config to indicate what message
         formats are used with each event. When it comes to ns-harvest keys,
-        we may want to simplify that down to just a UID, an expire date-time,
-        and maybe a status flag.  Don't think we need different key formats for
+        simplify that down to just a UID, an expire date-time,
+        and maybe a status flag.  Don't need different key formats for
         different message formats. They key is the value sent to the client.
 
         The gate/router relationships are already defined in routers schema.

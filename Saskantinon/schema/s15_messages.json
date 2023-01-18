@@ -1,0 +1,79 @@
+{
+"datatype": {
+    "datetime": {"desc": "ISO 8601 datetime string"},
+    "coord": {"desc": "3-tuple of numbers, representing (x,y,z) coordinates"},
+    "dict": {"desc": "dictionary of key:value pairs"},
+    "enum": {"desc": "list of permitted values"},
+    "float": {"desc": "floating point value"},
+    "gameobj": {"desc": "saskan object"},
+    "gameobjlist": {"desc": "saskan objects list"},
+    "gametime": {"desc": "saksan gametime object"},
+    "int": {"desc": "integer"},
+    "movepath": {"desc": "list of coordinates"},
+    "number": {"desc": "either integer or float"},
+    "strlist": {"desc": "list of strings"},
+    "string": {"desc": "string of characters"},
+    "uri": {"desc": "universal resource identifier string"},
+    "uuid": {"desc": "UUID unique id string"}
+    },
+"record": {
+    "field": {
+        "ack_received": {"dtype": "datetime"},
+        "flag": {"dtype": "enum",
+                 "enum": ["sent", "error", "pending", "in_process", "cancelled", "reject", "timeout"]},
+        "game_calendar": {"dtype": "gametime"},
+        "game_currency": {"dtype": "gameobj"},
+        "game_datetime": {"dtype": "gametime"},
+        "game_duration": {"dtype": "gametime"},
+        "game_item": {"dtype": "gameobj"},
+        "game_itemlist": {"dtype": "gameobjlist"},
+        "game_money_amt": {"dtype": "gameobj"},
+        "game_request_time": {"dtype": "gametime"},
+        "info": {"dtype": "string"},
+        "log_key": {"dtype": "string"},
+        "map_coord": {"dtype": "coord"},
+        "map_coord_from": {"dtype": "coord"},
+        "map_coord_to": {"dtype": "coord"},
+        "map_coord_path": {"dtype": "movepath"},
+        "map_id": {"dtype": "string"},
+        "market": {"dtype": "gameobj"},
+        "msg_id": {"dtype": "string"},
+        "peer_id": {"dtype": "string"},
+        "peer_list": {"dtype": "strlist"},
+        "request_time": {"dtype": "datetime"},
+        "response_id": {"dtype": "string"},
+        "success": {"dtype": "enum",
+                    "enum": ["yes", "partial", "no"]},
+        "yesno": {"dtype": "enum",
+                  "enum": ["yes", "no"]}
+        },
+    "group": {
+        "peer_request": ["peer_id", "request_time", "game_request_time"]
+        }
+    },
+"msg": {
+    "request": {
+        "cancel": ["msg_id", "peer_request"],
+        "inventory": ["peer_request", "map_id", "map_coord", "market", "game_itemlist"],
+        "move": ["peer_request", "map_id", "map_coord_from", "map_coord_to"],
+        "price": ["peer_request", "game_item", "game_currency", "game_money_amt"],
+        "subscribe": ["peer_id"],
+        "time": ["peer_id", "game_calendar", "game_duration", "game_datetime"],
+        "transfer": ["msg_id", "peer_id", "game_currency", "game_money_amt", "game_itemlist"]
+        },
+    "direct_response": {
+        "acknowledge": ["msg_id", "ack_received"],
+        "status": ["msg_id", "response_id", "success", "flag", "info"]
+        },
+    "harvest_response": {
+        "accept_reject": ["msg_id", "peer_request", "yesno"],
+        "description": ["msg_id", "peer_request", "game_item"],
+        "inventory": ["msg_id", "peer_request", "map_id", "map_coord", "market", "game_itemlist"],
+        "move": ["msg_id", "peer_request", "success", "map_id", "map_coord_path", "game_duration"],
+        "notify": ["peer_list", "response_id"],
+        "price": ["msg_id", "peer_request", "game_item", "game_currency", "game_money_amt"],
+        "time": ["msg_id", "peer_id", "game_calendar", "game_duration", "game_datetime"],
+        "transfer": ["msg_id", "peer_id", "game_currency", "game_money_amt", "game_itemlist"]
+        }
+    }
+}

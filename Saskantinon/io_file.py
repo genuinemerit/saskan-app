@@ -36,11 +36,11 @@ class FileIO(object):
         self.G = self.G | self.get_configs("g_uri")
         self.S = self.get_schema("s00_channels")
         self.S = self.S | self.get_schema("s10_topics")
+        self.S = self.S | self.get_schema("s15_messages")
         self.S = self.S | self.get_schema("s20_plans")
         self.S = self.S | self.get_schema("s30_clients")
         self.S = self.S | self.get_schema("s40_routers")
-        self.S = self.S | self.get_schema("s50_messages")
-        self.S = self.S | self.get_schema("s60_services")
+        # self.S = self.S | self.get_schema("s60_services")
 
     # Read-only methods
     # ==============================================================
