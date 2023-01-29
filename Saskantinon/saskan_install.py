@@ -9,16 +9,18 @@ Writes bash files to /usr/local/bin
 Launch it by running sudo ./saskan_install from the git project directory,
 e.g. (saskan) ~/../Saskantinon/saskan_install
 """
-# import json
+import json
+
 # import os
 
 from os import path
 from pathlib import Path
-from pprint import pprint as pp     # noqa: F401
+from pprint import pprint as pp  # noqa: F401
+
 # from time import sleep
 
-from io_file import FileIO          # type: ignore
-from io_shell import ShellIO        # type: ignore
+from io_file import FileIO  # type: ignore
+from io_shell import ShellIO  # type: ignore
 from saskan_report import SaskanReport  # type: ignore
 
 FI = FileIO()
@@ -31,12 +33,20 @@ class SaskanInstall(object):
 
     Bootstrap config and schema metadata from project directory.
     Use current working directory (git project) to derive home directory.
+
+    @DEV:
+    - Radically simplified the schema config into one file.
+    - Modify load logic here and in io_file to use the new schema config.
+    - Still want to verify, generate what ports to use and set firewall rules.
+    - Otherwise, just copy the config file and then create the servers,
+      clients, queues, load balancers and so on.
+    - Save svc dict to a config file, then pickle it.
     """
+
     def __init__(self):
-        """Initialize directories and files.
-        """
+        """Initialize directories and files."""
         self.verify_bash_bin_dir()
-        self.APP = path.join("/home", Path.cwd().parts[2], FI.D['APP'])
+        self.APP = path.join("/home", Path.cwd().parts[2], FI.D["APP"])
         self.create_app_space()
         self.install_app_files()
         self.copy_python_scripts()
@@ -47,9 +57,9 @@ class SaskanInstall(object):
         svc = self.set_plans(svc)
         svc = self.set_clients(svc)
         svc = self.set_routers(svc)
+        # pp((svc))
+        self.save_svc_config(svc)
         # svc = self.set_services()
-        pp((svc))
-        # pp((svc_d))
         # FI.pickle_saskan(self.APP)
         # self.start_servers(svc)
         # self.start_clients()
@@ -91,7 +101,7 @@ class SaskanInstall(object):
         if not ok:
             raise Exception(f"{FI.T['err_process']} {err}")
         # App sub-dirs
-        for _, sub_dir in FI.D['ADIRS'].items():
+        for _, sub_dir in FI.D["ADIRS"].items():
             sdir = path.join(self.APP, sub_dir)
             ok, err = FI.make_dir(sdir)
             if ok:
@@ -99,8 +109,8 @@ class SaskanInstall(object):
             if not ok:
                 raise Exception(f"{FI.T['err_file']} {sdir} {err}")
         # Namespace sub-dirs
-        for _,  sub_dir in FI.D['NSDIRS'].items():
-            sdir = path.join(self.APP, FI.D['ADIRS']['SAV'], sub_dir)
+        for _, sub_dir in FI.D["NSDIRS"].items():
+            sdir = path.join(self.APP, FI.D["ADIRS"]["SAV"], sub_dir)
             ok, err = FI.make_dir(sdir)
             if ok:
                 ok, err = FI.make_executable(sdir)
@@ -111,9 +121,7 @@ class SaskanInstall(object):
 
     def install_app_files(self):
         """Copy config, image and schema/ontology files"""
-        for sdir in (FI.D['ADIRS']['CFG'],
-                     FI.D['ADIRS']['IMG'],
-                     FI.D['ADIRS']['ONT']):
+        for sdir in (FI.D["ADIRS"]["CFG"], FI.D["ADIRS"]["IMG"], FI.D["ADIRS"]["ONT"]):
             src_dir = path.join(Path.cwd(), sdir)
             ok, err, files = FI.get_dir(src_dir)
             if not ok:
@@ -127,16 +135,16 @@ class SaskanInstall(object):
         ok, err, files = FI.get_dir(Path.cwd())
         if not ok:
             raise Exception(f"{FI.T['err_file']} {Path.cwd()} {err}")
-        py_files = [f for f in files if str(f).endswith(".py") and
-                    "_install" not in str(f)]
-        tgt_dir = path.join(self.APP, FI.D['ADIRS']['PY'])
+        py_files = [
+            f for f in files if str(f).endswith(".py") and "_install" not in str(f)
+        ]
+        tgt_dir = path.join(self.APP, FI.D["ADIRS"]["PY"])
         for f in py_files:
             if Path(f).is_file():
                 tgt_file = path.join(tgt_dir, str(f).split("/")[-1])
                 ok, err = FI.copy_file(str(f), tgt_file)
                 if not ok:
-                    raise Exception(
-                        f"{FI.T['err_file']} {tgt_file} {err}")
+                    raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
 
     def copy_bash_files(self):
         """Copy /bash to /usr/local/bin
@@ -146,13 +154,13 @@ class SaskanInstall(object):
         python files in the saskan app directory.
         """
         src_dir = path.join(Path.cwd(), "bash")
-        py_dir = path.join(self.APP, FI.D['ADIRS']['PY'])
+        py_dir = path.join(self.APP, FI.D["ADIRS"]["PY"])
         ok, err, files = FI.get_dir(src_dir)
         if not ok:
             raise Exception(f"{FI.T['err_file']} {src_dir} {err}")
         for bf in files:
             bf_name = str(bf).split("/")[-1]
-            tgt_file = path.join(FI.D['BIN'], bf_name)
+            tgt_file = path.join(FI.D["BIN"], bf_name)
             ok, err, bf_code = FI.get_file(str(bf))
             if not ok:
                 raise Exception(f"{FI.T['err_file']} {bf} {err}")
@@ -164,9 +172,7 @@ class SaskanInstall(object):
             if not ok:
                 raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
 
-    def set_ports(self,
-                  p_next_port: int,
-                  p_request_port_cnt: int) -> tuple:
+    def set_ports(self, p_next_port: int, p_request_port_cnt: int) -> tuple:
         """Get a list of free ports
         :args:
         - next_port: next port to check
@@ -178,16 +184,15 @@ class SaskanInstall(object):
         _, net_stat_result = SI.run_cmd(["netstat -lant"])
         ports: list = list()
         while len(ports) < p_request_port_cnt:
-            if str(p_next_port) not in net_stat_result and\
-               str(p_next_port) not in ports:
+            if (
+                str(p_next_port) not in net_stat_result
+                and str(p_next_port) not in ports
+            ):
                 ports.append(p_next_port)
             p_next_port += 1
         return (ports, p_next_port)
 
-    def set_firewall(self,
-                     p_meta_nm: str,
-                     p_ports: list,
-                     p_svc: dict):
+    def set_firewall(self, p_meta_nm: str, p_ports: list, p_svc: dict):
         """
         Set firewall rules for each port.
         :args:
@@ -224,14 +229,17 @@ class SaskanInstall(object):
                 for p_typ, p_cnt in m_meta["port"].items():
                     p_svc[p_meta_nm][m_nm]["port"][p_typ] = {"num": list()}
                     if p_typ not in ("load_bal"):
-                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["que"] =\
+                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["que"] = (
                             m_nm + "_" + p_typ + "_queue"
+                        )
                     for _ in range(0, p_cnt):
                         port = p_ports.pop(0)
                         ok, result = SI.run_cmd(f"ufw allow in {port}")
                         if not ok:
                             raise Exception(f"{FI.T['err_cmd']} {result}")
-                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["num"].append(port)   # noqa: E501
+                        p_svc[p_meta_nm][m_nm]["port"][p_typ]["num"].append(
+                            port
+                        )  # noqa: E501
             ok, result = SI.run_cmd("ufw reload")
             if ok:
                 print(result)
@@ -242,8 +250,7 @@ class SaskanInstall(object):
             raise Exception(f"{FI.T['err_cmd']} {result}")
         return p_svc
 
-    def set_channels(self,
-                     p_svc: dict) -> dict:
+    def set_channels(self, p_svc: dict) -> dict:
         """
         :args:
         - p_svc: service config data
@@ -254,21 +261,21 @@ class SaskanInstall(object):
         For each type, add one more port for load balancing.
         """
         p_svc["channel"] = dict()
-        next_port = FI.S['channel']['resource']['port_low']
-        for m_nm, m_meta in FI.S["channel"]['name'].items():
+        next_port = FI.S["channel"]["resource"]["port_low"]
+        for m_nm, m_meta in FI.S["channel"]["name"].items():
             p_svc["channel"][m_nm] = {
-                "host": FI.S["channel"]['resource']['host'],
-                "port": dict()}
+                "host": FI.S["channel"]["resource"]["host"],
+                "port": dict(),
+            }
             for p_typ, p_cnt in m_meta.items():
                 port_cnt = p_cnt + 1
                 ports, next_port = self.set_ports(next_port, port_cnt)
-                p_svc["channel"][m_nm]['port']["load_bal"] = {"num": ports[0]}
-                p_svc["channel"][m_nm]['port'][p_typ] = {"num": ports[1:]}
+                p_svc["channel"][m_nm]["port"]["load_bal"] = {"num": ports[0]}
+                p_svc["channel"][m_nm]["port"][p_typ] = {"num": ports[1:]}
         p_svc["next_port"] = next_port
         return p_svc
 
-    def set_topics(self,
-                   p_svc: dict) -> dict:
+    def set_topics(self, p_svc: dict) -> dict:
         """Assign topics to channels.
 
         In my nomenclature, a "topic" is like a channel type,
@@ -287,6 +294,11 @@ class SaskanInstall(object):
 
     def set_msgs(self, p_svc):
         """Set named message/record datatypes and structs.
+        f -> fields
+        g -> groups of fields
+        req -> request messages
+        resp_d -> direct response messages, not a key intto harvest
+        resp_h -> response messages, a key to data in harvest namespace
         """
         p_svc["m"] = dict()
         p_svc["m"]["dtype"] = dict()
@@ -311,8 +323,7 @@ class SaskanInstall(object):
             p_svc["m"]["msg"]["resp_h"][m_nm] = m_meta
         return p_svc
 
-    def set_plans(self,
-                  p_svc: dict) -> dict:
+    def set_plans(self, p_svc: dict) -> dict:
         """
         :args:
         - p_svc: dict: service config data
@@ -396,53 +407,61 @@ class SaskanInstall(object):
             to tweak that in order to support a chain of events that
             includes broadcast/polling events, which may not need a
             request.
+
+        @DEV:
+        - Modify to use keys to msg metadata, not long msg "path" names.
         """
         for c_nm, m_meta in FI.S["plan"].items():
             for t_nm, p_meta in m_meta.items():
                 a_nm = c_nm + "/" + t_nm + "/"
-                p_svc['channel'][c_nm]['topic'][t_nm]['plan'] = dict()
-                plan = p_svc['channel'][c_nm]['topic'][t_nm]['plan']
+                p_svc["channel"][c_nm]["topic"][t_nm]["plan"] = dict()
+                plan = p_svc["channel"][c_nm]["topic"][t_nm]["plan"]
                 for p_type in p_meta["type"]:
                     a_nm += p_type + "_"
                 a_nm = a_nm[:-1]
                 for ae_nm in p_meta["action"].keys():
-                    e_list = [e for e in p_meta["action"][ae_nm]
-                              if not isinstance(e, dict)]
+                    e_list = [
+                        e for e in p_meta["action"][ae_nm] if not isinstance(e, dict)
+                    ]
                     action_nm = a_nm + "/" + ae_nm
                     for e_nm in e_list:
                         event_nm = action_nm + "/" + e_nm
-                        plan[ae_nm + "/" + e_nm] = {
-                            "msg": event_nm}
-                    trig = [t["trigger"] for t in p_meta["action"][ae_nm]
-                            if isinstance(t, dict)]
+                        plan[ae_nm + "/" + e_nm] = {"msg": event_nm}
+                    trig = [
+                        t["trigger"]
+                        for t in p_meta["action"][ae_nm]
+                        if isinstance(t, dict)
+                    ]
                     if len(trig) > 0:
                         plan[ae_nm + "/request"]["trigger"] = trig[0]
         return p_svc
 
-    def set_clients(self,
-                    p_svc: dict) -> dict:
+    def set_clients(self, p_svc: dict) -> dict:
         """Allocate ports and polling queues for client peers.
 
         :args:
         - p_svc: service config data
         :returns: modified service config data
+
+        @DEV:
+        - Modify to associate client peers with plans.
         """
         p_svc["peer"] = {"client": {}}
         for cl_nm, cl_meta in FI.S["client"].items():
             port_cnt = cl_meta["ports"] + 2
-            ports, next_port = self.set_ports(
-                p_svc['next_port'], port_cnt)
+            ports, next_port = self.set_ports(p_svc["next_port"], port_cnt)
             p_svc["peer"]["client"][cl_nm] = {
                 "desc": cl_meta["desc"],
-                "port": {"load_bal": {"num": ports[0]},
-                         "polling": {"num": ports[1]},
-                         "duplex": {"num": ports[2:],
-                                    "que": cl_nm + "_que"}}}
-            p_svc['next_port'] = next_port
+                "port": {
+                    "load_bal": {"num": ports[0]},
+                    "polling": {"num": ports[1]},
+                    "duplex": {"num": ports[2:], "que": cl_nm + "_que"},
+                },
+            }
+            p_svc["next_port"] = next_port
         return p_svc
 
-    def set_routers(self,
-                    p_svc: dict) -> dict:
+    def set_routers(self, p_svc: dict) -> dict:
         """Allocate ports and polling queues for routers.
         In my terminology, routers evaluate content of a message
         and direct it to a backend "gateway" module for business logic
@@ -479,38 +498,48 @@ class SaskanInstall(object):
         :args:
         - p_svc: service config data
         :returns: modified service config data
+
+        @DEV:
+        - Modify to associate gateways with plans.
         """
         p_svc["peer"]["router"] = dict()
         router = p_svc["peer"]["router"]
         for r_nm, r_meta in FI.S["router"].items():
             router[r_nm] = {"desc": r_meta["desc"]}
-            ports, next_port = self.set_ports(
-                p_svc['next_port'], r_meta['ports'] + 2)
-            p_svc['next_port'] = next_port
+            ports, next_port = self.set_ports(p_svc["next_port"], r_meta["ports"] + 2)
+            p_svc["next_port"] = next_port
             router[r_nm]["ports"] = {
                 "load_bal": {"num": ports[0]},
-                "polling": {"num": ports[1],
-                            "que": r_nm + "_que"},
+                "polling": {"num": ports[1], "que": r_nm + "_que"},
                 "duplex": {"num": ports[2:]},
-                "gateway": r_meta["gateway"]}
+                "gateway": r_meta["gateway"],
+            }
         return p_svc
+
+    def save_svc_config(self, p_svc):
+        """Save service config data to a file."""
+        cdir = path.join(self.APP, FI.D["ADIRS"]["CFG"], "m_svc.json")
+        ok, msg = FI.write_file(cdir, json.dumps(p_svc))
+        if not ok:
+            raise Exception(msg)
 
     def set_services(self, svc):
         """The idea of the service config data is to match up specific message
         formats with specific action-event pairs, and to associate plans with
         specific peers -- either routers or clients (or maybe both).
 
-        Modify the plans config to indicate what message
-        formats are used with each event. When it comes to ns-harvest keys,
-        simplify that down to just a UID, an expire date-time,
+        @DEV:
+        Modify the plans config to indicate what message formats are used
+        with each event.  Plan <--> msg key.
+
+        For ns-harvest keys, simplify down to just a UID, an expire date-time,
         and maybe a status flag.  Don't need different key formats for
         different message formats. They key is the value sent to the client.
 
         The gate/router relationships are already defined in routers schema.
 
-        That just leaves associating peers with plans or action-event pairs.
-        Let's move that into the client and router schemas.
-        Drop the "services" schema.
+        @DEV:
+        Associate peers, gateways with plans in client and router schemas.
         """
         pass
 
@@ -576,16 +605,21 @@ class SaskanInstall(object):
         pgm_nm = "sv_server"
         SI.kill_jobs("/" + pgm_nm)
         # Launch new sv_server instances
-        pypath = path.join(self.APP, FI.D['ADIRS']['PY'], f"{pgm_nm}.py")
-        logpath = path.join(FI.D['MEM'], FI.D['APP'],
-                            FI.D['ADIRS']['SAV'], FI.D['NSDIRS']['LOG'])
+        pypath = path.join(self.APP, FI.D["ADIRS"]["PY"], f"{pgm_nm}.py")
+        logpath = path.join(
+            FI.D["MEM"], FI.D["APP"], FI.D["ADIRS"]["SAV"], FI.D["NSDIRS"]["LOG"]
+        )
         for c_nm, c_meta in svc.items():
-            for p_typ in [pt for pt in c_meta.keys()
-                          if pt not in ("host", "desc")]:
+            for p_typ in [pt for pt in c_meta.keys() if pt not in ("host", "desc")]:
                 for port in c_meta[p_typ]["port"]:
-                    SI.run_nohup_py(pypath, logpath,
-                                    f"/{c_nm}/{p_typ}:{port}",
-                                    c_meta['host'], port, pgm_nm)
+                    SI.run_nohup_py(
+                        pypath,
+                        logpath,
+                        f"/{c_nm}/{p_typ}:{port}",
+                        c_meta["host"],
+                        port,
+                        pgm_nm,
+                    )
         result, _ = SR.rpt_jobs("/" + pgm_nm)
         print("Servers (message brokers) started or restarted:")
         print(result)
@@ -687,5 +721,5 @@ class SaskanInstall(object):
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     SI = SaskanInstall()

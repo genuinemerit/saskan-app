@@ -1,0 +1,813 @@
+{
+    "channel": {
+        "avatar_motion": {
+            "host": "mahaka",
+            "port": {
+                "load_bal": {
+                    "count": 1,
+                    "num": [
+                        61004
+                    ]
+                },
+                "send": {
+                    "count": 2,
+                    "num": [
+                        61002,
+                        61003
+                    ]
+                },
+                "recv": {
+                    "count": 3,
+                    "num": [
+                        61005,
+                        61006,
+                        61007
+                    ]
+                }
+            },
+            "topic": {
+                "req_rep": {
+                    "desc": "Handle avatar movement within maps or scenes.",
+                    "plan": {
+                        "move_eval/request": {
+                            "msg": [
+                                "req/move"
+                            ]
+                        },
+                        "move_eval/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/move"
+                            ]
+                        },
+                        "move_go/request": {
+                            "msg": [
+                                "req/move"
+                            ]
+                        },
+                        "move_go/request_cancel": {
+                            "msg": [
+                                "req/cancel"
+                            ]
+                        },
+                        "move_go/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/move"
+                            ]
+                        },
+                        "move_go/response_cancel": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat"
+                            ]
+                        }
+                    }
+                },
+                "b_cast": {
+                    "desc": "Notify contextual objects about avatar movements.",
+                    "plan": {
+                        "move_sub/request": {
+                            "msg": [
+                                "req/sub"
+                            ]
+                        },
+                        "move_sub/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat"
+                            ]
+                        },
+                        "move_sub/response_cancel": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat"
+                            ]
+                        },
+                        "move_sub/response_notify": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/move",
+                                "h_resp/notify"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "marketplace": {
+            "host": "mahaka",
+            "port": {
+                "load_bal": {
+                    "count": 1,
+                    "num": [
+                        61011
+                    ]
+                },
+                "send": {
+                    "count": 2,
+                    "num": [
+                        61009,
+                        61010
+                    ]
+                },
+                "recv": {
+                    "count": 3,
+                    "num": [
+                        61012,
+                        61013,
+                        61014
+                    ]
+                }
+            },
+            "topic": {
+                "req_chain": {
+                    "desc": "Handle marketplace transactions: inventory, pricing, purchase, delivery.",
+                    "plan": {
+                        "mkt_list/request": {
+                            "msg": [
+                                "req/inventory"
+                            ]
+                        },
+                        "mkt_list/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/inventory"
+                            ]
+                        },
+                        "mkt_avail/request": {
+                            "msg": [
+                                "req/inventory"
+                            ]
+                        },
+                        "mkt_avail/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/inventory",
+                                "h_resp/desc"
+                            ]
+                        },
+                        "mkt_ask/request": {
+                            "msg": [
+                                "req/price"
+                            ],
+                            "trigger": "mkt_avail/response"
+                        },
+                        "mkt_ask/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/price"
+                            ]
+                        },
+                        "mkt_ask/response_cancel": {
+                            "msg": [
+                                "req/cancel"
+                            ]
+                        },
+                        "mkt_offer/request": {
+                            "msg": [
+                                "req/price"
+                            ],
+                            "trigger": "mkt_ask/response"
+                        },
+                        "mkt_offer/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/price"
+                            ]
+                        },
+                        "mkt_agree/request": {
+                            "msg": [
+                                "req/accept_reject"
+                            ],
+                            "trigger": "mkt_offer/response"
+                        },
+                        "mkt_agree/request_cancel": {
+                            "msg": [
+                                "req/cancel"
+                            ]
+                        },
+                        "mkt_agree/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/accept_reject"
+                            ]
+                        },
+                        "mkt_pay/request": {
+                            "msg": [
+                                "req/transfer"
+                            ],
+                            "trigger": "mkt_agree/response"
+                        },
+                        "mkt_pay/request_cancel": {
+                            "msg": [
+                                "req/cancel"
+                            ]
+                        },
+                        "mkt_pay/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/transfer"
+                            ]
+                        },
+                        "mkt_deliver/request": {
+                            "msg": [
+                                "req/transfer"
+                            ],
+                            "trigger": "mkt_pay/response"
+                        },
+                        "mkt_deliver/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/transfer"
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "gametime": {
+            "host": "mahaka",
+            "port": {
+                "count": 1,
+                "load_bal": {
+                    "num": 61015
+                },
+                "duplex": {
+                    "count": 2,
+                    "num": [
+                        61016,
+                        61017
+                    ]
+                }
+            },
+            "topic": {
+                "req_rep": {
+                    "desc": "Provide current game time in requested modality.",
+                    "plan": {
+                        "time_get/request": {
+                            "msg": [
+                                "req/time"
+                            ]
+                        },
+                        "time_get/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/time"
+                            ]
+                        }
+                    }
+                },
+                "pub_sub": {
+                    "desc": "Broadcast current game time in multiple modalities.",
+                    "plan": {
+                        "time_sub/request": {
+                            "msg": [
+                                "req/sub"
+                            ]
+                        },
+                        "time_sub/request_cancel": {
+                            "msg": [
+                                "req/cancel"
+                            ]
+                        },
+                        "time_sub/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/time"
+                            ]
+                        },
+                        "time_notify/request": {
+                            "msg": [
+                                "req/sub",
+                                "req/notify"
+                            ]
+                        },
+                        "time_notify/request_cancel": {
+                            "msg": [
+                                "req/cancel"
+                            ]
+                        },
+                        "time_notify/response": {
+                            "msg": [
+                                "d_resp/ack",
+                                "d_resp/stat",
+                                "h_resp/time",
+                                "h_resp/notify"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "next_port": 61057,
+    "m": {
+        "dtype": {
+            "datetime": "ISO 8601 datetime string",
+            "coord": "3-tuple of numbers, representing (x,y,z) coordinates",
+            "dict": "dictionary of key:value pairs",
+            "enum": "list of permitted values",
+            "float": "floating point value",
+            "gameobj": "saskan object",
+            "gameobjlist": "saskan objects list",
+            "gametime": "saksan gametime object",
+            "int": "integer",
+            "movepath": "list of coordinates",
+            "number": "either integer or float",
+            "strlist": "list of strings",
+            "string": "string of characters",
+            "uri": "universal resource identifier string",
+            "uuid": "UUID unique id string"
+        },
+        "rec": {
+            "f": {
+                "ack_received": {
+                    "dtype": "datetime"
+                },
+                "flag": {
+                    "dtype": "enum",
+                    "enum": [
+                        "sent",
+                        "error",
+                        "pending",
+                        "in_process",
+                        "cancelled",
+                        "reject",
+                        "timeout"
+                    ]
+                },
+                "game_calendar": {
+                    "dtype": "gametime"
+                },
+                "game_currency": {
+                    "dtype": "gameobj"
+                },
+                "game_datetime": {
+                    "dtype": "gametime"
+                },
+                "game_duration": {
+                    "dtype": "gametime"
+                },
+                "game_item": {
+                    "dtype": "gameobj"
+                },
+                "game_itemlist": {
+                    "dtype": "gameobjlist"
+                },
+                "game_money_amt": {
+                    "dtype": "gameobj"
+                },
+                "game_request_time": {
+                    "dtype": "gametime"
+                },
+                "info": {
+                    "dtype": "string"
+                },
+                "log_key": {
+                    "dtype": "string"
+                },
+                "map_coord": {
+                    "dtype": "coord"
+                },
+                "map_coord_from": {
+                    "dtype": "coord"
+                },
+                "map_coord_to": {
+                    "dtype": "coord"
+                },
+                "map_coord_path": {
+                    "dtype": "movepath"
+                },
+                "map_id": {
+                    "dtype": "string"
+                },
+                "market": {
+                    "dtype": "gameobj"
+                },
+                "msg_id": {
+                    "dtype": "string"
+                },
+                "peer_id": {
+                    "dtype": "string"
+                },
+                "peer_list": {
+                    "dtype": "strlist"
+                },
+                "request_time": {
+                    "dtype": "datetime"
+                },
+                "response_id": {
+                    "dtype": "string"
+                },
+                "success": {
+                    "dtype": "enum",
+                    "enum": [
+                        "yes",
+                        "partial",
+                        "no"
+                    ]
+                },
+                "yesno": {
+                    "dtype": "enum",
+                    "enum": [
+                        "yes",
+                        "no"
+                    ]
+                }
+            },
+            "g": {
+                "peer_request": [
+                    "peer_id",
+                    "request_time",
+                    "game_request_time"
+                ]
+            }
+        },
+        "msg": {
+            "req": {
+                "cancel": [
+                    "msg_id",
+                    "peer_request"
+                ],
+                "inventory": [
+                    "peer_request",
+                    "map_id",
+                    "map_coord",
+                    "market",
+                    "game_itemlist"
+                ],
+                "move": [
+                    "peer_request",
+                    "map_id",
+                    "map_coord_from",
+                    "map_coord_to"
+                ],
+                "price": [
+                    "peer_request",
+                    "game_item",
+                    "game_currency",
+                    "game_money_amt"
+                ],
+                "sub": [
+                    "peer_id"
+                ],
+                "time": [
+                    "peer_id",
+                    "game_calendar",
+                    "game_duration",
+                    "game_datetime"
+                ],
+                "transfer": [
+                    "msg_id",
+                    "peer_id",
+                    "game_currency",
+                    "game_money_amt",
+                    "game_itemlist"
+                ]
+            },
+            "d_resp": {
+                "ack": [
+                    "msg_id",
+                    "ack_received"
+                ],
+                "stat": [
+                    "msg_id",
+                    "response_id",
+                    "success",
+                    "flag",
+                    "info"
+                ]
+            },
+            "h_resp": {
+                "accept_reject": [
+                    "msg_id",
+                    "peer_request",
+                    "yesno"
+                ],
+                "desc": [
+                    "msg_id",
+                    "peer_request",
+                    "game_item"
+                ],
+                "inventory": [
+                    "msg_id",
+                    "peer_request",
+                    "map_id",
+                    "map_coord",
+                    "market",
+                    "game_itemlist"
+                ],
+                "move": [
+                    "msg_id",
+                    "peer_request",
+                    "success",
+                    "map_id",
+                    "map_coord_path",
+                    "game_duration"
+                ],
+                "notify": [
+                    "peer_list",
+                    "response_id"
+                ],
+                "price": [
+                    "msg_id",
+                    "peer_request",
+                    "game_item",
+                    "game_currency",
+                    "game_money_amt"
+                ],
+                "time": [
+                    "msg_id",
+                    "peer_id",
+                    "game_calendar",
+                    "game_duration",
+                    "game_datetime"
+                ],
+                "transfer": [
+                    "msg_id",
+                    "peer_id",
+                    "game_currency",
+                    "game_money_amt",
+                    "game_itemlist"
+                ]
+            }
+        }
+    },
+    "peer": {
+        "client": {
+            "robot_player": {
+                "desc": "A client peer representing a player of the game driven by AI.",
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61018
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61019
+                        ]
+                    },
+                    "duplex": {
+                        "count": 2,
+                        "num": [
+                            61020,
+                            61021
+                        ],
+                        "que": "robot_player_que"
+                    }
+                }
+            },
+            "human_player": {
+                "desc": "A client peer representing a human player of the game.",
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61022
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61023
+                        ]
+                    },
+                    "duplex": {
+                        "count": 2,
+                        "num": [
+                            61024,
+                            61025
+                        ],
+                        "que": "human_player_que"
+                    }
+                }
+            },
+            "player_avatar": {
+                "desc": "A client peer representing a game world avatar driven by a human or robot player.",
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61026
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61027
+                        ]
+                    },
+                    "duplex": {
+                        "count": 5,
+                        "num": [
+                            61028,
+                            61029,
+                            61030,
+                            61031,
+                            61032
+                        ],
+                        "que": "player_avatar_que"
+                    }
+                }
+            },
+            "npc_avatar": {
+                "desc": "A client peer representing a game avatar not driven by a human or robot player. A Non-Player Character. For example, a non-sentient animal, or a stock character with limited actions.",
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61033
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61034
+                        ]
+                    },
+                    "duplex": {
+                        "count": 5,
+                        "num": [
+                            61035,
+                            61036,
+                            61037,
+                            61038,
+                            61039
+                        ],
+                        "que": "npc_avatar_que"
+                    }
+                }
+            },
+            "map_context": {
+                "desc": "A client peer representing a non-Player game object that is relatively more static than a NPC. For example, a building, a tree, an organizational ledger, an automatic town crier.",
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61040
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61041
+                        ]
+                    },
+                    "duplex": {
+                        "count": 3,
+                        "num": [
+                            61042,
+                            61043,
+                            61044
+                        ],
+                        "que": "map_context_que"
+                    }
+                }
+            }
+        },
+        "router": {
+            "admin": {
+                "desc": "Direct which gateway receives requests relating to use of the admin tools.",
+                "ports": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61045
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61046
+                        ],
+                        "que": "admin_que"
+                    },
+                    "duplex": {
+                        "count": 1,
+                        "num": [
+                            61047
+                        ]
+                    },
+                    "gateway": {
+                        "start_stop": {
+                            "desc": "Handle requests to start and stop services."
+                        },
+                        "edit_gui_meta": {
+                            "desc": "Direct requests to edit game GUI metadata. For example, to change language."
+                        },
+                        "edit_schema": {
+                            "desc": "Direct request to modify game schema data. Would require a restart of game servers."
+                        },
+                        "monitor": {
+                            "desc": "Handle monitoring of service traffic. For example, what servers have heavier loads."
+                        }
+                    }
+                }
+            },
+            "game": {
+                "desc": "Direct to gateway for requests for events relating to in-game play.",
+                "ports": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61048
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61049
+                        ],
+                        "que": "game_que"
+                    },
+                    "duplex": {
+                        "count": 3,
+                        "num": [
+                            61050,
+                            61051,
+                            61052
+                        ]
+                    },
+                    "gateway": {
+                        "chat": {
+                            "desc": "Direct requests to chat gateway."
+                        },
+                        "social": {
+                            "desc": "Direct requests to social gateway."
+                        },
+                        "avatar_physics": {
+                            "desc": "Handle avatar movement and other physics requests."
+                        },
+                        "prop_physics": {
+                            "desc": "Handle prop movement and other physics requests."
+                        },
+                        "gametime": {
+                            "desc": "Respond to requests to compute, record or communicate game time information, in multiple modalities."
+                        },
+                        "inventory": {
+                            "desc": "Respond to requests relating to collections of things, such as what is being carried by another object or handling of some market transactions."
+                        }
+                    }
+                }
+            },
+            "flow": {
+                "desc": "Direct requests for handling orchestration of services.",
+                "ports": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61053
+                        ]
+                    },
+                    "polling": {
+                        "count": 1,
+                        "num": [
+                            61054
+                        ],
+                        "que": "flow_que"
+                    },
+                    "duplex": {
+                        "count": 2,
+                        "num": [
+                            61055,
+                            61056
+                        ]
+                    },
+                    "gateway": {
+                        "subscriber": {
+                            "desc": "Respond to requests regarding subscriber and recipient lists."
+                        },
+                        "chainer": {
+                            "desc": "Respond to requests regarding handling of chained events."
+                        },
+                        "logger": {
+                            "desc": "Respond to requests regarding writing to or reading from a log."
+                        },
+                        "poller": {
+                            "desc": "Respond to requests regarding throttling of polling."
+                        },
+                        "purger": {
+                            "desc": "Respond to requests regarding throttling of harvest purging."
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

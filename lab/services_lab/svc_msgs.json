@@ -52,22 +52,24 @@
         }
     },
 "msg": {
-    "request": {
+    "req": {
+        "accept_reject": ["msg_id", "peer_request", "yesno"],
         "cancel": ["msg_id", "peer_request"],
         "inventory": ["peer_request", "map_id", "map_coord", "market", "game_itemlist"],
         "move": ["peer_request", "map_id", "map_coord_from", "map_coord_to"],
+        "notify": ["peer_request"],
         "price": ["peer_request", "game_item", "game_currency", "game_money_amt"],
-        "subscribe": ["peer_id"],
+        "sub": ["peer_id"],
         "time": ["peer_id", "game_calendar", "game_duration", "game_datetime"],
         "transfer": ["msg_id", "peer_id", "game_currency", "game_money_amt", "game_itemlist"]
         },
-    "direct_response": {
-        "acknowledge": ["msg_id", "ack_received"],
-        "status": ["msg_id", "response_id", "success", "flag", "info"]
+    "d_resp": {
+        "ack": ["msg_id", "ack_received"],
+        "stat": ["msg_id", "response_id", "success", "flag", "info"]
         },
-    "harvest_response": {
+    "h_resp": {
         "accept_reject": ["msg_id", "peer_request", "yesno"],
-        "description": ["msg_id", "peer_request", "game_item"],
+        "desc": ["msg_id", "peer_request", "game_item"],
         "inventory": ["msg_id", "peer_request", "map_id", "map_coord", "market", "game_itemlist"],
         "move": ["msg_id", "peer_request", "success", "map_id", "map_coord_path", "game_duration"],
         "notify": ["peer_list", "response_id"],
