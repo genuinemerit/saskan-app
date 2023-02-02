@@ -1,312 +1,315 @@
 {
-    "channel": {
-        "avatar_motion": {
+    "channels": {
+        "resource": {
             "host": "mahaka",
-            "port": {
-                "load_bal": {
-                    "count": 1,
-                    "num": [
-                        61004
-                    ]
-                },
-                "send": {
-                    "count": 2,
-                    "num": [
-                        61002,
-                        61003
-                    ]
-                },
-                "recv": {
-                    "count": 3,
-                    "num": [
-                        61005,
-                        61006,
-                        61007
-                    ]
-                }
-            },
-            "topic": {
-                "req_rep": {
-                    "desc": "Handle avatar movement within maps or scenes.",
-                    "plan": {
-                        "move_eval/request": {
-                            "msg": [
-                                "req/move"
-                            ]
-                        },
-                        "move_eval/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/move"
-                            ]
-                        },
-                        "move_go/request": {
-                            "msg": [
-                                "req/move"
-                            ]
-                        },
-                        "move_go/request_cancel": {
-                            "msg": [
-                                "req/cancel"
-                            ]
-                        },
-                        "move_go/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/move"
-                            ]
-                        },
-                        "move_go/response_cancel": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat"
-                            ]
-                        }
-                    }
-                },
-                "b_cast": {
-                    "desc": "Notify contextual objects about avatar movements.",
-                    "plan": {
-                        "move_sub/request": {
-                            "msg": [
-                                "req/sub"
-                            ]
-                        },
-                        "move_sub/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat"
-                            ]
-                        },
-                        "move_sub/response_cancel": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat"
-                            ]
-                        },
-                        "move_sub/response_notify": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/move",
-                                "h_resp/notify"
-                            ]
-                        }
-                    }
-                }
-            }
+            "port_low": 61000
         },
-        "marketplace": {
-            "host": "mahaka",
-            "port": {
-                "load_bal": {
-                    "count": 1,
-                    "num": [
-                        61011
-                    ]
+        "channel": {
+            "avatar_motion": {
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61004
+                        ]
+                    },
+                    "send": {
+                        "count": 2,
+                        "num": [
+                            61002,
+                            61003
+                        ]
+                    },
+                    "recv": {
+                        "count": 3,
+                        "num": [
+                            61005,
+                            61006,
+                            61007
+                        ]
+                    }
                 },
-                "send": {
-                    "count": 2,
-                    "num": [
-                        61009,
-                        61010
-                    ]
-                },
-                "recv": {
-                    "count": 3,
-                    "num": [
-                        61012,
-                        61013,
-                        61014
-                    ]
-                }
-            },
-            "topic": {
-                "req_chain": {
-                    "desc": "Handle marketplace transactions: inventory, pricing, purchase, delivery.",
-                    "plan": {
-                        "mkt_list/request": {
-                            "msg": [
-                                "req/inventory"
-                            ]
-                        },
-                        "mkt_list/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/inventory"
-                            ]
-                        },
-                        "mkt_avail/request": {
-                            "msg": [
-                                "req/inventory"
-                            ]
-                        },
-                        "mkt_avail/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/inventory",
-                                "h_resp/desc"
-                            ]
-                        },
-                        "mkt_ask/request": {
-                            "msg": [
-                                "req/price"
-                            ],
-                            "trigger": "mkt_avail/response"
-                        },
-                        "mkt_ask/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/price"
-                            ]
-                        },
-                        "mkt_ask/response_cancel": {
-                            "msg": [
-                                "req/cancel"
-                            ]
-                        },
-                        "mkt_offer/request": {
-                            "msg": [
-                                "req/price"
-                            ],
-                            "trigger": "mkt_ask/response"
-                        },
-                        "mkt_offer/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/price"
-                            ]
-                        },
-                        "mkt_agree/request": {
-                            "msg": [
-                                "req/accept_reject"
-                            ],
-                            "trigger": "mkt_offer/response"
-                        },
-                        "mkt_agree/request_cancel": {
-                            "msg": [
-                                "req/cancel"
-                            ]
-                        },
-                        "mkt_agree/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/accept_reject"
-                            ]
-                        },
-                        "mkt_pay/request": {
-                            "msg": [
-                                "req/transfer"
-                            ],
-                            "trigger": "mkt_agree/response"
-                        },
-                        "mkt_pay/request_cancel": {
-                            "msg": [
-                                "req/cancel"
-                            ]
-                        },
-                        "mkt_pay/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/transfer"
-                            ]
-                        },
-                        "mkt_deliver/request": {
-                            "msg": [
-                                "req/transfer"
-                            ],
-                            "trigger": "mkt_pay/response"
-                        },
-                        "mkt_deliver/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/transfer"
-                            ]
+                "topic": {
+                    "req_rep": {
+                        "desc": "Handle avatar movement within maps or scenes.",
+                        "plan": {
+                            "move_eval/request": {
+                                "msg": [
+                                    "req/move"
+                                ]
+                            },
+                            "move_eval/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/move"
+                                ]
+                            },
+                            "move_go/request": {
+                                "msg": [
+                                    "req/move"
+                                ]
+                            },
+                            "move_go/request_cancel": {
+                                "msg": [
+                                    "req/cancel"
+                                ]
+                            },
+                            "move_go/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/move"
+                                ]
+                            },
+                            "move_go/response_cancel": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat"
+                                ]
+                            }
+                        }
+                    },
+                    "b_cast": {
+                        "desc": "Notify contextual objects about avatar movements.",
+                        "plan": {
+                            "move_sub/request": {
+                                "msg": [
+                                    "req/sub"
+                                ]
+                            },
+                            "move_sub/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat"
+                                ]
+                            },
+                            "move_sub/response_cancel": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat"
+                                ]
+                            },
+                            "move_sub/response_notify": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/move",
+                                    "h_resp/notify"
+                                ]
+                            }
                         }
                     }
                 }
-            }
-        },
-        "gametime": {
-            "host": "mahaka",
-            "port": {
-                "count": 1,
-                "load_bal": {
-                    "num": 61015
-                },
-                "duplex": {
-                    "count": 2,
-                    "num": [
-                        61016,
-                        61017
-                    ]
-                }
             },
-            "topic": {
-                "req_rep": {
-                    "desc": "Provide current game time in requested modality.",
-                    "plan": {
-                        "time_get/request": {
-                            "msg": [
-                                "req/time"
-                            ]
-                        },
-                        "time_get/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/time"
-                            ]
-                        }
+            "marketplace": {
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": [
+                            61011
+                        ]
+                    },
+                    "send": {
+                        "count": 2,
+                        "num": [
+                            61009,
+                            61010
+                        ]
+                    },
+                    "recv": {
+                        "count": 3,
+                        "num": [
+                            61012,
+                            61013,
+                            61014
+                        ]
                     }
                 },
-                "pub_sub": {
-                    "desc": "Broadcast current game time in multiple modalities.",
-                    "plan": {
-                        "time_sub/request": {
-                            "msg": [
-                                "req/sub"
-                            ]
-                        },
-                        "time_sub/request_cancel": {
-                            "msg": [
-                                "req/cancel"
-                            ]
-                        },
-                        "time_sub/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/time"
-                            ]
-                        },
-                        "time_notify/request": {
-                            "msg": [
-                                "req/sub",
-                                "req/notify"
-                            ]
-                        },
-                        "time_notify/request_cancel": {
-                            "msg": [
-                                "req/cancel"
-                            ]
-                        },
-                        "time_notify/response": {
-                            "msg": [
-                                "d_resp/ack",
-                                "d_resp/stat",
-                                "h_resp/time",
-                                "h_resp/notify"
-                            ]
+                "topic": {
+                    "req_chain": {
+                        "desc": "Handle marketplace transactions: inventory, pricing, purchase, delivery.",
+                        "plan": {
+                            "mkt_list/request": {
+                                "msg": [
+                                    "req/inventory"
+                                ]
+                            },
+                            "mkt_list/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/inventory"
+                                ]
+                            },
+                            "mkt_avail/request": {
+                                "msg": [
+                                    "req/inventory"
+                                ]
+                            },
+                            "mkt_avail/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/inventory",
+                                    "h_resp/desc"
+                                ]
+                            },
+                            "mkt_ask/request": {
+                                "msg": [
+                                    "req/price"
+                                ],
+                                "trigger": "mkt_avail/response"
+                            },
+                            "mkt_ask/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/price"
+                                ]
+                            },
+                            "mkt_ask/response_cancel": {
+                                "msg": [
+                                    "req/cancel"
+                                ]
+                            },
+                            "mkt_offer/request": {
+                                "msg": [
+                                    "req/price"
+                                ],
+                                "trigger": "mkt_ask/response"
+                            },
+                            "mkt_offer/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/price"
+                                ]
+                            },
+                            "mkt_agree/request": {
+                                "msg": [
+                                    "req/accept_reject"
+                                ],
+                                "trigger": "mkt_offer/response"
+                            },
+                            "mkt_agree/request_cancel": {
+                                "msg": [
+                                    "req/cancel"
+                                ]
+                            },
+                            "mkt_agree/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/accept_reject"
+                                ]
+                            },
+                            "mkt_pay/request": {
+                                "msg": [
+                                    "req/transfer"
+                                ],
+                                "trigger": "mkt_agree/response"
+                            },
+                            "mkt_pay/request_cancel": {
+                                "msg": [
+                                    "req/cancel"
+                                ]
+                            },
+                            "mkt_pay/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/transfer"
+                                ]
+                            },
+                            "mkt_deliver/request": {
+                                "msg": [
+                                    "req/transfer"
+                                ],
+                                "trigger": "mkt_pay/response"
+                            },
+                            "mkt_deliver/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/transfer"
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            "gametime": {
+                "port": {
+                    "load_bal": {
+                        "count": 1,
+                        "num": 61015
+                    },
+                    "duplex": {
+                        "count": 2,
+                        "num": [
+                            61016,
+                            61017
+                        ]
+                    }
+                },
+                "topic": {
+                    "req_rep": {
+                        "desc": "Provide current game time in requested modality.",
+                        "plan": {
+                            "time_get/request": {
+                                "msg": [
+                                    "req/time"
+                                ]
+                            },
+                            "time_get/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/time"
+                                ]
+                            }
+                        }
+                    },
+                    "pub_sub": {
+                        "desc": "Broadcast current game time in multiple modalities.",
+                        "plan": {
+                            "time_sub/request": {
+                                "msg": [
+                                    "req/sub"
+                                ]
+                            },
+                            "time_sub/request_cancel": {
+                                "msg": [
+                                    "req/cancel"
+                                ]
+                            },
+                            "time_sub/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/time"
+                                ]
+                            },
+                            "time_notify/request": {
+                                "msg": [
+                                    "req/sub",
+                                    "req/notify"
+                                ]
+                            },
+                            "time_notify/request_cancel": {
+                                "msg": [
+                                    "req/cancel"
+                                ]
+                            },
+                            "time_notify/response": {
+                                "msg": [
+                                    "d_resp/ack",
+                                    "d_resp/stat",
+                                    "h_resp/time",
+                                    "h_resp/notify"
+                                ]
+                            }
                         }
                     }
                 }
@@ -546,7 +549,7 @@
             }
         }
     },
-    "peer": {
+    "peers": {
         "client": {
             "robot_player": {
                 "desc": "A client peer representing a player of the game driven by AI.",

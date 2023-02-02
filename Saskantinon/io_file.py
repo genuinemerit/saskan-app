@@ -34,12 +34,12 @@ class FileIO(object):
         self.G = self.G | self.get_configs("g_menus")
         self.G = self.G | self.get_configs("g_windows")
         self.G = self.G | self.get_configs("g_uri")
-        self.S = self.get_schema("s00_channels")
-        self.S = self.S | self.get_schema("s10_topics")
-        self.S = self.S | self.get_schema("s15_messages")
-        self.S = self.S | self.get_schema("s20_plans")
-        self.S = self.S | self.get_schema("s30_clients")
-        self.S = self.S | self.get_schema("s40_routers")
+        self.S = self.get_schema("svc_schema")
+        # self.S = self.S | self.get_schema("s10_topics")
+        # self.S = self.S | self.get_schema("s15_messages")
+        # self.S = self.S | self.get_schema("s20_plans")
+        # self.S = self.S | self.get_schema("s30_clients")
+        # self.S = self.S | self.get_schema("s40_routers")
 
     # Read-only methods
     # ==============================================================
