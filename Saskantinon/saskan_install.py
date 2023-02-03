@@ -49,7 +49,7 @@ class SaskanInstall(object):
         self.copy_bash_files()
         self.set_ports()
         self.save_svc_config()
-        # svc = self.set_services()
+        self.start_load_balancers()
         # self.start_servers(svc)
         # self.start_clients()
         # FI.pickle_saskan(self.APP)
@@ -111,7 +111,9 @@ class SaskanInstall(object):
 
     def install_app_files(self):
         """Copy config, image and schema/ontology files"""
-        for sdir in (FI.D["ADIRS"]["CFG"], FI.D["ADIRS"]["IMG"], FI.D["ADIRS"]["ONT"]):
+        for sdir in (FI.D["ADIRS"]["CFG"],
+                     FI.D["ADIRS"]["IMG"],
+                     FI.D["ADIRS"]["ONT"]):
             src_dir = path.join(Path.cwd(), sdir)
             ok, err, files = FI.get_dir(src_dir)
             if not ok:
@@ -221,17 +223,21 @@ class SaskanInstall(object):
         - service configuration metadata
         """
         all_ports: list = list()
-        next_port = FI.S["channels"]["resource"]["port_low"]
+        next_port = FI.S["resource"]["port_low"]
         for svct, svci in (("channels", "channel"),
                            ("peers", "client"),
                            ("peers", "router")):
             for svcn in (FI.S[svct][svci]).keys():
                 if "port" in (FI.S[svct][svci][svcn]).keys():
                     for portn in FI.S[svct][svci][svcn]["port"].keys():
-                        if "count" in FI.S[svct][svci][svcn]["port"][portn].keys():
-                            portc = FI.S[svct][svci][svcn]["port"][portn]["count"]
-                            ports, next_port = self.get_free_ports(next_port, portc)
-                            FI.S[svct][svci][svcn]["port"][portn]["num"] = ports
+                        if ("count" in
+                                FI.S[svct][svci][svcn]["port"][portn].keys()):
+                            portc =\
+                                FI.S[svct][svci][svcn]["port"][portn]["count"]
+                            ports, next_port =\
+                                self.get_free_ports(next_port, portc)
+                            FI.S[svct][svci][svcn]["port"][portn]["num"] =\
+                                ports
                             all_ports += ports
         self.set_firewall(all_ports)
 
@@ -241,6 +247,45 @@ class SaskanInstall(object):
         ok, msg = FI.write_file(cdir, json.dumps(FI.S))
         if not ok:
             raise Exception(msg)
+
+    def start_load_balancers(self):
+        """Create one or more NGINX load balancer config files.
+        Deploy them to /etc/nginx/sites-available.
+        Deploy them to /etc/nginx/sites-enabled.
+        Start the NGINIX load balanceers.
+
+        @DEV:
+        - Read up on the various options for NGINX load balancing.
+        - Eventually want add SSL/letsencrypt support.
+        - May want to include some comments in the NGINX files.
+        """
+        host = FI.S["resource"]["host"]
+
+        for svct, svci in (("channels", "channel"),
+                           ("peers", "client"),
+                           ("peers", "router")):
+            for svcn in (FI.S[svct][svci]).keys():
+                if "port" in (FI.S[svct][svci][svcn]).keys():
+                    lbx = 0
+                    ports = FI.S[svct][svci][svcn]["port"]
+                    conf = "stream {\n"
+                    for porttyp in ("send", "recv", "duplex", "polling"):
+                        if porttyp in ports.keys():
+                            conf += "\n\tupstream " +\
+                                    f"{svcn}_{porttyp} {{\n" +\
+                                    "\t\tleast_conn;\n"
+                            for p in ports[porttyp]["num"]:
+                                conf += f"\t\tserver {host}:{p} weight=10;\n"
+                            conf += "\t}\n"
+                            conf += "\n\tserver {\n" +\
+                                    f"\t\tlisten {ports['load_bal']['num'][lbx]};\n" +\
+                                    f"\t\tproxy_pass {svcn}_{porttyp};\n" +\
+                                    "\t}\n"
+                            lbx += 1
+                    conf += "}\n"
+                    conf_nm = f"saskan_{svcn}_lb.conf"
+                    print(f"\n\n=========================\n{conf_nm}\n")
+                    print(conf)
 
     def start_servers(self, svc):
         """Start a saskan_server instance for each channel.

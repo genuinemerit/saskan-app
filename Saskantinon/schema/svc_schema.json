@@ -1,32 +1,23 @@
 {
+    "resource": {
+        "host": "mahaka",
+        "port_low": 61000
+    },
     "channels": {
-        "resource": {
-            "host": "mahaka",
-            "port_low": 61000
-        },
         "channel": {
             "avatar_motion": {
                 "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61004
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "send": {
                         "count": 2,
-                        "num": [
-                            61002,
-                            61003
-                        ]
+                        "num": []
                     },
                     "recv": {
                         "count": 3,
-                        "num": [
-                            61005,
-                            61006,
-                            61007
-                        ]
+                        "num": []
                     }
                 },
                 "topic": {
@@ -105,25 +96,16 @@
             "marketplace": {
                 "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61011
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "send": {
                         "count": 2,
-                        "num": [
-                            61009,
-                            61010
-                        ]
+                        "num": []
                     },
                     "recv": {
                         "count": 3,
-                        "num": [
-                            61012,
-                            61013,
-                            61014
-                        ]
+                        "num": []
                     }
                 },
                 "topic": {
@@ -243,14 +225,11 @@
                 "port": {
                     "load_bal": {
                         "count": 1,
-                        "num": 61015
+                        "num": []
                     },
                     "duplex": {
                         "count": 2,
-                        "num": [
-                            61016,
-                            61017
-                        ]
+                        "num": []
                     }
                 },
                 "topic": {
@@ -555,23 +534,18 @@
                 "desc": "A client peer representing a player of the game driven by AI.",
                 "port": {
                     "load_bal": {
-                        "count": 1,
+                        "count": 2,
                         "num": [
                             61018
                         ]
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61019
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "duplex": {
                         "count": 2,
-                        "num": [
-                            61020,
-                            61021
-                        ],
+                        "num": [],
                         "que": "robot_player_que"
                     }
                 }
@@ -580,23 +554,16 @@
                 "desc": "A client peer representing a human player of the game.",
                 "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61022
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61023
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "duplex": {
                         "count": 2,
-                        "num": [
-                            61024,
-                            61025
-                        ],
+                        "num": [],
                         "que": "human_player_que"
                     }
                 }
@@ -605,26 +572,16 @@
                 "desc": "A client peer representing a game world avatar driven by a human or robot player.",
                 "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61026
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61027
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "duplex": {
                         "count": 5,
-                        "num": [
-                            61028,
-                            61029,
-                            61030,
-                            61031,
-                            61032
-                        ],
+                        "num": [],
                         "que": "player_avatar_que"
                     }
                 }
@@ -633,26 +590,16 @@
                 "desc": "A client peer representing a game avatar not driven by a human or robot player. A Non-Player Character. For example, a non-sentient animal, or a stock character with limited actions.",
                 "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61033
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61034
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "duplex": {
                         "count": 5,
-                        "num": [
-                            61035,
-                            61036,
-                            61037,
-                            61038,
-                            61039
-                        ],
+                        "num": [],
                         "que": "npc_avatar_que"
                     }
                 }
@@ -661,24 +608,16 @@
                 "desc": "A client peer representing a non-Player game object that is relatively more static than a NPC. For example, a building, a tree, an organizational ledger, an automatic town crier.",
                 "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61040
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61041
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "duplex": {
                         "count": 3,
-                        "num": [
-                            61042,
-                            61043,
-                            61044
-                        ],
+                        "num": [],
                         "que": "map_context_que"
                     }
                 }
@@ -687,127 +626,106 @@
         "router": {
             "admin": {
                 "desc": "Direct which gateway receives requests relating to use of the admin tools.",
-                "ports": {
+                "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61045
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61046
-                        ],
+                        "count": 2,
+                        "num": [],
                         "que": "admin_que"
                     },
                     "duplex": {
-                        "count": 1,
-                        "num": [
-                            61047
-                        ]
+                        "count": 2,
+                        "num": []
+                    }
+                },
+                "gateway": {
+                    "start_stop": {
+                        "desc": "Handle requests to start and stop services."
                     },
-                    "gateway": {
-                        "start_stop": {
-                            "desc": "Handle requests to start and stop services."
-                        },
-                        "edit_gui_meta": {
-                            "desc": "Direct requests to edit game GUI metadata. For example, to change language."
-                        },
-                        "edit_schema": {
-                            "desc": "Direct request to modify game schema data. Would require a restart of game servers."
-                        },
-                        "monitor": {
-                            "desc": "Handle monitoring of service traffic. For example, what servers have heavier loads."
-                        }
+                    "edit_gui_meta": {
+                        "desc": "Direct requests to edit game GUI metadata. For example, to change language."
+                    },
+                    "edit_schema": {
+                        "desc": "Direct request to modify game schema data. Would require a restart of game servers."
+                    },
+                    "monitor": {
+                        "desc": "Handle monitoring of service traffic. For example, what servers have heavier loads."
                     }
                 }
             },
             "game": {
                 "desc": "Direct to gateway for requests for events relating to in-game play.",
-                "ports": {
+                "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61048
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61049
-                        ],
+                        "count": 2,
+                        "num": [],
                         "que": "game_que"
                     },
                     "duplex": {
                         "count": 3,
-                        "num": [
-                            61050,
-                            61051,
-                            61052
-                        ]
+                        "num": []
+                    }
+                },
+                "gateway": {
+                    "chat": {
+                        "desc": "Direct requests to chat gateway."
                     },
-                    "gateway": {
-                        "chat": {
-                            "desc": "Direct requests to chat gateway."
-                        },
-                        "social": {
-                            "desc": "Direct requests to social gateway."
-                        },
-                        "avatar_physics": {
-                            "desc": "Handle avatar movement and other physics requests."
-                        },
-                        "prop_physics": {
-                            "desc": "Handle prop movement and other physics requests."
-                        },
-                        "gametime": {
-                            "desc": "Respond to requests to compute, record or communicate game time information, in multiple modalities."
-                        },
-                        "inventory": {
-                            "desc": "Respond to requests relating to collections of things, such as what is being carried by another object or handling of some market transactions."
-                        }
+                    "social": {
+                        "desc": "Direct requests to social gateway."
+                    },
+                    "avatar_physics": {
+                        "desc": "Handle avatar movement and other physics requests."
+                    },
+                    "prop_physics": {
+                        "desc": "Handle prop movement and other physics requests."
+                    },
+                    "gametime": {
+                        "desc": "Respond to requests to compute, record or communicate game time information, in multiple modalities."
+                    },
+                    "inventory": {
+                        "desc": "Respond to requests relating to collections of things, such as what is being carried by another object or handling of some market transactions."
                     }
                 }
             },
             "flow": {
                 "desc": "Direct requests for handling orchestration of services.",
-                "ports": {
+                "port": {
                     "load_bal": {
-                        "count": 1,
-                        "num": [
-                            61053
-                        ]
+                        "count": 2,
+                        "num": []
                     },
                     "polling": {
-                        "count": 1,
-                        "num": [
-                            61054
-                        ],
+                        "count": 2,
+                        "num": [],
                         "que": "flow_que"
                     },
                     "duplex": {
                         "count": 2,
-                        "num": [
-                            61055,
-                            61056
-                        ]
+                        "num": []
+                    }
+                },
+                "gateway": {
+                    "subscriber": {
+                        "desc": "Respond to requests regarding subscriber and recipient lists."
                     },
-                    "gateway": {
-                        "subscriber": {
-                            "desc": "Respond to requests regarding subscriber and recipient lists."
-                        },
-                        "chainer": {
-                            "desc": "Respond to requests regarding handling of chained events."
-                        },
-                        "logger": {
-                            "desc": "Respond to requests regarding writing to or reading from a log."
-                        },
-                        "poller": {
-                            "desc": "Respond to requests regarding throttling of polling."
-                        },
-                        "purger": {
-                            "desc": "Respond to requests regarding throttling of harvest purging."
-                        }
+                    "chainer": {
+                        "desc": "Respond to requests regarding handling of chained events."
+                    },
+                    "logger": {
+                        "desc": "Respond to requests regarding writing to or reading from a log."
+                    },
+                    "poller": {
+                        "desc": "Respond to requests regarding throttling of polling."
+                    },
+                    "purger": {
+                        "desc": "Respond to requests regarding throttling of harvest purging."
                     }
                 }
             }
