@@ -16,4 +16,5 @@ def is_complete(graph):
     return True
 
 
-print(f"Graph is complete: {str(is_complete(example_adjacency_list_complete))}")
+print("Graph is complete:" +
+      f"{str(is_complete(example_adjacency_list_complete))}")

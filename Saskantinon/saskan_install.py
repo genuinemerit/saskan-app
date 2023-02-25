@@ -21,11 +21,13 @@ from pprint import pprint as pp  # noqa: F401
 
 from io_file import FileIO  # type: ignore
 from io_shell import ShellIO  # type: ignore
+from io_wiretap import WireTap  # type: ignore
 from saskan_report import SaskanReport  # type: ignore
 
 FI = FileIO()
 SI = ShellIO()
 SR = SaskanReport()
+WT = WireTap()
 
 
 class SaskanInstall(object):
@@ -49,7 +51,8 @@ class SaskanInstall(object):
         self.copy_bash_files()
         self.set_ports()
         self.save_svc_config()
-        self.start_load_balancers()
+        self.create_load_bals()
+        self.install_load_bals()
         # self.start_servers(svc)
         # self.start_clients()
         # FI.pickle_saskan(self.APP)
@@ -61,9 +64,9 @@ class SaskanInstall(object):
         """Verify standard bash directory exists.
         - /usr/local/bin
         """
-        ok, err, _ = FI.get_dir(FI.D["BIN"])
-        if not ok:
-            raise Exception(f"{FI.T['err_file']} {FI.D['BIN']} {err}")
+        files = FI.get_dir(FI.D["BIN"])
+        if files is None:
+            raise Exception(f"{FI.T['err_file']} {FI.D['BIN']}")
 
     # Directory, file, record set-up
     # ==============================================================
@@ -75,8 +78,8 @@ class SaskanInstall(object):
         Create namesapce sub-dirs.
         """
         # App dir
-        ok, err, _ = FI.get_dir(self.APP)
-        if ok:
+        files = FI.get_dir(self.APP)
+        if files is not None:
             # Delete everything in app dir
             app_files = self.APP + "/*"
             ok, result = SI.run_cmd([f"sudo rm -rf {app_files}"])
@@ -85,29 +88,19 @@ class SaskanInstall(object):
             ok, result = SI.run_cmd([f"sudo rmdir {self.APP}"])
             if not ok:
                 raise Exception(f"{FI.T['err_process']} {result}")
-        ok, err = FI.make_dir(self.APP)
-        if ok:
-            ok, err = FI.make_executable(self.APP)
-        if not ok:
-            raise Exception(f"{FI.T['err_process']} {err}")
+        FI.make_dir(self.APP)
+        FI.make_executable(self.APP)
         # App sub-dirs
         for _, sub_dir in FI.D["ADIRS"].items():
             sdir = path.join(self.APP, sub_dir)
-            ok, err = FI.make_dir(sdir)
-            if ok:
-                ok, err = FI.make_executable(sdir)
-            if not ok:
-                raise Exception(f"{FI.T['err_file']} {sdir} {err}")
+            FI.make_dir(sdir)
+            FI.make_executable(sdir)
         # Namespace sub-dirs
         for _, sub_dir in FI.D["NSDIRS"].items():
             sdir = path.join(self.APP, FI.D["ADIRS"]["SAV"], sub_dir)
-            ok, err = FI.make_dir(sdir)
-            if ok:
-                ok, err = FI.make_executable(sdir)
-                if ok:
-                    ok, err = FI.make_writable(sdir)
-            if not ok:
-                raise Exception(f"{FI.T['err_file']} {sdir} {err}")
+            FI.make_dir(sdir)
+            FI.make_executable(sdir)
+            FI.make_writable(sdir)
 
     def install_app_files(self):
         """Copy config, image and schema/ontology files"""
@@ -115,28 +108,26 @@ class SaskanInstall(object):
                      FI.D["ADIRS"]["IMG"],
                      FI.D["ADIRS"]["ONT"]):
             src_dir = path.join(Path.cwd(), sdir)
-            ok, err, files = FI.get_dir(src_dir)
-            if not ok:
-                raise Exception(f"{FI.T['err_file']} {src_dir} {err}")
-            FI.copy_files(path.join(self.APP, sdir), files)
+            files = FI.get_dir(src_dir)
+            if files is not None:
+                FI.copy_files(path.join(self.APP, sdir), files)
 
     def copy_python_scripts(self):
         """Copy - python (*.py) files --> /python
         Excluding installer scripts.
         """
-        ok, err, files = FI.get_dir(Path.cwd())
-        if not ok:
-            raise Exception(f"{FI.T['err_file']} {Path.cwd()} {err}")
+        files = FI.get_dir(Path.cwd())
+        if files is None:
+            raise Exception(f"{FI.T['err_file']} {Path.cwd()}")
         py_files = [
-            f for f in files if str(f).endswith(".py") and "_install" not in str(f)
+            f for f in files if str(f).endswith(".py") and
+            "_install" not in str(f)
         ]
         tgt_dir = path.join(self.APP, FI.D["ADIRS"]["PY"])
         for f in py_files:
             if Path(f).is_file():
                 tgt_file = path.join(tgt_dir, str(f).split("/")[-1])
-                ok, err = FI.copy_file(str(f), tgt_file)
-                if not ok:
-                    raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
+                FI.copy_file(str(f), tgt_file)
 
     def copy_bash_files(self):
         """Copy /bash to /usr/local/bin
@@ -147,22 +138,16 @@ class SaskanInstall(object):
         """
         src_dir = path.join(Path.cwd(), "bash")
         py_dir = path.join(self.APP, FI.D["ADIRS"]["PY"])
-        ok, err, files = FI.get_dir(src_dir)
-        if not ok:
-            raise Exception(f"{FI.T['err_file']} {src_dir} {err}")
+        files = FI.get_dir(src_dir)
         for bf in files:
             bf_name = str(bf).split("/")[-1]
             tgt_file = path.join(FI.D["BIN"], bf_name)
-            ok, err, bf_code = FI.get_file(str(bf))
-            if not ok:
-                raise Exception(f"{FI.T['err_file']} {bf} {err}")
+            bf_code = FI.get_file(str(bf))
+            if bf_code is None:
+                raise Exception(f"{FI.T['err_file']} {bf}")
             bf_code = bf_code.replace("~APP_DIR~", py_dir)
-            ok, err = FI.write_file(tgt_file, bf_code)
-            if not ok:
-                raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
-            ok, err = FI.make_executable(tgt_file)
-            if not ok:
-                raise Exception(f"{FI.T['err_file']} {tgt_file} {err}")
+            FI.write_file(tgt_file, bf_code)
+            FI.make_executable(tgt_file)
 
     def get_free_ports(self, p_next_port: int, p_req_port_cnt: int) -> tuple:
         """Get a set of free ports
@@ -207,7 +192,7 @@ class SaskanInstall(object):
                 ok, result = SI.run_cmd(f"ufw allow in {port}")
                 if not ok:
                     raise Exception(f"{FI.T['err_cmd']} {result}")
-            print(f"Enable new firewall rules...")
+            print("Enable new firewall rules...")
             ok, result = SI.run_cmd("ufw enable")
             if ok:
                 print(result)
@@ -244,23 +229,21 @@ class SaskanInstall(object):
     def save_svc_config(self):
         """Save service config data to a file."""
         cdir = path.join(self.APP, FI.D["ADIRS"]["CFG"], "m_svc.json")
-        ok, msg = FI.write_file(cdir, json.dumps(FI.S))
-        if not ok:
-            raise Exception(msg)
+        FI.write_file(cdir, json.dumps(FI.S))
 
-    def start_load_balancers(self):
+    def create_load_bals(self):
         """Create one or more NGINX load balancer config files.
-        Deploy them to /etc/nginx/sites-available.
-        Deploy them to /etc/nginx/sites-enabled.
-        Start the NGINIX load balanceers.
+        Store them in the saskan app /config directory.
+
+        :write: load balancer config files
 
         @DEV:
         - Read up on the various options for NGINX load balancing.
         - Eventually want add SSL/letsencrypt support.
-        - May want to include some comments in the NGINX files.
+        - Include comments in the NGINX files.
         """
         host = FI.S["resource"]["host"]
-
+        lb_confs: list = list()
         for svct, svci in (("channels", "channel"),
                            ("peers", "client"),
                            ("peers", "router")):
@@ -278,14 +261,119 @@ class SaskanInstall(object):
                                 conf += f"\t\tserver {host}:{p} weight=10;\n"
                             conf += "\t}\n"
                             conf += "\n\tserver {\n" +\
-                                    f"\t\tlisten {ports['load_bal']['num'][lbx]};\n" +\
+                                    "\t\tlisten " +\
+                                    f"{ports['load_bal']['num'][lbx]};\n" +\
                                     f"\t\tproxy_pass {svcn}_{porttyp};\n" +\
                                     "\t}\n"
                             lbx += 1
                     conf += "}\n"
-                    conf_nm = f"saskan_{svcn}_lb.conf"
-                    print(f"\n\n=========================\n{conf_nm}\n")
-                    print(conf)
+                    lb_confs.append(path.join(self.APP, FI.D["ADIRS"]["CFG"],
+                                              f"saskan_lb_{svcn}.conf"))
+                    FI.write_file(lb_confs[-1:][0], conf)
+
+    def install_load_bals(self):
+        """
+        Back up old nginx.conf file, then copy new one to /etc/nginx.
+        Make sure /etc/nginx/streams.conf.d exists.
+        Deploy saskan stream config files to /etc/nginx/streams.conf.d.
+        Reboot nginx.
+
+        Commands to use:
+        - sudo service nginx status
+        - sudo systemctl enable nginx  <-- may only need once
+        - nginx -s reload
+        - service nginx restart
+
+        - the basic nginx.conf file has no tcp or stream sections.
+        - tried goofing around with it to no avail
+        - time to go read a book I guess. argh.
+        - pretty much just emptied out the nginx.conf file and it liked that!
+        - nginx -t    <-- to test config
+
+        - maybe i need to open port 80?
+
+        - trying to do this under a virtual ubuntu set-up on my mac.
+        - maybe look around at some older code, see how it is set up
+          on digital ocean, etc. Maybe start a fresh nginx install.
+        - also might want to try twisted instead.
+        - or look for new/other python libraries for this.
+
+        - Seems better after reinstalling nginx using instructions from
+        "NGINX Cookbok", 2nd edition, by Derek DeJonghe.
+
+        Stop all saskan NGINX servers.
+        Start the saskan NGINIX load balanceers.
+
+        (base) bow@mahaka:~$ sudo nginx -v
+nginx version: nginx/1.18.0 (Ubuntu)
+(base) bow@mahaka:~$ ps -ef | grep nginx
+root        1508       1  0 18:40 ?        00:00:00 nginx: master process
+    /usr/sbin/nginx -g daemon on; master_process on;
+www-data    1517    1508  0 18:40 ?        00:00:00 nginx: worker process
+www-data    1518    1508  0 18:40 ?        00:00:00 nginx: worker process
+root        5106    2500  0 18:45 ?        00:00:00 nginx: master process nginx
+www-data    5107    5106  0 18:45 ?        00:00:00 nginx: worker process
+www-data    5108    5106  0 18:45 ?        00:00:00 nginx: worker process
+
+        @DEV:
+        - Oher clean up tasks:
+            - remove old load balancer links
+            - remove old load balancer config files
+            - probably want a bespoke nginx.conf file for saskan
+            - it is recommended to use /etc/nginx/conf.d/ not
+              sites-enabled/sites-available so try that
+            - will eventually want to use letsencrypt for SSL,
+              possibly other security things
+            - don't think it's including my config files now
+            - try enabling the default config file, see if my
+              tcp stuff works then
+        - Ah-ha! See chapter 2.2 of the book
+            - create a stream.conf.d directory
+            - in nginx.conf:
+            stream {
+                include /etc/nginx/stream.conf.d/*.conf;
+            }
+            - put my stream config files in there;
+              they don't need to have the "stream {" and "}" containers
+            'NGINX Plus' provides more TCP load balancing features.
+        - That is the book I've been looking for. It covers TCP and UDP
+          as well as HTTP.
+
+        - Read in the config files from app confitg dir.
+
+
+        After following the directions in the book, I am still not
+        having success with TCP load balancing using NGINX. It may
+        just be my local environment that is funky. Maybe try it again
+        on Digital Ocean just to confirm if it works there are not.
+
+        In the meantime, I think I will try using HAProxy instead.
+
+        There is a Load Balancer service on Digital Ocean that
+        works with balancing "Droplets", which would refer to entire
+        Linux (or other) OS-level nodes. I think it can create
+        forwarding rules at the port level too? Might want to look
+        into it, for learning purposes if nothing else. It is a paid/
+        monthly subscription service, though.
+        """
+        ng_d = "/etc/nginx"
+        FI.copy_file(path.join(ng_d, "nginx.conf"),
+                     path.join(ng_d,
+                               f"nginx_conf.bkup.{WT.get_iso_timestamp()}"))
+        FI.copy_file(path.join(self.APP, FI.D["ADIRS"]["CFG"], "nginx.conf"),
+                     ng_d)
+        FI.make_dir(path.join(ng_d, "stream.conf.d"))
+        for cfg_p in [f for f in
+                      FI.get_dir(path.join(self.APP, FI.D["ADIRS"]["CFG"]))
+                      if "saskan_lb_" in str(f) and ".conf" in str(f)]:
+            FI.copy_file(cfg_p, path.join(ng_d, "stream.conf.d"))
+        # available = path.join("/etc/nginx/sites-available")
+        # enabled = path.join("/etc/nginx/sites-enabled")
+        # for lbc in p_lb_confs:
+        #     lbc_file_nm = path.basename(lbc)
+        #     FI.copy_file(lbc, available)
+        #     FI.make_link(path.join(available, lbc_file_nm),
+        #                 path.join(enabled, lbc_file_nm))
 
     def start_servers(self, svc):
         """Start a saskan_server instance for each channel.
@@ -351,10 +439,12 @@ class SaskanInstall(object):
         # Launch new sv_server instances
         pypath = path.join(self.APP, FI.D["ADIRS"]["PY"], f"{pgm_nm}.py")
         logpath = path.join(
-            FI.D["MEM"], FI.D["APP"], FI.D["ADIRS"]["SAV"], FI.D["NSDIRS"]["LOG"]
+            FI.D["MEM"], FI.D["APP"],
+            FI.D["ADIRS"]["SAV"], FI.D["NSDIRS"]["LOG"]
         )
         for c_nm, c_meta in svc.items():
-            for p_typ in [pt for pt in c_meta.keys() if pt not in ("host", "desc")]:
+            for p_typ in [pt for pt in c_meta.keys()
+                          if pt not in ("host", "desc")]:
                 for port in c_meta[p_typ]["port"]:
                     SI.run_nohup_py(
                         pypath,

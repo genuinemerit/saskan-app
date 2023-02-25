@@ -2,7 +2,7 @@ from pprint import pprint as pp
 from collections import deque
 # Create a dequeue with deque()
 # Add items to the right with q.append()
-# Remove from the left with with q.popleft() 
+# Remove from the left with with q.popleft()
 
 
 def bfs(graph, source, target):
@@ -15,7 +15,7 @@ def bfs(graph, source, target):
             return visited
         if current not in visited:
             visited.add(current)
-            neighbours = graph[current]         
+            neighbours = graph[current]
             for neighbour in neighbours:
                 to_visit.append(neighbour)
     return None

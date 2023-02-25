@@ -1,0 +1,3 @@
+scene_num | scene_nm | peeople | groups | places | time
+1 | Full Moons Rising | [Stan, Shown, Waleran, B'arqo, Kirill Gekster, Remanj Jaxen] | [Night Watch, Untamed] | Ríkila
+2 | Splendid Boys | [Stan, Shown, Birikay, Tonedo] | [Elders of Juuj] | Byenung, Juuj, Beshquahoek, Qurol

@@ -24,7 +24,7 @@ G.add_edges_from([(3, 4), (4, 6), (3, 5), (3, 7), (5, 7), (6, 7), (1, 3)])
 # Here is how to breadth-first search in a graph
 pp(list(shortest_path(G, 1, 7)))
 
-# As an exercise: Do a depth-first search! 
+# As an exercise: Do a depth-first search!
 # You can use the `dfs_edges` algorithm.
 # consider reading the docs here:
 # https://networkx.org/documentation/stable/reference/algorithms/traversal.html#module-networkx.algorithms.traversal.depth_first_search
@@ -33,7 +33,8 @@ pp(list(all_simple_paths(G, 1, 7)))
 
 D = nx.DiGraph()
 D.add_nodes_from([4, 5, 6, 7])
-D.add_edges_from([(3, 4), (4, 6), (3, 5), (3, 7), (5, 7), (6, 7), (1, 3), (7, 1), (7, 3)])
+D.add_edges_from([(3, 4), (4, 6), (3, 5), (3, 7),
+                  (5, 7), (6, 7), (1, 3), (7, 1), (7, 3)])
 # We can also find cycles in a graph.
 # Use the `simple_cycles` algorith to find all simple cycles, and
 # use `find_cycle` to find any particular cycle.

@@ -1,0 +1,16 @@
+{"scenes": [
+	{"scene_num":1,
+ 	 "scene_nm":"Full Moons Rising",
+	 "people":["Stan", "Shown", "Waleran", "B'arqo", "Kirill Gekster", "Remanj Jaxen"],
+ 	 "groups": ["Night Watch", "Untamed"],
+	 "places": ["Ríkila"],
+     "time":""
+	},
+	{"scene_num":2,
+	 "scene_nm":"Splendid Boys",
+  	 "people":["Stan", "Shown", "Birikay", "Tonedo"],
+	 "groups": ["Elders of Juuj"],
+         "places":["Byenung", "Juuj", "Beshquahoek", "Qurol"],
+ 	 "time":""
+	}
+]}
