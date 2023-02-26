@@ -13,14 +13,10 @@ All are from perspective of a single time zone that
 encompasses the lands of the game, spread over about 1,600
 square kilometers, located in the northern hemisphere.
 
-May eventually want to alter local time settings.
+Eventually want to alter local time settings in various ways.
 
-Static Values are hard-coded for now. Later, abstract them
-into config class or file.
-
-Rebuild the saskan conda venv using lessons learned
-from work on the home-finance app. Use latest version of
-python and pandas. Switch to pygame for a GUI.
+Static Values are hard-coded for now.
+Later, abstract them into config class or file.
 """
 
 import pickle
@@ -113,6 +109,7 @@ class TimeIO(object):
                 "Jemlok": {"orbit": 30772.0}
                 }
             }
+        # Add a bunch more moons
         MOONS = {
             "Gavor": {
                 "Endor": {"orbit": 32.1,
