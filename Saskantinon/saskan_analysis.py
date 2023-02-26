@@ -46,14 +46,37 @@ class Analysis(object):
         and other graph-related methods.
         """
         pd.options.mode.chained_assignment = None
-        self.SETS = dict()
-        self.FRAMES = dict()
+        self.PALETTE = ("#000000", "#CC0000", "#00CC00", "#0000CC",
+                        "#E0E0E0", "#880000", "#008800", "#000088",
+                        "#0E0E0E", "#888800", "#088880", "#008888",
+                        "#808080", "#CC8800", "#0CC880", "#00CC88")
+        self.DS = dict()
+        self.G = dict()
+        self.N = dict()
+        self.E = dict()
         self.NODES = dict()
         self.NODE_TYPES = dict()
         self.EDGES = dict()
         self.EDGE_TYPES = dict()
-        self.GRAPHS = dict()
 
+    # Helper functions
+    def get_ntype(self,
+                  p_set: str,
+                  p_node_nm: str):
+        """Return node type for a given node name.
+
+        :args:
+        - p_set (str): Name of a schema/ontology, e.g. "scenes"
+        - p_node_nm (str): Node name.
+        """
+        node_type = None
+        for nt, nodes in self.N[p_set]["name"].items():
+            if p_node_nm in nodes:
+                node_type = nt
+                break
+        return node_type
+
+    # Data load and scrub functions
     def get_data(self,
                  p_file_path: str,
                  p_sheet_nm: str = None) -> DataFrame:
@@ -116,181 +139,180 @@ class Analysis(object):
         - p_sheet_nm (str): Name of the sheet to load.
         """
         src_dir, dataset_nm = self.set_source(p_file_name, p_sheet_nm)
-        self.FRAMES[dataset_nm] =\
+        self.DS[dataset_nm] =\
             self.get_data(path.join(src_dir, p_file_name), p_sheet_nm)
 
     def get_json_data(self,
                       p_set: str):
         """
         JSON file resides in one of 3 predefined schema dir's.
-        Assumptions about data structure:
-        - Collection of records in a list indexed by "scenes".
-        - Attributes of each record:
-            - scene, people, groups, places, times
-            - each attribute contains a list of strings
-            - typically expect only one value in the scene list
-            - time strings are in a game calendar "SAG" format:
-              - Current year at start of game is: 4934
-              - First year of era (Time of the Catastrophe) counted as: 1
-              - First day of a year counted as: 1
-              - Years are 366 days long
-              - Every 3rd year, add one leap day (367th day)
-              - It is a solar, arithmetic calendar
-              - Year begins at Midnight on the Winter Solstice
-              - Days are counted Midnight to Midnight
-              - No months are reckoned
-              - Date format is: "yyyy.ddd"
-              - For the purpose of this analysis, hours are ignored
+        Save JSON data as a dict in DS.
+        Derive node types and save in N["type]
+        Sort node-types ascending, no dups
+
         :args:
-        - p_set (str): Name of a schema/ontology file, w/o extension.
-                          Example: "scenes"
+        - p_set (str): Name of a schema/ontology, e.g.: "scenes"
         """
         ds = FI.get_schema(p_set)
-        set_nm = list(ds.keys())[0]
-        self.SETS[set_nm] = list(ds.values())[0]
-        self.NODE_TYPES[p_set] = list(set(self.SETS[set_nm][0].keys()))
+        self.DS[p_set] = list(ds.values())[0]
+        self.N[p_set] = {"types": list(),
+                         "name": dict(), "size": dict(), "color": dict()}
+        self.E[p_set] = {"types": list(),
+                         "name": dict(), "color": dict()}
+        self.N[p_set]["types"] = sorted(list(set(self.DS[p_set][0].keys())))
 
-    def get_node_type(self,
-                      p_set: str,
-                      p_node: str):
-        """Return node type for a given node.
-
-        :args:
-        - p_set (str): Name of a schema/ontology, e.g. "scenes"
-        - p_node (str): Node name.
-        """
-        node_type = None
-        for nt, nodes in self.NODES[p_set].items():
-            if p_node in nodes:
-                node_type = nt
-                break
-        return node_type
-
-    def set_nodes(self,
-                  p_set: str):
-        """Pull nodes and node-types from dataset.
-        Set NODES data.
+    def set_node_names(self,
+                       p_set: str):
+        """Pull nodes from dataset; set N["name"] data.
+        Node names are stored as a list indexed by node type.
+        List is sorted and duplicates removed.
+        Assign a color to each node type.
 
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
         """
-        self.NODES[p_set] = dict()
-        for nt in self.NODE_TYPES[p_set]:
-            self.NODES[p_set][nt] = list()
-        for rec in self.SETS[p_set]:
-            for nt in self.NODE_TYPES[p_set]:
+        for nt in self.N[p_set]["types"]:
+            self.N[p_set]["name"][nt] = list()
+        for rec in self.DS[p_set]:
+            for nt in self.N[p_set]["types"]:
                 for node in rec[nt]:
-                    self.NODES[p_set][nt].append(node)
-        for nt in self.NODE_TYPES[p_set]:
-            self.NODES[p_set][nt] =\
-                sorted(list(set(self.NODES[p_set][nt])))
+                    self.N[p_set]["name"][nt].append(node)
+        for nix, ntyp in enumerate(self.N[p_set]["types"]):
+            self.N[p_set]["name"][ntyp] =\
+                sorted(list(set(self.N[p_set]["name"][ntyp])))
+            cix = nix if nix < len(self.PALETTE) else len(self.PALETTE) - nix
+            color = f"{self.PALETTE[cix]}"
+            for node in self.N[p_set]["name"][ntyp]:
+                self.N[p_set]["color"][node] = color
+        # pp((self.N))
 
     def set_edge_types(self,
-                       p_set: str):
+                       p_set: str,
+                       p_no_edge: list = [("", "")]):
         """Derive edge-types from dataset.
-           Skip making edges between people and groups
-           Both are a type of character
+        Skip making edges between node-types w/o logical relationship.
+        Sort node-names in edge-type tuple ascending.
+        Sort list of edge-types ascending, no dups.
 
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
+        - p_no_edge (list): List of tuples of node-names to skip,
+                that is, not to make edges between. (optional)
         """
-        self.EDGE_TYPES[p_set] = set()
-        for nt1 in self.NODE_TYPES[p_set]:
-            for nt2 in [nt for nt in self.NODE_TYPES[p_set]
-                        if nt != nt1]:
-                if not(nt1 in ("people", "groups") and
-                        nt2 in ("people", "groups")):
-                    self.EDGE_TYPES[p_set].add(tuple(sorted([nt1, nt2])))
+        for n1 in self.N[p_set]["types"]:
+            for n2 in [n for n in self.N[p_set]["types"] if n != n1]:
+                skip_it = False
+                for (en1, en2) in p_no_edge:
+                    if (n1 == en1 and n2 == en2) or\
+                         (n1 == en2 and n2 == en1):
+                        skip_it = True
+                        break
+                if not skip_it:
+                    self.E[p_set]["types"].append(tuple(sorted([n1, n2])))
+        self.E[p_set]["types"] = sorted(list(set(self.E[p_set]["types"])))
 
     def set_edges(self,
                   p_set: str):
-        """Derive edges from dataset.
+        """Derive edge names from dataset.
+        Store edges as a list indexed by edge-type.
+        Sort each list of edges ascending, no dups.
+        Assign colors to each edge type (node-tuple).
+
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
         """
-        self.EDGES[p_set] = dict()
-        for edge in self.EDGE_TYPES[p_set]:
-            self.EDGES[p_set][edge] = list()
-            nt1, nt2 = edge
-            for n in self.NODES[p_set][nt1]:
-                for rec in self.SETS[p_set]:
-                    if n in rec[nt1]:
-                        for m in rec[nt2]:
-                            self.EDGES[p_set][edge].append((n, m))
+        for eix, etyp in enumerate(self.E[p_set]["types"]):
+            self.E[p_set]["name"][etyp] = list()
+            n1, n2 = etyp
+            for n in self.N[p_set]["name"][n1]:
+                for rec in self.DS[p_set]:
+                    if n in rec[n1]:
+                        for m in rec[n2]:
+                            self.E[p_set]["name"][etyp].append((n, m))
+            self.E[p_set]["name"][etyp] =\
+                sorted(list(set(self.E[p_set]["name"][etyp])))
+            # colors
+            cix = eix if eix < len(self.PALETTE) else len(self.PALETTE) - eix
+            color = f"{self.PALETTE[cix]}"
+            for edge in self.E[p_set]["name"][etyp]:
+                self.E[p_set]["color"][etyp] = color
+        # pp((self.E))
 
     def set_graph(self,
-                  p_set: str):
+                  p_set: str,
+                  p_include: list = None,):
         """Populate networkx-compatible graph dataset using dataset.
-        Note that defining the edges automatically defines the nodes.
+        - Defining the edges automatically also defines the nodes.
+        - Limiting the graph to a subset of nodes here affects what
+          is reported and displayed by report_graph() and plot_graph().
+        - If no subset is defined, all nodes are included.
+
+        :args:
+        - p_set (str): Name of a schema/ontology, e.g. "scenes"
+        - p_include (list): List of node names to include in graph (optional)
+        """
+        G = nx.MultiDiGraph()
+        for e_list in self.E[p_set]["name"].values():
+            edges = list()
+            for (n1, n2) in e_list:
+                if p_include is None:
+                    edges.append(tuple((n1, n2)))
+                elif n1 in p_include or n2 in p_include:
+                    edges.append(tuple((n1, n2)))
+            G.add_edges_from(edges)
+        self.G[p_set] = G
+        # pp((G.nodes(), G.edges()))
+
+    def report_graph(self,
+                     p_set: str):
+        """Show report of graphed data
 
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
         """
-        G = nx.MultiDiGraph()
-        for e_list in self.EDGES[p_set].values():
-            # pp(("e_list", e_list))
-            edges = list()
-            for (n1, n2) in e_list:
-                nt1 = self.get_node_type(p_set, n1)
-                nt2 = self.get_node_type(p_set, n2)
-                # pp(("nt1:n1", nt1, n1, "nt2:n2", nt2, n2))
-                edges.append((f"\n{nt1}\n{n1}",
-                              f"\n{nt2}\n{n2}"))
-            # pp(("edges", edges))
-            G.add_edges_from(edges)
-        self.GRAPHS[p_set] = G
-        # pp(("G.nodes()", G.nodes()))
-        # pp(("G.edges()", G.edges()))
-
-    def set_colors(self,
-                   p_set: str):
-        """Set color for graph nodes and edges.
-        Use a color palette to set the color for each node and edge,
-        based on the type of node or edge.
-
-        Set a basic color for each node type.
-        Set a blended color for each edge type.
-        """
-        basic = ("000000", "CC0000", "00CC00", "0000CC",
-                 "E0E0E0", "880000", "008800", "000088",
-                 "0E0E0E", "888800", "088880", "008888",
-                 "808080", "CC8800", "0CC880", "00CC88")
-        for nt in self.NODE_TYPES[p_set]:
-            nix = self.NODE_TYPES[p_set].index(nt)
-            cix = nix if nix < len(basic) else len(basic) - nix
-            self.NODE_TYPES[p_set][nix] = (nt, f"#{basic[cix]}")
-        # pp(("modified self.NODE_TYPES", self.NODE_TYPES))
+        print("NODE DEGREES\n=====================")
+        G = self.G[p_set]
+        rpt_data = sorted([(G.degree(n), n, self.get_ntype(p_set, n))
+                           for n in G.nodes()], reverse=True)
+        pp((rpt_data))
 
     def draw_graph(self,
                    p_set: str):
-        """Draw graph based on stored data.
+        """Draw graph based on G data.
 
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
 
         @DEV:
-        - Drive edge colors from edge type
-        - Pick sets of scenes to draw
         - Explore different layouts (see networkx docs)
-        - Use degrees to create a simple report of heaviest nodes
-        - Think about weighting the edges too
-        - Remove arrows from edges
+            - See io_graphs for example:
+            pos = nx.kamada_kawai_layout(G)
         """
-        G = self.GRAPHS[p_set]
-        node_sizes: list = list()
-        node_colors: list = list()
-        for n in G.nodes():
-            node_sizes.append(G.degree(n) * 30)
-            ntyp = n.split("\n")[1]
-            nc = [c for (nt, c) in self.NODE_TYPES[p_set] if ntyp == nt][0]
-            node_colors.append(nc)
-        # pp(("node_sizes", node_sizes))
-        # pp(("node_colors", node_colors))
-        # --> modify to use edge type to drive color <--
-        edge_colors = range(2, G.number_of_edges() + 2)
-        pos = nx.spring_layout(G, seed=13648)
-        # The kamada kawai layout requires scipy to be installed:
-        # pos = nx.kamada_kawai_layout(G)
+        G = self.G[p_set]
+        node_sizes = [G.degree(n) * 23 for n in G.nodes()]
+        node_labels = {n: f"\n{self.get_ntype(p_set, n)}\n{n}"
+                       for n in G.nodes()}
+        node_colors = [self.N[p_set]["color"][n] for n in G.nodes()]
+        edge_colors = [self.E[p_set]["color"][
+                        (self.get_ntype(p_set, e[0]),
+                         self.get_ntype(p_set, e[1]))].replace("0", "5")
+                       for e in G.edges()]
+        # Folks online tend to recommend graphviz for drawing graphs, but
+        # I could not get graphviz to work with my environment, networkx.
+
+        # See: https://networkx.org/documentation/stable/reference/drawing.html
+
+        # Most of these layouts need or require additional parameters,
+        #  but I am not clear yet on how to set them usefully.
+
+        # Ones I prefer so far are marked with a "# *" comment.
+        pos = nx.spiral_layout(G)                   # *
+        # pos = nx.spring_layout(G, seed=13648)     # *
+        # pos = nx.circular_layout(G)               # *
+        # pos = nx.shell_layout(G)                  # *
+        # pos = nx.kamada_kawai_layout(G)           # requires scipy
+        # pos = nx.random_layout(G)
+        # pos = nx.spectral_layout(G)
         plt.title(p_set)
         cmap = plt.cm.plasma
         ax = plt.gca()
@@ -300,28 +322,36 @@ class Analysis(object):
                                node_color=node_colors,
                                node_size=node_sizes)
         nx.draw_networkx_edges(G, pos,
-                               node_size=node_sizes,
+                               arrows=False,
                                edge_color=edge_colors,
                                edge_cmap=cmap,
-                               width=2)
+                               width=1)
         # Node labels
         nx.draw_networkx_labels(G, pos,
                                 font_size=9,
                                 font_color='indigo',
+                                labels=node_labels,
                                 verticalalignment="top")
         plt.show()
 
-    def show_graph(self,
-                   p_set: str):
+    def analyze_data(self,
+                     p_set: str):
         """Load, scrub and display graph data
 
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
         """
+        # basic gathering and loading
         self.get_json_data(p_set)
-        self.set_nodes(p_set)
-        self.set_edge_types(p_set)
+        self.set_node_names(p_set)
+        self.set_edge_types(p_set, [("people", "groups")])
         self.set_edges(p_set)
+        # selection, display and reporting
+        # self.set_graph(p_set,
+        #                ["Thinker Stanley P. Quinn",
+        #                 "Magister Showan of the Nywing",
+        #                 "Ríkila",
+        #                 "Inn of the Full Moons"])
         self.set_graph(p_set)
-        self.set_colors(p_set)
+        self.report_graph(p_set)
         self.draw_graph(p_set)
