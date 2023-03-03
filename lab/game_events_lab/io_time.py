@@ -13,10 +13,23 @@ All are from perspective of a single time zone that
 encompasses the lands of the game, spread over about 1,600
 square kilometers, located in the northern hemisphere.
 
-Eventually want to alter local time settings in various ways.
 
 Static Values are hard-coded for now.
 Later, abstract them into config class or file.
+
+@DEV:
+- Provide tweaks to alter local time settings in various ways.
+- Provide a way to set a time zone, for example, or to allow
+  for oddball variations in terminology and accuracy.
+- Rather than hard-coding the Moons data, provide an algorithm to
+  compute their mass, rotation, revolution, position, relative
+  to the planet. In any case, have more than two moons.
+- Try to come up with some kind of algorithm to estimate tides
+  on the major shores and river deltas of the game world.
+- Do the same for planets.
+- If really feeling ambitious, do something similar for stars
+  in the local galaxy and galaxies in the local cluster.
+- See ontology lab (universe.py) for ideas.
 """
 
 import pickle

@@ -8,6 +8,11 @@ Requires sudo privs to execute properly.
 Writes bash files to /usr/local/bin
 Launch it by running sudo ./saskan_install from the git project directory,
 e.g. (saskan) ~/../Saskantinon/saskan_install
+
+@DEV:
+- Add/test install of scenes.json in schema.
+- Prototype/test using haproxy to load balance servers.
+- Simplify the proliferation of ports. I shouldn't need so many.
 """
 import json
 

@@ -1,6 +1,28 @@
 #!/bin/python3.6
 """
 Map Maker App
+
+@DEV:
+- Heh! A few years later...
+- Use PyGame, not Tornado, as foundation.
+- Use PyGame, not SVG (for the most part).
+- Use SVG if useful in some cases, but likely
+   can do much the same with Pyame drawing prims.
+- Focus more attention on integrating artwork.
+    - Do drawings, paintings to import.
+    - Play around with Blender more.
+    - Overlay, reiterpret and recombine for game play.
+- See what can be accmoplished using ChatGPT and
+    various AI art generation techniques.
+- Where it makes sense to use services, sure, but
+    don't get too obsessed with that. Try to focus
+    on getting working prototypes.
+- Wrap this under a PyGame "Saksan Game" engine.
+- Create sprites for the various map elements, including
+  characters and non-player characters.
+    - Do little sketches (pencil, pen) of the characters
+- Maybe focus first on tying sprint movement to road
+  locations and then expand from there.
 """
 # pylint: disable=E0401
 # pylint: disable=E0602

@@ -3,6 +3,10 @@
 :module:    saskan_report.py
 :author:    GM (genuinemerit @ pm.me)
 Saskan Admin Report Generator
+
+@DEV:
+- Consider whether it makes sense to move Analysis
+  reporting functions to this module.
 """
 
 # import sys

@@ -11,6 +11,20 @@ This class assumes that graph data describing Nodes and Edges
 related to some topic (see io_graphs.py) has already been parsed
 and saved as pickled files. It uses the *_nodes.pickle file
 to drive the generation of music.
+
+@DEV:
+- Try to extract from all this a core of fairly generric methods
+  I can use to generate a musical theme to associate with any
+  object or event.
+- I should be able to provide certain parameters/constraints:
+    - key, tempo, time signature, etc.
+    - possibly an existing theme or phrase to use as a basis
+    - possibly how many voices to use
+- Ideally, I'd love to be able to integrate with Arturia and
+   other synths, instruments.
+- I'd like to be able to generate both a score and midi file
+- I'd like to also be able to simple say "use this (midi) file"
+  as the theme for (this object or event).
 """
 
 import music21 as m21

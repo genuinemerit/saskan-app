@@ -3,6 +3,12 @@
 :module:    saskantinon.py
 :author:    GM (genuinemerit @ pm.me)
 Saskan App GUI.  pygame version.
+
+@DEV:
+- Add interactive functions calling the Analysis class.
+- Add functions to modify parameters for Analysis graphs, reports.
+- Work on (better) ways of displaying graphs.
+- Work on (better) ways of displaying reports.
 """
 
 import platform

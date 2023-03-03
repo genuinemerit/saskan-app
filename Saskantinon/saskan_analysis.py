@@ -269,6 +269,16 @@ class Analysis(object):
 
         :args:
         - p_set (str): Name of a schema/ontology, e.g. "scenes"
+
+        @DEV:
+        - Integrate analysis into the admin app
+        - Provide interactive options and reports like:
+            - List all nodes, be able to pick a subset
+            - List node-type and edge-type, be able to pick subset
+            - List scenes on a timeline,
+                optionally list selected nodes in each scene
+        - Do NOT try to create an editor for the JSON file,
+            just use a fucking editor. :-)
         """
         print("NODE DEGREES\n=====================")
         G = self.G[p_set]
