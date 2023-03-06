@@ -7,6 +7,7 @@
 Requires sudo privs to execute properly.
 Writes bash files to /usr/local/bin
 Launch it by running sudo ./saskan_install from the git project directory,
+using the "saskan" conda environment.
 e.g. (saskan) ~/../Saskantinon/saskan_install
 
 @DEV:
@@ -459,7 +460,7 @@ www-data    5108    5106  0 18:45 ?        00:00:00 nginx: worker process
                         port,
                         pgm_nm,
                     )
-        result, _ = SR.rpt_jobs("/" + pgm_nm)
+        result, _ = SR.rpt_running_jobs("/" + pgm_nm)
         print("Servers (message brokers) started or restarted:")
         print(result)
 

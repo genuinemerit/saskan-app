@@ -1,25 +1,36 @@
 #!python
 """
-:module:    saskan_analysis.py
+:module:    io_graph.py
 
 :author:    GM (genuinemerit @ pm.me)
 
-Use NetworkX and matplotlib modules to generate diagrams
-useful in understanding and studying the saskan world data.
+Use NetworkX to collect data into nodes/edges for analysis
+as graphs useful in analyzing, studying the saskan world data.
 
 Generate graphs using matplotlib.pyplot and networkx.
-This class has no framework GUI elements.
-Figures generated then saved to a file in the app /save directory.
-It is up to the calling class to display the figure.
+In the saskan_report class.
+
+Currently, graph objects are not saved. Eventually this class
+will be called from Admin, wihch in turn will call report class.
 
 Goals:
 - Load, scrub and analyze data & graphs to help understand:
     - Most heavily referenced Nodes
     - Most heavily referenced Edges
+
+@DEV:
+- Consider whether it makes sense to persist the graph data
+- Passing graph data to the saskan_report module for display
+  is fine, but might be more "micro-service" to store it and
+  not have a direct dependency between classes.
+- Figure out why I can import networkx in this class, but not
+  in saskan_report.py. Seems really weird.
+- Consider whether I really need to use pandas. I think probably
+  for some kinds of analysis, it will be useful. Not really
+  graph data. Maybe rename this to io_analysis or something.
 """
 
-import matplotlib.pyplot as plt         # type: ignore
-import networkx as nx                   # type: ignore
+# import networkx as nx                   # type: ignore
 import pandas as pd                     # type: ignore
 # import pickle
 
@@ -31,12 +42,14 @@ from pprint import pprint as pp         # noqa: F401
 
 from io_file import FileIO              # type: ignore
 from io_shell import ShellIO            # type: ignore
+from saskan_report import SaskanReport  # type: ignore
 
 FI = FileIO()
 SI = ShellIO()
+SR = SaskanReport()
 
 
-class Analysis(object):
+class GraphIO(object):
     """Class for using Networkx Graphing methods.
 
     Define/enable the Networkx graphing functions.
@@ -54,10 +67,6 @@ class Analysis(object):
         self.G = dict()
         self.N = dict()
         self.E = dict()
-        self.NODES = dict()
-        self.NODE_TYPES = dict()
-        self.EDGES = dict()
-        self.EDGE_TYPES = dict()
 
     # Helper functions
     def get_ntype(self,
@@ -82,6 +91,14 @@ class Analysis(object):
                  p_sheet_nm: str = None) -> DataFrame:
         """Get data from a file.
            It can be Excel, ODS, or CSV/TSV
+
+        @DEV:
+        - Eventually point to regular file stores and
+          use FI.get_schema(), as with JSON file.
+        - Consider dropping use of Excel, ODS, CSV files as scheemas;
+          just use JSON (or YAML or OWL) for ontologies.
+        - May want to keep for real heavy-duty Pandas work, as an
+          easy way to save dataframes; but then those can be pickled...
 
         :args:
         - p_file_path (str): Full path to the file.
@@ -238,112 +255,6 @@ class Analysis(object):
                 self.E[p_set]["color"][etyp] = color
         # pp((self.E))
 
-    def set_graph(self,
-                  p_set: str,
-                  p_include: list = None,):
-        """Populate networkx-compatible graph dataset using dataset.
-        - Defining the edges automatically also defines the nodes.
-        - Limiting the graph to a subset of nodes here affects what
-          is reported and displayed by report_graph() and plot_graph().
-        - If no subset is defined, all nodes are included.
-
-        :args:
-        - p_set (str): Name of a schema/ontology, e.g. "scenes"
-        - p_include (list): List of node names to include in graph (optional)
-        """
-        G = nx.MultiDiGraph()
-        for e_list in self.E[p_set]["name"].values():
-            edges = list()
-            for (n1, n2) in e_list:
-                if p_include is None:
-                    edges.append(tuple((n1, n2)))
-                elif n1 in p_include or n2 in p_include:
-                    edges.append(tuple((n1, n2)))
-            G.add_edges_from(edges)
-        self.G[p_set] = G
-        # pp((G.nodes(), G.edges()))
-
-    def report_graph(self,
-                     p_set: str):
-        """Show report of graphed data
-
-        :args:
-        - p_set (str): Name of a schema/ontology, e.g. "scenes"
-
-        @DEV:
-        - Integrate analysis into the admin app
-        - Provide interactive options and reports like:
-            - List all nodes, be able to pick a subset
-            - List node-type and edge-type, be able to pick subset
-            - List scenes on a timeline,
-                optionally list selected nodes in each scene
-        - Do NOT try to create an editor for the JSON file,
-            just use a fucking editor. :-)
-        """
-        print("NODE DEGREES\n=====================")
-        G = self.G[p_set]
-        rpt_data = sorted([(G.degree(n), n, self.get_ntype(p_set, n))
-                           for n in G.nodes()], reverse=True)
-        pp((rpt_data))
-
-    def draw_graph(self,
-                   p_set: str):
-        """Draw graph based on G data.
-
-        :args:
-        - p_set (str): Name of a schema/ontology, e.g. "scenes"
-
-        @DEV:
-        - Explore different layouts (see networkx docs)
-            - See io_graphs for example:
-            pos = nx.kamada_kawai_layout(G)
-        """
-        G = self.G[p_set]
-        node_sizes = [G.degree(n) * 23 for n in G.nodes()]
-        node_labels = {n: f"\n{self.get_ntype(p_set, n)}\n{n}"
-                       for n in G.nodes()}
-        node_colors = [self.N[p_set]["color"][n] for n in G.nodes()]
-        edge_colors = [self.E[p_set]["color"][
-                        (self.get_ntype(p_set, e[0]),
-                         self.get_ntype(p_set, e[1]))].replace("0", "5")
-                       for e in G.edges()]
-        # Folks online tend to recommend graphviz for drawing graphs, but
-        # I could not get graphviz to work with my environment, networkx.
-
-        # See: https://networkx.org/documentation/stable/reference/drawing.html
-
-        # Most of these layouts need or require additional parameters,
-        #  but I am not clear yet on how to set them usefully.
-
-        # Ones I prefer so far are marked with a "# *" comment.
-        pos = nx.spiral_layout(G)                   # *
-        # pos = nx.spring_layout(G, seed=13648)     # *
-        # pos = nx.circular_layout(G)               # *
-        # pos = nx.shell_layout(G)                  # *
-        # pos = nx.kamada_kawai_layout(G)           # requires scipy
-        # pos = nx.random_layout(G)
-        # pos = nx.spectral_layout(G)
-        plt.title(p_set)
-        cmap = plt.cm.plasma
-        ax = plt.gca()
-        ax.set_axis_off()
-        nx.draw_networkx_nodes(G, pos,
-                               linewidths=1,
-                               node_color=node_colors,
-                               node_size=node_sizes)
-        nx.draw_networkx_edges(G, pos,
-                               arrows=False,
-                               edge_color=edge_colors,
-                               edge_cmap=cmap,
-                               width=1)
-        # Node labels
-        nx.draw_networkx_labels(G, pos,
-                                font_size=9,
-                                font_color='indigo',
-                                labels=node_labels,
-                                verticalalignment="top")
-        plt.show()
-
     def analyze_data(self,
                      p_set: str):
         """Load, scrub and display graph data
@@ -357,11 +268,15 @@ class Analysis(object):
         self.set_edge_types(p_set, [("people", "groups")])
         self.set_edges(p_set)
         # selection, display and reporting
+        # Consider whether set_graph() belongs in saskan_report.py
+
         # self.set_graph(p_set,
         #                ["Thinker Stanley P. Quinn",
         #                 "Magister Showan of the Nywing",
         #                 "Ríkila",
         #                 "Inn of the Full Moons"])
-        self.set_graph(p_set)
-        self.report_graph(p_set)
-        self.draw_graph(p_set)
+        G = SR.set_graph(self.E[p_set],
+                         ["Thinker Stanley P. Quinn"])
+        # G = SR.set_graph(self.N[p_set], self.E[p_set])
+        SR.report_degrees(p_set, G, self.N[p_set])
+        SR.draw_graph(p_set, G, self.N[p_set], self.E[p_set])

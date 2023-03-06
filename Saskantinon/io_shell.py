@@ -58,7 +58,7 @@ class ShellIO(object):
                   p_job_nm: str):
         """Kill jobs matching job name param.
         """
-        _, running_jobs = SR.rpt_jobs(p_job_nm.strip())
+        _, running_jobs = SR.rpt_running_jobs(p_job_nm.strip())
         for job in running_jobs:
             job_pid = job.split()[1].strip()
             _, _ = self.run_cmd(f"kill -9 {job_pid}")

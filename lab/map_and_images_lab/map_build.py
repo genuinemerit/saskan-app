@@ -23,6 +23,8 @@ Map Maker App
     - Do little sketches (pencil, pen) of the characters
 - Maybe focus first on tying sprint movement to road
   locations and then expand from there.
+- For example, provide simple functions to determine
+  travel time between towns.
 """
 # pylint: disable=E0401
 # pylint: disable=E0602

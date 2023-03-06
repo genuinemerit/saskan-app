@@ -4,20 +4,20 @@
 
 :author:    GM (genuinemerit @ pm.me)
 
-Prototype definitions of astronomical events
+Prototype definitions of astro-temporal events
 in a game world's local star system. Define calendars
 for the passage of time, including era, epoch, year,
 season, month, day, noon, midnight, sunrise, sunset,
-phases of two moons, timing of planetary conjunctions.
-All are from perspective of a single time zone that
+phases of moons, timing of planetary conjunctions.
+Currently a single time zone that
 encompasses the lands of the game, spread over about 1,600
 square kilometers, located in the northern hemisphere.
 
 
-Static Values are hard-coded for now.
-Later, abstract them into config class or file.
-
 @DEV:
+- Static Values were hard-coded in first prototype.
+    - Abstract them into a combo of config JSON file +
+      algo-driven data.
 - Provide tweaks to alter local time settings in various ways.
 - Provide a way to set a time zone, for example, or to allow
   for oddball variations in terminology and accuracy.
@@ -27,9 +27,16 @@ Later, abstract them into config class or file.
 - Try to come up with some kind of algorithm to estimate tides
   on the major shores and river deltas of the game world.
 - Do the same for planets.
+- All of this implies brings a geo data set into the mix.
+    - May be useful to use io_graphs to visualize the geo data.
 - If really feeling ambitious, do something similar for stars
   in the local galaxy and galaxies in the local cluster.
-- See ontology lab (universe.py) for ideas.
+- See ontology lab (universe.py, region.py) for ideas.
+- See map_build.py and other prototype modules for ideas.
+- See schema/places_data.ods for ideas about data.
+- Try to use accurate-ish formulae for the calculations,
+  but don't get too wrapped up in it. The point is to have
+  something that is amusing and fun to play with.
 """
 
 import pickle
@@ -38,19 +45,23 @@ from dataclasses import dataclass   # fields
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
 
-from sandbox.io_config import ConfigIO          # type: ignore
+# from io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
 
-CI = ConfigIO()
+# CI = ConfigIO()
 FI = FileIO()
 
 
 class TimeIO(object):
-    """Class for Calendar-related data and methods
-    for the star/planet system Faton/Gavor.
+    """Class for Calendar-related data and methods.
+    Includes astronomical data as well as temporal/calendrical
+    data and algorithms. It necessarily intersects with geographical
+    data as well in some respects.
+
+    Eventually will want to kind of align it to an io_geo or
+    saskan_mapping class.
     """
-    def __init__(self,
-                 p_db_nm: str):
+    def __init__(self):
         """Manage time, calendar and astronomical data.
         Store data in a pickled dict: CALENDAR_DB.
 
@@ -63,24 +74,89 @@ class TimeIO(object):
             - Generic name of time data file object
             - Example: "time_data"
         """
-        self.CAL_DB = dict()
+        self.S_CAL: dict = dict()
+        self.S_SEASON: dict = dict()
+        self.S_ASTRO: dict = dict()
+        self.S_GEO: dict = dict()
 
     @dataclass
-    class COLOR:
-        """Define CLI colors.
-
-        Probably move to a genreric helper class.
+    class C():
+        """Values used to do various computations using
+        a variety of units and formulae.
         """
-        BLUE = '\033[94m'
-        BOLD = '\033[1m'
-        CYAN = '\033[96m'
-        DARKCYAN = '\033[36m'
-        END = '\033[0m'
-        GREEN = '\033[92m'
-        PURPLE = '\033[95m'
-        RED = '\033[91m'
-        YELLOW = '\033[93m'
-        UNDERLINE = '\033[4m'
+        # weight, mass - metric/imperial
+        KG_TO_LB = 2.20462262185     # kilos -> pounds
+        LB_TO_KG = 0.45359237        # pounds -> kilos
+        G_TO_KG = 0.001              # grams -> kilos
+        KG_TO_G = 1000.0             # kilos -> grams
+        # distance - metric/imperial
+        MM_TO_CM = 0.1               # millimeters -> centimeters
+        CM_TO_MM = 10.0              # centimeters -> millimeters
+        MM_TO_IN = 0.03937007874     # millimeters -> inches
+        IN_TO_MM = 25.4              # inches -> millimeters
+        CM_TO_IN = 0.3937007874      # centimeters -> inches
+        IN_TO_CM = 2.54              # inches -> centimeters
+        CM_TO_M = 0.01               # centimeters -> meters
+        M_TO_CM = 100.0              # meters -> centimeters
+        FT_TO_IN = 12.0              # feet -> inches
+        IN_TO_FT = 0.08333333333     # inches -> feet
+        M_TO_FT = 3.280839895        # meters -> feet
+        FT_TO_M = 0.3048             # feet -> meters
+        M_TO_KM = 0.001              # meters -> kilometers
+        KM_TO_MI = 0.62137119223733  # kilometers -> miles
+        MI_TO_KM = 1.609344          # miles -> kilometers
+        NM_TO_MI = 1.150779448       # nautical miles -> miles
+        MI_TO_NM = 0.868976242       # miles -> nautical miles
+        NM_TO_KM = 1.852             # nautical miles -> kilometers
+        KM_TO_NM = 0.539956803       # kilometers -> nautical miles
+        # distance - saskan/metric
+        CM_TO_NOB = 0.64             # centimeters -> nobs
+        MM_TO_NOB = 0.0064           # millimeters -> nobs
+        IN_TO_NOB = 2.56             # inches -> nobs
+        NOB_TO_IN = 0.390625         # nobs -> inches
+        NOB_TO_MM = 156.25           # nobs -> millimeters
+        NOB_TO_CM = 1.5625           # nobs -> centimeters
+        TWA_TO_M = 1.00              # twas -> meters
+        M_TO_NOB = 64.0              # meters -> nobs
+        TWA_TO_NOB = 64.0            # twas -> nobs
+        THWAB_TO_TWA = 64.0          # thwabs -> twas
+        TWA_TO_THWAB = 0.015625      # twas -> thwabs (1/64th)
+        THWAB_TO_M = 64.0            # thwabs -> meters
+        M_TO_THWAB = 0.015625        # meters -> thwabs (1/64th)
+        KATA_TO_THWAB = 4.0          # kata -> thwabs
+        THWAB_TO_KATA = 0.25         # thwabs -> kata
+        KATA_TO_M = 256.0            # kata -> meters
+        KATA_TO_KM = 0.256           # kata -> kilometers
+        KATA_TO_MI = 0.159           # ktaa -> miles
+        GAWO_TO_KATA = 4.0           # gawos -> kata
+        GAWO_TO_M = 1024.0           # gawos -> meters
+        GAWO_TO_KM = 1.024           # gawos -> kilometers
+        GABO_TO_MI = 0.636           # gabos -> miles
+        YUZA_TO_GABO = 4.0           # yuzas -> gabos
+        YUZA_TO_M = 4096.0           # yuzas -> meters
+        YUZA_TO_KM = 4.096           # yuzas -> kilometers
+        YUZA_TO_MI = 2.545           # yuzas -> miles
+        # astronomical units
+        AU_TO_KM = 149597870.7        # astronomical units -> km
+        KM_TO_AU = 0.000006684587122  # kilometers -> astro units
+        LY_TO_AU = 63241.0771         # light years -> astro units
+        AU_TO_LY = 0.00001581250799   # astro units -> light years
+        LS_TO_AU = 499.004783676      # light seconds -> astro units
+        AU_TO_LS = 0.002004004004     # astro units -> light seconds
+        LM_TO_AU = 0.00000000000002   # light minutes -> astro units
+        AU_TO_LM = 52596000000000000  # astro units -> light minutes
+        LS_TO_LM = 0.000000000000105  # light seconds -> light minutes
+        LM_TO_LS = 9460730472580800   # light minutes -> light seconds
+        LY_TO_LM = 52596000000000000  # light years -> light minutes
+        LM_TO_LY = 0.000000000000019  # light minutes -> light years
+        PC_TO_LY = 0.000000000000000  # parsecs -> light years
+        LY_TO_PC = 0.000000000000000  # light years -> parsecs
+        KPC_TO_PC = 1000.0            # kiloparsecs -> parsecs
+        PC_TO_KPC = 0.001             # parsecs -> kiloparsecs
+        KPC_TO_MPC = 1000.0           # kiloparsecs -> megaparsecs
+        MPC_TO_KPC = 0.001            # megaparsecs -> kiloparsecs
+        GPC_TO_MPC = 1000.0           # gigaparsecs -> megaparsecs
+        MPC_TO_GPC = 0.001            # megaparsecs -> gigaparsecs
 
     @dataclass
     class CAL:
@@ -471,7 +547,7 @@ class TimeIO(object):
         pp(planets)
 
     def lunar_phases(self,
-                     p_lunar_obj: object,
+                     p_lunar_obj,
                      p_planet_nm: str,
                      p_moon_nm: str):
         """Compute the phases of a moon. The new, quarter,
@@ -547,14 +623,14 @@ class TimeIO(object):
         """
         sag_start = {
             "season":
-                self.CAL.CALENDAR["SAG"]["year"]["start"]["season"],
+                self.S_CAL["SAG"]["year"]["start"]["season"],
             "event":
-                self.CAL.CALENDAR["SAG"]["year"]["start"]["event"],
+                self.S_CAL["SAG"]["year"]["start"]["event"],
             "day": 1,
-            "time": self.CAL.CALENDAR["SAG"]["day"]["start"]
+            "time": self.S_CAL["SAG"]["day"]["start"]
         }
         cal_start = {
-            "year": self.CAL.CALENDAR[p_cal_nm]["year"]["zero"],
+            "year": self.S_CAL[p_cal_nm]["year"]["zero"],
             "month_count": None,
             "day_count": None,
             "month_day": None,
@@ -569,12 +645,12 @@ class TimeIO(object):
         # Lunar and Stellar calendars are based on conjuctions.
         # In game world, the era started with full conjuctions, so
         # they always start on day #1 of the year.
-        cal_y_start = self.CAL.CALENDAR[p_cal_nm]["year"]["start"]
+        cal_y_start = self.S_CAL[p_cal_nm]["year"]["start"]
         if "season" in cal_y_start:
             cal_start["season"] = cal_y_start["season"]
             days_before_winter =\
-                self.CAL.SEASON[cal_start["season"]]["rel"]["reverse"] *\
-                self.CAL.SEASON["days"]
+                self.S_SEASON[cal_start["season"]]["rel"]["reverse"] *\
+                self.S_SEASON["days"]
             cal_start["day_count"] = int(round(sag_start["day"] +
                                          days_before_winter))
         elif "event" in cal_y_start and cal_y_start["event"] == "full":
@@ -585,7 +661,7 @@ class TimeIO(object):
             cal_start["day_count"] = cal_y_start["day"]
         else:
             print("No explicit start day found....")
-            pp(self.CAL.CALENDAR[p_cal_nm])
+            pp(self.S_CAL[p_cal_nm])
         # Set the season to match the SAG calendar.
         cal_start["season"] = sag_start["season"]
         # Non-SQG day-starts occur AFTER SAG day start time of midnight.
@@ -595,8 +671,8 @@ class TimeIO(object):
         # - insert_month, @month_index
         # - extend_month, @month_index <-- this is the only one relevant.
         #   Other two are not affected by year-zero algo.
-        cal_months = self.CAL.CALENDAR[p_cal_nm]["months"]
-        cal_leap = self.CAL.CALENDAR[p_cal_nm]["leap"]
+        cal_months = self.S_CAL[p_cal_nm]["months"]
+        cal_leap = self.S_CAL[p_cal_nm]["leap"]
         extend_month = None
         if cal_months is not None:
             if cal_leap is not None and cal_start["year"] > 1 and\
@@ -615,12 +691,10 @@ class TimeIO(object):
                     cal_start["month_day"] = day_count
                     break
 
-        return(self.CAL.CALENDAR[p_cal_nm]["name"], cal_start)
-
-    ## >> Pick up here...
+        return(self.S_CAL[p_cal_nm]["name"], cal_start)
 
     def get_day_part(self,
-                     p_day_t: float):
+                     p_day_t):
         """Determine if time/day clock starts before or after noon, etc.
 
         :args: p_day_t (float): time of day, as decimal portion of day
@@ -633,7 +707,7 @@ class TimeIO(object):
 
     def get_day_hour(self,
                      p_cal_nm: str,
-                     p_day_t: float):
+                     p_day_t):
         """Convert hour of the day, for specified calendar, with
         respect to "standard" day start time of Midnight.
 
@@ -643,7 +717,7 @@ class TimeIO(object):
         """
         # For day starting at midnight:
         hour = int(p_day_t / self.CAL.PARTS["day"]["duration"]["hour"])
-        day_start = self.CAL.CALENDAR[p_cal_nm]["day"]["start"]
+        day_start = self.S_CAL[p_cal_nm]["day"]["start"]
         if day_start == "sunrise":
             hour -= 6
         elif day_start == "noon":
@@ -671,8 +745,8 @@ class TimeIO(object):
         return watch
 
     def get_date_time(self,
-                      p_day_n: float,
-                      p_roll_n: float = 0.0):
+                      p_day_n,
+                      p_roll_n=0.0):
         """Compute the date from the day number.
         If only day num provided, return that date.
         If roll number, then return day num plus roll num date.
@@ -734,9 +808,9 @@ class TimeIO(object):
         """
         if p_day_n not in self.CAL_DB:
             sag_year = int((p_day_n / 366.33) +
-                           self.CAL.CALENDAR["SAG"]["year"]["zero"])
+                           self.S_CAL["SAG"]["year"]["zero"])
             self.CAL_DB[p_day_n] = dict()
-            for cal_nm in self.CAL.CALENDAR.keys():
+            for cal_nm in self.S_CAL.keys():
                 day_time = p_day_n % 1
                 day_part = self.get_day_part(day_time)
                 day_hour = self.get_day_hour(cal_nm, day_time)
