@@ -91,6 +91,7 @@ class SaskanReport(object):
                 cmd_rc = True
         return (cmd_rc, cmd_result.decode('utf-8').strip())
 
+    # System monitoring reports
     def rpt_ufw_status(self):
         """Get UFW status.
         """
@@ -107,7 +108,7 @@ class SaskanReport(object):
         running_jobs = result.split("\n")
         return (result, running_jobs)
 
-    # Helper functions
+    # Graph data functions
     def get_ntype(self,
                   p_N: dict,
                   p_node_nm: str):
@@ -149,14 +150,62 @@ class SaskanReport(object):
             G.add_edges_from(edges)
         return G
 
-    def report_degrees(self,
-                       p_title: str,
-                       p_G,
-                       p_N: dict):
+    def get_nodes_in_type(self,
+                          p_N: dict,
+                          p_type_nm: str):
+        """Return list of nodes in a given node type.
+
+        :args:
+        - p_N (dict): additional nodes metadata for graph object
+        - p_title (str): Name of a schema/ontology, e.g. "scenes"
+        - p_node_nm (str): Node name.
+        """
+        nodes = []
+        if p_type_nm in p_N["name"]:
+            nodes = p_N["name"][p_type_nm]
+        return {p_type_nm: nodes}
+
+    def get_edges_for_nodes(self,
+                            p_E: dict,
+                            p_edge_nm: tuple,
+                            p_node_vals: list):
+        """List all nodes in a given edge for the set of
+        rqeuested node values. It is assumed that the node value list
+        is associated with node name 1.
+
+        :args:
+        - p_E (dict): additional edge metadata for graph object
+        - p_edge_nm (tuple): (node name 1, node name 2)
+        - p_node_vals (list): list of node values for node name 1
+        """
+        # pp((p_E))
+        # print(f"p_edge_nm: {p_edge_nm}")
+        reverse_edge = False
+        nodes_d: dict = {}
+        if p_edge_nm not in p_E["types"]:
+            reverse_edge = True
+            p_edge_nm = tuple(reversed(p_edge_nm))
+        if p_edge_nm in p_E["types"]:
+            if reverse_edge:
+                nodes = sorted([tuple(reversed(edge))
+                                for edge in p_E["name"][p_edge_nm]])
+            else:
+                nodes = p_E["name"][p_edge_nm]
+            nodes = [n for n in nodes if n[0] in p_node_vals]
+            for n in nodes:
+                if n[0] not in nodes_d.keys():
+                    nodes_d[n[0]] = []
+                nodes_d[n[0]].append(n[1])
+        return nodes_d
+
+    def get_degrees(self,
+                    p_set_nm: str,
+                    p_G,
+                    p_N: dict):
         """Show report of degrees for graphed nodes.
 
         :args:
-        - p_title (str): Title for report, usually the name of the graph set
+        - p_set_nm (str): Name of the graph set
         - p_G (nx.MultiDiGraph()): networkx graph object
         - p_N (dict): additional node metadata for graph object
 
@@ -171,10 +220,9 @@ class SaskanReport(object):
             just use a fucking editor. :-)
         - Parameterize report options
         """
-        print(f"{p_title}\n=====================")
         rpt_data = sorted([(p_G.degree(n), n, self.get_ntype(p_N, n))
                            for n in p_G.nodes()], reverse=True)
-        pp((rpt_data))
+        return ({f"degrees for {p_set_nm}": rpt_data})
 
     def draw_graph(self,
                    p_title: str,

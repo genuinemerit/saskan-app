@@ -276,7 +276,18 @@ class GraphIO(object):
         #                 "Ríkila",
         #                 "Inn of the Full Moons"])
         G = SR.set_graph(self.E[p_set],
-                         ["Thinker Stanley P. Quinn"])
+                         ["Thinker Stanley P. Quinn",
+                          "Birikay Riverwaq",
+                          "Magister Showan of the Nywing"])
         # G = SR.set_graph(self.N[p_set], self.E[p_set])
-        SR.report_degrees(p_set, G, self.N[p_set])
-        SR.draw_graph(p_set, G, self.N[p_set], self.E[p_set])
+        pp((SR.get_nodes_in_type(self.N[p_set], "people")))
+        pp((SR.get_edges_for_nodes(self.E[p_set],
+                                   ("people", "scene"),
+                                   ['Thinker Stanley P. Quinn',
+                                    'Magister Showan of the Nywing'])))
+        pp((SR.get_edges_for_nodes(self.E[p_set],
+                                   ("scene", "people"),
+                                   ['001 Full Moons Rising',
+                                    '003 Full Moons Waning'])))
+        pp((SR.get_degrees(p_set, G, self.N[p_set])))
+        # SR.draw_graph(p_set, G, self.N[p_set], self.E[p_set])

@@ -1,6 +1,8 @@
 {"scenes": [
+
 	{"scene":["001 Full Moons Rising"],
-	 "people":["Thinker Stanley P. Quinn",
+	 "people":["Azron Gurk",
+	 		   "Thinker Stanley P. Quinn",
 	 		   "Magister Showan of the Nywing",
 	 		   "High Magister Showna of the Nywing",
 			   "Waleran Tanaraka",
@@ -15,6 +17,7 @@
 				"Inn of the Full Moons"],
      "time":["4934.138"]
 	},
+
 	{"scene": ["002 Splendid Boys"],
   	 "people":["Thinker Stanley P. Quinn",
 	 		   "Magister Showan of the Nywing",
@@ -28,6 +31,7 @@
  	 "time":["4933.95",
 	         "4934.145"]
 	},
+
 	{"scene": ["003 Full Moons Waning"],
   	 "people":["B'arqo Songcatcher",
 	 		   "Magister Showan of the Nywing",
@@ -44,6 +48,7 @@
 	         "4934.140",
 	         "4934.145"]
 	},
+
 	{"scene": ["004 Trees Are Falling"],
   	 "people":["Iohane Rider",
 	 		   "Henqu Rider",
@@ -56,6 +61,7 @@
 			   "Qurol"],
  	 "time":["4934.148"]
 	},
+
 	{"scene": ["005 A River of Songs"],
   	 "people":["Iohane Rider",
 	 		   "Henqu Rider",
@@ -70,6 +76,7 @@
 	 		   "Beshquohuk"],
  	 "time":["4934.153"]
 	},
+
 	{"scene": ["006 Enclosures"],
   	 "people":["Iohane Rider",
 	 		   "Henqu Rider",
@@ -85,6 +92,7 @@
 	 		   "Beshquohuk"],
  	 "time":["4934.167"]
 	},
+
 	{"scene": ["007 Breaking the Rules"],
   	 "people":["Bu'ruq'arík",
 	 		   "Mu'ray'aingr",
@@ -97,6 +105,7 @@
      "places":["Kahilakol"],
  	 "time":["4934.167"]
 	},
+
 	{"scene": ["008 Legends of Massachawa"],
   	 "people":["Bu’ruq'arík",
 	 		   "Mu'ray'aingr",
@@ -109,6 +118,7 @@
 			   "Agency Spaceship"],
  	 "time":["4934.167"]
 	},
+
 	{"scene": ["009 All is Possible"],
   	 "people":["Birikay Riverwaq",
 	           "Magister Showan of the Nywing",
@@ -136,6 +146,7 @@
 			   "Krbsh Sea"],
  	 "time":["4934.170"]
 	},
+
 	{"scene": ["010 Into the Nye"],
   	 "people":["Maatsuuv",
 	 		   "Malavorra, the Jexan Mother",
@@ -151,5 +162,57 @@
 		 	   "Barbol",
 			   "Wye"],
  	 "time":["4934.173"]
+	},
+
+	{"scene": ["011 Wordly Immortals"],
+  	 "people":["Magister Showan of the Nywing",
+	   		   "Birikay Riverwaq",
+			   "Thinker Stanley P. Quinn",
+			   "Ramona'aarql",
+			   "Azron Gurk",
+			   "Mike Moballeq",
+			   "Remanj Jaxen"],
+	 "groups": [],
+     "places":["Byenung",
+			   "Wye",
+			   "Selaron",
+		 	   "Mobalbesq villages"],
+ 	 "time":["4920.52",
+			 "4934.175"]
+	},
+
+	{"scene": ["012 Cool Waters"],
+  	 "people":["Bu'ruq'arík",
+	   		   "Mu'ray'aingr",
+	  		   "Monmar Massachawa",
+			   "Thinker Stanley P. Quinn"],
+	 "groups": ["Elders of Juuj",
+			    "down unders"],
+     "places":["Juuj"],
+ 	 "time":["4934.168"]
+	},
+
+	{"scene": ["013 Deep Dive"],
+  	 "people":["Thinker Stanley P. Quinn",
+		       "Tonedo Remper",
+			   "Lohrn Meyajoq"],
+	 "groups": ["Elders of Juuj"],
+     "places":["Juuj"],
+ 	 "time":["4934.169"]
+	},
+
+	{"scene": ["014 Blessed Fire"],
+  	 "people":["Iohane Rider",
+	           "Henqu Rider",
+			   "Monmar Massachawa",
+			   "Waleran Tanaraka",
+			   "Bu'ruq'arík",
+			   "Mu'ray'aingr",
+			   "Birikay Riverwaq",
+		       "Tonedo Remper",
+			   "Lohrn Meyajoq"],
+	 "groups": ["High Council of Beshquohuk"],
+     "places":["Beshquohuk"],
+ 	 "time":["4934.172"]
 	}
 ]}

@@ -9,9 +9,13 @@ in a game world's local star system. Define calendars
 for the passage of time, including era, epoch, year,
 season, month, day, noon, midnight, sunrise, sunset,
 phases of moons, timing of planetary conjunctions.
+
 Currently a single time zone that
-encompasses the lands of the game, spread over about 1,600
-square kilometers, located in the northern hemisphere.
+encompasses the lands of the game, spread over 2182031 km^2.
+(1660 km east-west, 1310 km north-south), located in the
+northern hemisphere. So, two major time zones would be
+appropriate. And given the low technology level, more
+local and regional variations would be appropriate.
 
 
 @DEV:
@@ -29,6 +33,8 @@ square kilometers, located in the northern hemisphere.
 - Do the same for planets.
 - All of this implies brings a geo data set into the mix.
     - May be useful to use io_graphs to visualize the geo data.
+    - Use the places spreadsheet as a starting point, but store
+      as JSON this time.
 - If really feeling ambitious, do something similar for stars
   in the local galaxy and galaxies in the local cluster.
 - See ontology lab (universe.py, region.py) for ideas.
@@ -39,6 +45,7 @@ square kilometers, located in the northern hemisphere.
   something that is amusing and fun to play with.
 """
 
+import json
 import pickle
 
 from dataclasses import dataclass   # fields
@@ -136,6 +143,11 @@ class TimeIO(object):
         YUZA_TO_M = 4096.0           # yuzas -> meters
         YUZA_TO_KM = 4.096           # yuzas -> kilometers
         YUZA_TO_MI = 2.545           # yuzas -> miles
+        # distance, geographical to metric
+        DG_LAT_TO_KM = 111.2           # degree of latitutde -> kilometers
+        KM_TO_DG_LAT = 0.00898315284   # kilometers -> degree of latitude
+        DG_LONG_TO_KM = 111.32         # degree of longitude -> kilometers
+        KM_TO_DG_LONG = 0.00898311175  # kilometers -> degree of longitude
         # astronomical units
         AU_TO_KM = 149597870.7        # astronomical units -> km
         KM_TO_AU = 0.000006684587122  # kilometers -> astro units
@@ -462,6 +474,202 @@ class TimeIO(object):
                             "zero": -2862},
                      "leap": None}}
 
+    @dataclass
+    class M():
+        """Map dimensions
+        """
+        km_per_grid: float = 43.75
+        dg_per_grid_NS: float = 0.393
+        dg_per_grid_WE: float = 0.397
+        dg_north_edge: float = 37.69
+        dg_west_edge: float = -106.65
+
+    def get_map_dim(self,
+                    p_map_w: float,
+                    p_map_h: float,
+                    p_map_n_offset: float,
+                    p_map_w_offset: float) -> tuple:
+        """Return map dimensions.
+        This is used to compute dimensions for a rectangular
+        map segment contained within a large map grid.
+        Use default values to compute km-sq and
+        degrees for a the map segment.
+        It assumes (for now) that the map segment is
+        located in the northern hemisphere and east of
+        zero degrees longitude.
+
+        :args:
+        - p_map_w (float) - map width in grid squares
+        - p_map_h (float) - map height in grid squares
+        - p_map_n_offset (float) - map grids from north edge
+        - p_map_w_offset (float) - map grids from west edge
+
+        :returns:
+        - map_dim (tuple (dict, str)) - map dimensions (dict, json)
+        """
+        map_dim = {"map": {
+            "rect": {
+                "e_w_km": p_map_w * self.M.km_per_grid,
+                "n_s_km": p_map_h * self.M.km_per_grid},
+            "degrees": {
+                "n_lat": round(self.M.dg_north_edge -
+                               (p_map_n_offset *
+                                self.M.dg_per_grid_NS), 3),
+                "s_lat": round(self.M.dg_north_edge -
+                               (p_map_n_offset *
+                                self.M.dg_per_grid_NS) -
+                               (p_map_h * self.M.dg_per_grid_NS), 3),
+                "w_long": round(self.M.dg_west_edge +
+                                (p_map_w_offset * self.M.dg_per_grid_WE), 3),
+                "e_long": round(self.M.dg_west_edge +
+                                (p_map_w_offset * self.M.dg_per_grid_WE) +
+                                (p_map_w * self.M.dg_per_grid_WE), 3)
+                }}}
+        return (map_dim, json.dumps(map_dim))
+
+    def define_universe(self):
+        """Define universe. Drawing on some of the concepts in the old
+        'universe.py' module (see ontology_lab), concepts in
+        defining the game space include the following. This grand scheme
+        for context may be overkill, but it could also be useful for
+        when game play expands to include other galaxies, universes, etc..
+
+        - Total Universe (TU): a sphere measured in gigaparsecs, the
+          largest possible unit I have defined.
+          The diameter of the known universe is about 28.5 gigaparsecs;
+          radius is 14.25 gigaparsecs. This will be fairly constant,
+          with only minor changes for each generation, and will fluctuate
+          as the universe expands.
+
+          Age of the TU is 13.787±0.020 billion years, give or take, with
+          only Agency calendars going back more than 4,000 Gavoran years
+          or so.
+
+          For unit measurement conversions, see the 'C' dataclass.
+
+          The origin point at the center of the sphere is where this known
+          universe began, its big bang point. Or in game terms, where the
+          last game universe ended and a new one began.
+
+          It is exapanding in all directions at a rate of 73.3 kilometers
+          per second per megaparsec.
+
+          Dark Energy comprisees 68.3% of the universe, Dark Matter 27.4%,
+          remaining 4.3% is baryonic matter (stars, planets, life, etc.).
+
+          The area of a sphere is 4 * Pi * radius squared (4 * pi * r**2).
+
+          The distance between two points (x1, y1), (x2, y2) on a plane is:
+          the square root of (x2 - x1) squared plus (y2 - y1) squared,
+          that is:  sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+          The distance between two points in xyz-space is square root of
+          sum of the squares of the differences between coordinates.
+          That is,
+            given P1 = (x1,y1,z1) and P2 = (x2,y2,z2),
+            the distance between P1 and P2 is given by
+            d(P1,P2) = sqrt ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2).
+
+         A common measure of mass is the solar mass, which is the mass of
+         our Sun, Sol. In the game world, of Fatun. In either case, it
+         is unit. The mass of the Sun is 1.9891 x 10^30 kg. But one solar
+         mass is 1.0.
+
+        - External Universe (XU): section(s) of TU that is not playable;
+          no detailed star systems.  Simulate some forces, movement,
+          but not any inhabited systems.
+
+        - Internal Universe (IU): section(s) of TU that is playable;
+          should be no larger than a galactic cluster, but preferably
+          one galaxy or smaller.
+
+        - Simulated Universe (SU): section(s) of IU where start systems
+          and planets are simulated. Preferbly quite small. May eventually
+          want to have scaled SU's.
+
+          The SU should be about 1/3 of the way to a galactic core. Any
+          closer and destruction by supernovae is likely.  Star systems
+          expected to have life-bearing planets should include at least
+          two gas giants, not just one, so that they can tug on each other
+          and prevent the rocky planets from being sucked into the sun
+          along with the gas giant.
+
+          The sun should be relatively small but large enough to warm
+          the inner planets.  The sun should be a yellow dwarf, not a
+          red dwarf, so that it can support life.
+        """
+        pass
+
+    def define_galactic_cluster(self):
+        """Define galactic cluster (GC) inside an IU structure.
+        """
+        pass
+
+    def define_galaxy(self):
+        """Define galaxy (GX) inside a GC structure.
+
+        Galaxies in the SU need to be suitably distant from each other.
+        Galactic collisions/mergers are common in the TU, but would be
+        problematic in the SU.
+        """
+        pass
+
+    def define_star(self):
+        """Define star/sun (SE) inside a GX structure.
+
+        Stars in the SU need to be yellow dwarfs, and located towards
+        the outer edge of the galaxy.
+        """
+        pass
+
+    def define_planet(self):
+        """Define planet (PL) inside a SE structure.
+        Large heavenly bodies that orbit a star.
+
+        Within a start system, planets or satellites capable of not only
+        sustaining but generating life are rare.  Commonly rocky, with
+        a thin atmosphere, and a solid surface & molten core.
+        The surface usually includes copious amounts of water.
+
+        On the inner part of the system, not too hot, not too cold.
+        """
+        pass
+
+    def define_satellite(self):
+        """Define satellite (moon or other) (ST) inside a PL structure.
+        Objects with a fixed orbit around a planet.
+        """
+        pass
+
+    def define_second(self):
+        """
+        cesium-133 which vibrates exactly 9,192,631,770 times per second.
+        That is a meausrement of frequency which could be reproduced
+        anywhere in the universe. But it is still culturally-bound in
+        that the second itself is derived from the planet Earth's
+        relationship to it Sun.
+
+        Time dilation is a phenomenon that occurs when a reference
+        frame is moving relative to another reference frame. In the
+        case of very fast travel, especially near the speed of light,
+        time itself will slow down for the traveler. Also, space-time
+        is curved in gravity wells like solar systems.
+
+        Meausuring the rate of pulsar pulses is also very reliable,
+        and is the basis for some navigation systems. Not all pulsars
+        have the same frequency, but they are all very regular.
+        See: https://link.springer.com/article/10.1007/s11214-017-0459-0
+
+        Although observing and correctly measuring the frequency of the
+        pulses of a pulsar is technolgically complex, it is very accurate
+        and has been proposed as a superior method of timekeeping for
+        autonomous spacecraft navigation.  A reference location (that is,
+        a particular mature rotation-based pulsar) must be selected.
+        This could be the basis for a universal time standard,
+        a "celestial clock" that is used by the Agency.
+        """
+        pass
+
     def set_file_name(self,
                       p_db_nm: str):
         """Return full name of calendar DB file.
@@ -603,7 +811,7 @@ class TimeIO(object):
             "moons": {
                 "Endor": 16.05,
                 "Sella": 11.75}}
-        return(zero_point_orbits)
+        return (zero_point_orbits)
 
     def year_zero(self,
                   p_cal_nm: str):
@@ -691,7 +899,7 @@ class TimeIO(object):
                     cal_start["month_day"] = day_count
                     break
 
-        return(self.S_CAL[p_cal_nm]["name"], cal_start)
+        return (self.S_CAL[p_cal_nm]["name"], cal_start)
 
     def get_day_part(self,
                      p_day_t):
