@@ -24,12 +24,16 @@ dependencies:
   - matplotlib
   - nltk
   - Levenshtein
+  - networkx
 
 # May be added later:
 #  - odfpy
 
 # Required at OS level:
 # - netstat (via net-tools installed with apt-get)
+
+# Suggested for trying to do graphviz with networkx
+# - graphviz gsfonts (via apt-get)
 
 # 2021-10-10  11:00
 # Path: saskan.yml

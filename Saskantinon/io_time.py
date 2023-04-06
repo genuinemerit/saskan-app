@@ -5,17 +5,16 @@
 :author:    GM (genuinemerit @ pm.me)
 
 Prototype definitions of astro-temporal events
-in a game world's local star system. Define calendars
+in game world's local star system. Define calendars
 for the passage of time, including era, epoch, year,
 season, month, day, noon, midnight, sunrise, sunset,
 phases of moons, timing of planetary conjunctions.
 
-Currently a single time zone that
-encompasses the lands of the game, spread over 2182031 km^2.
+A single time zone encompasses the lands, spread over 2182031 km^2.
 (1660 km east-west, 1310 km north-south), located in the
-northern hemisphere. So, two major time zones would be
-appropriate. And given the low technology level, more
-local and regional variations would be appropriate.
+northern hemisphere. Two major time zones would be better.
+Given the low technology level, more local and regional variations
+would be entirely appropriate.
 
 
 @DEV:
@@ -32,19 +31,18 @@ local and regional variations would be appropriate.
   on the major shores and river deltas of the game world.
 - Do the same for planets.
 - All of this implies brings a geo data set into the mix.
-    - May be useful to use io_graphs to visualize the geo data.
-    - Use the places spreadsheet as a starting point, but store
-      as JSON this time.
-- If really feeling ambitious, do something similar for stars
-  in the local galaxy and galaxies in the local cluster.
+    - Use io_graphs, as useful, to visualize the geo data.
+    - Use the places spreadsheet as a starting point, but store as JSON.
+- Do something similar for stars in local galaxy and galaxies in local cluster.
 - See ontology lab (universe.py, region.py) for ideas.
 - See map_build.py and other prototype modules for ideas.
 - See schema/places_data.ods for ideas about data.
 - Try to use accurate-ish formulae for the calculations,
-  but don't get too wrapped up in it. The point is to have
-  something that is amusing and fun to play with.
+  but don't get obsess edwith it. The goal is to have something fun
+  to play with, not to be an accurate astro-geo simulator.
 """
 
+import math
 import json
 import pickle
 
@@ -52,21 +50,20 @@ from dataclasses import dataclass   # fields
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
 
-# from io_config import ConfigIO          # type: ignore
 from io_file import FileIO              # type: ignore
 
-# CI = ConfigIO()
 FI = FileIO()
 
 
 class TimeIO(object):
     """Class for Calendar-related data and methods.
-    Includes astronomical data as well as temporal/calendrical
-    data and algorithms. It necessarily intersects with geographical
-    data as well in some respects.
+    Includes astronomical and geographical data as well as temporal/calendrical
+    data and algorithms.  Seasonal data is also a distinct data class.
+    Will eventually want a tidal data class too probably.
 
-    Eventually will want to kind of align it to an io_geo or
-    saskan_mapping class.
+    @DEV:
+    Eventually may want distinct io_geo and io_astro classes.
+    Will def want mapping class for rendering graphic displays, maps.
     """
     def __init__(self):
         """Manage time, calendar and astronomical data.
@@ -87,88 +84,157 @@ class TimeIO(object):
         self.S_GEO: dict = dict()
 
     @dataclass
+    class M():
+        """Names of measurements assigned to a meaningful
+        variable or abbreviation.
+        """
+        # math, geometry, currency
+        PCT = "percent"
+        DC = "decimal"
+        INT = "integer"
+        RD = "radius"
+        DI = "diameter"
+        VL = "volume"
+        AR = "area"
+        # weight, mass
+        MS = "mass"
+        BA = "baryonic"
+        KG = "kilograms"
+        LB = "pounds"
+        G = "grams"
+        SM = "solar mass"
+        # distance & area, metric, imperial, saskan
+        MM = "millimeters"
+        CM = "centimeters"
+        IN = "inches"
+        M = "meters"
+        M2 = "square meters"
+        M3 = "cubic meters"
+        KM = "kilometers"
+        FT = "feet"
+        MI = "miles"
+        NM = "nautical miles"
+        NOB = "nobs"
+        TWA = "twas"
+        THWAB = "thwabs"
+        KATA = "katas"
+        GAWO = "gawos"
+        YUZA = "yuzas"
+        # distance, geographical
+        DGLAT = "degrees latitude"
+        DGLONG = "degrees longitude"
+        # distance and area, astronomical
+        TU = "total universe"
+        AU = "astronomical units"
+        LY = "light years"
+        LY2 = "square light years"
+        LY3 = "cubic light years"
+        GLY = "gigalight years"
+        GLY2 = "square gigalight years"
+        GLY3 = "cubic gigalight years"
+        LS = "light seconds"
+        LM = "light minutes"
+        PC = "parsec"
+        KPC = "kiloparsec"
+        MPC = "megaparsec"
+        GPC = "gigaparsec"
+        GPC2 = "square gigaparsecs"
+        GPC3 = "cubic gigaparsecs"
+
+    @dataclass
     class C():
         """Values used to do various computations using
         a variety of units and formulae.
         """
+        # math, geometry, currency
+        DC_TO_PCT = 100.0           # decimal -> percent
+        DI_TO_RD = 0.5              # diameter -> radius
+        PCT_TO_DC = 0.01            # percent -> decimal
+        RD_TO_DI = 2.0              # radius -> diameter
         # weight, mass - metric/imperial
-        KG_TO_LB = 2.20462262185     # kilos -> pounds
-        LB_TO_KG = 0.45359237        # pounds -> kilos
         G_TO_KG = 0.001              # grams -> kilos
         KG_TO_G = 1000.0             # kilos -> grams
+        KG_TO_LB = 2.20462262185     # kilos -> pounds
+        KG_TO_SM = 5.97219e-31       # kilos -> solar mass
+        LB_TO_KG = 0.45359237        # pounds -> kilos
+        SM_TO_KG = 1.98847e+30       # solar mass -> kilos
         # distance - metric/imperial
-        MM_TO_CM = 0.1               # millimeters -> centimeters
-        CM_TO_MM = 10.0              # centimeters -> millimeters
-        MM_TO_IN = 0.03937007874     # millimeters -> inches
-        IN_TO_MM = 25.4              # inches -> millimeters
         CM_TO_IN = 0.3937007874      # centimeters -> inches
-        IN_TO_CM = 2.54              # inches -> centimeters
         CM_TO_M = 0.01               # centimeters -> meters
-        M_TO_CM = 100.0              # meters -> centimeters
+        CM_TO_MM = 10.0              # centimeters -> millimeters
         FT_TO_IN = 12.0              # feet -> inches
-        IN_TO_FT = 0.08333333333     # inches -> feet
-        M_TO_FT = 3.280839895        # meters -> feet
         FT_TO_M = 0.3048             # feet -> meters
-        M_TO_KM = 0.001              # meters -> kilometers
+        IN_TO_CM = 2.54              # inches -> centimeters
+        IN_TO_FT = 0.08333333333     # inches -> feet
+        IN_TO_MM = 25.4              # inches -> millimeters
+        KM_TO_M = 1000.0             # kilometers -> meters
         KM_TO_MI = 0.62137119223733  # kilometers -> miles
-        MI_TO_KM = 1.609344          # miles -> kilometers
-        NM_TO_MI = 1.150779448       # nautical miles -> miles
-        MI_TO_NM = 0.868976242       # miles -> nautical miles
-        NM_TO_KM = 1.852             # nautical miles -> kilometers
         KM_TO_NM = 0.539956803       # kilometers -> nautical miles
+        M_TO_CM = 100.0              # meters -> centimeters
+        M_TO_FT = 3.280839895        # meters -> feet
+        M_TO_KM = 0.001              # meters -> kilometers
+        M_TO_KM = 0.001              # meters -> kilometers
+        MI_TO_KM = 1.609344          # miles -> kilometers
+        MI_TO_NM = 0.868976242       # miles -> nautical miles
+        MM_TO_CM = 0.1               # millimeters -> centimeters
+        MM_TO_IN = 0.03937007874     # millimeters -> inches
+        NM_TO_KM = 1.852             # nautical miles -> kilometers
+        NM_TO_MI = 1.150779448       # nautical miles -> miles
         # distance - saskan/metric
         CM_TO_NOB = 0.64             # centimeters -> nobs
-        MM_TO_NOB = 0.0064           # millimeters -> nobs
+        GABO_TO_MI = 0.636           # gabos -> miles
+        GAWO_TO_KATA = 4.0           # gawos -> kata
+        GAWO_TO_KM = 1.024           # gawos -> kilometers
+        GAWO_TO_M = 1024.0           # gawos -> meters
         IN_TO_NOB = 2.56             # inches -> nobs
+        KATA_TO_KM = 0.256           # kata -> kilometers
+        KATA_TO_M = 256.0            # kata -> meters
+        KATA_TO_MI = 0.159           # ktaa -> miles
+        KATA_TO_THWAB = 4.0          # kata -> thwabs
+        M_TO_NOB = 64.0              # meters -> nobs
+        M_TO_THWAB = 0.015625        # meters -> thwabs (1/64th)
+        MM_TO_NOB = 0.0064           # millimeters -> nobs
+        NOB_TO_CM = 1.5625           # nobs -> centimeters
         NOB_TO_IN = 0.390625         # nobs -> inches
         NOB_TO_MM = 156.25           # nobs -> millimeters
-        NOB_TO_CM = 1.5625           # nobs -> centimeters
-        TWA_TO_M = 1.00              # twas -> meters
-        M_TO_NOB = 64.0              # meters -> nobs
-        TWA_TO_NOB = 64.0            # twas -> nobs
-        THWAB_TO_TWA = 64.0          # thwabs -> twas
-        TWA_TO_THWAB = 0.015625      # twas -> thwabs (1/64th)
-        THWAB_TO_M = 64.0            # thwabs -> meters
-        M_TO_THWAB = 0.015625        # meters -> thwabs (1/64th)
-        KATA_TO_THWAB = 4.0          # kata -> thwabs
         THWAB_TO_KATA = 0.25         # thwabs -> kata
-        KATA_TO_M = 256.0            # kata -> meters
-        KATA_TO_KM = 0.256           # kata -> kilometers
-        KATA_TO_MI = 0.159           # ktaa -> miles
-        GAWO_TO_KATA = 4.0           # gawos -> kata
-        GAWO_TO_M = 1024.0           # gawos -> meters
-        GAWO_TO_KM = 1.024           # gawos -> kilometers
-        GABO_TO_MI = 0.636           # gabos -> miles
+        THWAB_TO_M = 64.0            # thwabs -> meters
+        THWAB_TO_TWA = 64.0          # thwabs -> twas
+        TWA_TO_M = 1.00              # twas -> meters
+        TWA_TO_NOB = 64.0            # twas -> nobs
+        TWA_TO_THWAB = 0.015625      # twas -> thwabs (1/64th)
         YUZA_TO_GABO = 4.0           # yuzas -> gabos
-        YUZA_TO_M = 4096.0           # yuzas -> meters
         YUZA_TO_KM = 4.096           # yuzas -> kilometers
+        YUZA_TO_M = 4096.0           # yuzas -> meters
         YUZA_TO_MI = 2.545           # yuzas -> miles
         # distance, geographical to metric
-        DG_LAT_TO_KM = 111.2           # degree of latitutde -> kilometers
-        KM_TO_DG_LAT = 0.00898315284   # kilometers -> degree of latitude
-        DG_LONG_TO_KM = 111.32         # degree of longitude -> kilometers
-        KM_TO_DG_LONG = 0.00898311175  # kilometers -> degree of longitude
+        DGLAT_TO_KM = 111.2           # degree of latitutde -> kilometers
+        DGLONG_TO_KM = 111.32         # degree of longitude -> kilometers
+        KM_TO_DGLAT = 0.00898315284   # kilometers -> degree of latitude
+        KM_TO_DGLONG = 0.00898311175  # kilometers -> degree of longitude
         # astronomical units
-        AU_TO_KM = 149597870.7        # astronomical units -> km
-        KM_TO_AU = 0.000006684587122  # kilometers -> astro units
-        LY_TO_AU = 63241.0771         # light years -> astro units
-        AU_TO_LY = 0.00001581250799   # astro units -> light years
-        LS_TO_AU = 499.004783676      # light seconds -> astro units
+        AU_TO_KM = 1.495979e+8        # astronomical units -> km
+        AU_TO_LM = 5.2596e+16         # astro units -> light minutes
         AU_TO_LS = 0.002004004004     # astro units -> light seconds
-        LM_TO_AU = 0.00000000000002   # light minutes -> astro units
-        AU_TO_LM = 52596000000000000  # astro units -> light minutes
-        LS_TO_LM = 0.000000000000105  # light seconds -> light minutes
-        LM_TO_LS = 9460730472580800   # light minutes -> light seconds
-        LY_TO_LM = 52596000000000000  # light years -> light minutes
-        LM_TO_LY = 0.000000000000019  # light minutes -> light years
-        PC_TO_LY = 0.000000000000000  # parsecs -> light years
-        LY_TO_PC = 0.000000000000000  # light years -> parsecs
-        KPC_TO_PC = 1000.0            # kiloparsecs -> parsecs
-        PC_TO_KPC = 0.001             # parsecs -> kiloparsecs
-        KPC_TO_MPC = 1000.0           # kiloparsecs -> megaparsecs
-        MPC_TO_KPC = 0.001            # megaparsecs -> kiloparsecs
+        AU_TO_LY = 0.00001581250799   # astro units -> light years
         GPC_TO_MPC = 1000.0           # gigaparsecs -> megaparsecs
+        KM_TO_AU = 0.000006684587122  # kilometers -> astro units
+        KPC_TO_MPC = 1000.0           # kiloparsecs -> megaparsecs
+        KPC_TO_PC = 1000.0            # kiloparsecs -> parsecs
+        LM_TO_AU = 0.00000000000002   # light minutes -> astro units
+        LM_TO_LS = 9460730472580800   # light minutes -> light seconds
+        LM_TO_LY = 0.000000000000019  # light minutes -> light years
+        LS_TO_AU = 499.004783676      # light seconds -> astro units
+        LS_TO_LM = 0.000000000000105  # light seconds -> light minutes
+        LY_TO_AU = 63240.87           # light years -> astro units
+        LY_TO_LM = 52596000000000000  # light years -> light minutes
+        LY_TO_PC = 0.30659817672196   # light years -> parsecs
+        LY_TO_GLY = 1e-9              # light years -> gigalight years
+        GLY_TO_LY = 1e+9              # gigalight years -> light years
         MPC_TO_GPC = 0.001            # megaparsecs -> gigaparsecs
+        MPC_TO_KPC = 1000.0           # megaparsecs -> kiloparsecs
+        PC_TO_KPC = 0.001             # parsecs -> kiloparsecs
+        PC_TO_LY = 3.261598           # parsecs -> light years
 
     @dataclass
     class CAL:
@@ -475,14 +541,14 @@ class TimeIO(object):
                      "leap": None}}
 
     @dataclass
-    class M():
+    class MAP():
         """Map dimensions
         """
-        km_per_grid: float = 43.75
+        dg_north_edge: float = 37.69
         dg_per_grid_NS: float = 0.393
         dg_per_grid_WE: float = 0.397
-        dg_north_edge: float = 37.69
         dg_west_edge: float = -106.65
+        km_per_grid: float = 43.75
 
     def get_map_dim(self,
                     p_map_w: float,
@@ -490,13 +556,16 @@ class TimeIO(object):
                     p_map_n_offset: float,
                     p_map_w_offset: float) -> tuple:
         """Return map dimensions.
-        This is used to compute dimensions for a rectangular
-        map segment contained within a large map grid.
-        Use default values to compute km-sq and
-        degrees for a the map segment.
-        It assumes (for now) that the map segment is
-        located in the northern hemisphere and east of
-        zero degrees longitude.
+        - Compute dimensions for a rectangular map segment contained
+          within a larger map grid. Use default values, defined in the
+          MAP dataclass, to compute km-sq and degrees for map segment.
+
+        - Assume map segment is located in northern hemisphere,
+          west of zero degrees longitude.
+
+        - Decimal degrees, not minutes or seconds
+        - + for north of equator, - for south of equator
+        - + for east of meridien, - for west of meridien
 
         :args:
         - p_map_w (float) - map width in grid squares
@@ -506,74 +575,37 @@ class TimeIO(object):
 
         :returns:
         - map_dim (tuple (dict, str)) - map dimensions (dict, json)
+
+        @DEV: add support for southern hemisphere AND east of meridien maps
         """
         map_dim = {"map": {
             "rect": {
-                "e_w_km": p_map_w * self.M.km_per_grid,
-                "n_s_km": p_map_h * self.M.km_per_grid},
+                "e_w_km": p_map_w * self.MAP.km_per_grid,
+                "n_s_km": p_map_h * self.MAP.km_per_grid},
             "degrees": {
-                "n_lat": round(self.M.dg_north_edge -
+                "n_lat": round(self.MAP.dg_north_edge -
                                (p_map_n_offset *
-                                self.M.dg_per_grid_NS), 3),
-                "s_lat": round(self.M.dg_north_edge -
+                                self.MAP.dg_per_grid_NS), 3),
+                "s_lat": round(self.MAP.dg_north_edge -
                                (p_map_n_offset *
-                                self.M.dg_per_grid_NS) -
-                               (p_map_h * self.M.dg_per_grid_NS), 3),
-                "w_long": round(self.M.dg_west_edge +
-                                (p_map_w_offset * self.M.dg_per_grid_WE), 3),
-                "e_long": round(self.M.dg_west_edge +
-                                (p_map_w_offset * self.M.dg_per_grid_WE) +
-                                (p_map_w * self.M.dg_per_grid_WE), 3)
+                                self.MAP.dg_per_grid_NS) -
+                               (p_map_h * self.MAP.dg_per_grid_NS), 3),
+                "w_long": round(self.MAP.dg_west_edge +
+                                (p_map_w_offset * self.MAP.dg_per_grid_WE), 3),
+                "e_long": round(self.MAP.dg_west_edge +
+                                (p_map_w_offset * self.MAP.dg_per_grid_WE) +
+                                (p_map_w * self.MAP.dg_per_grid_WE), 3)
                 }}}
         return (map_dim, json.dumps(map_dim))
 
-    def define_universe(self):
+    def define_universe(self,
+                        p_smaller: bool = False,
+                        p_larger: bool = False) -> dict:
         """Define universe. Drawing on some of the concepts in the old
-        'universe.py' module (see ontology_lab), concepts in
-        defining the game space include the following. This grand scheme
-        for context may be overkill, but it could also be useful for
-        when game play expands to include other galaxies, universes, etc..
+        'universe.py' module (see ontology_lab).
 
-        - Total Universe (TU): a sphere measured in gigaparsecs, the
-          largest possible unit I have defined.
-          The diameter of the known universe is about 28.5 gigaparsecs;
-          radius is 14.25 gigaparsecs. This will be fairly constant,
-          with only minor changes for each generation, and will fluctuate
-          as the universe expands.
+        Concepts defining the game space include the following.
 
-          Age of the TU is 13.787±0.020 billion years, give or take, with
-          only Agency calendars going back more than 4,000 Gavoran years
-          or so.
-
-          For unit measurement conversions, see the 'C' dataclass.
-
-          The origin point at the center of the sphere is where this known
-          universe began, its big bang point. Or in game terms, where the
-          last game universe ended and a new one began.
-
-          It is exapanding in all directions at a rate of 73.3 kilometers
-          per second per megaparsec.
-
-          Dark Energy comprisees 68.3% of the universe, Dark Matter 27.4%,
-          remaining 4.3% is baryonic matter (stars, planets, life, etc.).
-
-          The area of a sphere is 4 * Pi * radius squared (4 * pi * r**2).
-
-          The distance between two points (x1, y1), (x2, y2) on a plane is:
-          the square root of (x2 - x1) squared plus (y2 - y1) squared,
-          that is:  sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-          The distance between two points in xyz-space is square root of
-          sum of the squares of the differences between coordinates.
-          That is,
-            given P1 = (x1,y1,z1) and P2 = (x2,y2,z2),
-            the distance between P1 and P2 is given by
-            d(P1,P2) = sqrt ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2).
-
-         A common measure of mass is the solar mass, which is the mass of
-         our Sun, Sol. In the game world, of Fatun. In either case, it
-         is unit. The mass of the Sun is 1.9891 x 10^30 kg. But one solar
-         mass is 1.0.
 
         - External Universe (XU): section(s) of TU that is not playable;
           no detailed star systems.  Simulate some forces, movement,
@@ -597,8 +629,145 @@ class TimeIO(object):
           The sun should be relatively small but large enough to warm
           the inner planets.  The sun should be a yellow dwarf, not a
           red dwarf, so that it can support life.
+
+          The planetary system should include at least one gas giant
+          that will divert asteroids and other junk from the inner
+          planets.  If the system is intended to support life, it should
+          be relatively close to the star, but not too close, or be a
+          moon with an atmosphere of a gas giant.
+
+        Based on inputs and rules, return dimensions, mass, rate of
+        expansion, etc. for the play Universe.
         """
-        pass
+        def set_TU() -> dict:
+            """
+            - Total Universe (TU): a sphere measured in gigaparsecs, the
+            largest possible unit defined for game play.
+
+            Diameter of the known universe is about 28.5 gigaparsecs;
+            radius is 14.25 gigaparsecs. This will be fairly constant,
+            with only minor changes for each generation. It fluctuates
+            as the universe expands. In the old version I used the "big
+            bang" animation to center the universe, and as a splash screen,
+            similar to some video games.
+
+                - So, either pick a random diameter within constraints, or
+                allow for an input indicating a slightly larger or slightly
+                smaller universe.
+
+            Age of the TU is 13.787±0.020 billion years, give or take, with
+            only Agency calendars going back more than 4,000 Gavoran years
+            or so.
+
+            For unit measurement conversions, see the 'C' dataclass.
+            For unit names, see the 'M' dataclass.
+
+            The origin point at the center of the sphere is where this known
+            universe began, its big bang point. Or in game terms, where the
+            last game universe ended and a new one began.
+
+            It is exapanding in all directions at a rate of 73.3 kilometers
+            per second per megaparsec.
+
+            Dark Energy comprisees 68.3% of the universe, Dark Matter 27.4%,
+            remaining 4.3% is baryonic matter (stars, planets, life, etc.),
+            also referred to as "ordinary matter".
+
+            Ordinary matter/mass = 1.5×10^53 kg
+            For game purposes, I will take 4.3% as the approximate area of
+            the TU sphere that contains galaxies, stars, planets, etc.
+
+            For the purposes of the game, we will consider mass and matter to
+            be the same thing. Antimatter equals matter at the big bang, but
+            then almost entirely vanishes. No one know why. Theoretically,
+            the universe should not exist since matter and antimatter should
+            have annihilated each other. But it does. So, we will assume that
+            the universe is made of matter, not antimatter, and that the
+            antimatter "went somewhere".
+
+            If I want to mess around with goofy concepts, then come up with
+            scenarios where antimatter is the dominant force or pooled, or where
+            dark energy or dark matter get concentrated rather than being constant.
+
+            The area of a sphere is 4 * Pi * radius squared (4 * pi * r**2).
+
+            The distance between two points (x1, y1), (x2, y2) on a plane is:
+            the square root of (x2 - x1) squared plus (y2 - y1) squared,
+            that is:  sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+            The distance between two points in xyz-space is square root of
+            sum of the squares of the differences between coordinates.
+            That is,
+                given P1 = (x1,y1,z1) and P2 = (x2,y2,z2),
+                the distance between P1 and P2 is given by
+                d(P1,P2) = sqrt ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2).
+
+            This measures will come into play when we start to define bodies
+            in space and the graviational effect they have on each other.
+
+            A common measure of mass is the solar mass, which is the mass of
+            our Sun, Sol. In the game world, of Fatun. In either case, it
+            is unit. The mass of the Sun is 1.9891 x 10^30 kg. But one solar
+            mass is 1.0.
+
+            @DEV: Vary the limits for size of universe a bit more.
+            """
+            # radius in gigaparsecs
+            # baryonic mass in kg
+            # baryonic pct
+            # setting radius in megap, kilop, parsecs, light years, AU, km, m...
+            TU = {(self.M.RD, self.M.GPC): 14.25,
+                  (self.M.BA, self.M.MS, self.M.KG): 1.5 * 10e53,
+                  (self.M.BA, self.M.PCT): 4.3}
+            if p_smaller:
+                TU[(self.M.RD, self.M.GPC)] *= 0.9999
+                TU[(self.M.BA, self.M.MS, self.M.KG)] *= 0.9999
+            elif p_larger:
+                TU[(self.M.RD, self.M.GPC)] *= 1.0001
+                TU[(self.M.BA, self.M.MS, self.M.KG)] *= 1.0001
+            # radius in megaparsecs, kiloparsecs, parsecs, light years, AU, km, m ?
+            TU[(self.M.RD, self.M.MPC)] = TU[(self.M.RD, self.M.GPC)] * self.C.GPC_TO_MPC
+            TU[(self.M.RD, self.M.KPC)] = TU[(self.M.RD, self.M.MPC)] * self.C.MPC_TO_KPC
+            TU[(self.M.RD, self.M.PC)] = TU[(self.M.RD, self.M.KPC)] * self.C.KPC_TO_PC
+            TU[(self.M.RD, self.M.LY)] = TU[(self.M.RD, self.M.PC)] * self.C.PC_TO_LY
+            TU[(self.M.RD, self.M.GLY)] = TU[(self.M.RD, self.M.LY)] * self.C.LY_TO_GLY
+            TU[(self.M.RD, self.M.AU)] = TU[(self.M.RD, self.M.LY)] * self.C.LY_TO_AU
+            TU[(self.M.RD, self.M.KM)] = TU[(self.M.RD, self.M.AU)] * self.C.AU_TO_KM
+            TU[(self.M.RD, self.M.M)] = TU[(self.M.RD, self.M.KM)] * self.C.KM_TO_M
+            # volume in gigaparsecs, gigalight years, light years, meters cubed
+            TU[(self.M.VL, self.M.GPC3)] =\
+                4 * math.pi * (TU[(self.M.RD, self.M.GPC)] ** 2)
+            TU[(self.M.VL, self.M.LY3)] =\
+                4 * math.pi * (TU[(self.M.RD, self.M.LY)] ** 2)
+            TU[(self.M.VL, self.M.GLY3)] =\
+                4 * math.pi * (TU[(self.M.RD, self.M.GLY)] ** 2)
+            TU[(self.M.VL, self.M.M3)] =\
+                4 * math.pi * (TU[(self.M.RD, self.M.M)] ** 2)
+
+            # Volume of known universe: 3.566 x 10^80 cubic meters
+            # Another estimate is 415,065 Glyr3  (cubic gigalight years)
+
+            # Also, keep in mind that the universe may be infinite, that
+            # we can sort of measure the observable universe, but even then
+            # being accurate is hard since no one really knows its shape,
+            # and it is expanding, and that expansion will limited by the
+            # mass of all the matter in the universe, and that mass is also
+            # a bit of a mystery. So, we will just use a number that is fun!
+
+            # Do some transforms of units to see if this model works.
+            # I came up with 2.4296690577848235e+54 for vol in meters,
+            # so something is wrong. My computed value is much tinier:
+            # 2.429675e+54 / 3.566e+80 = 6.8e-27
+            # Check each transform to see where the error is.
+            # Check to see where the volume of known universe came from.
+            # Try reversing the area calculation to get the radius in m?
+
+            # Back up the testing a bit. Check all of the transform equations
+            # before doing the volume calculations and other large algorithms.
+            return TU
+
+        TU = set_TU()
+        pp((self.M.TU.title(), TU))
 
     def define_galactic_cluster(self):
         """Define galactic cluster (GC) inside an IU structure.

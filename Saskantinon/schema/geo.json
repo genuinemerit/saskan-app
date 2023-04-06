@@ -35,7 +35,7 @@
                 }
     },
 
-    {"name": {"common": "Fatunika Dominion"},
+    {"name": {"common": "Fatunik Dominion"},
     "map": {
         "rect": {
             "e_w_km": 1093.75,
@@ -230,7 +230,7 @@
             },
  	 "type": {"geo-political": "region"},
 	 "contained_by": {"continent": "Lurabar"},
-     "contains":{"federation": ["Fatunika",
+     "contains":{"federation": ["Fatunik Dominion",
                                  "Borded Federation"],
                   "district": ["High Weir Lands",
                                "Low Weir Lands",
