@@ -89,57 +89,58 @@ class TimeIO(object):
         variable or abbreviation.
         """
         # math, geometry, currency
-        PCT = "percent"
-        DC = "decimal"
-        INT = "integer"
-        RD = "radius"
-        DI = "diameter"
-        VL = "volume"
         AR = "area"
+        DC = "decimal"
+        DI = "diameter"
+        INT = "integer"
+        PCT = "percent"
+        RD = "radius"
+        VL = "volume"
         # weight, mass
-        MS = "mass"
         BA = "baryonic"
+        GM = "grams"
         KG = "kilograms"
         LB = "pounds"
-        G = "grams"
+        OZ = "ounces"
+        MS = "mass"
         SM = "solar mass"
         # distance & area, metric, imperial, saskan
-        MM = "millimeters"
         CM = "centimeters"
+        FT = "feet"
+        GAWO = "gawos"
         IN = "inches"
+        KATA = "katas"
+        KM = "kilometers"
         M = "meters"
         M2 = "square meters"
         M3 = "cubic meters"
-        KM = "kilometers"
-        FT = "feet"
         MI = "miles"
+        MM = "millimeters"
         NM = "nautical miles"
         NOB = "nobs"
-        TWA = "twas"
         THWAB = "thwabs"
-        KATA = "katas"
-        GAWO = "gawos"
+        TWA = "twas"
         YUZA = "yuzas"
         # distance, geographical
         DGLAT = "degrees latitude"
         DGLONG = "degrees longitude"
         # distance and area, astronomical
-        TU = "total universe"
         AU = "astronomical units"
-        LY = "light years"
-        LY2 = "square light years"
-        LY3 = "cubic light years"
         GLY = "gigalight years"
         GLY2 = "square gigalight years"
         GLY3 = "cubic gigalight years"
-        LS = "light seconds"
-        LM = "light minutes"
-        PC = "parsec"
-        KPC = "kiloparsec"
-        MPC = "megaparsec"
         GPC = "gigaparsec"
         GPC2 = "square gigaparsecs"
         GPC3 = "cubic gigaparsecs"
+        KPC = "kiloparsec"
+        LM = "light minutes"
+        LS = "light seconds"
+        LY = "light years"
+        LY2 = "square light years"
+        LY3 = "cubic light years"
+        MPC = "megaparsec"
+        PC = "parsec"
+        TU = "total universe"
 
     @dataclass
     class C():
@@ -147,13 +148,8 @@ class TimeIO(object):
         a variety of units and formulae.
         """
         # math, geometry, currency
-        DC_TO_PCT = 100.0           # decimal -> percent
-        DI_TO_RD = 0.5              # diameter -> radius
-        PCT_TO_DC = 0.01            # percent -> decimal
-        RD_TO_DI = 2.0              # radius -> diameter
+        # Fill in using real and game currenncies
         # weight, mass - metric/imperial
-        G_TO_KG = 0.001              # grams -> kilos
-        KG_TO_G = 1000.0             # kilos -> grams
         KG_TO_LB = 2.20462262185     # kilos -> pounds
         KG_TO_SM = 5.97219e-31       # kilos -> solar mass
         LB_TO_KG = 0.45359237        # pounds -> kilos
@@ -549,6 +545,92 @@ class TimeIO(object):
         dg_per_grid_WE: float = 0.397
         dg_west_edge: float = -106.65
         km_per_grid: float = 43.75
+
+    def dec_to_pct(self, p_decimal: float) -> str:
+        """Convert decimal to percentage.
+        """
+        dec = float(p_decimal)
+        pct = f'{round(dec * 100, 2):,}' + " %"
+        return pct
+
+    def pct_to_dec(self, p_percent: str) -> float:
+        """Convert percentage to decimal factor.
+        """
+        pct_s = str(p_percent).replace("%", "").strip()
+        pct_d = float(pct_s) / 100
+        return pct_d
+
+    def diam_to_radius(self, p_diameter: float) -> float:
+        """Convert diameter to radius.
+        """
+        radius = float(p_diameter) / 2
+        return radius
+
+    def radius_to_diam(self, p_radius: float) -> float:
+        """Convert radius to diameter.
+        """
+        diam = float(p_radius) * 2
+        return diam
+
+    def grams_to_kilos(self,
+                       p_grams: float) -> float:
+        """Convert grams to kilos."""
+        kilos = float(p_grams) * 0.001
+        return kilos
+
+    def kilos_to_grams(self,
+                       p_kilos: float) -> float:
+        """Convert kilos to grams."""
+        grams = float(p_kilos) * 1000
+        return grams
+
+    def kilos_to_pounds(self,
+                        p_kilos: float) -> float:
+        """Convert kilos to pounds."""
+        pounds = float(p_kilos) * 2.20462262185
+        return pounds
+
+    def pounds_to_kilos(self,
+                        p_pounds: float) -> float:
+        """Convert pounds to kilos."""
+        kilos = float(p_pounds) * 0.45359237
+        return kilos
+
+    def pounds_to_oz(self,
+                     p_pounds: float) -> float:
+        """Convert pounds to ounces."""
+        oz = float(p_pounds) * 16
+        return oz
+
+    def oz_to_pounds(self,
+                     p_oz: float) -> float:
+        """Convert ounces to pounds."""
+        pounds = float(p_oz) / 16
+        return pounds
+
+    def oz_to_grams(self,
+                    p_oz: float) -> float:
+        """Convert ounces to grams."""
+        grams = float(p_oz) * 28.349523125
+        return grams
+
+    def grams_to_oz(self,
+                    p_grams: float) -> float:
+        """Convert grams to ounces."""
+        oz = float(p_grams) * 0.03527396195
+        return oz
+
+    def kilos_to_sm(self,
+                    p_kilos: float) -> float:
+        """Convert kilos to solar mass."""
+        sm = float(p_kilos) * 5.97219e-31
+        return sm
+
+    def sm_to_kilos(self,
+                    p_sm: float) -> float:
+        """Convert solar mass to kilos."""
+        kilos = float(p_sm) * 1.98847e+30
+        return kilos
 
     def get_map_dim(self,
                     p_map_w: float,
