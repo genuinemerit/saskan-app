@@ -9,6 +9,7 @@ e an accurate astro-geo simulator.
 import math
 import json
 import pickle
+import random
 
 from dataclasses import dataclass   # fields
 from pprint import pformat as pf        # noqa: F401
@@ -112,6 +113,31 @@ class TimeIOTest(object):
         for i in (0, 1, 12, 36, 0.00125, 1.7e-12):
             print(i, "-->", TI.inches_to_ft(i, p_rounding=False))
 
+    def test_lengths_metric(self):
+        """Test length computations using metric units.
+        """
+        print(f"\n{TI.M.CM} to {TI.M.M} w/rounding \n==================")
+        for c in (0, 1, 10, 3000, 0.00125, 1.7e-12):
+            print(c, "-->", TI.cm_to_meters(c))
+        print(f"\n{TI.M.CM} to {TI.M.M} w/o rounding \n==================")
+        for c in (0, 1, 10, 3000, 0.00125, 1.7e-12):
+            print(c, "-->", TI.cm_to_meters(c, p_rounding=False))
+
+        print(f"\n{TI.M.M} to {TI.M.CM} w/rounding \n==================")
+        for c in (0, 1, 10, 3000, 0.00125, 1.7e-12):
+            print(c, "-->", TI.meters_to_cm(c))
+        print(f"\n{TI.M.M} to {TI.M.CM} w/o rounding \n==================")
+        for c in (0, 1, 10, 3000, 0.00125, 1.7e-12):
+            print(c, "-->", TI.meters_to_cm(c, p_rounding=False))
+
+        print(f"\n{TI.M.CM} to {TI.M.MM} w/rounding \n==================")
+        for c in (0, 1, 10, -10, 0.001, 1.7e-12, random.randint(0,10000)):
+            print(c, "-->", TI.cm_to_mm(c))
+        print(f"\n{TI.M.CM} to {TI.M.MM} w/o rounding \n==================")
+        for c in (0, 1, 10, -10, 0.001, 1.7e-12, random.randint(0,10000)):
+            print(c, "-->", TI.cm_to_mm(c, p_rounding=False))
+
+
 # Run program
 if __name__ == '__main__':
     """Run program."""
@@ -119,6 +145,5 @@ if __name__ == '__main__':
     # TIT.test_percents()
     # TIT.test_geometry()
     # TIT.test_weight_and_mass()
-    TIT.test_lengths_earth()
-
-
+    # TIT.test_lengths_earth()
+    TIT.test_lengths_metric()
