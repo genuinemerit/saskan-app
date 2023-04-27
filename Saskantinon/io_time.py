@@ -389,53 +389,79 @@ class TimeIO(object):
                             "zero": -2862},
                      "leap": None}}
 
-    def get_map_dim(self,
-                    p_map_ty: str,
-                    p_grid_w: float,
-                    p_grid_h: float,
-                    p_grid_t: float,
-                    p_grid_l: float) -> tuple:
-        """Return map dimensions.
-        - Compute dimensions for a rectangular map segment contained
-          within a larger map grid. If offsets are not provided, then
-          returns values for the entire map grid.
-        - Use default values for selected template, defined in SM.MAP dataclass,
-          to compute area and degrees for map segment.
-
+    def get_parent_maps(self,
+                        p_m: dict,
+                        p_t: dict,
+                        p_i: int):
+        """Recursive function to get all parent maps.
+        Keep recursing until a grid_id is found.
 
         :args:
-        - p_map_ty (str) - map template type, valid index to SM.MAP
-        - p_grid_w (float) - grids wide
-        - p_grid_h (float) - grids high
-        - p_grid_t (float) - grids from top of map template
-        - p_grid_l (float) - grids from left of map template
+        - p_m (dict) - a unit-level dict from SM.MAP.maps
+        - p_t (dict) - the combined dict of all parent maps
+        - p_i (int) - the number of recursions
+        """
+        m = p_m
+        t = p_t
+        i = p_i
+        if "grid_id" in m.keys():
+            g = SM.MAP.grids[m["grid_id"]]
+            t = {**t, **{"grid": {**g, **{"_id": m["grid_id"]}}}}
+        elif "parent_nm" in m.keys():
+            i += 1
+            k = m["parent_nm"]
+            m = SM.MAP.maps[k]
+            t = {**t, **{f"map_{i}": {**m, **{"_name": k}}}}
+            t = self.get_parent_maps(m, t, i)
+        return t
+
+    def get_map_stats(self,
+                      p_map_nm: str) -> tuple:
+        """Return map info and dimensions in various units.
+
+        :args:
+        - p_map_nm (str) - map template index = valid index to SM.MAP['maps']
 
         :returns:
         - map_dim (tuple (dict, str)) - map dimensions (dict, json)
 
-        Current limits:
-        - Decimal degrees, not minutes or seconds
-        - + for north of equator, - for south of equator
-        - + for east of meridien, - for west of meridien
-        - Assume map segment is located in northern hemisphere,
-          west of zero degrees longitude.
-
-        @DEV: Add support for...
-        - Rather than a single set of default values, use a named
-          template to define the map grid.
-        - southern hemisphere
-        - east of meridien maps
-        - adjust values that pass beyond 180 degrees longitude or latitude
-        - convert to different distance units
-        - convert to minutes and seconds of degrees
         """
-        grid = SM.MAP.grids[p_map_ty]
-        km_ew = p_grid_w * grid['grid_km']
-        km_ns = p_grid_h * grid['grid_km']
-        dglat_n = grid['edge_dg']["N"] - (p_grid_t * grid['grid_dg']["NS"])
-        dglat_s = dglat_n - (p_grid_h *  grid['grid_dg']["NS"])
-        dglong_w = grid['edge_dg']["W"] + (p_grid_l + grid['grid_dg']["EW"])
-        dglong_e = dglong_w + (p_grid_w * grid['grid_dg']["EW"])
+        m = SM.MAP.maps[p_map_nm]
+        t = self.get_parent_maps(
+            m, {f"map_0": {**m, **{"_name": p_map_nm}}}, 0)
+
+        # Get grid dimensions in various units
+        grid_km = t["grid"]["grid_km"]
+        t["grid"]["grid_mi"] = SM.km_to_mi(grid_km, p_round=True)
+        t["grid"]["grid_gawo"] = SM.km_to_ga(grid_km, p_round=True)
+        t["grid"]["grid_kata"] = SM.km_to_ka(grid_km, p_round=True)
+        for k, m in t.items():
+            if k.startswith("map_"):
+                t[k]["km"]= {}
+                t[k]["km"]["w"] = m['grid_cnt']['w'] * grid_km
+                t[k]["km"]["h"] = m['grid_cnt']['h'] * grid_km
+                t[k]["mi"]= {}
+                t[k]["mi"]["w"] = SM.km_to_mi(t[k]["km"]["w"], p_round=True)
+                t[k]["mi"]["h"] = SM.km_to_mi(t[k]["km"]["h"], p_round=True)
+                t[k]["gawo"]= {}
+                t[k]["gawo"]["w"] = SM.km_to_ga(t[k]["km"]["w"], p_round=True)
+                t[k]["gawo"]["h"] = SM.km_to_ga(t[k]["km"]["h"], p_round=True)
+                t[k]["kata"]= {}
+                t[k]["kata"]["w"] = SM.km_to_ka(t[k]["km"]["w"], p_round=True)
+                t[k]["kata"]["h"] = SM.km_to_ka(t[k]["km"]["h"], p_round=True)
+
+        pp(("t", t))
+        # return t
+        # return (t, json.dumps(t))
+
+        # km_ew = p_grid_w * grid['grid_km']
+        # km_ns = p_grid_h * grid['grid_km']
+        # dglat_n = grid['edge_dg']["N"] - (p_grid_t * grid['grid_dg']["NS"])
+        # dglat_s = dglat_n - (p_grid_h *  grid['grid_dg']["NS"])
+        # dglong_w = grid['edge_dg']["W"] + (p_grid_l + grid['grid_dg']["EW"])
+        # dglong_e = dglong_w + (p_grid_w * grid['grid_dg']["EW"])
+
+
         # Currently, North and West cannot be moved further north or west.
         # South and East can be moved further south or east.
         # North can move further south, past the Equator, past the South Pole for that matter.
@@ -445,15 +471,6 @@ class TimeIO(object):
         # @DEV: Add support for adjusting values that pass beyond 180 degrees longitude or latitude,
         # keeping in mind that the planet is (effectively) a sphere.
 
-        g_map = {"map": {
-                    "template": grid,
-                    "rect": {
-                        "KM": { "EW": round(km_ew, 3), "NS": round(km_ns, 3)},
-                        "DGLAT": {"N": round(dglat_n, 3), "S": round(dglat_s, 3)},
-                        "DGLONG": {"W": round(dglong_w, 3), "E": round(dglong_e, 3)}}
-              }
-        }
-        return (g_map, json.dumps(g_map))
 
     def define_universe(self,
                         p_smaller: bool = False,

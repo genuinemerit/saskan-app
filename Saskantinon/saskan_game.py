@@ -1,15 +1,27 @@
 #!python
 """
-:module:    saskantinon.py
+:module:    saskan_game.py
 :author:    GM (genuinemerit @ pm.me)
 Saskan App GUI.  pygame version.
 
 @DEV:
-- Add interactive functions calling the Analysis class.
-- Add functions to modify parameters for Analysis graphs, reports.
-- Work on (better) ways of displaying graphs.
-- Work on (better) ways of displaying reports.
-- Add a saskan_game pygame module to display maps, protoype game action.
+- Prototype some game activities, especilly map generation
+  and avatar placement/movement, maybe some physics and music.
+- Use pygame for graphics and sound (and everything else).
+- Focus on graphics display, like earlier prototypes,
+    but with more features and better performance, but don't
+    worry too much about interactiviity or game play quite yet.
+- OK to set up menus, using what works from the Admin GUI, the
+  budget GUI and so on. But focus most prototyping on the canvas.
+- As with Admin GUI, use JSON config files to define size and shape
+  of things that are relatively static.
+- But use things like the io_time, io_graph, io_music modules to generate
+  directions for more dynamic things like the map, avatars, sounds, etc.
+- If I can get the wiretap and logger stuff working again (and I should),
+  then use them. Otherwise use print statements and the debugger.
+- Sketch out what I want to do before stating to do much code.
+- It may be possible/effective to create a simpler canvas to experiment with.
+- See pygame_lab/app4 ("turtles") for some ideas.
 """
 
 import platform

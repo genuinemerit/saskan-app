@@ -61,9 +61,9 @@ class SaskanMath(object):
         # distance & area, metric, imperial, saskan
         CM = "centimeters"
         FT = "feet"
-        GAWO = "gawos"
+        GA = "gawos"
         IN = "inches"
-        KATA = "katas"
+        KA = "katas"
         KM = "kilometers"
         M = "meters"
         M2 = "square meters"
@@ -195,13 +195,42 @@ class SaskanMath(object):
     @dataclass
     class MAP():
         """Map/grid template dimensions
-        The template names refer to the grid size in kilometers.
-        For example, m_4375 has grids that are 43.75 km-sq.
+        grid template names refer to its mathematical character.
+        For example, km_43.75_sq has square grids that are 43.75
+        km per side, a template I like to use to represent a
+        region-level map.
+
+        map template names refer to a specific use of a grid,
+        providing its:
+        - either a grid_type or another map_name
+        - its name as the index
+        - North-West corner in degrees
+        - its grid sizes in degrees
+        - its height and width in grid units
+        - if it is a sub-map (a map_name rather than a grid_type
+          is used), then provide grids offset from top
+          and from left of the parent map, along with grid w and
+          h, but omit degree info.
+        - Use decimal values to get finer-grained placements
+
         """
-        grids = {"m_4375":
-                 {"edge_dg": {"N": 37.69, "W": -106.66},
-                  "grid_dg": {"NS": 0.393, "EW": 0.397},
+        grids = {"km_43.75":
+                 {"_name": "region",
+                  "_type": "square",
                   "grid_km": 43.75}}
+        maps = {"saskan_grid":
+                {"grid_id": "km_43.75",
+                 "edge_dg": {"N": 37.69, "W": -106.66},
+                 "grid_dg": {"EW": 0.397, "NS": 0.393},
+                 "grid_cnt": {"h": 30, "w": 40}},
+                "Borded Federation":
+                {"parent_nm": "saskan_grid",
+                 "grid_cnt": {"h": 10, "w": 12},
+                 "grid_off": {"l": 3, "t":3}},
+                "Borded":
+                {"parent_nm": "Borded Federation",
+                 "grid_cnt": {"h": 0.4, "w": 0.5},
+                 "grid_off": {"l": 5, "t": 3}}}
 
     # Consider putting all my transforms into a separate class.
     def dec_to_pct(self, p_decimal: float) -> str:
@@ -232,9 +261,9 @@ class SaskanMath(object):
 
     def grams_to_kilos(self,
                        p_grams: float,
-                       p_rounding: bool = True) -> float:
+                       p_round: bool = True) -> float:
         """Convert grams to kilos."""
-        if p_rounding:
+        if p_round:
             kilos = round(float(p_grams) * 0.001, 5)
         else:
             kilos = float(p_grams) * 0.001
@@ -284,9 +313,9 @@ class SaskanMath(object):
 
     def kilos_to_sm(self,
                     p_kilos: float,
-                    p_rounding: bool = True) -> float:
+                    p_round: bool = True) -> float:
         """Convert kilos to solar mass."""
-        if p_rounding:
+        if p_round:
             sm = round(float(p_kilos) * 5.97219e-31, 5)
         else:
             sm = float(p_kilos) * 5.97219e-31
@@ -330,9 +359,9 @@ class SaskanMath(object):
 
     def inches_to_ft(self,
                      p_inches: float,
-                     p_rounding: bool=True) -> float:
+                     p_round: bool=True) -> float:
         """Convert inches to feet."""
-        if p_rounding:
+        if p_round:
             ft = round(float(p_inches) * 0.08333333333, 5)
         else:
             ft = float(p_inches) * 0.08333333333
@@ -340,9 +369,9 @@ class SaskanMath(object):
 
     def cm_to_meters(self,
                      p_cm: float,
-                     p_rounding: bool=True) -> float:
+                     p_round: bool=True) -> float:
         """Convert centimeters to meters."""
-        if p_rounding:
+        if p_round:
             meters = round(float(p_cm) * 0.01, 5)
         else:
             meters = float(p_cm) * 0.01
@@ -350,9 +379,9 @@ class SaskanMath(object):
 
     def meters_to_cm(self,
                      p_meters: float,
-                     p_rounding: bool=True) -> float:
+                     p_round: bool=True) -> float:
         """Convert meters to centimeters."""
-        if p_rounding:
+        if p_round:
             cm = round(float(p_meters) * 100, 5)
         else:
             cm = float(p_meters) * 100
@@ -360,13 +389,47 @@ class SaskanMath(object):
 
     def cm_to_mm(self,
                  p_cm: float,
-                    p_rounding: bool=True) -> float:
+                    p_round: bool=True) -> float:
         """Convert centimeters to millimeters."""
-        if p_rounding:
+        if p_round:
             mm = round(float(p_cm) * 10, 5)
         else:
             mm = float(p_cm) * 10
         return mm
+
+    def km_to_mi(self,
+                 p_km: float,
+                 p_round: bool=True) -> float:
+        """Convert kilometers to miles."""
+        if p_round:
+            mi = round(float(p_km) * 0.62137119223733, 5)
+        else:
+            mi = float(p_km) * 0.62137119223733
+        return mi
+
+    def km_to_ka(self,
+                 p_km: float,
+                 p_round: bool=True) -> float:
+        """Convert kilometers to katas,
+        a game world measurement where 1 kata = 0.256 km."""
+        if p_round:
+            ka = round(float(p_km) / 0.256, 5)
+        else:
+            ka = float(p_km) / 0.256
+        return ka
+
+        # GAWO_TO_KM = 1.024           # gawos -> kilometers
+
+    def km_to_ga(self,
+                 p_km: float,
+                 p_round: bool=True) -> float:
+        """Convert kilometers to gawos,
+        a game world measurement where 1 gawo = 1.024 km."""
+        if p_round:
+            ga = round(float(p_km) / 1.024, 5)
+        else:
+            ga = float(p_km) / 1.024
+        return ga
 
     # carrry on adding these simple functions as needed,
     # but do it when they are needed...
@@ -380,7 +443,6 @@ class SaskanMath(object):
 
         # MI_TO_NM = 0.868976242       # miles -> nautical miles
         # NM_TO_MI = 1.150779448       # nautical miles -> miles
-        # KM_TO_MI = 0.62137119223733  # kilometers -> miles
         # MI_TO_KM = 1.609344          # miles -> kilometers
         # KM_TO_NM = 0.539956803       # kilometers -> nautical miles
         # NM_TO_KM = 1.852             # nautical miles -> kilometers
@@ -388,7 +450,7 @@ class SaskanMath(object):
         # distance - saskan/metric
         # come up with something smaller than a nob, say, a pik
         # CM_TO_NOB = 0.64             # centimeters -> nobs
-        # GABO_TO_MI = 0.636           # gabos -> miles
+        # GAWO_TO_MI = 0.636           # gawos -> miles
         # GAWO_TO_KATA = 4.0           # gawos -> kata
         # GAWO_TO_KM = 1.024           # gawos -> kilometers
         # GAWO_TO_M = 1024.0           # gawos -> meters

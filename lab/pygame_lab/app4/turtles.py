@@ -184,7 +184,7 @@ class Turtles(object):
 
     def draw_bumps_and_glows(self):
         """
-        Draw bumps showing where collions between turtles took place
+        Draw bumps showing where collisions between turtles took place
         """
         glow_imgs = {
             'red': pygame.image.load(path.join(self.canvas.img_dir, "red_glow.png")),
