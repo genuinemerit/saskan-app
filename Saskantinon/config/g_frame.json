@@ -1,7 +1,7 @@
 {
-    "frame": {
+    "admin_frame": {
         "ttl": "Saskan Admin",
-        "dsc": "Control, Monitor, Test, Edit, Play Saskantinon.\n Version: 0.0.1",
+        "dsc": "Control, Monitor, Test, Edit Saskantinon.\n Version: 0.0.1",
         "nm": "saskan_admin_frame",
         "sz": {
             "w": 1200,
@@ -16,6 +16,25 @@
             "w": 1080,
             "h": 20,
             "default_text": "Saskan Admin"
+        }
+    },
+    "game_frame": {
+        "ttl": "Saskanantinon",
+        "dsc": "Play Saskantinon.\n Version: 0.0.1",
+        "nm": "saskan_game_frame",
+        "sz": {
+            "w": 2400,
+            "h": 1600},
+        "ibar": {
+            "x": 60,
+            "y": 1570
+        },
+        "pg_hdr": {
+            "x": 20,
+            "y": 10,
+            "w": 2200,
+            "h": 20,
+            "default_text": "Saskanantinon"
         }
     }
 }

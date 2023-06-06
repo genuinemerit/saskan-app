@@ -1,5 +1,5 @@
 {
-    "menus": {
+    "admin_menus": {
         "bar": {
             "x": 20,
             "y": 35,
@@ -64,6 +64,51 @@
                         "nm":"App Logs"},
                     "pressure": {
                         "nm":"Pressure"}}},
+            "help": {
+                "nm": "Help",
+                "items": {
+                    "app_help": {
+                        "nm": "Saskan Admin"},
+                    "game_help": {
+                        "nm": "Saskantinon"},
+                    "pg_help": {
+                        "nm": "PyGame"}}}}
+    },
+
+    "game_menus": {
+        "bar": {
+            "?": "Define vertical menu bar dimensions",
+            "x": 20,
+            "y": 60,
+            "w": 240,
+            "h": 40,
+            "margin": 6},
+        "menu": {
+            "file": {
+                "nm": "Saskanantinon",
+                "items": {
+                    "exit": {
+                        "nm":"Quit (Q or ESC)"}}},
+            "view": {
+                "nm": "Windows",
+                "items": {
+                    "anim_stop": {
+                        "nm":"Freeze (F7)"},
+                    "anim_start": {
+                        "nm":"Unfreeze (F8)"}}},
+            "services": {
+                "nm": "Game",
+                "items": {
+                    "show": {
+                        "nm":"Show|Hide"},
+                    "start": {
+                        "nm":"Start"},
+                    "stop": {
+                        "nm":"Stop"},
+                    "status": {
+                        "nm":"Status"},
+                    "test": {
+                        "nm":"Test"}}},
             "help": {
                 "nm": "Help",
                 "items": {

@@ -247,6 +247,7 @@ class SaskanInstall(object):
         - Read up on the various options for NGINX load balancing.
         - Eventually want add SSL/letsencrypt support.
         - Include comments in the NGINX files.
+        - Use HAProxy instead of NGINX.
         """
         host = FI.S["resource"]["host"]
         lb_confs: list = list()
@@ -436,6 +437,8 @@ www-data    5108    5106  0 18:45 ?        00:00:00 nginx: worker process
         is for http/https, but I think it will work with TCP as well.
         Not sure if I really need to buy Nginx Plus for it to work.
         If so, maybe look at using twisted instead.
+        Also, I think HAProxy is probably a better choice than Nginx
+        for pure TCP load balancing.
 
         :Args:
         - svc: service config dictionary

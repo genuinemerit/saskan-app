@@ -1,10 +1,24 @@
 {
-    "windows": {
+    "admin_windows": {
         "srv": {
             "x": 20,
             "y": 50,
             "w": 400,
             "h": 400,
+            "margin": 6}
+    },
+    "game_windows": {
+        "info": {
+            "x": 20,
+            "y": 50,
+            "w": 400,
+            "h": 400,
+            "margin": 6},
+        "canvas": {
+            "x": 450,
+            "y": 50,
+            "w": 1000,
+            "h": 1000,
             "margin": 6}
     }
 }

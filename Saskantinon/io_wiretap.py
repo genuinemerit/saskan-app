@@ -30,23 +30,29 @@ class WireTap(object):
         levels above it are "on" too. If INFO is set, all levels above are "on"
         but level below (i.e., DEBUG) is off.
 
-    All messages likewise have a log level, also standard.
-    When a message is logged, it is written to the log namespace _only_
-        if the message level is "within" the currently-configured log level.
+    All messages likewise have a log level.
+    When a message is logged, it is written as a discrete file to the log directory
+        only if the message level is within scope of currently-configured log level.
 
     @DEV:
-    - Use services instead of direct calls.
+    - Consider using services instead of direct calls.
     """
 
     def __init__(self):
         """Initialize WireTap object.
 
         Default settings for log, trace, debug configs are set
-        as part of saskan_install. See config/t_texts_*.json,
+        as part of saskan_install. See config/t_texts_*.json.
+
+        When loglevel is set to NOTSET, no logging occurs.
+
+        To test, prototype, simulate without running the install
+        module, set the following class variables manually after
+        creating the appropriate directories.
+        - log_level
+        - log_dir_nm
+        - mon_dir_nm (not used yet)
         """
-        self.mon_ns = path.join(FI.D["MEM"], FI.D["APP"],
-                                FI.D['ADIRS']["SAV"],
-                                FI.D['NSDIRS']["MON"])
         self.llvl = {
             "CRITICAL": 50,
             "FATAL": 50,
@@ -63,6 +69,10 @@ class WireTap(object):
         self.INFO: int = 20
         self.DEBUG: int = 10
         self.NOTSET: int = 0
+        """
+        self.mon_ns = path.join(FI.D["MEM"], FI.D["APP"],
+                                FI.D['ADIRS']["SAV"],
+                                FI.D['NSDIRS']["MON"])    # not used
         self.log_level = self.llvl[FI.D["LOGCFG"]]
         self.log_dir_nm = path.join(FI.D["MEM"], FI.D["APP"],
                                     FI.D['ADIRS']["SAV"],
@@ -70,6 +80,11 @@ class WireTap(object):
         self.mon_dir_nm = path.join(FI.D["MEM"], FI.D["APP"],
                                     FI.D['ADIRS']["SAV"],
                                     FI.D['NSDIRS']["MON"])
+        """
+        self.log_dir_nm = "/dev/shm/saskan/cache/log"
+        self.log_level = self.llvl["DEBUG"]
+        # self.log_level = self.llvl["NOTSET"]
+        self.mon_dir_nm = "/dev/shm/saskan/cache/mon"   # not used yet
 
     # Helper functions
     # =========================================================================
@@ -178,7 +193,7 @@ class WireTap(object):
     # Logger function
     # ==============================================================
     def log(self,
-            p_lvl,
+            p_lvl: str,
             p_msg: str,
             p_file=None,
             p_name=None,
@@ -206,16 +221,31 @@ class WireTap(object):
             return p_msg
 
         def write_log(p_lvl, p_msg):
+            """
+            Since the log message is just a string, there does not
+            appear to be any advantage in pickling the message file.
+            No commpression savings, likely takes more time to pickle
+            and unpickle than to write the string to a file.
+            If I want to save space, then I should compress the log
+            files. No point to it though, when writing to memory.
+            Compress when archiving to disk.
+            """
             log_dt = WireTap.get_iso_timestamp(datetime.utcnow())
             expire_dt = WireTap.set_expire_dt()
             uuid = WireTap.get_token(16)
             rec_nm = (f"log~{p_lvl}~{log_dt}~{expire_dt}~{uuid}")
             msg = p_lvl + "~" + p_msg
             FI.write_file(path.join(self.log_dir_nm, rec_nm), msg)
+            # FI.pickle_object(path.join(self.log_dir_nm, rec_nm), msg)
 
+        # log() MAIN
+        # ==========================================================
         if self.log_level > self.llvl["NOTSET"]:
             msg = trace_msg(str(p_msg).strip() + "\n")
             msg_lvl = self.llvl[p_lvl.upper()]
+
+            pp((p_msg, msg, p_lvl, msg_lvl))
+
             if (msg_lvl == self.llvl["CRITICAL"] or
                     p_lvl.upper() in ("FATAL", "CRITICAL")):
                 write_log('FATAL', msg)
@@ -232,7 +262,7 @@ class WireTap(object):
                     self.log_level <= self.llvl["INFO"]):
                 write_log('INFO', msg)
             elif ((msg_lvl == self.llvl["DEBUG"] or
-                    p_lvl.upper() == 'DDEBUG') and
+                    p_lvl.upper() == 'DEBUG') and
                     self.log_level <= self.llvl["DEBUG"]):
                 write_log('DEBUG', msg)
 
@@ -243,8 +273,7 @@ class WireTap(object):
                   p_ns: str,
                   p_key_pattern: str):
         """Return keys of records that match search pattern."""
-        dir_nm = path.join(FI.D["MEM"], FI.D["APP"], "data", p_ns)
-        _, _, keys = FI.get_dir(dir_nm)
+        keys = FI.get_dir(p_ns)
         keys = [f for f in keys if p_key_pattern in str(f)]
         return sorted(keys)
 
@@ -271,8 +300,9 @@ class WireTap(object):
         recs = list()
         keys = WireTap.find_keys(p_ns, p_key_pattern)
         for key in keys:
-            _, _, rec = FI.unpickle_object(key)
-            recs.append(rec)
+            # _, _, rec = FI.unpickle_object(key)
+            rec = FI.get_file(key)
+            recs.append((key, rec))
         return recs
 
     # Reporting functions
@@ -281,11 +311,9 @@ class WireTap(object):
         """Dump all log records to console.
         Move this to a reporting module.
         """
-        log_recs = WireTap.get_records("log", "log:")
+        log_recs = WireTap.get_records(self.log_dir_nm, "log~")
         for rec in log_recs:
-            print("\n========================================")
-            print(rec["name"])
-            pp(rec["msg"])
+            print(rec)
 
 
 if __name__ == '__main__':

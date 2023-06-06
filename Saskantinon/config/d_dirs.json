@@ -9,8 +9,8 @@
               "SAV": "cache"},
     "NSDIRS": {"SVC": "harvest",
                "LOG": "log",
-               "MON": "monitor"},
+               "MON": "mon"},
     "LOGFILE": "saskan_log",
-    "MONFILE": "saskan_monitor",
+    "MONFILE": "saskan_mon",
     "LOGCFG": "DEBUG"
 }

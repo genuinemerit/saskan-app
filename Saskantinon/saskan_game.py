@@ -5,23 +5,24 @@
 Saskan App GUI.  pygame version.
 
 @DEV:
-- Prototype some game activities, especilly map generation
-  and avatar placement/movement, maybe some physics and music.
-- Use pygame for graphics and sound (and everything else).
-- Focus on graphics display, like earlier prototypes,
-    but with more features and better performance, but don't
-    worry too much about interactiviity or game play quite yet.
-- OK to set up menus, using what works from the Admin GUI, the
-  budget GUI and so on. But focus most prototyping on the canvas.
-- As with Admin GUI, use JSON config files to define size and shape
-  of things that are relatively static.
-- But use things like the io_time, io_graph, io_music modules to generate
-  directions for more dynamic things like the map, avatars, sounds, etc.
-- If I can get the wiretap and logger stuff working again (and I should),
-  then use them. Otherwise use print statements and the debugger.
+- Prototype basic game activities like:
+    - map generation
+    - avatar placement/movement
+    - physics
+    - sound and music
+- Use pygame for graphics, sound, everything else.
+- Go for more features, better performance than earler prototypes,
+    but don't worry too much about interactiviity or complete game
+    yet. Focus most on prototyping the WINSas.
+- Set up menus. Use what works from Admin GUI, budget GUI, etc.
+- Use JSON config files to define sizes, shapes of static things.
+- Use io_time, io_graph, io_music modules for dynamic things.
+- Use wiretap and logger, but don't get side-tracked.
+    - Print statements and debugger are OK for now.
 - Sketch out what I want to do before stating to do much code.
-- It may be possible/effective to create a simpler canvas to experiment with.
-- See pygame_lab/app4 ("turtles") for some ideas.
+    - OK to start with a simpler WINSas. Experiment, be agile.
+    - See pygame_lab/app4 ("turtles") for some ideas.
+    - See if ChatGPT can be used for some of it.
 """
 
 import platform
@@ -39,6 +40,11 @@ from io_wiretap import WireTap      # type: ignore
 
 FI = FileIO()
 WT = WireTap()
+FRAME = "game_frame"
+MENUS = "game_menus"
+INFO = "game_info_window"
+WINS = "game_windows"
+SMALL_FONT_SZ = 24
 pg.init()
 
 
@@ -64,10 +70,10 @@ class PG:
     PC_RED = pg.Color(255, 0, 0)
     PC_WHITE = pg.Color(255, 255, 255)
     # PyGame Fonts
-    F_SANS_12 = pg.font.SysFont('DejaVu Sans', 12)
-    F_SANS_16 = pg.font.SysFont('DejaVu Sans', 16)
-    F_SANS_18 = pg.font.SysFont('DejaVu Sans', 18)
-    F_FIXED_18 = pg.font.SysFont('Courier 10 Pitch', 18)
+    F_SANS_SM = pg.font.SysFont('DejaVu Sans', SMALL_FONT_SZ)
+    F_SANS_MED = pg.font.SysFont('DejaVu Sans', 32)
+    F_SANS_LG = pg.font.SysFont('DejaVu Sans', 36)
+    F_FIXED_LG = pg.font.SysFont('Courier 10 Pitch', 36)
     # PyGame Cursors
     CUR_ARROW = pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW)
     CUR_CROSS = pg.cursors.Cursor(pg.SYSTEM_CURSOR_CROSSHAIR)
@@ -75,32 +81,44 @@ class PG:
     CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
 
-    # Window / Canvas / Display
-    pg.display.set_caption(FI.G["frame"]["ttl"])
-    WIN_W = FI.G["frame"]["sz"]["w"]
-    WIN_H = FI.G["frame"]["sz"]["h"]
+    # Frame-Window = WIN*
+    # Page-Windows = info, canvas = PINFO*, PCANV*
+    pg.display.set_caption(FI.G[FRAME]["ttl"])
+    WIN_W = FI.G[FRAME]["sz"]["w"]
+    WIN_H = FI.G[FRAME]["sz"]["h"]
     WIN_MID = (WIN_W / 2, WIN_H / 2)
     WIN = pg.display.set_mode((WIN_W, WIN_H))
-    # Menu Bar
-    MBAR_X = FI.G["menus"]["bar"]["x"]
-    MBAR_Y = FI.G["menus"]["bar"]["y"]
-    # Note: MBAR_W is the width of each individual menu bar menu.
-    MBAR_W = FI.G["menus"]["bar"]["w"]
-    MBAR_H = FI.G["menus"]["bar"]["h"]
-    MBAR_MARGIN = FI.G["menus"]["bar"]["margin"]
-    MBAR_LOC = (MBAR_X, MBAR_Y)
     # Page Header
-    PHDR_LOC = (FI.G["frame"]["pg_hdr"]["x"],
-                FI.G["frame"]["pg_hdr"]["y"])
-    # Info Bar / Dock
-    IBAR_X = FI.G["frame"]["ibar"]["x"]
-    IBAR_Y = FI.G["frame"]["ibar"]["y"]
+    PHDR_LOC = (FI.G[FRAME]["pg_hdr"]["x"],
+                FI.G[FRAME]["pg_hdr"]["y"])
+    # Menu Bar
+    # Sizing of top-menu bar items is done in MenuBar class,
+    #  based on text width and height.
+    # top, left of the entire menu:
+    MBAR_X = FI.G[MENUS]["bar"]["x"]
+    MBAR_Y = FI.G[MENUS]["bar"]["y"]
+    # w, h, margin of each vertical menu bar menu
+    MBAR_W = FI.G[MENUS]["bar"]["w"]
+    MBAR_H = FI.G[MENUS]["bar"]["h"]
+    MBAR_MARGIN = FI.G[MENUS]["bar"]["margin"]
+    MBAR_LOC = (MBAR_X, MBAR_Y)
+    # Info Bar = Dock @ bottom of frame
+    IBAR_X = FI.G[FRAME]["ibar"]["x"]
+    IBAR_Y = FI.G[FRAME]["ibar"]["y"]
     IBAR_LOC = (IBAR_X, IBAR_Y)
-    # Services Admin Window
-    PSRV_LOC = (FI.G["windows"]["srv"]["x"],
-                FI.G["windows"]["srv"]["x"])
-    PSRV_W = FI.G["windows"]["srv"]["w"]
-    PSRV_h = FI.G["windows"]["srv"]["w"]
+    # Game Info Window
+    # This will be used to display game info, like score, etc.
+    # and to contain text inputs.
+    PINFO_LOC = (FI.G[WINS]["info"]["x"],
+                 FI.G[WINS]["info"]["x"])
+    PINFO_W = FI.G[WINS]["info"]["w"]
+    PINFO_H = FI.G[WINS]["info"]["w"]
+    # Game Canvas Window
+    # This will contain the map, scenes, game widgets, GUI controls.
+    PCANV_LOC = (FI.G[WINS]["canvas"]["x"],
+                 FI.G[WINS]["canvas"]["x"])
+    PPCANV_W = FI.G[WINS]["canvas"]["w"]
+    PCANV_H = FI.G[WINS]["canvas"]["w"]
 
     # Other
     KEYMOD_NONE = 4096
@@ -122,7 +140,7 @@ class InfoBar(object):
                 " | OS: " + platform.platform())
         else:
             self.text = p_text
-        self.itxt = PG.F_SANS_12.render(
+        self.itxt = PG.F_SANS_SM.render(
             self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.ibox = self.itxt.get_rect()
         self.ibox.topleft = PG.IBAR_LOC
@@ -141,7 +159,7 @@ class InfoBar(object):
         """
         PG.WIN.blit(self.itxt, self.ibox)
         if p_frame_cnt_mode is True:
-            genimg = PG.F_SANS_12.render(
+            genimg = PG.F_SANS_SM.render(
                 "Generation: " + str(p_frame_cnt) +
                 "    |    Mouse: " + str(p_mouse_loc),
                 True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
@@ -170,12 +188,15 @@ class MenuBar(object):
         """
         self.is_selected = False
         self.text = p_name
-        mbox_w = len(self.text) * 12
+
+        # mbox_w = len(self.text) * 12
+        mbox_w = len(self.text) * SMALL_FONT_SZ
+
         self.mbox = pg.Rect(p_x_left,
                             PG.MBAR_Y,
                             mbox_w,
                             PG.MBAR_H)
-        self.mtxt = PG.F_SANS_12.render(
+        self.mtxt = PG.F_SANS_SM.render(
             self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.tbox = self.mtxt.get_rect()
         self.tbox.topleft =\
@@ -229,7 +250,7 @@ class MenuItems(object):
         for mx, mi in enumerate(p_mitm_list):
             mi_id = mi[0]
             mi_nm = mi[1]
-            mtxt = PG.F_SANS_12.render(
+            mtxt = PG.F_SANS_SM.render(
                 mi_nm, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
             mitm_w = mtxt.get_width() + (PG.MBAR_MARGIN * 2)
             # Box for each item in the menu item list.
@@ -284,13 +305,14 @@ class MenuGroup(object):
 
 class PageHeader(object):
     """Set text for header.
-    HDR is a widget drawn at top of the window.
+    HDR is a widget drawn at top of the page,
+    just above the menu bar.
     """
 
     def __init__(self,
                  p_hdr_text: str):
         """ Initialize PageHeader. """
-        self.img = PG.F_SANS_18.render(p_hdr_text, True,
+        self.img = PG.F_SANS_LG.render(p_hdr_text, True,
                                        PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.box = self.img.get_rect()
         self.box.topleft = PG.PHDR_LOC
@@ -308,13 +330,15 @@ class HtmlDisplay(object):
         """ Initialize Html Display.
 
         @DEV
-        - Maybe look into ways of configuring browser window.
+        - Look into ways of configuring browser window.
         """
         pass
 
     def draw(self,
              p_help_uri: str):
         """ Open web browser to display HTML resource.
+        It opens subsequent items in the same browser window,
+        in new tabs on my setup (Linux Ubuntu, Firefox browser)
 
         Args: (str) UTI to HTML file to display in browser.
         """
@@ -324,6 +348,8 @@ class HtmlDisplay(object):
 
 class TextInput(pg.sprite.Sprite):
     """Define and handle a text input widget.
+    Use this to get directions, responses from player
+    until I have graphic or voice methods available.
     """
     def __init__(self,
                  p_x: int,
@@ -342,7 +368,7 @@ class TextInput(pg.sprite.Sprite):
         super().__init__()
         self.t_box = pg.Rect(p_x, p_y, p_w, p_h)
         self.t_value = ""
-        self.t_font = PG.F_FIXED_18
+        self.t_font = PG.F_FIXED_LG
         self.t_color = PG.PC_GREEN
         self.text = self.t_font.render(self.t_value, True, self.t_color)
         self.is_selected = False
@@ -395,6 +421,8 @@ class TextInputGroup(pg.sprite.Group):
     that is True if it is the currently-selected txtin widget.
     If no textinput object is selected, then `current` is None and no
     txtin object has is_selected == True.
+
+    This is helpful for handling multiple text input widgets, as if in a form.
     """
     def __init__(self):
         super().__init__()
@@ -402,10 +430,10 @@ class TextInputGroup(pg.sprite.Group):
 
 
 # ====================================================
-#  SASKAN ADMIN
+#  SASKAN GAME
 # ====================================================
-class SaskanAdmin(object):
-    """PyGame GUI for controlling Saskantinon functions.
+class SaskanGame(object):
+    """PyGame GUI for controlling Saskantinon game functions.
     Initiated and executed by __main__.
     """
     def __init__(self, *args, **kwargs):
@@ -415,17 +443,20 @@ class SaskanAdmin(object):
         Execute the main event loop.
         """
         FI.pickle_saskan(path.join("/home", Path.cwd().parts[2], FI.D['APP']))
-        WT.log("info", "", __file__, __name__, self, sys._getframe())
+        WT.log("info", "dev/shm cache created",
+               __file__, __name__, self, sys._getframe())
 
         # Mouse tracking
         self.mouse_loc = (0, 0)
         # Keyboard assignments
+        # These will change for the game mode...
         self.QUIT_KY: list = [pg.K_q, pg.K_ESCAPE]
         self.ANIM_KY: list = [pg.K_F3, pg.K_F4, pg.K_F5]
         self.DATA_KY: list = [pg.K_a, pg.K_l]
         self.RPT_TYPE_KY: list = [pg.K_KP1, pg.K_KP2, pg.K_KP3]
         self.RPT_MODE_KY: list = [pg.K_UP, pg.K_RIGHT, pg.K_LEFT]
-        # Animation modes
+        # Basic animation modes
+        # @DEV - may add speed throttles later
         self.frame_cnt_mode = False
         self.frame_cnt = 0
         self.freeze_mode = False
@@ -434,15 +465,18 @@ class SaskanAdmin(object):
         # Menu bars and items
         self.MEG = MenuGroup()
         prev_x = PG.MBAR_X
-        for _, mn in FI.G["menus"]["menu"].items():
+        for _, mn in FI.G[MENUS]["menu"].items():
             mn_nm = mn["nm"]
             self.MEG.add_bar(MenuBar(mn_nm, prev_x))
             prev_x = self.MEG.mbars[mn_nm].mbox.right
             mil = [(mi_id, mi['nm']) for mi_id, mi in mn["items"].items()]
             self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn_nm]))
+        self.MEG.current_bar = None
+        self.MEG.current_item = None
         # Page header
-        self.PHDR = PageHeader(FI.G["frame"]["pg_hdr"]["default_text"])
+        self.PHDR = PageHeader(FI.G[FRAME]["pg_hdr"]["default_text"])
         # External windows
+        # does not seem to help to register type of browser
         # webbrowser.register('firefox')
         self.WHTML = HtmlDisplay()
 
@@ -450,6 +484,8 @@ class SaskanAdmin(object):
         msg = "Mouse location: " + str(self.mouse_loc)
         WT.log("info", msg, __file__, __name__, self, sys._getframe())
         # Test log report
+        # I have display to console turned on in wiretap.
+        # Seems a little easier to read than dumping the logs.
         # WT.dump_log()
 
         # Make it go!
@@ -460,43 +496,57 @@ class SaskanAdmin(object):
     def do_select_mbar(self,
                        p_mouse_loc):
         """Trap for a mouse click on a menu bar item.
+        This function is called whenever there is a mouseclick.
+        The click may or may not be in the top menu bar.
 
         :args:
         - p_mouse_loc: (tuple) mouse location
         """
-        self.MEG.current_bar is None
-        self.MEG.current_item = None
         for m_nm, mbar in self.MEG.mbars.items():
             if mbar.clicked(p_mouse_loc):
                 if mbar.is_selected:
                     # Hide bar and item list if currently selected.
                     mbar.is_selected = False
                     self.MEG.mitems[m_nm].is_visible = False
+                    self.MEG.current_bar = None
+                    self.MEG.current_item = None
                 else:
                     mbar.is_selected = True
-                    # Hide any other visible item list.
-                    for _, mitm in self.MEG.mitems.items():
-                        mitm.is_visible = False
                     self.MEG.mitems[m_nm].is_visible = True
-                    self.MEG.current_bar = mbar
+                    self.MEG.current_bar = m_nm
+                    # Hide and unselect any other items and menus.
+                    for m_other_nm, other_mbar in self.MEG.mbars.items():
+                        if not m_other_nm == m_nm:
+                            other_mbar.is_selected = False
+                            self.MEG.mitems[m_other_nm].is_visible = False
             else:
-                mbar.is_selected = False
+                if self.MEG.current_bar == m_nm:
+                    mbar.is_selected = True
+                else:
+                    mbar.is_selected = False
 
     def do_select_mitem(self,
                         p_mouse_loc):
         """Trap for a mouse click on a menu item.
+        This function is called whenever there is a mouseclick.
+        A menu item may or may not have been clicked.
 
         :args:
         - p_mouse_loc: (tuple) mouse location
         """
-        item_nm = None
+        item_id = None
         self.MEG.current_item = None
-        for _, ilist in self.MEG.mitems.items():
+        for bar_nm, ilist in self.MEG.mitems.items():
             if ilist.is_visible:
-                item_nm = ilist.clicked(p_mouse_loc)
-                if item_nm is not None:
-                    self.MEG.current_item = ilist
-        return item_nm
+                item_id = ilist.clicked(p_mouse_loc)
+                if item_id is not None:
+                    # Then a vert menu bar item was clicked.
+                    # item_id = (key_nm, display_nm)
+                    self.MEG.current_item = item_id[0]
+                    # hide the selected item list and unselect its bar
+                    self.MEG.mitems[bar_nm].is_visible = False
+                    self.MEG.mbars[bar_nm].is_selected = False
+        return item_id
 
     # Keyboard and Menu Item Event Handlers
     # ==============================================================
@@ -510,10 +560,14 @@ class SaskanAdmin(object):
                           p_menu_item):
         """Trigger an event based on menu item selection.
         """
-        menu_nm = self.MEG.current_item.name
+        menu_nm = self.MEG.current_item
         m_item_id = p_menu_item[0]
         m_item_text = p_menu_item[1]
+
+        # Embedding wiretap calls in the event handler
+        # seems to disrupt the event handler?
         print(menu_nm, m_item_id, m_item_text)
+
         if m_item_id == "exit":
             self.exit_app()
         elif "help" in m_item_id:
@@ -579,11 +633,9 @@ class SaskanAdmin(object):
     def main_loop(self):
         """Manage the event loop.
         - Handle window events (quit --> ESC or Q)
-        - Handle animation events (F3, F4, F5)
-        - Handle data load events (F7, F8)
-        - Handle mouse events
         """
-        WT.log("info", "", __file__, __name__, self, sys._getframe())
+        WT.log("info", "event loop launched",
+               __file__, __name__, self, sys._getframe())
         while True:
             self.track_state()
 
@@ -604,4 +656,4 @@ class SaskanAdmin(object):
 # Run program
 if __name__ == '__main__':
     """Run program."""
-    SaskanAdmin()
+    SaskanGame()

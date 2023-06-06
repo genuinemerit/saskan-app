@@ -295,7 +295,7 @@ class FileIO(object):
         """Pickle an object.
 
         Args:
-            p_path: Legit path to pickled object location.
+            p_path: Legit path to pickled object/file location.
             p_obj (obj): Object to be pickled."""
         try:
             with open(p_path, "wb") as obj_file:
