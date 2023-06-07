@@ -34,22 +34,24 @@ from dataclasses import dataclass
 from os import path
 from pathlib import Path
 from pprint import pprint as pp     # noqa: F401
+from pygame.locals import *
 
 from io_file import FileIO          # type: ignore
 from io_wiretap import WireTap      # type: ignore
 
 FI = FileIO()
 WT = WireTap()
+# Global constants for parameterized configs
 FRAME = "game_frame"
 MENUS = "game_menus"
-INFO = "game_info_window"
-WINS = "game_windows"
 SMALL_FONT_SZ = 24
+# PyGame Init needs to be here to work with PG class.
 pg.init()
 
 
 @dataclass(frozen=True)
 class PG:
+    """PyGame constants."""
     # CLI Colors and accents
     CL_BLUE = '\033[94m'
     CL_BOLD = '\033[1m'
@@ -68,6 +70,7 @@ class PG:
     PC_GREEN = pg.Color(0, 255, 0)
     PC_PALEPINK = pg.Color(215, 198, 198)
     PC_RED = pg.Color(255, 0, 0)
+    PC_SILVER = pg.Color(192, 192, 192)
     PC_WHITE = pg.Color(255, 255, 255)
     # PyGame Fonts
     F_SANS_SM = pg.font.SysFont('DejaVu Sans', SMALL_FONT_SZ)
@@ -83,12 +86,14 @@ class PG:
 
     # Frame-Window = WIN*
     # Page-Windows = info, canvas = PINFO*, PCANV*
+    # Caption is the title of the window.
     pg.display.set_caption(FI.G[FRAME]["ttl"])
     WIN_W = FI.G[FRAME]["sz"]["w"]
     WIN_H = FI.G[FRAME]["sz"]["h"]
     WIN_MID = (WIN_W / 2, WIN_H / 2)
     WIN = pg.display.set_mode((WIN_W, WIN_H))
-    # Page Header
+    # WIN = pg.display.set_mode((WIN_W, WIN_H), DOUBLEBUF|HWSURFACE, 32)
+    # Page Header is within the frame.
     PHDR_LOC = (FI.G[FRAME]["pg_hdr"]["x"],
                 FI.G[FRAME]["pg_hdr"]["y"])
     # Menu Bar
@@ -106,20 +111,10 @@ class PG:
     IBAR_X = FI.G[FRAME]["ibar"]["x"]
     IBAR_Y = FI.G[FRAME]["ibar"]["y"]
     IBAR_LOC = (IBAR_X, IBAR_Y)
-    # Game Info Window
-    # This will be used to display game info, like score, etc.
-    # and to contain text inputs.
-    PINFO_LOC = (FI.G[WINS]["info"]["x"],
-                 FI.G[WINS]["info"]["x"])
-    PINFO_W = FI.G[WINS]["info"]["w"]
-    PINFO_H = FI.G[WINS]["info"]["w"]
-    # Game Canvas Window
-    # This will contain the map, scenes, game widgets, GUI controls.
-    PCANV_LOC = (FI.G[WINS]["canvas"]["x"],
-                 FI.G[WINS]["canvas"]["x"])
-    PPCANV_W = FI.G[WINS]["canvas"]["w"]
-    PCANV_H = FI.G[WINS]["canvas"]["w"]
-
+    # Key to Game, Info and Help Windows
+    PINFO = FI.G["game_windows"]["info"]
+    PGAME = FI.G["game_windows"]["game"]
+    PHELP = FI.G["uri"]["help"]
     # Other
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
@@ -178,9 +173,10 @@ class MenuBar(object):
                  p_x_left: int):
         """Initialize a Menu Bar object.
         = `text` is text content and UID for the menu bar item.
-        - `mbox` is the bounding box for the menu bar item.
+        - `mbox` is the bounding box (rect object) for the menu bar item.
         - 'mtxt` is the image (surface) for rendering text.
-        - 'tbox` is the bounding box for the text.
+        - 'tbox` is the bounding box for the text. Also a rect object,
+           but it is derived from the text-image surface object (mtxt).
 
         :args:
         - p_name (str): text and UID for menu bar item.
@@ -307,6 +303,8 @@ class PageHeader(object):
     """Set text for header.
     HDR is a widget drawn at top of the page,
     just above the menu bar.
+
+    @DEV - Consider whether this is really useful or not.
     """
 
     def __init__(self,
@@ -429,6 +427,57 @@ class TextInputGroup(pg.sprite.Group):
         self.current = None     # ID currently-selected text input widget.
 
 
+class PageInfo(object):
+    """Define and handle the Game Info window (rect).
+
+    Display game info, like score, etc.
+    and to contain text inputs.
+    It is a rect within the Frame real estate, not a separate Frame object.
+
+    @DEV
+    - Struggling a bit with defining a virtual "window"...
+    - Can't seem to just draw a simple box yet, nor text for that matter.
+    - Try again, using PageHeader as a model.
+    """
+
+    def __init__(self,
+                 p_info_text: str):
+        """ Initialize PageHeader. """
+        self.img = PG.F_SANS_LG.render(p_info_text, True,
+                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        self.box = self.img.get_rect()
+        self.box.topleft = (PG.PINFO["x"], PG.PINFO["y"])
+        self.is_visible = True
+        WT.log("info", f"PageInfo initialized: {str(self)}",
+               __file__, __name__, self, sys._getframe())
+
+    def draw(self):
+        """ Draw PageHeader. """
+        PG.WIN.blit(self.img, self.box)
+
+
+class PageGame(object):
+    """Define and handle the Game GUI window (rect).
+
+    Display the map, scenes, game widgets, GUI controls.
+    It is a rect within the Frame real estate, not a separate Frame object."""
+
+    def __init__(self,
+                 p_info_text: str):
+        self.box = pg.Rect(PG.PGAME["x"], PG.PGAME["y"],
+                           PG.PGAME["w"], PG.PGAME["h"])
+        self.is_visible = True
+        WT.log("info", f"PageGame initialized: {str(self)}",
+               __file__, __name__, self, sys._getframe())
+
+    def draw(self):
+        """Draw the Game page.
+        draw(surface, color, coordinates, width)
+        """
+        pg.draw.rect(PG.WIN, PG.PC_SILVER, self.box, 5)
+
+
+
 # ====================================================
 #  SASKAN GAME
 # ====================================================
@@ -448,6 +497,7 @@ class SaskanGame(object):
 
         # Mouse tracking
         self.mouse_loc = (0, 0)
+
         # Keyboard assignments
         # These will change for the game mode...
         self.QUIT_KY: list = [pg.K_q, pg.K_ESCAPE]
@@ -456,13 +506,16 @@ class SaskanGame(object):
         self.RPT_TYPE_KY: list = [pg.K_KP1, pg.K_KP2, pg.K_KP3]
         self.RPT_MODE_KY: list = [pg.K_UP, pg.K_RIGHT, pg.K_LEFT]
         # Basic animation modes
-        # @DEV - may add speed throttles later
+
+        # @DEV - add speed throttles later
         self.frame_cnt_mode = False
         self.frame_cnt = 0
         self.freeze_mode = False
-        # Information bar
+
+        # Instantiate information bar
         self.IBAR = InfoBar('')
-        # Menu bars and items
+
+        # Instantiate menu bar and menu items
         self.MEG = MenuGroup()
         prev_x = PG.MBAR_X
         for _, mn in FI.G[MENUS]["menu"].items():
@@ -473,22 +526,32 @@ class SaskanGame(object):
             self.MEG.add_item(MenuItems(mil, self.MEG.mbars[mn_nm]))
         self.MEG.current_bar = None
         self.MEG.current_item = None
+
+        # Placeholders for Game and Info "windows" (rects)
+        self.PINFO = None
+        self.PGAME = None
+
         # Page header
+        # @DEV - does not seem to be serve a purpose. Try omitting it..
         self.PHDR = PageHeader(FI.G[FRAME]["pg_hdr"]["default_text"])
+
         # External windows
-        # does not seem to help to register type of browser
+        # does not seem to help to register type of browser, so omitting
         # webbrowser.register('firefox')
         self.WHTML = HtmlDisplay()
 
-        # Test log message
+        # Test mouse logging message
         msg = "Mouse location: " + str(self.mouse_loc)
         WT.log("info", msg, __file__, __name__, self, sys._getframe())
+
         # Test log report
         # I have display to console turned on in wiretap.
-        # Seems a little easier to read than dumping the logs.
+        # That seems a little easier to read than dumping the logs.
         # WT.dump_log()
 
         # Make it go!
+        # Seems to make more sense to trigger the main loop here
+        #  rather than in the __main__ module.
         self.main_loop()
 
     # Mouse Click Event Handlers
@@ -559,24 +622,27 @@ class SaskanGame(object):
     def handle_menu_event(self,
                           p_menu_item):
         """Trigger an event based on menu item selection.
+        N.B. -- Draw calls in the pygame frame are handled in the screen refresh loop.
         """
         menu_nm = self.MEG.current_item
         m_item_id = p_menu_item[0]
         m_item_text = p_menu_item[1]
 
-        # Embedding wiretap calls in the event handler
-        # seems to disrupt the event handler?
-        print(menu_nm, m_item_id, m_item_text)
+        msg = f"Menu item clicked: {menu_nm}, {m_item_id}, {m_item_text}"
+        WT.log("info", msg, __file__, __name__, self, sys._getframe())
 
         if m_item_id == "exit":
             self.exit_app()
         elif "help" in m_item_id:
             if m_item_id == "pg_help":
-                self.WHTML.draw(FI.G["uri"]["help"]["pygame"])
+                self.WHTML.draw(PG.PHELP["pygame"])
             elif m_item_id == "app_help":
-                self.WHTML.draw(FI.G["uri"]["help"]["app"])
+                self.WHTML.draw(PG.PHELP["app"])
             elif m_item_id == "game_help":
-                self.WHTML.draw(FI.G["uri"]["help"]["game"])
+                self.WHTML.draw(PG.PHELP["game"])
+        elif m_item_id == "start":
+            self.PINFO = PageInfo(PG.PINFO["ttl"])
+            self.PGAME = PageGame(PG.PGAME["ttl"])
 
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
@@ -619,7 +685,12 @@ class SaskanGame(object):
             mbar.draw()
             self.MEG.mitems[m_nm].draw()
 
-        self.PHDR.draw()
+        # self.PHDR.draw()
+
+        if self.PINFO is not None and self.PINFO.is_visible is True:
+            self.PINFO.draw()
+        if self.PGAME is not None and self.PGAME.is_visible is True:
+            self.PGAME.draw()
 
         # for txtin in self.TIG:
         #     txtin.draw()

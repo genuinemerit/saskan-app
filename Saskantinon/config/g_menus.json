@@ -77,45 +77,63 @@
 
     "game_menus": {
         "bar": {
-            "?": "Define vertical menu bar dimensions",
+            "?": "Define vertical menu bar placement and dimensions",
             "x": 20,
-            "y": 60,
+            "y": 20,
             "w": 240,
             "h": 40,
             "margin": 6},
         "menu": {
             "file": {
-                "nm": "Saskanantinon",
+                "nm": "File",
                 "items": {
                     "exit": {
                         "nm":"Quit (Q or ESC)"}}},
-            "view": {
-                "nm": "Windows",
-                "items": {
-                    "anim_stop": {
-                        "nm":"Freeze (F7)"},
-                    "anim_start": {
-                        "nm":"Unfreeze (F8)"}}},
-            "services": {
+            "game": {
                 "nm": "Game",
                 "items": {
-                    "show": {
-                        "nm":"Show|Hide"},
                     "start": {
-                        "nm":"Start"},
-                    "stop": {
-                        "nm":"Stop"},
+                        "nm":"Start",
+                        "?":"Launch game and info windows.",
+                        "disable":["start", "restart", "resume"],
+                        "enable": ["pause", "save"]},
+                    "pause": {
+                        "nm":"Pause",
+                        "?":"Stop game events",
+                        "disable":["pause"],
+                        "enable": ["restart", "resume"]},
+                    "restart": {
+                        "nm":"Restart",
+                        "?":"Start a new series of game events",
+                        "disable":["start", "restart", "resume"],
+                        "enable": ["pause", "save"]},
+                    "resume": {
+                        "nm":"Resume",
+                        "?":"Continue game events",
+                        "disable":["resume"],
+                        "enable": ["pause", "save"]},
+                    "save": {
+                        "nm":"Save",
+                        "?":"Save game state",
+                        "disable":[],
+                        "enable": []},
                     "status": {
-                        "nm":"Status"},
+                        "nm":"Status",
+                        "?":"Report on game state",
+                        "disable":[],
+                        "enable": []},
                     "test": {
-                        "nm":"Test"}}},
+                        "nm":"Test",
+                        "?":"Run tests of game functions",
+                        "disable":[],
+                        "enable": []}}},
             "help": {
                 "nm": "Help",
                 "items": {
-                    "app_help": {
-                        "nm": "Saskan Admin"},
                     "game_help": {
-                        "nm": "Saskantinon"},
+                        "nm": "Game"},
+                    "app_help": {
+                        "nm": "Admin"},
                     "pg_help": {
                         "nm": "PyGame"}}}}
     }
