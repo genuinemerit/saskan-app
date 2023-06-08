@@ -120,100 +120,6 @@ class PG:
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
 
-class GameData(object):
-    """Retrieve static game data from JSON and image file(s).
-    Organize it into data structures for use by the game
-    console and the game map.
-
-    @DEV:
-    - Reorganize as needed into text, Pandas Dataframe, graph,
-      any other data formats that will be useful.
-    - Consider how to handle layers of data, e.g. on a map, or
-      in a scene, so that zoom-in, zoom-out, and other views
-      can be handled without having to re-read the data.
-    - Think how to map dimensions of a given region to the
-      dimensions of the Game (map) window. Probably best to
-      start with a fixed size for a grid-square, compute number
-      of grids in the GUI region, and align data to that -- as
-      opposed to defining grid sizes based on dimensions in the
-      data, which could cause different grid sizes for different
-      sets of mapped data.
-      - So start out by defining a fixed grid size, then assign
-        a key to that grid, showing km per grid. Assign degrees
-        so that the display shows lat/long outside the range of the
-        data. Then center the mapped data on the display grid.
-      - Map the Saskan Lands major political boundaries, then work
-        on layering in different things .. more detailed regions,
-        towns, roads, geographical features, neighboring regions,
-        etc.
-      - Once I have a feelig for that, then work on mapping data
-        for a more zoomed-in region, like a town and its environs.
-        Then for a scene, like a building, or a room.
-    - Consider where to provide screen real estate for GUI controls...
-      scroll, zoom, pan, select-move and so on.
-        - Those things may not be part of this class, but they will
-          interact with it at any rate.
-    """
-    def __init__(self):
-        self.POST = dict()
-        self.TEXT = list()
-        self.MAP = dict()
-
-    def set_post(self,
-                 p_category: str,
-                 p_item: str):
-        """Capture current status settings for game data.
-        These are key values pointing to data in JSON files.
-
-        :args:
-        - p_category (str): category key of data to retrieve, e.g. "geo"
-        - p_item (str): item key of data to retrieve, e.g. "Saskan Lands"
-        """
-        self.POST["catg"] = p_category
-        self.POST["item"] = p_item
-
-    def get_text(self) -> str:
-        """Return data for posted item,
-        formatted as a list of strings that can
-        be rendered as text on the Console.
-        """
-        data = FI.S[self.POST["catg"]][self.POST["item"]]
-        self.TEXT = list()
-        # Item name(s)
-        self.TEXT.append(data['name']['common'])
-        for k, v in data['name'].items():
-            if k != 'common':
-                self.TEXT.append(f"  {k}: {v}")
-        # Map dimensions
-        self.MAP = data['map']
-        self.TEXT.append("-" * 16)
-        self.TEXT.append("Kilometers")
-        self.TEXT.append(f"  North-South: {self.MAP['rect']['n_s_km']}")
-        self.TEXT.append(f"  East-West: {self.MAP['rect']['e_w_km']}")
-        self.TEXT.append("Degrees")
-        self.TEXT.append("  Latitude")
-        self.TEXT.append(f"    North: {self.MAP['degrees']['n_lat']}")
-        self.TEXT.append(f"    South: {self.MAP['degrees']['s_lat']}")
-        self.TEXT.append("  Longitutde")
-        self.TEXT.append(f"    West: {self.MAP['degrees']['w_long']}")
-        self.TEXT.append(f"    East: {self.MAP['degrees']['e_long']}")
-        # Contained by
-        self.TEXT.append("-" * 16)
-        self.TEXT.append(f"{list(data['contained_by'].keys())[0]}: " +
-                         f"{list(data['contained_by'].values())[0]}")
-        # Political boundaries
-        self.TEXT.append("-" * 16)
-        self.TEXT.append("Political Boundaries")
-        politics = {k: v for k, v in data['contains'].items() if k in ('federation', 'district')}
-        if "federation" in politics:
-            self.TEXT.append("  Federations:")
-            for fed in politics["federation"]:
-                self.TEXT.append(f"    {fed}")
-        if "district" in politics:
-            self.TEXT.append("  Districts:")
-            for dist in politics["district"]:
-                self.TEXT.append(f"    {dist}")
-
 
 class MenuBar(object):
     """ Menu Bar items for the application.
@@ -479,6 +385,162 @@ class TextInputGroup(pg.sprite.Group):
         self.current = None     # ID currently-selected text input widget.
 
 
+class GameData(object):
+    """Retrieve static game data from JSON and image file(s).
+    Organize it into data structures for use by the game
+    console and the game map.
+
+    @DEV:
+    - Reorganize as needed into text, Pandas Dataframe, graph,
+      any other data formats that will be useful.
+    - Consider how to handle layers of data, e.g. on a map, or
+      in a scene, so that zoom-in, zoom-out, and other views
+      can be handled without having to re-read the data.
+    - Think how to map dimensions of a given region to the
+      dimensions of the Game (map) window. Probably best to
+      start with a fixed size for a grid-square, compute number
+      of grids in the GUI region, and align data to that -- as
+      opposed to defining grid sizes based on dimensions in the
+      data, which could cause different grid sizes for different
+      sets of mapped data.
+      - So start out by defining a fixed grid size, then assign
+        a key to that grid, showing km per grid. Assign degrees
+        so that the display shows lat/long outside the range of the
+        data. Then center the mapped data on the display grid.
+      - Map the Saskan Lands major political boundaries, then work
+        on layering in different things .. more detailed regions,
+        towns, roads, geographical features, neighboring regions,
+        etc.
+      - Once I have a feelig for that, then work on mapping data
+        for a more zoomed-in region, like a town and its environs.
+        Then for a scene, like a building, or a room.
+    - Consider where to provide screen real estate for GUI controls...
+      scroll, zoom, pan, select-move and so on.
+        - Those things may not be part of this class, but they will
+          interact with it at any rate.
+    """
+    def __init__(self):
+        self.POST = dict()
+        self.TEXT = list()
+        self.MAP = dict()
+        # we'll add other dimensions as needed for zoom-in
+        # handle conversions elsewhere. use default units here.
+        # actual region size: 28cm wide x 22cm high
+        # so:
+        #   - leave a 1cm margin on each side
+        #   - 26cm wide x 20cm high
+        #   - assume a grid is 0.5cm x 0.5cm
+        #   - so maybe about 52 wide x 40 high grids
+        #   - compute virtual key (e.g., km) per grid based
+        #   on the actual region size + the game data
+        # location relative to frame (not sure if these are pixels or what;
+        # they are what pygame uses):
+        # "game": {
+        #     "x": 20,
+        #     "y": 100,
+        #     "w": 1800,
+        #     "h": 1400,
+        # And I am using a border size of "5"
+        # so actual pygame-unit size of the game window is:
+        #   - 1790 wide x 1390 high
+        #   - and let's assume another internal margi of 10 on each side
+        #   - so 1770 wide x 1370 high
+        #   - and let's assume a grid is 40 x 40 pygame units
+        #   - so that's 44 grids wide x 34 grids high
+        # Next...
+        # How many kilometers are represented by each grid?
+        # The largest map I have so far (Saskan Lands):
+        #   918.75 km high
+        #   1311.103 km wide
+        # So, if we assume a grid is 40 x 40 pygame units,
+        # then each grid is 36.5625 km high and 32.7775 km wide?
+        # No, I want the grids to be square, so use the size for
+        # the largest dimension: 1311.103 / 40 = 32.7775 km-sq.
+        # So the Saskan Lands map would occupy 40 grids wide and
+        # just slightly over 28 grids high.
+
+        self.MAP["grids"] = {
+            "rows": 34,
+            "cols": 44,
+            "px": {
+                "w": 40, "h": 40,
+                "topleft": (
+                    # offset 5 for border and 10 for internal margin
+                    PG.PGAME["x"] + 15,
+                    PG.PGAME["y"] + 50)},
+            "km": {
+                "default": {
+                    "w": 32.7775, "h": 32.7775}}}
+
+    def set_post(self,
+                 p_category: str,
+                 p_item: str):
+        """Capture current status settings for game data.
+        These are key values pointing to data in JSON files.
+
+        :args:
+        - p_category (str): category key of data to retrieve, e.g. "geo"
+        - p_item (str): item key of data to retrieve, e.g. "Saskan Lands"
+        """
+        self.POST["catg"] = p_category
+        self.POST["item"] = p_item
+
+
+    def set_text(self) -> str:
+        """For posted item, format as list of strings that can
+        be rendered as text on the Console.  Also add Game Map
+        data to the MAP struct.
+        """
+        data = FI.S[self.POST["catg"]][self.POST["item"]]
+        self.TEXT = list()
+        # Item name(s)
+        self.TEXT.append(data['name']['common'])
+        for k, v in data['name'].items():
+            if k != 'common':
+                self.TEXT.append(f"  {k}: {v}")
+        # Add Game Map dimensions to MAP data struct.
+        # Do this here because the Console Text gets set before
+        # other (dynamic) Game-level Map data gets set.
+        self.MAP = {**self.MAP, **data['map']}
+        # Format map data as text
+        self.TEXT.append("-" * 16)
+        self.TEXT.append("Kilometers")
+        self.TEXT.append(f"  North-South: {self.MAP['rect']['n_s_km']}")
+        self.TEXT.append(f"  East-West: {self.MAP['rect']['e_w_km']}")
+        self.TEXT.append("Degrees")
+        self.TEXT.append("  Latitude")
+        self.TEXT.append(f"    North: {self.MAP['degrees']['n_lat']}")
+        self.TEXT.append(f"    South: {self.MAP['degrees']['s_lat']}")
+        self.TEXT.append("  Longitutde")
+        self.TEXT.append(f"    West: {self.MAP['degrees']['w_long']}")
+        self.TEXT.append(f"    East: {self.MAP['degrees']['e_long']}")
+        # Contained by
+        self.TEXT.append("-" * 16)
+        self.TEXT.append(f"{list(data['contained_by'].keys())[0]}: " +
+                         f"{list(data['contained_by'].values())[0]}")
+        # Political boundaries
+        self.TEXT.append("-" * 16)
+        self.TEXT.append("Political Boundaries")
+        politics = {k: v for k, v in data['contains'].items() if k in ('federation', 'district')}
+        if "federation" in politics:
+            self.TEXT.append("  Federations:")
+            for fed in politics["federation"]:
+                self.TEXT.append(f"    {fed}")
+        if "district" in politics:
+            self.TEXT.append("  Districts:")
+            for dist in politics["district"]:
+                self.TEXT.append(f"    {dist}")
+
+    def set_map(self,
+                p_map_data: dict):
+        """Set additional map dimensions and content based on
+        current game state.
+
+        :args:
+        - p_map_data (dict): whatever is needed...
+        """
+        pass
+
 class PageInfo(object):
     """Define and handle the Game Info window (rect).
 
@@ -548,24 +610,52 @@ class PageGame(object):
     def __init__(self,
                  p_info_text: str):
         """Initialize PageGame"""
-        self.box = pg.Rect(PG.PGAME["x"], PG.PGAME["y"],
+        self.BOX = pg.Rect(PG.PGAME["x"], PG.PGAME["y"],
                            PG.PGAME["w"], PG.PGAME["h"])
         WT.log("info", f"PageGame initialized: {str(self)}",
                __file__, __name__, self, sys._getframe())
 
-    def draw(self):
-        """Draw the Game page.
+    def draw(self,
+             p_gd: GameData):
+        """Draw the Game map.
         draw(surface, color, coordinates, width)
 
         See turtles app for ideas on managing the game data and drawing
-        widgets based on that. Used a pandas dataframe to hold the data,
+        widgets based on that. Maybe use a dataframe to hold the data,
         which is nice because rows are conveniently indexed and can be
-        mapped to rectangular screen coordinates.
-
-        Just assume 2D for now. If we want to add 3D, we can do that later.
+        mapped to rectangular screen coordinates. Or a graph, which can
+        be handy for handling more complex relationships. We have the
+        more static references from the JSON data and the GameData class
+        object.
         """
-        pg.draw.rect(PG.WIN, PG.PC_SILVER, self.box, 5)
+        # border
+        pg.draw.rect(PG.WIN, PG.PC_SILVER, self.BOX, 5)
+        # default grid
+        gridlns = list()
+        # horizontal lines
+        # aalines(surface, color, closed, points) -> Rect
+        grids = p_gd.MAP["grids"]
+        topleft = grids["px"]["topleft"]
+        # first hz line
+        gridlns.append(topleft)
+        gridlns.append((topleft[0] + grids["cols"] * grids["px"]["w"],
+                        topleft[1]))
+        pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gridlns)
+        for i in range(grids["rows"]):
+            gridlns = list()
+            gridlns.append((topleft[0],
+                            topleft[1] + i * grids["px"]["h"]))
+            gridlns.append((topleft[0] + grids["cols"] * grids["px"]["w"],
+                            topleft[1] + i * grids["px"]["h"]))
+            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gridlns)
 
+        # @DEV:
+        # vertical lines
+
+        # May want to start a dataframe or similar structure to hold info and
+        # images for each grid/cell, like in the turtles game. GD.MAP is a good
+        # start. Don't get too distracted with adding images and such just yet.
+        # Focus on bigger grids and relationships first.
 
 class InfoBar(object):
     """Info Bar item.
@@ -649,6 +739,8 @@ class SaskanGame(object):
         self.MEG.current_bar = None
         self.MEG.current_item = None
 
+        # Static data and resources
+        self.GD = GameData()
         # Game, Console, Page Header rects and external (browser) Help windows
         self.PINFO = None
         self.PGAME = None
@@ -662,9 +754,6 @@ class SaskanGame(object):
             "frame_cnt": 0,
             "mouse_loc": (0, 0)}
         self.IBAR = InfoBar()
-
-        # Static data and resources
-        self.GD = GameData()
 
         # Test mouse logging message
         # msg = "Mouse location: " + str(self.mouse_loc)
@@ -831,12 +920,13 @@ class SaskanGame(object):
         # text to display is based on what is currently
         #  set to be posted in the GameData object
         if self.PINFO is not None:
-            self.GD.get_text()
+            self.GD.set_text()
             self.PINFO.draw(self.GD)
 
         # refresh the Game/Map window
         if self.PGAME is not None:
-            self.PGAME.draw()
+            self.GD.set_map(self.PGAME)
+            self.PGAME.draw(self.GD)
 
         # Info/Status bar
         if self.STATUS["on"] is True:
