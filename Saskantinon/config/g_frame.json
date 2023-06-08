@@ -20,7 +20,7 @@
     },
     "game_frame": {
         "ttl": "Saskanantinon",
-        "dsc": "Play Saskantinon.\n Version: 0.0.1",
+        "dsc": "Saskantinon 0.0.1",
         "nm": "saskan_game_frame",
         "sz": {
             "w": 2400,

@@ -95,36 +95,36 @@
                     "start": {
                         "nm":"Start",
                         "?":"Launch game and info windows.",
-                        "disable":["start", "restart", "resume"],
-                        "enable": ["pause", "save"]},
-                    "pause": {
-                        "nm":"Pause",
-                        "?":"Stop game events",
-                        "disable":["pause"],
-                        "enable": ["restart", "resume"]},
-                    "restart": {
-                        "nm":"Restart",
-                        "?":"Start a new series of game events",
-                        "disable":["start", "restart", "resume"],
-                        "enable": ["pause", "save"]},
-                    "resume": {
-                        "nm":"Resume",
-                        "?":"Continue game events",
-                        "disable":["resume"],
-                        "enable": ["pause", "save"]},
-                    "save": {
-                        "nm":"Save",
-                        "?":"Save game state",
-                        "disable":[],
-                        "enable": []},
+                        "default": "enabled",
+                        "disable":["start", "restart"],
+                        "enable": ["pause_resume", "save", "status"]},
                     "status": {
                         "nm":"Status",
                         "?":"Report on game state",
+                        "default": "disabled",
+                        "disable":[],
+                        "enable": []},
+                    "pause_resume": {
+                        "nm":"Pause/Resume",
+                        "?":"Pause and resume game events",
+                        "default": "disabled",
+                        "enable": ["restart"]},
+                    "restart": {
+                        "nm":"Restart",
+                        "?":"Start a new series of game events",
+                        "default": "disabled",
+                        "disable":["start", "restart"],
+                        "enable": ["pause_resume", "save", "status"]},
+                    "save": {
+                        "nm":"Save",
+                        "?":"Save game state",
+                        "default": "disabled",
                         "disable":[],
                         "enable": []},
                     "test": {
                         "nm":"Test",
                         "?":"Run tests of game functions",
+                        "default": "enabled",
                         "disable":[],
                         "enable": []}}},
             "help": {

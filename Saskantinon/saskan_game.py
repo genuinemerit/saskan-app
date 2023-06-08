@@ -20,9 +20,8 @@ Saskan App GUI.  pygame version.
 - Use wiretap and logger, but don't get side-tracked.
     - Print statements and debugger are OK for now.
 - Sketch out what I want to do before stating to do much code.
-    - OK to start with a simpler WINSas. Experiment, be agile.
+    - OK to start simpler. Experiment, be agile.
     - See pygame_lab/app4 ("turtles") for some ideas.
-    - See if ChatGPT can be used for some of it.
 """
 
 import platform
@@ -44,7 +43,9 @@ WT = WireTap()
 # Global constants for parameterized configs
 FRAME = "game_frame"
 MENUS = "game_menus"
-SMALL_FONT_SZ = 24
+SM_FONT_SZ = 24
+MED_FONT_SZ = 30
+LG_FONT_SZ = 36
 # PyGame Init needs to be here to work with PG class.
 pg.init()
 
@@ -73,10 +74,10 @@ class PG:
     PC_SILVER = pg.Color(192, 192, 192)
     PC_WHITE = pg.Color(255, 255, 255)
     # PyGame Fonts
-    F_SANS_SM = pg.font.SysFont('DejaVu Sans', SMALL_FONT_SZ)
-    F_SANS_MED = pg.font.SysFont('DejaVu Sans', 32)
-    F_SANS_LG = pg.font.SysFont('DejaVu Sans', 36)
-    F_FIXED_LG = pg.font.SysFont('Courier 10 Pitch', 36)
+    F_SANS_SM = pg.font.SysFont('DejaVu Sans', SM_FONT_SZ)
+    F_SANS_MED = pg.font.SysFont('DejaVu Sans', MED_FONT_SZ)
+    F_SANS_LG = pg.font.SysFont('DejaVu Sans', LG_FONT_SZ)
+    F_FIXED_LG = pg.font.SysFont('Courier 10 Pitch', LG_FONT_SZ)
     # PyGame Cursors
     CUR_ARROW = pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW)
     CUR_CROSS = pg.cursors.Cursor(pg.SYSTEM_CURSOR_CROSSHAIR)
@@ -84,9 +85,8 @@ class PG:
     CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
 
-    # Frame-Window = WIN*
-    # Page-Windows = info, canvas = PINFO*, PCANV*
-    # Caption is the title of the window.
+    # Frame = WIN*
+    # Caption is the title of the window (frame).
     pg.display.set_caption(FI.G[FRAME]["ttl"])
     WIN_W = FI.G[FRAME]["sz"]["w"]
     WIN_H = FI.G[FRAME]["sz"]["h"]
@@ -107,60 +107,112 @@ class PG:
     MBAR_H = FI.G[MENUS]["bar"]["h"]
     MBAR_MARGIN = FI.G[MENUS]["bar"]["margin"]
     MBAR_LOC = (MBAR_X, MBAR_Y)
-    # Info Bar = Dock @ bottom of frame
-    IBAR_X = FI.G[FRAME]["ibar"]["x"]
-    IBAR_Y = FI.G[FRAME]["ibar"]["y"]
-    IBAR_LOC = (IBAR_X, IBAR_Y)
+    # In-Frame "Windows" = PINFO*, PGAME*, IBAR*
     # Key to Game, Info and Help Windows
     PINFO = FI.G["game_windows"]["info"]
     PGAME = FI.G["game_windows"]["game"]
     PHELP = FI.G["uri"]["help"]
+    # Info Bar = Status display @ bottom of frame
+    IBAR_X = FI.G[FRAME]["ibar"]["x"]
+    IBAR_Y = FI.G[FRAME]["ibar"]["y"]
+    IBAR_LOC = (IBAR_X, IBAR_Y)
     # Other
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
 
+class GameData(object):
+    """Retrieve static game data from JSON and image file(s).
+    Organize it into data structures for use by the game
+    console and the game map.
 
-class InfoBar(object):
-    """Info Bar item.
-    It is located across bottom of window.
+    @DEV:
+    - Reorganize as needed into text, Pandas Dataframe, graph,
+      any other data formats that will be useful.
+    - Consider how to handle layers of data, e.g. on a map, or
+      in a scene, so that zoom-in, zoom-out, and other views
+      can be handled without having to re-read the data.
+    - Think how to map dimensions of a given region to the
+      dimensions of the Game (map) window. Probably best to
+      start with a fixed size for a grid-square, compute number
+      of grids in the GUI region, and align data to that -- as
+      opposed to defining grid sizes based on dimensions in the
+      data, which could cause different grid sizes for different
+      sets of mapped data.
+      - So start out by defining a fixed grid size, then assign
+        a key to that grid, showing km per grid. Assign degrees
+        so that the display shows lat/long outside the range of the
+        data. Then center the mapped data on the display grid.
+      - Map the Saskan Lands major political boundaries, then work
+        on layering in different things .. more detailed regions,
+        towns, roads, geographical features, neighboring regions,
+        etc.
+      - Once I have a feelig for that, then work on mapping data
+        for a more zoomed-in region, like a town and its environs.
+        Then for a scene, like a building, or a room.
+    - Consider where to provide screen real estate for GUI controls...
+      scroll, zoom, pan, select-move and so on.
+        - Those things may not be part of this class, but they will
+          interact with it at any rate.
     """
+    def __init__(self):
+        self.POST = dict()
+        self.TEXT = list()
+        self.MAP = dict()
 
-    def __init__(self,
-                 p_text: str = ""):
-        """ Initialize Info Bar. """
-        if p_text == "":
-            self.text = (
-                "Python: " + platform.python_version() +
-                " | Pygame: " + pg.version.ver +
-                " | OS: " + platform.platform())
-        else:
-            self.text = p_text
-        self.itxt = PG.F_SANS_SM.render(
-            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
-        self.ibox = self.itxt.get_rect()
-        self.ibox.topleft = PG.IBAR_LOC
-
-    def draw(self,
-             p_frame_cnt_mode: bool = False,
-             p_frame_cnt: int = 0,
-             p_mouse_loc: tuple = (0, 0)):
-        """ Draw Info Bar.
-        Optionally draw frame count and mouse location.
+    def set_post(self,
+                 p_category: str,
+                 p_item: str):
+        """Capture current status settings for game data.
+        These are key values pointing to data in JSON files.
 
         :args:
-        - p_frame_cnt_mode: (bool) True to display frame counter
-        - p_frame_cnt: (int) Frame counter value
-        - p_mouse_loc: (tuple) Mouse location (x, y)
+        - p_category (str): category key of data to retrieve, e.g. "geo"
+        - p_item (str): item key of data to retrieve, e.g. "Saskan Lands"
         """
-        PG.WIN.blit(self.itxt, self.ibox)
-        if p_frame_cnt_mode is True:
-            genimg = PG.F_SANS_SM.render(
-                "Generation: " + str(p_frame_cnt) +
-                "    |    Mouse: " + str(p_mouse_loc),
-                True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
-            PG.WIN.blit(genimg,
-                        genimg.get_rect(topleft=(PG.WIN_W * 0.67,
-                                                 PG.IBAR_Y)))
+        self.POST["catg"] = p_category
+        self.POST["item"] = p_item
+
+    def get_text(self) -> str:
+        """Return data for posted item,
+        formatted as a list of strings that can
+        be rendered as text on the Console.
+        """
+        data = FI.S[self.POST["catg"]][self.POST["item"]]
+        self.TEXT = list()
+        # Item name(s)
+        self.TEXT.append(data['name']['common'])
+        for k, v in data['name'].items():
+            if k != 'common':
+                self.TEXT.append(f"  {k}: {v}")
+        # Map dimensions
+        self.MAP = data['map']
+        self.TEXT.append("-" * 16)
+        self.TEXT.append("Kilometers")
+        self.TEXT.append(f"  North-South: {self.MAP['rect']['n_s_km']}")
+        self.TEXT.append(f"  East-West: {self.MAP['rect']['e_w_km']}")
+        self.TEXT.append("Degrees")
+        self.TEXT.append("  Latitude")
+        self.TEXT.append(f"    North: {self.MAP['degrees']['n_lat']}")
+        self.TEXT.append(f"    South: {self.MAP['degrees']['s_lat']}")
+        self.TEXT.append("  Longitutde")
+        self.TEXT.append(f"    West: {self.MAP['degrees']['w_long']}")
+        self.TEXT.append(f"    East: {self.MAP['degrees']['e_long']}")
+        # Contained by
+        self.TEXT.append("-" * 16)
+        self.TEXT.append(f"{list(data['contained_by'].keys())[0]}: " +
+                         f"{list(data['contained_by'].values())[0]}")
+        # Political boundaries
+        self.TEXT.append("-" * 16)
+        self.TEXT.append("Political Boundaries")
+        politics = {k: v for k, v in data['contains'].items() if k in ('federation', 'district')}
+        if "federation" in politics:
+            self.TEXT.append("  Federations:")
+            for fed in politics["federation"]:
+                self.TEXT.append(f"    {fed}")
+        if "district" in politics:
+            self.TEXT.append("  Districts:")
+            for dist in politics["district"]:
+                self.TEXT.append(f"    {dist}")
 
 
 class MenuBar(object):
@@ -186,7 +238,7 @@ class MenuBar(object):
         self.text = p_name
 
         # mbox_w = len(self.text) * 12
-        mbox_w = len(self.text) * SMALL_FONT_SZ
+        mbox_w = len(self.text) * SM_FONT_SZ
 
         self.mbox = pg.Rect(p_x_left,
                             PG.MBAR_Y,
@@ -430,30 +482,61 @@ class TextInputGroup(pg.sprite.Group):
 class PageInfo(object):
     """Define and handle the Game Info window (rect).
 
-    Display game info, like score, etc.
-    and to contain text inputs.
+    Display game data like score, etc.; and to contain text inputs.
     It is a rect within the Frame real estate, not a separate Frame object.
-
-    @DEV
-    - Struggling a bit with defining a virtual "window"...
-    - Can't seem to just draw a simple box yet, nor text for that matter.
-    - Try again, using PageHeader as a model.
     """
 
-    def __init__(self,
-                 p_info_text: str):
-        """ Initialize PageHeader. """
-        self.img = PG.F_SANS_LG.render(p_info_text, True,
-                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
-        self.box = self.img.get_rect()
-        self.box.topleft = (PG.PINFO["x"], PG.PINFO["y"])
-        self.is_visible = True
-        WT.log("info", f"PageInfo initialized: {str(self)}",
+    def __init__(self):
+        """ Initialize PageInfo.
+        """
+        WT.log("info", f"PageInfo instantiated: {str(self)}",
                __file__, __name__, self, sys._getframe())
+        self.BOX = pg.Rect(PG.PINFO["x"], PG.PINFO["y"],
+                           PG.PINFO["w"], PG.PINFO["h"])
+        self.TTL = None
+        self.TXT = None
+        self.IMG = None
 
-    def draw(self):
-        """ Draw PageHeader. """
-        PG.WIN.blit(self.img, self.box)
+    def set_header(self):
+        """ Set PageInfo (Game Console) header.
+        Set the title  text to display in the PageInfo rect.
+        """
+        self.IMG = PG.F_SANS_LG.render(PG.PINFO["ttl"], True,
+                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        self.TTL = self.IMG.get_rect()
+        self.TTL.topleft = (PG.PINFO["x"] + 5,
+                            PG.PINFO["y"] + 5)
+
+    def set_text_line(self,
+                      p_lnno: int,
+                      p_text: str):
+        """ Set a line of text to display in the PageInfo rect.
+        :args:
+        - p_lnno: (int) Line number of text to display.
+        - p_text: (str) Line of text to display.
+        """
+        self.IMG = PG.F_SANS_MED.render(p_text, True,
+                                        PG.PC_BLUEPOWDER,
+                                        PG.PC_BLACK)
+        self.TXT = self.IMG.get_rect()
+        y = self.TTL.y + LG_FONT_SZ
+        self.TXT.topleft = (self.TTL.x,
+                            y + ((MED_FONT_SZ + 2) * (p_lnno + 1)))
+
+    def draw(self,
+             p_gd: GameData):
+        """ Draw PageInfo.
+        - Black out the PageInfo rect.
+        - Draw the console header.
+        - Incrementally add lines text (or inputs) to PageInfo
+          region based on current posting in GameData object.
+        """
+        pg.draw.rect(PG.WIN, PG.PC_BLUE, self.BOX, 1)
+        self.set_header()
+        PG.WIN.blit(self.IMG, self.TTL)
+        for i, ln in enumerate(p_gd.TEXT):
+           self.set_text_line(i, ln)
+           PG.WIN.blit(self.IMG, self.TXT)
 
 
 class PageGame(object):
@@ -464,18 +547,69 @@ class PageGame(object):
 
     def __init__(self,
                  p_info_text: str):
+        """Initialize PageGame"""
         self.box = pg.Rect(PG.PGAME["x"], PG.PGAME["y"],
                            PG.PGAME["w"], PG.PGAME["h"])
-        self.is_visible = True
         WT.log("info", f"PageGame initialized: {str(self)}",
                __file__, __name__, self, sys._getframe())
 
     def draw(self):
         """Draw the Game page.
         draw(surface, color, coordinates, width)
+
+        See turtles app for ideas on managing the game data and drawing
+        widgets based on that. Used a pandas dataframe to hold the data,
+        which is nice because rows are conveniently indexed and can be
+        mapped to rectangular screen coordinates.
+
+        Just assume 2D for now. If we want to add 3D, we can do that later.
         """
         pg.draw.rect(PG.WIN, PG.PC_SILVER, self.box, 5)
 
+
+class InfoBar(object):
+    """Info Bar item.
+    It is located across bottom of window.
+    Deafault text is system info.
+    To change the text, call set_text function.
+    """
+
+    def __init__(self):
+        """ Initialize Info Bar. """
+        self.set_default_text()
+
+    def set_default_text(self):
+        """ Set Info Bar text to system info. """
+        self.text = (
+            FI.G[FRAME]["dsc"] +
+            " | " + platform.platform() +
+            " | Python " + platform.python_version() +
+            " | Pygame " + pg.version.ver)
+
+    def set_status_text(self,
+                        p_status: dict):
+        """ Set Info Bar text to status text. """
+        self.text = (
+            "Generation: " + str(p_status["frame_cnt"]) +
+            "    |    Mouse: " + str(p_status["mouse_loc"]))
+
+    def draw(self,
+             p_frame_cnt_mode: bool = False,
+             p_frame_cnt: int = 0,
+             p_mouse_loc: tuple = (0, 0)):
+        """ Draw Info Bar.
+        Optionally draw frame count and mouse location.
+
+        :args:
+        - p_frame_cnt_mode: (bool) True to display frame counter
+        - p_frame_cnt: (int) Frame counter value
+        - p_mouse_loc: (tuple) Mouse location (x, y)
+        """
+        self.itxt = PG.F_SANS_SM.render(
+            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        self.ibox = self.itxt.get_rect()
+        self.ibox.topleft = PG.IBAR_LOC
+        PG.WIN.blit(self.itxt, self.ibox)
 
 
 # ====================================================
@@ -495,27 +629,15 @@ class SaskanGame(object):
         WT.log("info", "dev/shm cache created",
                __file__, __name__, self, sys._getframe())
 
-        # Mouse tracking
-        self.mouse_loc = (0, 0)
-
         # Keyboard assignments
-        # These will change for the game mode...
+        # Modify as needed for game mode...
         self.QUIT_KY: list = [pg.K_q, pg.K_ESCAPE]
         self.ANIM_KY: list = [pg.K_F3, pg.K_F4, pg.K_F5]
         self.DATA_KY: list = [pg.K_a, pg.K_l]
         self.RPT_TYPE_KY: list = [pg.K_KP1, pg.K_KP2, pg.K_KP3]
         self.RPT_MODE_KY: list = [pg.K_UP, pg.K_RIGHT, pg.K_LEFT]
-        # Basic animation modes
 
-        # @DEV - add speed throttles later
-        self.frame_cnt_mode = False
-        self.frame_cnt = 0
-        self.freeze_mode = False
-
-        # Instantiate information bar
-        self.IBAR = InfoBar('')
-
-        # Instantiate menu bar and menu items
+        # Menu bar and menu items
         self.MEG = MenuGroup()
         prev_x = PG.MBAR_X
         for _, mn in FI.G[MENUS]["menu"].items():
@@ -527,22 +649,26 @@ class SaskanGame(object):
         self.MEG.current_bar = None
         self.MEG.current_item = None
 
-        # Placeholders for Game and Info "windows" (rects)
+        # Game, Console, Page Header rects and external (browser) Help windows
         self.PINFO = None
         self.PGAME = None
-
-        # Page header
-        # @DEV - does not seem to be serve a purpose. Try omitting it..
         self.PHDR = PageHeader(FI.G[FRAME]["pg_hdr"]["default_text"])
-
-        # External windows
-        # does not seem to help to register type of browser, so omitting
-        # webbrowser.register('firefox')
         self.WHTML = HtmlDisplay()
 
+        # Status trackers and information bar
+        self.STATUS = {
+            "on": False,
+            "frozen": False,
+            "frame_cnt": 0,
+            "mouse_loc": (0, 0)}
+        self.IBAR = InfoBar()
+
+        # Static data and resources
+        self.GD = GameData()
+
         # Test mouse logging message
-        msg = "Mouse location: " + str(self.mouse_loc)
-        WT.log("info", msg, __file__, __name__, self, sys._getframe())
+        # msg = "Mouse location: " + str(self.mouse_loc)
+        # WT.log("info", msg, __file__, __name__, self, sys._getframe())
 
         # Test log report
         # I have display to console turned on in wiretap.
@@ -550,8 +676,8 @@ class SaskanGame(object):
         # WT.dump_log()
 
         # Make it go!
-        # Seems to make more sense to trigger the main loop here
-        #  rather than in the __main__ module.
+        # Makes more sense to me to trigger the main loop here,
+        #  rather than in __main__ module.
         self.main_loop()
 
     # Mouse Click Event Handlers
@@ -641,8 +767,15 @@ class SaskanGame(object):
             elif m_item_id == "game_help":
                 self.WHTML.draw(PG.PHELP["game"])
         elif m_item_id == "start":
-            self.PINFO = PageInfo(PG.PINFO["ttl"])
+            # Console/Game Info window
+            self.PINFO = PageInfo()
+            self.GD.set_post('geo', 'Saskan Lands')
+            # Game/Map window
             self.PGAME = PageGame(PG.PGAME["ttl"])
+        elif m_item_id == "status":
+            self.STATUS["on"] = not self.STATUS["on"]
+        elif m_item_id == "pause_resume":
+            self.STATUS["frozen"] = not self.STATUS["frozen"]
 
     def check_exit_app(self, event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
@@ -662,39 +795,64 @@ class SaskanGame(object):
 
         Sets:
         - mouse_loc: get current mouse location
+        - frame_cnt: increment if tracking status and not in a freeze mode
         - cursor: if no text input box is activated, set to default
-        - frame_cnt: increment if not in a freeze mode
+
+        @DEV:
+        More...
+        - Mouse-click was inside the Game window
+        - Mouse-click was inside the Console window
         """
-        self.mouse_loc = pg.mouse.get_pos()
+        self.STATUS["mouse_loc"] = pg.mouse.get_pos()
+
+        if self.STATUS["on"] is True and self.STATUS["frozen"] is False:
+            self.STATUS["frame_cnt"] += 1
 
         # For managing text input boxes:
         # if self.TIG.current is None:
         #     pg.mouse.set_cursor(pg.cursors.Cursor())
 
-        if self.frame_cnt_mode is True and self.freeze_mode is False:
-            self.frame_cnt += 1
-
     def refresh_screen(self):
         """Refresh the screen with the current state of the app.
         30 milliseconds between each frame is the normal framerate.
-        To go into slow motion, add a wait here. Don't change the framerate.
+        To go into slow motion, add a wait here, but don't change the framerate.
+
+        N.B. Frozen refers only to the game animation and time-based
+        event developments. It has no effect on rendering of the
+        game, console or info windows except that we stop incrementing
+        the frame count, which is handled in track_state().
         """
+        # black out the screen
         PG.WIN.fill(PG.PC_BLACK)
-        self.IBAR.draw()
-        for m_nm, mbar in self.MEG.mbars.items():
-            mbar.draw()
-            self.MEG.mitems[m_nm].draw()
 
         # self.PHDR.draw()
 
-        if self.PINFO is not None and self.PINFO.is_visible is True:
-            self.PINFO.draw()
-        if self.PGAME is not None and self.PGAME.is_visible is True:
+        # refresh the Game/Console window
+        # text to display is based on what is currently
+        #  set to be posted in the GameData object
+        if self.PINFO is not None:
+            self.GD.get_text()
+            self.PINFO.draw(self.GD)
+
+        # refresh the Game/Map window
+        if self.PGAME is not None:
             self.PGAME.draw()
+
+        # Info/Status bar
+        if self.STATUS["on"] is True:
+            self.IBAR.set_status_text(self.STATUS)
+        else:
+            self.IBAR.set_default_text()
+        self.IBAR.draw()
 
         # for txtin in self.TIG:
         #     txtin.draw()
         # self.PAGE.draw()
+
+        # refresh the menus
+        for m_nm, mbar in self.MEG.mbars.items():
+            mbar.draw()
+            self.MEG.mitems[m_nm].draw()
 
         pg.display.update()
         PG.TIMER.tick(30)
@@ -708,21 +866,30 @@ class SaskanGame(object):
         WT.log("info", "event loop launched",
                __file__, __name__, self, sys._getframe())
         while True:
+            # Get mouse_loc and frame_cnt
             self.track_state()
 
             for event in pg.event.get():
+
+                # Handle keyboard quit events (ESC or Q)
                 self.check_exit_app(event)
 
+                # Handle game & animation keyboard events
+
                 if event.type == pg.MOUSEBUTTONDOWN:
-                    self.do_select_mbar(self.mouse_loc)
-                    menu_item = self.do_select_mitem(self.mouse_loc)
+
+                    # Handle menu events
+                    self.do_select_mbar(self.STATUS["mouse_loc"])
+                    menu_item = self.do_select_mitem(self.STATUS["mouse_loc"])
                     if self.MEG.current_item is not None:
                         self.handle_menu_event(menu_item)
-                    # self.do_select_txtin(self.mouse_loc):
 
-            if self.freeze_mode is False:
-                self.refresh_screen()
+                    # Handle text input events
+                    # self.do_select_txtin(self.STATUS["mouse_loc"])
 
+                    # Handle game-click events
+
+            self.refresh_screen()
 
 # Run program
 if __name__ == '__main__':
