@@ -43,6 +43,7 @@ WT = WireTap()
 # Global constants for parameterized configs
 FRAME = "game_frame"
 MENUS = "game_menus"
+TINY_FONT_SZ = 12
 SM_FONT_SZ = 24
 MED_FONT_SZ = 30
 LG_FONT_SZ = 36
@@ -74,6 +75,7 @@ class PG:
     PC_SILVER = pg.Color(192, 192, 192)
     PC_WHITE = pg.Color(255, 255, 255)
     # PyGame Fonts
+    F_SANS_TINY = pg.font.SysFont('DejaVu Sans', TINY_FONT_SZ)
     F_SANS_SM = pg.font.SysFont('DejaVu Sans', SM_FONT_SZ)
     F_SANS_MED = pg.font.SysFont('DejaVu Sans', MED_FONT_SZ)
     F_SANS_LG = pg.font.SysFont('DejaVu Sans', LG_FONT_SZ)
@@ -420,63 +422,71 @@ class GameData(object):
           interact with it at any rate.
     """
     def __init__(self):
+        """Initialize Game Data structures
+         - Geographical map(s)
+         - Event drivers
+         - Star map(s)
+         - State trackers
+         - etc.
+        """
         self.POST = dict()
         self.TEXT = list()
         self.MAP = dict()
-        # we'll add other dimensions as needed for zoom-in
-        # handle conversions elsewhere. use default units here.
-        # actual region size: 28cm wide x 22cm high
-        # so:
-        #   - leave a 1cm margin on each side
-        #   - 26cm wide x 20cm high
-        #   - assume a grid is 0.5cm x 0.5cm
-        #   - so maybe about 52 wide x 40 high grids
-        #   - compute virtual key (e.g., km) per grid based
-        #   on the actual region size + the game data
-        # location relative to frame (not sure if these are pixels or what;
-        # they are what pygame uses):
-        # "game": {
-        #     "x": 20,
-        #     "y": 100,
-        #     "w": 1800,
-        #     "h": 1400,
-        # And I am using a border size of "5"
-        # so actual pygame-unit size of the game window is:
-        #   - 1790 wide x 1390 high
-        #   - and let's assume another internal margi of 10 on each side
-        #   - so 1770 wide x 1370 high
-        #   - and let's assume a grid is 40 x 40 pygame units
-        #   - so that's 44 grids wide x 34 grids high
-        # Next...
-        # How many kilometers are represented by each grid?
-        # The largest map I have so far (Saskan Lands):
-        #   918.75 km high
-        #   1311.103 km wide
-        # So, if we assume a grid is 40 x 40 pygame units,
-        # then each grid is 36.5625 km high and 32.7775 km wide?
-        # No, I want the grids to be square, so use the size for
-        # the largest dimension: 1311.103 / 40 = 32.7775 km-sq.
-        # So the Saskan Lands map would occupy 40 grids wide and
-        # just slightly over 28 grids high.
+        self.init_map_dims()
+        self.init_map_data_struct()
 
+    def init_map_dims(self):
+        """
+        Define static default map dimensions.
+        Add other dimensions as needed for zoom-in.
+        Handle conversions elsewhere.
+        Default units (km, px, deg) are defined here, where
+        px refers to drawing units in pygame.
+        """
         self.MAP["grids"] = {
             "rows": 34,
             "cols": 44,
             "px": {
                 "w": 40, "h": 40,
                 "topleft": (
-                    # offset 5 for border and 10 for internal margin
-                    PG.PGAME["x"] + 15,
-                    PG.PGAME["y"] + 50)},
+                    # offset border = 5, internal margin = 12 or 13
+                    PG.PGAME["x"] + 17,
+                    PG.PGAME["y"] + 18)},
             "km": {
                 "default": {
                     "w": 32.7775, "h": 32.7775}}}
+        # Provide handy references to the dimensions.
+        self.cols_cnt = self.MAP["grids"]["cols"]
+        self.rows_cnt = self.MAP["grids"]["rows"]
+        self.line_w = self.MAP["grids"]["px"]["w"] * self.cols_cnt
+        self.line_h = self.MAP["grids"]["px"]["h"] * self.rows_cnt
+        self.grid_w = self.MAP["grids"]["px"]["w"]
+        self.grid_h = self.MAP["grids"]["px"]["h"]
+        self.tl_x = self.MAP["grids"]["px"]["topleft"][0]
+        self.tl_y = self.MAP["grids"]["px"]["topleft"][1]
+
+    def init_map_data_struct(self):
+        """ Define a record for each grid of the map to store game data.
+        # Use dicts. Convert to Pandas Dataframes as needed.
+        """
+        grid_record = {"id": {"text": None, "rect": None, "img": None},
+                       "tl_px": {"x":(), "y":()},
+                       "tl_dg": {"lat": (), "lon": ()},
+                       "km": {"w": 0.0, "h": 0.0},
+                       "text": "",
+                       "lines": list(),
+                       "points": list(),
+                       "sounds": list(),
+                       "images": list()}
+        grid_col = {c: grid_record for c in range(self.MAP["grids"]["cols"])}
+        self.MAP["data"] = {r: grid_col for r in range(self.MAP["grids"]["rows"])}
 
     def set_post(self,
                  p_category: str,
                  p_item: str):
-        """Capture current status settings for game data.
-        These are key values pointing to data in JSON files.
+        """Capture high-level status settings for game data
+        that are key values pointing to data in JSON files.
+        This tells us what external data sets to retrieve, use.
 
         :args:
         - p_category (str): category key of data to retrieve, e.g. "geo"
@@ -485,11 +495,9 @@ class GameData(object):
         self.POST["catg"] = p_category
         self.POST["item"] = p_item
 
-
     def set_text(self) -> str:
-        """For posted item, format as list of strings that can
-        be rendered as text on the Console.  Also add Game Map
-        data to the MAP struct.
+        """For the posted item, format list of strings that can
+        be rendered as text in Console.
         """
         data = FI.S[self.POST["catg"]][self.POST["item"]]
         self.TEXT = list()
@@ -498,11 +506,10 @@ class GameData(object):
         for k, v in data['name'].items():
             if k != 'common':
                 self.TEXT.append(f"  {k}: {v}")
-        # Add Game Map dimensions to MAP data struct.
-        # Do this here because the Console Text gets set before
-        # other (dynamic) Game-level Map data gets set.
         self.MAP = {**self.MAP, **data['map']}
-        # Format map data as text
+        # Example: Format map data as text
+        # These will eventually be distinct functions per data source,
+        # and, ideally, internationalised.
         self.TEXT.append("-" * 16)
         self.TEXT.append("Kilometers")
         self.TEXT.append(f"  North-South: {self.MAP['rect']['n_s_km']}")
@@ -531,10 +538,10 @@ class GameData(object):
             for dist in politics["district"]:
                 self.TEXT.append(f"    {dist}")
 
-    def set_map(self,
-                p_map_data: dict):
-        """Set additional map dimensions and content based on
-        current game state.
+    def set_map_data(self,
+                     p_map_data: dict):
+        """Set additional MAP["data"] values based on current game state.
+        e.g. populating specific attribute(s) of grid_record in specific grid.
 
         :args:
         - p_map_data (dict): whatever is needed...
@@ -620,42 +627,63 @@ class PageGame(object):
         """Draw the Game map.
         draw(surface, color, coordinates, width)
 
-        See turtles app for ideas on managing the game data and drawing
-        widgets based on that. Maybe use a dataframe to hold the data,
-        which is nice because rows are conveniently indexed and can be
-        mapped to rectangular screen coordinates. Or a graph, which can
-        be handy for handling more complex relationships. We have the
-        more static references from the JSON data and the GameData class
-        object.
+        Between this logic and the GameData object, may want to define
+        additional types of structures as needed. e.g., graphs, etc.
+
+        @DEV:
+        - QQ - If I modify p_gd.MAP, will it be reflected in the GameData
+          object, or do I need to return a modified copy of the GameData?
         """
-        # border
+        def draw_grid_line(gridln: list):
+            """Draw one grid line from (x,y) to (x,y) using
+            aalines(surface, color, closed, points) -> Rect
+            :args:
+            - gridln (list): list of 2 (x,y) tuples
+            """
+            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gridln)
+
         pg.draw.rect(PG.WIN, PG.PC_SILVER, self.BOX, 5)
-        # default grid
-        gridlns = list()
+        line_w = p_gd.MAP["grids"]["px"]["w"] * p_gd.MAP["grids"]["cols"]
+        line_h = p_gd.MAP["grids"]["px"]["h"] * p_gd.MAP["grids"]["rows"]
+        grid_w = p_gd.MAP["grids"]["px"]["w"]
+        grid_h = p_gd.MAP["grids"]["px"]["h"]
+        tl_x = p_gd.MAP["grids"]["px"]["topleft"][0]
+        tl_y = p_gd.MAP["grids"]["px"]["topleft"][1]
         # horizontal lines
-        # aalines(surface, color, closed, points) -> Rect
-        grids = p_gd.MAP["grids"]
-        topleft = grids["px"]["topleft"]
-        # first hz line
-        gridlns.append(topleft)
-        gridlns.append((topleft[0] + grids["cols"] * grids["px"]["w"],
-                        topleft[1]))
-        pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gridlns)
-        for i in range(grids["rows"]):
-            gridlns = list()
-            gridlns.append((topleft[0],
-                            topleft[1] + i * grids["px"]["h"]))
-            gridlns.append((topleft[0] + grids["cols"] * grids["px"]["w"],
-                            topleft[1] + i * grids["px"]["h"]))
-            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gridlns)
-
-        # @DEV:
+        for r in range(p_gd.rows_cnt + 1):
+            y = p_gd.tl_y + (r * p_gd.grid_h)
+            draw_grid_line(
+                [(p_gd.tl_x, y), (p_gd.tl_x + p_gd.line_w, y)])
         # vertical lines
+        for c in range(p_gd.cols_cnt + 1):
+            x = p_gd.tl_x + (c * p_gd.grid_w)
+            draw_grid_line(
+                [(x, p_gd.tl_y), (x, p_gd.tl_y + p_gd.line_h)])
+        # grid_id
+        # needs work...
+        # @ DEV
+        # - Don't rely on AI code. Be clear on the ID and the TL location of each grid.
+        # - Should be able to compute the grid lines once, before calling the draw method.
+        # - Should be able to tell what grid the mouse is in when moving over the map.
+        # - Instead of trying to display all ID's, only display the one that the mouse is over.
+        # - This will require a mouse event handler and optimizing indexing of game data.
+        # - Play around with algorithms for this. It may be worth it to store the grid LINE
+        # -   coordinates in order to analyze more quickly where the mouse is, or more
+        #     precisely, to convert mouse coordinates to grid index.
+        for r in range(p_gd.rows_cnt):
+            for c in range(p_gd.cols_cnt):
+                grid_id = f"({r+1}, {c+1})"
+                grid_id_img = PG.F_SANS_TINY.render(
+                    grid_id, True, PG.PC_WHITE, PG.PC_BLACK)
+                grid_id_rect = grid_id_img.get_rect()
+                p_gd.MAP["data"][r][c]["id"]["text"] = grid_id
+                p_gd.MAP["data"][r][c]["id"]["img"] = grid_id_img
+                grid_id_rect.topleft = (
+                    p_gd.tl_x + (c * p_gd.grid_w) - (p_gd.grid_w // 2),
+                    p_gd.tl_y + (r * p_gd.grid_h) - (p_gd.grid_h // 2))
+                p_gd.MAP["data"][r][c]["id"]["rect"] = grid_id_rect
+                PG.WIN.blit(grid_id_img, grid_id_rect)
 
-        # May want to start a dataframe or similar structure to hold info and
-        # images for each grid/cell, like in the turtles game. GD.MAP is a good
-        # start. Don't get too distracted with adding images and such just yet.
-        # Focus on bigger grids and relationships first.
 
 class InfoBar(object):
     """Info Bar item.
@@ -925,8 +953,10 @@ class SaskanGame(object):
 
         # refresh the Game/Map window
         if self.PGAME is not None:
-            self.GD.set_map(self.PGAME)
+            self.GD.set_map_data(self.PGAME)
             self.PGAME.draw(self.GD)
+            # if self.STATUS["frame_cnt"] > 10 and self.STATUS["frame_cnt"] < 20:
+            #     pp((self.GD.MAP["data"]))
 
         # Info/Status bar
         if self.STATUS["on"] is True:
