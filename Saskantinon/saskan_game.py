@@ -22,6 +22,46 @@ Saskan App GUI.  pygame version.
 - Sketch out what I want to do before stating to do much code.
     - OK to start simpler. Experiment, be agile.
     - See pygame_lab/app4 ("turtles") for some ideas.
+
+@NEXT:
+- Get a basic game up and running.
+- Manage the status of menu items using metadata. Enable/disable based on state.
+- On start:
+    - Identify a single AI player.
+        - See code in ontology lab.
+            - Pick just a few things to start with.
+            - Parameterize the data using JSON.
+        - Do a rough sketch of player actions and events.
+            - Highlight what grid player is in.
+            - Display data for grid that player is in.
+            - Accept input for what grid to travel to.
+            - Compute time to walk, to ride to target grid.
+            - Animate movement, show time passing, highlight grids passed thru.
+    - Load schema data for Saskan Lands.
+    - Display console data.
+    - Map degrees and km to default map size and grids.
+        - Show key/legend for map.
+        - Add directional arrows, some measures (text, like degrees N, S, E, W) to the map.
+    - Colorize grids based on political boundaries.
+        - Show key/legend for political boundaries.
+        - Add region names to map, using different fonts for different types of regions.
+    - Add more types of regions, terrain, etc. to map.
+        - Start to develop inventory of image widgets, textures, sounds, etc.
+        - Sound effects for movement.
+        - Theme music for different regions.
+        - Play a new theme when entering a different region, town, etc.
+    - Add simple sets, scenes, to GameData.
+    - Learn! Use what I learn to improve the game.
+        - Before adding more players, work on:
+            - Elaborating borders, textures at more detail.
+            - Zooming in/out to different levels of detail.
+            - Taking terrain and other factors into account for movement.
+            - Tracking time, season, date, etc.
+            - Player functions like:
+                - Energy, market, inventory, food/eating, etc.
+    - Add more AI players.
+        - Start to design some typical encounters.
+        - Start to design some typical scenarios, following the script / beat sheet.
 """
 
 import platform
@@ -635,7 +675,8 @@ class InfoBar(object):
             "on": False,
             "frozen": True,
             "frame_cnt": 0,
-            "mouse_loc": (0, 0)}
+            "mouse_loc": (0, 0),
+            "grid_loc": (0, 0)}
         self.set_default_text()
 
     def set_default_text(self):
@@ -650,7 +691,8 @@ class InfoBar(object):
         """ Set Info Bar text to status text. """
         self.status_text = (
             "Generation: " + str(self.info_status["frame_cnt"]) +
-            "    |    Mouse: " + str(self.info_status["mouse_loc"]))
+            "    | Mouse: " + str(self.info_status["mouse_loc"]) +
+            "    | Grid: " + str(self.info_status["grid_loc"]))
 
     def draw(self):
         """ Draw Info Bar.
@@ -835,6 +877,27 @@ class SaskanGame(object):
 
     # Loop Events
     # ==============================================================
+    def track_grid(self):
+        """Keep tracks of what grid the mouse is in."""
+        grid_r = 0
+        grid_c = 0
+        IBAR.info_status["grid_loc"] = ("", "")
+        for i, r in enumerate(GDAT.MAP["L"]["rows"]):
+            if IBAR.info_status["mouse_loc"][1] >= r[0][1] and\
+               IBAR.info_status["mouse_loc"][1] <= r[0][1] + GDAT.grid_px_h:
+                grid_r = i + 1
+                break
+        for i, c in enumerate(GDAT.MAP["L"]["cols"]):
+            if IBAR.info_status["mouse_loc"][0] >= c[0][0] and\
+               IBAR.info_status["mouse_loc"][0] <= c[0][0] + GDAT.grid_px_w:
+                IBAR.info_status["grid_loc"] = i + 1
+                grid_c = i + 1
+                break
+        if grid_r > 0 and grid_c > 0:
+            IBAR.info_status["grid_loc"] = (grid_r, grid_c)
+        else:
+            IBAR.info_status["grid_loc"] = ""
+
     def track_state(self):
         """Keep track of the state of the app on each frame.
 
@@ -843,20 +906,14 @@ class SaskanGame(object):
         - frame_cnt: increment if tracking status and not in a freeze mode
         - cursor: if no text input box is activated, set to default
         """
-        IBAR.info_status["mouse_loc"] = pg.mouse.get_pos()
-
         if GDAT.POST["active"]:
             IBAR.info_status["on"] = True
-
         if IBAR.info_status["on"] is True and\
             IBAR.info_status["frozen"] is False:
                 IBAR.info_status["frame_cnt"] += 1
 
-        # @NEXT:
-        # Is Mouse-loc inside the Game window?
-        # If so, what grid is it in?
-        # Spin thru GDATA rows and cols to find what grid its in.
-        #   --> Look for ways to optimize that search.
+        IBAR.info_status["mouse_loc"] = pg.mouse.get_pos()
+        self.track_grid()
 
         # For managing text input boxes:
         # if self.TIG.current is None:
