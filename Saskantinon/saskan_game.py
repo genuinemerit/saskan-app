@@ -86,35 +86,28 @@ class PG:
     CUR_HAND = pg.cursors.Cursor(pg.SYSTEM_CURSOR_HAND)
     CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
-
-    # Frame = WIN*
+    # Overall frame = WIN*
     # Caption is the title of the window (frame).
     pg.display.set_caption(FI.G[FRAME]["ttl"])
     WIN_W = FI.G[FRAME]["sz"]["w"]
     WIN_H = FI.G[FRAME]["sz"]["h"]
     WIN_MID = (WIN_W / 2, WIN_H / 2)
     WIN = pg.display.set_mode((WIN_W, WIN_H))
-    # WIN = pg.display.set_mode((WIN_W, WIN_H), DOUBLEBUF|HWSURFACE, 32)
-    # Page Header is within the frame.
-    PHDR_LOC = (FI.G[FRAME]["pg_hdr"]["x"],
-                FI.G[FRAME]["pg_hdr"]["y"])
     # Menu Bar
     # Sizing of top-menu bar items is done in MenuBar class,
-    #  based on text width and height.
-    # top, left of the entire menu:
+    #    based on text width and height.
+    # This is top, left of the entire menu:
     MBAR_X = FI.G[MENUS]["bar"]["x"]
     MBAR_Y = FI.G[MENUS]["bar"]["y"]
-    # w, h, margin of each vertical menu bar menu
+    # This is w, h, margin of each vertical menu bar menu
     MBAR_W = FI.G[MENUS]["bar"]["w"]
     MBAR_H = FI.G[MENUS]["bar"]["h"]
     MBAR_MARGIN = FI.G[MENUS]["bar"]["margin"]
     MBAR_LOC = (MBAR_X, MBAR_Y)
-    # In-Frame "Windows" = PINFO*, PGAME*, IBAR*
-    # Key to Game, Info and Help Windows
-    PINFO = FI.G["game_windows"]["info"]
-    PGAME = FI.G["game_windows"]["game"]
+    # In-game "windows" = CONS*, GWIN*, IBAR*, PHELP*
+    CONS = FI.G["game_windows"]["info"]
+    GWIN = FI.G["game_windows"]["game"]
     PHELP = FI.G["uri"]["help"]
-    # Info Bar = Status display @ bottom of frame
     IBAR_X = FI.G[FRAME]["ibar"]["x"]
     IBAR_Y = FI.G[FRAME]["ibar"]["y"]
     IBAR_LOC = (IBAR_X, IBAR_Y)
@@ -257,27 +250,6 @@ class MenuGroup(object):
                  p_mitems: MenuItems):
         """Add a MenuItems to the collection."""
         self.mitems[p_mitems.name] = p_mitems
-
-
-class PageHeader(object):
-    """Set text for header.
-    HDR is a widget drawn at top of the page,
-    just above the menu bar.
-
-    @DEV - Consider whether this is really useful or not.
-    """
-
-    def __init__(self,
-                 p_hdr_text: str):
-        """ Initialize PageHeader. """
-        self.img = PG.F_SANS_LG.render(p_hdr_text, True,
-                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
-        self.box = self.img.get_rect()
-        self.box.topleft = PG.PHDR_LOC
-
-    def draw(self):
-        """ Draw PageHeader. """
-        PG.WIN.blit(self.img, self.box)
 
 
 class HtmlDisplay(object):
@@ -429,45 +401,57 @@ class GameData(object):
          - State trackers
          - etc.
         """
-        self.POST = dict()
-        self.TEXT = list()
-        self.MAP = dict()
+        self.CON = {"box": None,
+                    "T": list()}
+        self.MAP = {"box": None,
+                    "D": dict(),
+                    "G": dict(),
+                    "L": dict()}
+        self.POST = {"active": False,
+                     "catg": None,
+                     "item": None}
         self.init_map_dims()
-        self.init_map_data_struct()
+        self.init_grid_data()
 
     def init_map_dims(self):
         """
         Define static default map dimensions.
         Add other dimensions as needed for zoom-in.
         Handle conversions elsewhere.
-        Default units (km, px, deg) are defined here, where
+        Default units (km, px, deg) are defined here.
         px refers to drawing units in pygame.
+        deg are + if N of eq, E of Greenwich;
+                - if S of eq, W of Greenwich.
         """
-        self.MAP["grids"] = {
-            "rows": 34,
-            "cols": 44,
-            "px": {
-                "w": 40, "h": 40,
-                "topleft": (
-                    # offset border = 5, internal margin = 12 or 13
-                    PG.PGAME["x"] + 17,
-                    PG.PGAME["y"] + 18)},
-            "km": {
-                "default": {
-                    "w": 32.7775, "h": 32.7775}}}
-        # Provide handy references to the dimensions.
-        self.cols_cnt = self.MAP["grids"]["cols"]
-        self.rows_cnt = self.MAP["grids"]["rows"]
-        self.line_w = self.MAP["grids"]["px"]["w"] * self.cols_cnt
-        self.line_h = self.MAP["grids"]["px"]["h"] * self.rows_cnt
-        self.grid_w = self.MAP["grids"]["px"]["w"]
-        self.grid_h = self.MAP["grids"]["px"]["h"]
-        self.tl_x = self.MAP["grids"]["px"]["topleft"][0]
-        self.tl_y = self.MAP["grids"]["px"]["topleft"][1]
+        # Default border box for the game window.
+        self.MAP["box"] = pg.Rect(PG.GWIN["x"], PG.GWIN["y"],
+                                  PG.GWIN["w"], PG.GWIN["h"])
+        # Default grid and line dimensions.
+        self.grid_tloff = {"x": 17, "y": 18}
+        self.rows_cnt = 34
+        self.cols_cnt = 44
+        self.grid_px_w = self.grid_px_h = 40
+        self.grid_km_w = self.grid_km_h = 32.7775
+        self.line_px_w = self.grid_px_w * self.cols_cnt
+        self.line_px_h = self.grid_px_h * self.rows_cnt
+        self.line_km_w = self.grid_km_w * self.cols_cnt
+        self.line_km_h = self.grid_km_h * self.rows_cnt
+        # Default grid line coordinates.
+        self.MAP["L"] = {"rows": [], "cols": []}
+        for r in range(self.rows_cnt + 1):
+            x = self.grid_tloff["x"] + self.MAP["box"].x
+            y = self.grid_tloff["y"]  + self.MAP["box"].y + (r * self.grid_px_h)
+            self.MAP["L"]["rows"].append(
+                [(x, y), (x + self.line_px_w, y)])
+        for c in range(self.cols_cnt + 1):
+            x = self.grid_tloff["x"] + self.MAP["box"].x + (c * self.grid_px_w)
+            y = self.grid_tloff["y"] + self.MAP["box"].y
+            self.MAP["L"]["cols"].append(
+                [(x, y), (x, y + self.line_px_h)])
 
-    def init_map_data_struct(self):
-        """ Define a record for each grid of the map to store game data.
-        # Use dicts. Convert to Pandas Dataframes as needed.
+    def init_grid_data(self):
+        """ Define a record for each grid to store game data.
+        Use Pandas Dataframes, graphs, etc. as needed.
         """
         grid_record = {"id": {"text": None, "rect": None, "img": None},
                        "tl_px": {"x":(), "y":()},
@@ -478,77 +462,81 @@ class GameData(object):
                        "points": list(),
                        "sounds": list(),
                        "images": list()}
-        grid_col = {c: grid_record for c in range(self.MAP["grids"]["cols"])}
-        self.MAP["data"] = {r: grid_col for r in range(self.MAP["grids"]["rows"])}
+        grid_col = {c: grid_record for c in range(self.cols_cnt)}
+        self.MAP["G"] = {r: grid_col for r in range(self.rows_cnt)}
 
     def set_post(self,
-                 p_category: str,
-                 p_item: str):
-        """Capture high-level status settings for game data
-        that are key values pointing to data in JSON files.
-        This tells us what external data sets to retrieve, use.
-
+                 p_post: dict):
+        """Capture status settings for game data.
+        Such as:
+        - Key values pointing to data in JSON files, identifying what
+          external data sets to retrieve, use.
+        - Status information, such as:
+            - Game is active
+            - Game is paused
+            - Game is over
+            - Whose turn it is
         :args:
-        - p_category (str): category key of data to retrieve, e.g. "geo"
-        - p_item (str): item key of data to retrieve, e.g. "Saskan Lands"
+        - p_post (dict): name-value pairs of status settings, such as:
+            - "catg": name of category to load from JSON
+            - "item": name of item to load from JSON
+            - "active": boolean indicating whether game is active
         """
-        self.POST["catg"] = p_category
-        self.POST["item"] = p_item
+        for k, v in p_post.items():
+            self.POST[k] = v
 
-    def set_text(self) -> str:
-        """For the posted item, format list of strings that can
-        be rendered as text in Console.
+    def set_console_text(self) -> str:
+        """For posted category item, format list of strings to render as Console text.
         """
-        data = FI.S[self.POST["catg"]][self.POST["item"]]
-        self.TEXT = list()
+        self.CON["box"] = pg.Rect(PG.CONS["x"], PG.CONS["y"],
+                                  PG.CONS["w"], PG.CONS["h"])
+        self.CON["T"] = list()
+        if self.POST["catg"] == "geo":
+            self.set_geo_text(FI.S[self.POST["catg"]][self.POST["item"]])
+
+    def set_geo_text(self,
+                     con_data: dict):
+        """Format geo data for display as Console text.
+        This content should be further abstracted, internationalised.
+        """
         # Item name(s)
-        self.TEXT.append(data['name']['common'])
-        for k, v in data['name'].items():
+        self.CON["T"].append(con_data['name']['common'])
+        for k, v in con_data['name'].items():
             if k != 'common':
-                self.TEXT.append(f"  {k}: {v}")
-        self.MAP = {**self.MAP, **data['map']}
-        # Example: Format map data as text
-        # These will eventually be distinct functions per data source,
-        # and, ideally, internationalised.
-        self.TEXT.append("-" * 16)
-        self.TEXT.append("Kilometers")
-        self.TEXT.append(f"  North-South: {self.MAP['rect']['n_s_km']}")
-        self.TEXT.append(f"  East-West: {self.MAP['rect']['e_w_km']}")
-        self.TEXT.append("Degrees")
-        self.TEXT.append("  Latitude")
-        self.TEXT.append(f"    North: {self.MAP['degrees']['n_lat']}")
-        self.TEXT.append(f"    South: {self.MAP['degrees']['s_lat']}")
-        self.TEXT.append("  Longitutde")
-        self.TEXT.append(f"    West: {self.MAP['degrees']['w_long']}")
-        self.TEXT.append(f"    East: {self.MAP['degrees']['e_long']}")
-        # Contained by
-        self.TEXT.append("-" * 16)
-        self.TEXT.append(f"{list(data['contained_by'].keys())[0]}: " +
-                         f"{list(data['contained_by'].values())[0]}")
-        # Political boundaries
-        self.TEXT.append("-" * 16)
-        self.TEXT.append("Political Boundaries")
-        politics = {k: v for k, v in data['contains'].items() if k in ('federation', 'district')}
+                self.CON["T"].append(f"  {k}: {v}")
+        # Item attributes
+        for t in [
+            "-" * 16,
+            "Kilometers",
+            f"  North-South: {con_data['map']['rect']['n_s_km']}",
+            f"  East-West: {con_data['map']['rect']['e_w_km']}",
+            "Degrees",
+            "  Latitude",
+            f"    North: {con_data['map']['degrees']['n_lat']}",
+            f"    South: {con_data['map']['degrees']['s_lat']}",
+            "  Longitude",
+            f"    West: {con_data['map']['degrees']['w_long']}",
+            f"    East: {con_data['map']['degrees']['e_long']}",
+            "-" * 16,
+            f"{list(con_data['contained_by'].keys())[0]}: " +
+                f"{list(con_data['contained_by'].values())[0]}",
+            "-" * 16,
+            "Political Boundaries"]:
+                self.CON["T"].append(t)
+        # Lists of Item attributes
+        politics = {k: v for k, v in con_data['contains'].items()\
+                    if k in ('federation', 'district')}
         if "federation" in politics:
-            self.TEXT.append("  Federations:")
+            self.CON["T"].append("  Federations:")
             for fed in politics["federation"]:
-                self.TEXT.append(f"    {fed}")
+                self.CON["T"].append(f"    {fed}")
         if "district" in politics:
-            self.TEXT.append("  Districts:")
+            self.CON["T"].append("  Districts:")
             for dist in politics["district"]:
-                self.TEXT.append(f"    {dist}")
+                self.CON["T"].append(f"    {dist}")
 
-    def set_map_data(self,
-                     p_map_data: dict):
-        """Set additional MAP["data"] values based on current game state.
-        e.g. populating specific attribute(s) of grid_record in specific grid.
 
-        :args:
-        - p_map_data (dict): whatever is needed...
-        """
-        pass
-
-class PageInfo(object):
+class GameConsole(object):
     """Define and handle the Game Info window (rect).
 
     Display game data like score, etc.; and to contain text inputs.
@@ -556,30 +544,30 @@ class PageInfo(object):
     """
 
     def __init__(self):
-        """ Initialize PageInfo.
+        """ Initialize GameConsole.
         """
-        WT.log("info", f"PageInfo instantiated: {str(self)}",
-               __file__, __name__, self, sys._getframe())
-        self.BOX = pg.Rect(PG.PINFO["x"], PG.PINFO["y"],
-                           PG.PINFO["w"], PG.PINFO["h"])
+        self.is_visible = False
+        self.BOX = pg.Rect(PG.CONS["x"], PG.CONS["y"],
+                           PG.CONS["w"], PG.CONS["h"])
         self.TTL = None
         self.TXT = None
         self.IMG = None
+        WT.log("info", f"GameConsole instantiated: {str(self)}",
+               __file__, __name__, self, sys._getframe())
 
     def set_header(self):
-        """ Set PageInfo (Game Console) header.
-        Set the title  text to display in the PageInfo rect.
+        """ Set Game Console header.
         """
-        self.IMG = PG.F_SANS_LG.render(PG.PINFO["ttl"], True,
+        self.IMG = PG.F_SANS_LG.render(PG.CONS["ttl"], True,
                                        PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.TTL = self.IMG.get_rect()
-        self.TTL.topleft = (PG.PINFO["x"] + 5,
-                            PG.PINFO["y"] + 5)
+        self.TTL.topleft = (PG.CONS["x"] + 5,
+                            PG.CONS["y"] + 5)
 
-    def set_text_line(self,
+    def set_console_text_line(self,
                       p_lnno: int,
                       p_text: str):
-        """ Set a line of text to display in the PageInfo rect.
+        """ Set a line of text to display in the GameConsole rect.
         :args:
         - p_lnno: (int) Line number of text to display.
         - p_text: (str) Line of text to display.
@@ -592,139 +580,89 @@ class PageInfo(object):
         self.TXT.topleft = (self.TTL.x,
                             y + ((MED_FONT_SZ + 2) * (p_lnno + 1)))
 
-    def draw(self,
-             p_gd: GameData):
-        """ Draw PageInfo.
-        - Black out the PageInfo rect.
+    def draw(self):
+        """ Draw GameConsole.
+        - Black out the GameConsole rect.
         - Draw the console header.
-        - Incrementally add lines text (or inputs) to PageInfo
+        - Incrementally add lines text (or inputs) to GameConsole
           region based on current posting in GameData object.
         """
-        pg.draw.rect(PG.WIN, PG.PC_BLUE, self.BOX, 1)
+        pg.draw.rect(PG.WIN, PG.PC_BLUE, GDAT.CON["box"], 1)
         self.set_header()
         PG.WIN.blit(self.IMG, self.TTL)
-        for i, ln in enumerate(p_gd.TEXT):
-           self.set_text_line(i, ln)
+        for i, ln in enumerate(GDAT.CON["T"]):
+           self.set_console_text_line(i, ln)
            PG.WIN.blit(self.IMG, self.TXT)
 
 
-class PageGame(object):
+class GameWindow(object):
     """Define and handle the Game GUI window (rect).
 
     Display the map, scenes, game widgets, GUI controls.
     It is a rect within the Frame real estate, not a separate Frame object."""
 
-    def __init__(self,
-                 p_info_text: str):
-        """Initialize PageGame"""
-        self.BOX = pg.Rect(PG.PGAME["x"], PG.PGAME["y"],
-                           PG.PGAME["w"], PG.PGAME["h"])
-        WT.log("info", f"PageGame initialized: {str(self)}",
+    def __init__(self):
+        """Initialize GameWindow"""
+        self.is_visible = False
+        self.BOX = pg.Rect(PG.GWIN["x"], PG.GWIN["y"],
+                           PG.GWIN["w"], PG.GWIN["h"])
+        WT.log("info", f"GameWindow initialized: {str(self)}",
                __file__, __name__, self, sys._getframe())
 
-    def draw(self,
-             p_gd: GameData):
+    def draw(self):
         """Draw the Game map.
         draw(surface, color, coordinates, width)
 
-        Between this logic and the GameData object, may want to define
-        additional types of structures as needed. e.g., graphs, etc.
-
-        @DEV:
-        - QQ - If I modify p_gd.MAP, will it be reflected in the GameData
-          object, or do I need to return a modified copy of the GameData?
+        Define additional types of structures as needed. e.g., graphs, etc.
         """
-        def draw_grid_line(gridln: list):
-            """Draw one grid line from (x,y) to (x,y) using
-            aalines(surface, color, closed, points) -> Rect
-            :args:
-            - gridln (list): list of 2 (x,y) tuples
-            """
-            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gridln)
-
         pg.draw.rect(PG.WIN, PG.PC_SILVER, self.BOX, 5)
-        line_w = p_gd.MAP["grids"]["px"]["w"] * p_gd.MAP["grids"]["cols"]
-        line_h = p_gd.MAP["grids"]["px"]["h"] * p_gd.MAP["grids"]["rows"]
-        grid_w = p_gd.MAP["grids"]["px"]["w"]
-        grid_h = p_gd.MAP["grids"]["px"]["h"]
-        tl_x = p_gd.MAP["grids"]["px"]["topleft"][0]
-        tl_y = p_gd.MAP["grids"]["px"]["topleft"][1]
         # horizontal lines
-        for r in range(p_gd.rows_cnt + 1):
-            y = p_gd.tl_y + (r * p_gd.grid_h)
-            draw_grid_line(
-                [(p_gd.tl_x, y), (p_gd.tl_x + p_gd.line_w, y)])
+        for gline in GDAT.MAP["L"]["rows"]:
+            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
         # vertical lines
-        for c in range(p_gd.cols_cnt + 1):
-            x = p_gd.tl_x + (c * p_gd.grid_w)
-            draw_grid_line(
-                [(x, p_gd.tl_y), (x, p_gd.tl_y + p_gd.line_h)])
-        # grid_id
-        # needs work...
-        # @ DEV
-        # - Don't rely on AI code. Be clear on the ID and the TL location of each grid.
-        # - Should be able to compute the grid lines once, before calling the draw method.
-        # - Should be able to tell what grid the mouse is in when moving over the map.
-        # - Instead of trying to display all ID's, only display the one that the mouse is over.
-        # - This will require a mouse event handler and optimizing indexing of game data.
-        # - Play around with algorithms for this. It may be worth it to store the grid LINE
-        # -   coordinates in order to analyze more quickly where the mouse is, or more
-        #     precisely, to convert mouse coordinates to grid index.
-        for r in range(p_gd.rows_cnt):
-            for c in range(p_gd.cols_cnt):
-                grid_id = f"({r+1}, {c+1})"
-                grid_id_img = PG.F_SANS_TINY.render(
-                    grid_id, True, PG.PC_WHITE, PG.PC_BLACK)
-                grid_id_rect = grid_id_img.get_rect()
-                p_gd.MAP["data"][r][c]["id"]["text"] = grid_id
-                p_gd.MAP["data"][r][c]["id"]["img"] = grid_id_img
-                grid_id_rect.topleft = (
-                    p_gd.tl_x + (c * p_gd.grid_w) - (p_gd.grid_w // 2),
-                    p_gd.tl_y + (r * p_gd.grid_h) - (p_gd.grid_h // 2))
-                p_gd.MAP["data"][r][c]["id"]["rect"] = grid_id_rect
-                PG.WIN.blit(grid_id_img, grid_id_rect)
+        for gline in GDAT.MAP["L"]["cols"]:
+            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
 
 
 class InfoBar(object):
-    """Info Bar item.
-    It is located across bottom of window.
+    """Info Bar object.
     Deafault text is system info.
-    To change the text, call set_text function.
+    To change the text, call set_console_text function.
     """
-
     def __init__(self):
         """ Initialize Info Bar. """
+        self.info_status = {
+            "on": False,
+            "frozen": True,
+            "frame_cnt": 0,
+            "mouse_loc": (0, 0)}
         self.set_default_text()
 
     def set_default_text(self):
         """ Set Info Bar text to system info. """
-        self.text = (
+        self.system_text = (
             FI.G[FRAME]["dsc"] +
             " | " + platform.platform() +
             " | Python " + platform.python_version() +
             " | Pygame " + pg.version.ver)
 
-    def set_status_text(self,
-                        p_status: dict):
+    def set_status_text(self):
         """ Set Info Bar text to status text. """
-        self.text = (
-            "Generation: " + str(p_status["frame_cnt"]) +
-            "    |    Mouse: " + str(p_status["mouse_loc"]))
+        self.status_text = (
+            "Generation: " + str(self.info_status["frame_cnt"]) +
+            "    |    Mouse: " + str(self.info_status["mouse_loc"]))
 
-    def draw(self,
-             p_frame_cnt_mode: bool = False,
-             p_frame_cnt: int = 0,
-             p_mouse_loc: tuple = (0, 0)):
+    def draw(self):
         """ Draw Info Bar.
-        Optionally draw frame count and mouse location.
-
-        :args:
-        - p_frame_cnt_mode: (bool) True to display frame counter
-        - p_frame_cnt: (int) Frame counter value
-        - p_mouse_loc: (tuple) Mouse location (x, y)
+        Optionally draw status info.
         """
-        self.itxt = PG.F_SANS_SM.render(
-            self.text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        if self.info_status["on"]:
+            self.itxt = PG.F_SANS_SM.render(
+                self.system_text + "   | " + self.status_text,
+                True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        else:
+            self.itxt = PG.F_SANS_SM.render(
+                self.system_text, True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
         self.ibox = self.itxt.get_rect()
         self.ibox.topleft = PG.IBAR_LOC
         PG.WIN.blit(self.itxt, self.ibox)
@@ -738,24 +676,39 @@ class SaskanGame(object):
     Initiated and executed by __main__.
     """
     def __init__(self, *args, **kwargs):
-        """
-        Refresh shared data space.
-        Initialize counters, modes, trackers, widgets.
+        """ Refresh cached data space.
+        Initialize settings, counters, modes, trackers, widgets, etc.
         Execute the main event loop.
+        N.B. The other major classes are instantiated in the main module
+         along with this one.
+        """
+        self.init_cache()
+        self.init_keyboard()
+        self.init_menus()
+        self.main_loop()
+
+    def init_cache(self):
+        """Copy game data to shared memory cache.
         """
         FI.pickle_saskan(path.join("/home", Path.cwd().parts[2], FI.D['APP']))
+        # ====================================================
         WT.log("info", "dev/shm cache created",
                __file__, __name__, self, sys._getframe())
+        # ====================================================
 
-        # Keyboard assignments
-        # Modify as needed for game mode...
+    def init_keyboard(self):
+        """ Keyboard assignments
+        Modify as needed for game mode.
+        """
         self.QUIT_KY: list = [pg.K_q, pg.K_ESCAPE]
         self.ANIM_KY: list = [pg.K_F3, pg.K_F4, pg.K_F5]
         self.DATA_KY: list = [pg.K_a, pg.K_l]
         self.RPT_TYPE_KY: list = [pg.K_KP1, pg.K_KP2, pg.K_KP3]
         self.RPT_MODE_KY: list = [pg.K_UP, pg.K_RIGHT, pg.K_LEFT]
 
-        # Menu bar and menu items
+    def init_menus(self):
+        """ Instantiate Menu Bar and menu Items
+        """
         self.MEG = MenuGroup()
         prev_x = PG.MBAR_X
         for _, mn in FI.G[MENUS]["menu"].items():
@@ -767,37 +720,10 @@ class SaskanGame(object):
         self.MEG.current_bar = None
         self.MEG.current_item = None
 
-        # Static data and resources
-        self.GD = GameData()
-        # Game, Console, Page Header rects and external (browser) Help windows
-        self.PINFO = None
-        self.PGAME = None
-        self.PHDR = PageHeader(FI.G[FRAME]["pg_hdr"]["default_text"])
-        self.WHTML = HtmlDisplay()
-
-        # Status trackers and information bar
-        self.STATUS = {
-            "on": False,
-            "frozen": False,
-            "frame_cnt": 0,
-            "mouse_loc": (0, 0)}
-        self.IBAR = InfoBar()
-
-        # Test mouse logging message
-        # msg = "Mouse location: " + str(self.mouse_loc)
-        # WT.log("info", msg, __file__, __name__, self, sys._getframe())
-
-        # Test log report
-        # I have display to console turned on in wiretap.
-        # That seems a little easier to read than dumping the logs.
-        # WT.dump_log()
-
-        # Make it go!
-        # Makes more sense to me to trigger the main loop here,
-        #  rather than in __main__ module.
-        self.main_loop()
-
     # Mouse Click Event Handlers
+    # @DEV:
+    #  - Click in game window
+    #  - Click in console window, in a text input field
     # ==============================================================
     def do_select_mbar(self,
                        p_mouse_loc):
@@ -862,39 +788,8 @@ class SaskanGame(object):
         pg.quit()
         sys.exit()
 
-    def handle_menu_event(self,
-                          p_menu_item):
-        """Trigger an event based on menu item selection.
-        N.B. -- Draw calls in the pygame frame are handled in the screen refresh loop.
-        """
-        menu_nm = self.MEG.current_item
-        m_item_id = p_menu_item[0]
-        m_item_text = p_menu_item[1]
-
-        msg = f"Menu item clicked: {menu_nm}, {m_item_id}, {m_item_text}"
-        WT.log("info", msg, __file__, __name__, self, sys._getframe())
-
-        if m_item_id == "exit":
-            self.exit_app()
-        elif "help" in m_item_id:
-            if m_item_id == "pg_help":
-                self.WHTML.draw(PG.PHELP["pygame"])
-            elif m_item_id == "app_help":
-                self.WHTML.draw(PG.PHELP["app"])
-            elif m_item_id == "game_help":
-                self.WHTML.draw(PG.PHELP["game"])
-        elif m_item_id == "start":
-            # Console/Game Info window
-            self.PINFO = PageInfo()
-            self.GD.set_post('geo', 'Saskan Lands')
-            # Game/Map window
-            self.PGAME = PageGame(PG.PGAME["ttl"])
-        elif m_item_id == "status":
-            self.STATUS["on"] = not self.STATUS["on"]
-        elif m_item_id == "pause_resume":
-            self.STATUS["frozen"] = not self.STATUS["frozen"]
-
-    def check_exit_app(self, event: pg.event.Event):
+    def check_exit_app(self,
+                       event: pg.event.Event):
         """Handle exit if one of the exit modes is triggered.
         This is triggered by the Q key, ESC key or `X`ing the window.
 
@@ -905,6 +800,39 @@ class SaskanGame(object):
                 (event.type == pg.KEYUP and event.key in self.QUIT_KY)):
             self.exit_app()
 
+    def handle_menu_event(self,
+                          p_menu_item):
+        """Trigger an event based on menu item selection.
+        N.B. -- Draw calls must be handled in the screen refresh loop.
+        """
+        menu_nm = self.MEG.current_item
+        m_item_id = p_menu_item[0]
+        m_item_text = p_menu_item[1]
+        # ==============================================================
+        msg = f"Menu item clicked: {menu_nm}, {m_item_id}, {m_item_text}"
+        WT.log("info", msg, __file__, __name__, self, sys._getframe())
+        # ==============================================================
+        if m_item_id == "exit":
+            self.exit_app()
+        elif "help" in m_item_id:
+            if m_item_id == "pg_help":
+                WHTML.draw(PG.PHELP["pygame"])
+            elif m_item_id == "app_help":
+                WHTML.draw(PG.PHELP["app"])
+            elif m_item_id == "game_help":
+                WHTML.draw(PG.PHELP["game"])
+        elif m_item_id == "start":
+            GDAT.set_post({"catg": 'geo',
+                           "item": 'Saskan Lands',
+                           "active": True})
+            CONS.is_visible = True
+            GWIN.is_visible = True
+        elif m_item_id == "status":
+            IBAR.info_status["on"] = not IBAR.info_status["on"]
+        elif m_item_id == "pause_resume":
+            IBAR.info_status["frozen"] = not IBAR.info_status["frozen"]
+
+
     # Loop Events
     # ==============================================================
     def track_state(self):
@@ -914,16 +842,21 @@ class SaskanGame(object):
         - mouse_loc: get current mouse location
         - frame_cnt: increment if tracking status and not in a freeze mode
         - cursor: if no text input box is activated, set to default
-
-        @DEV:
-        More...
-        - Mouse-click was inside the Game window
-        - Mouse-click was inside the Console window
         """
-        self.STATUS["mouse_loc"] = pg.mouse.get_pos()
+        IBAR.info_status["mouse_loc"] = pg.mouse.get_pos()
 
-        if self.STATUS["on"] is True and self.STATUS["frozen"] is False:
-            self.STATUS["frame_cnt"] += 1
+        if GDAT.POST["active"]:
+            IBAR.info_status["on"] = True
+
+        if IBAR.info_status["on"] is True and\
+            IBAR.info_status["frozen"] is False:
+                IBAR.info_status["frame_cnt"] += 1
+
+        # @NEXT:
+        # Is Mouse-loc inside the Game window?
+        # If so, what grid is it in?
+        # Spin thru GDATA rows and cols to find what grid its in.
+        #   --> Look for ways to optimize that search.
 
         # For managing text input boxes:
         # if self.TIG.current is None:
@@ -939,31 +872,26 @@ class SaskanGame(object):
         game, console or info windows except that we stop incrementing
         the frame count, which is handled in track_state().
         """
-        # black out the screen
+        # black out the entire screen
         PG.WIN.fill(PG.PC_BLACK)
-
-        # self.PHDR.draw()
 
         # refresh the Game/Console window
         # text to display is based on what is currently
         #  set to be posted in the GameData object
-        if self.PINFO is not None:
-            self.GD.set_text()
-            self.PINFO.draw(self.GD)
+        if CONS.is_visible is True:
+            GDAT.set_console_text()
+            CONS.draw()
 
         # refresh the Game/Map window
-        if self.PGAME is not None:
-            self.GD.set_map_data(self.PGAME)
-            self.PGAME.draw(self.GD)
-            # if self.STATUS["frame_cnt"] > 10 and self.STATUS["frame_cnt"] < 20:
-            #     pp((self.GD.MAP["data"]))
+        if GWIN.is_visible is True:
+            GWIN.draw()
 
         # Info/Status bar
-        if self.STATUS["on"] is True:
-            self.IBAR.set_status_text(self.STATUS)
+        if IBAR.info_status["on"] is True:
+            IBAR.set_status_text()
         else:
-            self.IBAR.set_default_text()
-        self.IBAR.draw()
+            IBAR.set_default_text()
+        IBAR.draw()
 
         # for txtin in self.TIG:
         #     txtin.draw()
@@ -994,18 +922,17 @@ class SaskanGame(object):
                 # Handle keyboard quit events (ESC or Q)
                 self.check_exit_app(event)
 
-                # Handle game & animation keyboard events
-
+                # Handle other keyboard events
                 if event.type == pg.MOUSEBUTTONDOWN:
 
                     # Handle menu events
-                    self.do_select_mbar(self.STATUS["mouse_loc"])
-                    menu_item = self.do_select_mitem(self.STATUS["mouse_loc"])
+                    self.do_select_mbar(IBAR.info_status["mouse_loc"])
+                    menu_item = self.do_select_mitem(IBAR.info_status["mouse_loc"])
                     if self.MEG.current_item is not None:
                         self.handle_menu_event(menu_item)
 
                     # Handle text input events
-                    # self.do_select_txtin(self.STATUS["mouse_loc"])
+                    # self.do_select_txtin(sIBAR.info_status["mouse_loc"])
 
                     # Handle game-click events
 
@@ -1014,4 +941,10 @@ class SaskanGame(object):
 # Run program
 if __name__ == '__main__':
     """Run program."""
+
+    GDAT = GameData()    # Init static game data and resources
+    WHTML = HtmlDisplay()  # for Help windows
+    IBAR = InfoBar()
+    CONS = GameConsole()
+    GWIN = GameWindow()
     SaskanGame()
