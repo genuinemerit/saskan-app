@@ -24,8 +24,12 @@ Saskan App GUI.  pygame version.
     - See pygame_lab/app4 ("turtles") for some ideas.
 
 @TODO:
-1. Manage status of menu items using metadata. Enable/disable based on state.
-- Extend regions metadata (JSON) and code to support drawing high-level box borders.
++ Simplify the menu code.
+- Manage status of menu items using metadata. Enable/disable based on state.
+- See if I can adjust the resolution of the game window based on environment.
+  - For example, on the high-res Dell Linux laptop, the game is too small.
+  - But on the low-res old Lenovo Linux laptop, the game is too big.
+- Extend regions metadata (JSON) and code to support drawing high-level box (map) borders.
 - Load schema data for Saskan Lands.
 - Display console data.
 - Colorize grids based on political boundaries.
@@ -178,10 +182,9 @@ class GameMenu(object):
         self.mitems = dict()
         self.set_menu_bar()
         self.set_menu_items()
-        self.draw_mbar()
-        for mb_ky, m_items in self.mitems.items():
-            for mi_ky in list(m_items.keys()):
-                self.draw_mitems(mb_ky, mi_ky)
+        self.draw_menu_bar()
+        for mb_ky in self.mitems.keys():
+            self.draw_menu_items(mb_ky)
         # ==============================================================
         msg = f"\nGameMenu initialized: {self}"
         WT.log("info", msg, __file__, __name__, self, sys._getframe())
@@ -217,7 +220,9 @@ class GameMenu(object):
                 self.mbars[mb_ky]["box"].top + PG.MBAR_MARGIN + 5
 
     def set_menu_items(self):
-        """Add a MenuItems (list of items) to the object."""
+        """Add a MenuItems (list of items) to the object.
+        Rect((left, top), (width, height))
+        """
         self.mitems = {ky: val["items"] for ky, val in FI.G[MENUS]["menu"].items()}
 
         mx = 0
@@ -229,49 +234,24 @@ class GameMenu(object):
                         self.mbars[mb_ky]["box"].bottom,
                         PG.MBAR_W,
                         self.mbars[mb_ky]["box"].height * len(list(self.mitems.keys())))
-                self.mbars[mb_ky]["mlist_visible"] = False
+                self.mbars[mb_ky]["selected"] = False
             for mi_ky, item_attr in list_attr.items():
                 self.mitems[mb_ky][mi_ky]["selected"] = False
-                self.mitems[mb_ky][mi_ky]["enabled"] = True\
-                if "default" not in list(item_attr.keys())\
-                    or item_attr["default"] == "enabled" \
-                else False
-            txt_color = PG.PC_GREEN if self.mitems[mb_ky][mi_ky]["enabled"] is True\
-                  else PG.PC_GRAY
-            self.mitems[mb_ky][mi_ky]["text"] = PG.F_SANS_SM.render(
-                item_attr["nm"], True, txt_color, PG.PC_BLACK)
-            self.mitems[mb_ky][mi_ky]["tbox"] =\
-                pg.Rect(self.mbars[mb_ky]["box"].left + PG.MBAR_MARGIN,
-                        ((self.mbars[mb_ky]["box"].top + (PG.MBAR_H * mx)) + PG.MBAR_MARGIN),
-                         self.mitems[mb_ky][mi_ky]["text"].get_width() + (PG.MBAR_MARGIN * 2),
-                         PG.MBAR_H)
+                self.mitems[mb_ky][mi_ky]["enabled"] = True if "default" not in list(item_attr.keys())\
+                    or item_attr["default"] == "enabled" else False
+                txt_color = PG.PC_GREEN if self.mitems[mb_ky][mi_ky]["enabled"] is True\
+                    else PG.PC_GRAY
+                self.mitems[mb_ky][mi_ky]["text"] = PG.F_SANS_SM.render(
+                    item_attr["nm"], True, txt_color, PG.PC_BLACK)
+                self.mitems[mb_ky][mi_ky]["tbox"] =\
+                    pg.Rect(self.mbars[mb_ky]["box"].left + PG.MBAR_MARGIN,
+                            ((self.mbars[mb_ky]["box"].bottom + (PG.MBAR_H * mx)) + PG.MBAR_MARGIN),
+                            self.mitems[mb_ky][mi_ky]["text"].get_width() + (PG.MBAR_MARGIN * 2),
+                            PG.MBAR_H)
             mx += 1
 
-    def draw_mbar(self):
-        """ Draw a Menu Bar item.
-        """
-        for mb_ky, attr in self.mbars.items():
-            if attr["selected"]:
-                pg.draw.rect(PG.WIN, PG.PC_GREEN, attr["box"], 4)
-            else:
-                pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, attr["box"], 4)
-            PG.WIN.blit(attr["text"], attr["tbox"])
-
-    def draw_mitems(self,
-                    p_mb_ky,
-                    p_mi_ky):
-        """ Draw the list of Menu Items.
-
-        :attr:
-        - p_mb_ky: key to the menu bar data
-        - p_mi_ky: key to the menu item data
-        """
-        if self.mbars[p_mb_ky]["mlist_visible"] is True:
-            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER,
-                         self.mbars[p_mb_ky]["mlist_box"], 2)
-            for attr in self.mitems[p_mb_ky].values():
-                # Draw each menu item in the identified box
-                PG.WIN.blit(attr["txt"], attr["tbox"])
+        pp(("self.mitems:", self.mitems,
+            "self.mbars", self.mbars))
 
     def click_mbar(self,
                    p_mouse_loc: tuple) -> str:
@@ -282,28 +262,15 @@ class GameMenu(object):
         """
         for mb_ky, attr in self.mbars.items():
             if attr["box"].collidepoint(p_mouse_loc):
-                if attr["selected"] is True:
-                    # Hide bar and item list if currently selected.
-                    self.mitems[mb_ky]["selected"] = False
-                    self.mitems[mb_ky]["mlist_visible"] = False
-                else:
-                    self.mitems[mb_ky]["selected"] = True
-                    self.mitems[mb_ky]["mlist_visible"] = True
-                    # Hide and unselect other items and menus.
-                    for other_ky in list(self.mbars.keys()):
-                        if not other_ky == mb_ky:
-                            self.mitems[other_ky]["mlist_visible"] = False
-                            self.mitems[other_ky]["selected"] = False
+                self.mbars[mb_ky]["selected"] = True\
+                    if self.mbars[mb_ky]["selected"] is False else False
+                for ky in [ky for ky in self.mbars.keys() if ky != mb_ky]:
+                    self.mbars[ky]["selected"] = False
                 return (mb_ky)
-            else:
-                if attr["selected"] is True:
-                     self.mitems[mb_ky]["selected"] = True
-                else:
-                     self.mitems[mb_ky]["selected"] = False
         return None
 
     def click_mitem(self,
-                    p_mouse_loc: tuple) -> str:
+                    p_mouse_loc: tuple):
         """ Return id if clicked on a menu item.
 
         :attr:
@@ -311,17 +278,63 @@ class GameMenu(object):
         :return:
         - (str) id of clicked menu item
         """
-        for mb_ky, val in self.mitems.items():
-            for mi_ky, attr in val.items():
 
-                pp((self.mitems[mb_ky][mi_ky],
-                    self.mitems[mb_ky][mi_ky]["selected"]))
+        print("Processing menu item click...")
 
-                self.mitems[mb_ky][mi_ky]["selected"] = False
-                if attr['tbox'].collidepoint(p_mouse_loc):
-                    self.mitems[mb_ky][mi_ky]["selected"] = True
-                    return (mi_ky)
+        for mb_ky, mb_val in self.mitems.items():
+
+            if mb_val["selected"] is True:
+                attr = {k:v for k,v in mb_val.items() if k != "selected"}
+
+                for mi_ky, mi_val in attr.items():
+                    # the problem is that "val" includes not only the
+                    # name of the menu item and its attributes,
+                    # but also high-level attributes of the menu bar:
+                    # "selected"
+
+                    # self.mitems[mb_ky][mi_ky]["selected"] = False
+                    if mi_val['tbox'].collidepoint(p_mouse_loc):
+
+                        print("Found clicked item...")
+                        pp((mi_ky, mi_val))
+
+                        self.mitems[mb_ky][mi_ky]["selected"] = True
+                        return (mi_ky)
         return None
+
+    def draw_menu_bar(self):
+        """ Draw a Menu Bar item.
+        """
+        for mb_ky, attr in self.mbars.items():
+            if attr["selected"]:
+
+                # print(mb_ky + " selected")
+
+                pg.draw.rect(PG.WIN, PG.PC_GREEN, attr["box"], 4)
+
+            else:
+                pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, attr["box"], 4)
+
+                # print(mb_ky + " UNselected")
+
+            PG.WIN.blit(attr["text"], attr["tbox"])
+
+    def draw_menu_items(self,
+                        p_mb_ky):
+        """ Draw the list of Menu Items.
+
+        :attr:
+        - p_mb_ky: key to the menu bar data
+        """
+        if self.mbars[p_mb_ky]["selected"] is True:
+            pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER,
+                         self.mbars[p_mb_ky]["mlist_box"], 2)
+            for mi_vals in self.mitems[p_mb_ky].values():
+
+                # pp(("attempting to draw menu item: ", mi_vals))
+
+                # Draw each menu item in the identified box
+                PG.WIN.blit(mi_vals["text"], mi_vals["tbox"])
 
 class HtmlDisplay(object):
     """Set content for display in external web browser.
@@ -783,7 +796,7 @@ class SaskanGame(object):
                 (event.type == pg.KEYUP and event.key in self.QUIT_KY)):
             self.exit_appl()
 
-    def handle_menu_event(self,
+    def handle_menu_item_click(self,
                           p_mb_ky,
                           p_mi_ky):
         """Trigger an event based on menu item selection.
@@ -898,9 +911,9 @@ class SaskanGame(object):
         # self.PAGE.draw()
 
         # refresh the menus
-        GMNU.draw_mbar()
+        GMNU.draw_menu_bar()
         for mb_ky, mi_ky in GMNU.mitems.items():
-            GMNU.draw_mitems(mb_ky, list(mi_ky.keys())[0])
+            GMNU.draw_menu_items(mb_ky)
 
         pg.display.update()
         PG.TIMER.tick(30)
@@ -925,12 +938,17 @@ class SaskanGame(object):
                 # Handle mouse click events
                 if event.type == pg.MOUSEBUTTONDOWN:
 
+                    print("Processing mouse click event...")
+
                     # Handle menu-click events
                     mb_ky = GMNU.click_mbar(IBAR.info_status["mouse_loc"])
-                    mi_ky = GMNU.click_mitem(IBAR.info_status["mouse_loc"])
+                    print("mb_ky: ", mb_ky)
 
-                    if mi_ky is not None:
-                        self.handle_menu_event(mb_ky, mi_ky)
+                    # mi_ky = GMNU.click_mitem(IBAR.info_status["mouse_loc"])
+                    # print("mi_ky: ", mi_ky)
+
+                    # if mi_ky is not None:
+                    #    self.handle_menu_item_click(mb_ky, mi_ky)
 
                     # Handle text input events
                     # self.do_select_txtin(sIBAR.info_status["mouse_loc"])
