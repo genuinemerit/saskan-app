@@ -213,7 +213,7 @@ class WireTap(object):
         def trace_msg(p_msg):
             if (p_file is not None and p_name is not None and
                     p_self is not None and p_frame is not None):
-                p_msg += (f"\n{p_file} : {p_name}\n" +
+                p_msg += (f"{p_file} : {p_name}\n" +
                           f"{p_self.__class__.__name__} : " +
                           f"{p_frame.f_back.f_code.co_name} : " +
                           f"{p_frame.f_code.co_name} : " +
@@ -244,7 +244,8 @@ class WireTap(object):
             msg = trace_msg(str(p_msg).strip() + "\n")
             msg_lvl = self.llvl[p_lvl.upper()]
 
-            pp((p_msg, msg, p_lvl, msg_lvl))
+            print(msg)
+            # pp((p_lvl, msg_lvl))
 
             if (msg_lvl == self.llvl["CRITICAL"] or
                     p_lvl.upper() in ("FATAL", "CRITICAL")):
