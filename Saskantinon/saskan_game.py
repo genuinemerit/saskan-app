@@ -354,22 +354,30 @@ class GameMenu(object):
         :return:
         - (str) id of currrently selected menu item, else None
         """
+        # Handle menu item click if a menu bar key was provided
         if mb_ky is None:
             return None
         else:
+            # Set all menu items in the list to unselected
             for mi_ky in [k for k, v in self.mitems[mb_ky].items()]:
                 self.mitems[mb_ky][mi_ky]["selected"] = False
+            # See which, if any, menu item was clicked
             for mi_ky, mi_vals in self.mitems[mb_ky].items():
                 if mi_vals['tbox'].collidepoint(p_mouse_loc):
+                    # If it is enabled, set it to selected and others
+                    # to unselected. Unselect the menu list.
                     if mi_vals["enabled"] is True:
                         self.mitems[mb_ky][mi_ky]["selected"] = True
+                        self.mbars[mb_ky]["selected"] = False
                         for other_ky in\
                             [ky for ky in self.mitems[mb_ky].keys()
                             if ky != mi_ky]:
                                 self.mitems[mb_ky][other_ky]["selected"] = False
+            # Identify the the currently selected menu item
             mi_ky = [k for k, v in self.mitems[mb_ky].items()
                      if v["selected"] is True]
             if len(mi_ky) > 0:
+                # Set enabled status of dependent menu items
                 self.set_menu_items_state(mb_ky, mi_ky[0])
                 return mi_ky[0]
             else:
@@ -549,8 +557,12 @@ class GameData(object):
             like data that has been POSTed to a server.
          - etc.
         """
+        self.divider = "-" * 16
         self.console = {"box": None,
                         "T": list()}
+        # "D" = data outside a specific grid
+        # "G" = grids, including a data record for each grid-square
+        # "L" = lines
         self.map = {"box": None,
                     "D": dict(),
                     "G": dict(),
@@ -558,6 +570,12 @@ class GameData(object):
         self.post = {"active": False,
                      "catg": None,
                      "item": None}
+
+        # Default grid and line dimensions.
+        self.grid_tloff = {"x": 17, "y": 18}
+        self.rows_cnt = 34
+        self.cols_cnt = 44
+        # Initialize methods...
         self.init_map_dims()
         self.init_grid_data()
 
@@ -570,18 +588,19 @@ class GameData(object):
         px refers to the pygame drawing units.
         deg are + if N of eq, E of 'Greenwich';
                 - if S of eq, W of 'Greenwich'.
+        N.B.:
+        For now, default scaling is hard-coded here.
+        Will want to move that to a config file eventually.
         """
         # Default border box for game/map window.
         self.map["box"] = pg.Rect(PG.GAMEMAP["x"], PG.GAMEMAP["y"],
                                   PG.GAMEMAP["w"], PG.GAMEMAP["h"])
-        # Default grid and line dimensions.
-        self.grid_tloff = {"x": 17, "y": 18}
-        self.rows_cnt = 34
-        self.cols_cnt = 44
+        # default PyGame 'pixels' per grid-square.
         self.grid_px_w = self.grid_px_h = 40
-        self.grid_km_w = self.grid_km_h = 32.7775
         self.line_px_w = self.grid_px_w * self.cols_cnt
         self.line_px_h = self.grid_px_h * self.rows_cnt
+        # default kilometers per grid-square.
+        self.grid_km_w = self.grid_km_h = 32.7775
         self.line_km_w = self.grid_km_w * self.cols_cnt
         self.line_km_h = self.grid_km_h * self.rows_cnt
         # Default grid line coordinates.
@@ -604,31 +623,31 @@ class GameData(object):
         Store game data in the matrix of grids.
         Enhance using Pandas Dataframes, graphs, etc. as needed.
         Hi-level index within the "map" structure is "G", referring to
-            "grid". Thinking there might be other sub-sets of data
-            associated with the map that are not specific to a grid,
-            like maybe what controls are active, keys/legends, etc.
-        Hi-level index within a record is "id", referring to shape,
+            "grid".
+        Hi-level index within a ["G"] record is "id", referring to shape,
             location, and contents. May or may not be useful.
         Thinking that other sub-sets of data might be useful for
             tracking more dynamic data, such as:
             - what type of mode(s) are currently active in the grid
             - what avatars/objects are currently "in" the grid
             - info tags like resources, elevation, etc.
+        This is just a starting point.
+        Need to have enough data in each grid-record to be able to
+            draw stuff relevant to that grid.
+
+        @TODO:
+        - Record the rect for each grid, so that we can draw it autonomously
+          from the grid lines.
         """
-        grid_record = {"id":
-                       {"text": None,
-                        "rect": None,
-                        "img": None},
-                       "tl_px": {"x":(), "y":()},
-                       "tl_dg": {"lat": (), "lon": ()},
-                       "km": {"w": 0.0, "h": 0.0},
-                       "text": "",
-                       "lines": list(),
-                       "points": list(),
-                       "sounds": list(),
-                       "images": list()}
-        grid_col = {c: grid_record for c in range(self.cols_cnt)}
-        self.map["G"] = {r: grid_col for r in range(self.rows_cnt)}
+        self.map["G"] = dict()
+        for ci, ln_x in enumerate(self.map["L"]["cols"]):
+            for ri, ln_y in enumerate(self.map["L"]["rows"]):
+                self.map["G"][f"{str(ci).zfill(2)}_{str(ri).zfill(2)}"] = {
+                    "id": f"col: {ci}, row: {ri}",
+                    "box": pg.Rect((ln_x[0][0], ln_y[0][1]),
+                                   (self.grid_px_w, self.grid_px_h))
+                }
+        # pp((self.map["G"]))
 
     def set_post(self,
                  p_post: dict):
@@ -652,63 +671,181 @@ class GameData(object):
         for k, v in p_post.items():
             self.post[k] = v
 
-    def set_console_text(self) -> str:
-        """For posted item indexed by "catg", format a list of strings
-        to render as text for display in the Console.
-        The list of strings is stored in the class's "console" structure,
-            under a key of "T".
-        The type of data to format is determined by the value indexed by
-            "catg" in the class's "post" structure.
+    def set_ln_attr_text(self,
+                         p_attr: dict):
+        """Use this function when the attribute contains a label (l)
+          and name (n), and that is all we want to display. For example,
+          this works for attributes like "type", ...
+        """
+        self.console["T"].append(self.divider)
+        self.console["T"].append(f"{p_attr['label']}:")
+        self.console["T"].append(f"  {p_attr['name']}")
+
+    def set_lnt_attr_text(self,
+                          p_attr: dict):
+        """Use this function when the attribute contains a label (l),
+          a name (n), and a type (t), and that's all we want to display.
+        For example, this works for attributes like "contained_by", ...
+        """
+        self.console["T"].append(self.divider)
+        self.console["T"].append(f"{p_attr['label']}:")
+        self.console["T"].append(f"  {p_attr['name']} " +
+                                 f"({p_attr['type']})")
+
+    def set_names_text(self,
+                       p_names: dict):
+        """Use this function when the attribute is "name".
+        There must be one value indexed by "common", plus optionally a set
+        of names in different game languages or dialects.
+        :attr:
+        - p_data (dict): name-value pairs of names to format
+        """
+        self.console["T"].append(self.divider)
+        self.console["T"].append(f"{p_names['label']}:")
+        self.console["T"].append(f"  {p_names['common']}")
+        if "other" in p_names.keys():
+            for k, v in p_names["other"].items():
+                self.console["T"].append(f"    {k}: {v}")
+
+    def set_map_text(self,
+                     p_map: dict):
+        """Use this function when the attribute is "map".
+        :attr:
+        - p_data (dict): name-value pairs of map data to format
+        """
+        self.console["T"].append(self.divider)
+        if "distance" in p_map.keys():
+            d = p_map["distance"]
+            self.console["T"].append(f"{d['label']}:")
+            for a in ["height", "width"]:
+                self.console["T"].append(f"  {d[a]['label']}:  " +
+                                         f"{d[a]['amt']} {d['unit']}")
+        if "location" in p_map.keys():
+            l = p_map["location"]
+            self.console["T"].append(f"{l['label']}:")
+            for a in ["top", "bottom", "left", "right"]:
+                self.console["T"].append(f"  {l[a]['label']}: " +
+                                         f"{l[a]['amt']}{l['unit']}")
+
+    def set_contains_text(self,
+                          p_contains: dict):
+        """Use this function when the attribute is "contains"."""
+        self.console["T"].append(self.divider)
+        self.console["T"].append(f"{p_contains['label']}:")
+        if "sub-region" in p_contains.keys():
+            self.console["T"].append(f"  {p_contains['sub-region']['label']}:")
+            for n in p_contains["sub-region"]["names"]:
+                self.console["T"].append(f"    {n}")
+        if "movement" in p_contains.keys():
+            # roads, waterways, rivers and lakes
+            self.console["T"].append(f"  {p_contains['movement']['label']}:")
+            attr = {k:v for k, v in p_contains["movement"].items() if k != "label"}
+            for _, v in attr.items():
+                self.console["T"].append(f"    {v['label']}:")
+                for n in v["names"]:
+                    self.console["T"].append(f"      {n}")
+
+    def set_console_text(self):
+        """For .post item indexed by "catg", format a list of strings
+            to render as text for display in Console.
+        Store list of strings in console structure, under a key of "T".
+        Source of config data to format is determined by value indexed by
+            .post["catg"].
+        Type of data to format is determined by value indexed by .post["item"]
         """
         self.console["box"] = pg.Rect(PG.CONSOLE["x"], PG.CONSOLE["y"],
                                       PG.CONSOLE["w"], PG.CONSOLE["h"])
         self.console["T"] = list()
-        if self.post["catg"] == "geo":
-            self.set_geo_text(FI.S[self.post["catg"]][self.post["item"]])
+        data = FI.S[self.post["catg"]][self.post["item"]]
+        if "type" in data.keys():
+            self.set_ln_attr_text(data["type"])
+        if "contained_by" in data.keys():
+            self.set_lnt_attr_text(data["contained_by"])
+        if "name" in data.keys():
+            self.set_names_text(data["name"])
+        if "map" in data.keys():
+            self.set_map_text(data["map"])
+        if "contains" in data.keys():
+            self.set_contains_text(data["contains"])
 
-    def set_geo_text(self,
-                     con_data: dict):
-        """Format geo data for display as Console text.
+    def set_map_boundaries(self,
+                           p_map: dict):
+        """Set the boundaries of the map, based on the map data.
+        - Fit the distance data for .post["item"] to default map scaling
+        as defined in .init_map_dims(). For example:
+        - Center the map within the grid N-S and E-W.
+        - Draw boundaries of the map on top of the grid.
+        - It may not align exactly to the grid, so this is "D" data.
+        - For the grid records, indicate:
+            - Is it inside, outside or on the boundary of .map["item"]
 
-        @DEV:
-        This content should be further abstracted, internationalised.
+            # Default grid and line dimensions.
+            self.grid_tloff = {"x": 17, "y": 18}
+            self.rows_cnt = 34
+            self.cols_cnt = 44
+            # default PyGame 'pixels' per grid-square.
+            self.grid_px_w = self.grid_px_h = 40
+            self.line_px_w = self.grid_px_w * self.cols_cnt
+            self.line_px_h = self.grid_px_h * self.rows_cnt
+            # default kilometers per grid-square.
+            self.grid_km_w = self.grid_km_h = 32.7775
+            self.line_km_w = self.grid_km_w * self.cols_cnt
+            self.line_km_h = self.grid_km_h * self.rows_cnt
         """
-        # Item name(s)
-        self.console["T"].append(con_data['name']['common'])
-        for k, v in con_data['name'].items():
-            if k != 'common':
-                self.console["T"].append(f"  {k}: {v}")
-        # Item attributes
-        for t in [
-            "-" * 16,
-            "Kilometers",
-            f"  North-South: {con_data['map']['rect']['n_s_km']}",
-            f"  East-West: {con_data['map']['rect']['e_w_km']}",
-            "Degrees",
-            "  Latitude",
-            f"    North: {con_data['map']['degrees']['n_lat']}",
-            f"    South: {con_data['map']['degrees']['s_lat']}",
-            "  Longitude",
-            f"    West: {con_data['map']['degrees']['w_long']}",
-            f"    East: {con_data['map']['degrees']['e_long']}",
-            "-" * 16,
-            f"{list(con_data['contained_by'].keys())[0]}: " +
-                f"{list(con_data['contained_by'].values())[0]}",
-            "-" * 16,
-            "Political Boundaries"]:
-                self.console["T"].append(t)
-        # Lists of Item attributes
-        politics = {k: v for k, v in con_data['contains'].items()\
-                    if k in ('federation', 'district')}
-        if "federation" in politics:
-            self.console["T"].append("  Federations:")
-            for fed in politics["federation"]:
-                self.console["T"].append(f"    {fed}")
-        if "district" in politics:
-            self.console["T"].append("  Districts:")
-            for dist in politics["district"]:
-                self.console["T"].append(f"    {dist}")
+        # use topleft of the gird as the origin of the map, not tloff from tl of frame
+        # that will be defined in .map["G"]['00_00')]
+        # this is easier to read if I break out the math into separate steps
+        grid_00 = {'x': self.map["G"]["00_00"]['box'].left,
+                   'y': self.map["G"]["00_00"]['box'].top}
+        map_km = {'w': p_map["distance"]["width"]["amt"],
+                  'h': p_map["distance"]["height"]["amt"]}
+        map_scale = {'w': map_km['w'] / self.line_km_w,
+                     'h': map_km['h'] / self.line_km_h}
+        map_px = {'w': map_scale['w'] * self.line_px_w,
+                  'h': map_scale['h'] * self.line_px_h}
+        map_grids = {'w': round(map_px['w'] / self.grid_px_w),
+                     'h': round(map_px['h'] / self.grid_px_h)}
+        map_offset = {'w': (self.cols_cnt - map_grids['w']) / 2,
+                      'h': (self.rows_cnt - map_grids['h']) / 2}
+        map_topleft = (grid_00["x"] + round((map_offset['w'] * self.grid_px_w), 2),
+                       grid_00["y"] + round((map_offset['h'] * self.grid_px_h), 2))
 
+        if map_km['h'] < self.line_km_h and map_km['w'] < self.line_km_w:
+            map_ky =  self.post["item"]
+            map_nm = FI.S[self.post["catg"]][map_ky]["name"]
+            self.map["D"][map_ky] = {
+                "box": pg.Rect(map_topleft, (map_px['w'], map_px['h'])),
+                "grids": {
+                    "cols": map_grids['w'],
+                    "cols_offset": map_offset['w'],
+                    "rows": map_grids['h']
+                },
+                "title": map_nm
+            }
+            pp(("self.map['D']:", self.map["D"]))
+            # Next, determine:
+            # - what grids are inside, outside or on the boundary of the item
+            # - what colors to highight grids inside (fully or partially) the item boundary
+            #    -- in other words, colors associated with various levels of mapping?
+            # - where and how to display a key or legend for the title and km dimensions
+            #   - maybe use fewer grid squares? ..
+            #      -- leave room for legend and control widgets?
+            #      -- or, use a separate window for that? some of the console perhaps?
+            #      -- can I make the console scrollable/collapsable, like a browser?
+            # - where and how to display descriptions on the map, options for that?
+            # Test colorizing a specific grid -- maybe when it is clicked or scrolled over.
+            #   -- First colorize grids inside the map boundary.
+
+    def set_map_data(self):
+        """Based on currently selected .post["catg"] and .post["item"],
+            assign values to the .map["D"] or ["G"] attributes.
+            .map["D"] is for data not confined to a specific grid
+            .map["G"][col][row] is a matrix of data for each grid
+            For default structure of the grid data record, see .init_grid_data()
+        """
+        data = FI.S[self.post["catg"]][self.post["item"]]
+        if "map" in data.keys():
+            self.set_map_boundaries(data["map"])
 
 class GameConsole(object):
     """Define and handle the Game Consoled (info) window (rect).
@@ -737,13 +874,13 @@ class GameConsole(object):
         - p_lnno: (int) Line number of text to display.
         - p_text: (str) Text to display in line.
         """
-        self.img = PG.F_SANS_MED.render(p_text, True,
+        self.img = PG.F_SANS_SM.render(p_text, True,
                                         PG.PC_BLUEPOWDER,
                                         PG.PC_BLACK)
         self.text = self.img.get_rect()
-        y = self.title.y + LG_FONT_SZ
+        y = self.title.y + MED_FONT_SZ
         self.text.topleft = (self.title.x,
-                             y + ((MED_FONT_SZ + 2) * (p_lnno + 1)))
+                             y + ((SM_FONT_SZ + 2) * (p_lnno + 1)))
 
     def draw(self):
         """ Draw GameConsole.
@@ -787,14 +924,15 @@ class GameMap(object):
 
         Define additional types of structures as needed. e.g., graphs, etc.
         """
-        # Draw map container rect.
+        # Draw map container rect and grid lines ("L" data)
         pg.draw.rect(PG.WIN, PG.PC_SILVER, self.box, 5)
-        # horizontal lines
         for gline in GDAT.map["L"]["rows"]:
             pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
-        # vertical lines
         for gline in GDAT.map["L"]["cols"]:
             pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
+        # Draw map boundaries, title, etc. ("D" data)
+        for _, v in GDAT.map["D"].items():
+            pg.draw.rect(PG.WIN, PG.PC_PALEPINK, v["box"], 5)
 
 
 class InfoBar(object):
@@ -916,11 +1054,12 @@ class SaskanGame(object):
                            "active": True})
             CONSOLE.is_visible = True
             GAMEMAP.is_visible = True
+            GDAT.set_console_text()
+            GDAT.set_map_data()
         elif p_mi_ky == "status":
             IBAR.info_status["on"] = not IBAR.info_status["on"]
         elif p_mi_ky == "pause_resume":
             IBAR.info_status["frozen"] = not IBAR.info_status["frozen"]
-
 
     # Loop Events
     # ==============================================================
@@ -978,19 +1117,12 @@ class SaskanGame(object):
         """
         # black out the entire screen
         PG.WIN.fill(PG.PC_BLACK)
-
-        # refresh the Game/Console window
-        # text to display is based on what is currently
-        #  set to be posted in the GameData object
+        # display content based on what is currently
+        #  posted in the GameData object
         if CONSOLE.is_visible is True:
-            GDAT.set_console_text()
             CONSOLE.draw()
-
-        # refresh the Game/Map window
         if GAMEMAP.is_visible is True:
             GAMEMAP.draw()
-
-        # Info/Status bar
         if IBAR.info_status["on"] is True:
             IBAR.set_status_text()
         else:
