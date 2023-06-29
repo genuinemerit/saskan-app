@@ -647,7 +647,6 @@ class GameData(object):
                     "box": pg.Rect((ln_x[0][0], ln_y[0][1]),
                                    (self.grid_px_w, self.grid_px_h))
                 }
-        # pp((self.map["G"]))
 
     def set_post(self,
                  p_post: dict):
@@ -822,7 +821,6 @@ class GameData(object):
                 },
                 "title": map_nm
             }
-            pp(("self.map['D']:", self.map["D"]))
             # Next, determine:
             # - what grids are inside, outside or on the boundary of the item
             # - what colors to highight grids inside (fully or partially) the item boundary
@@ -934,6 +932,12 @@ class GameMap(object):
         for _, v in GDAT.map["D"].items():
             pg.draw.rect(PG.WIN, PG.PC_PALEPINK, v["box"], 5)
 
+    def draw_grid(self, rc):
+        """Highlight a particular grid.
+        """
+        if rc != "":
+            pg.draw.rect(PG.WIN, PG.PC_PALEPINK, GDAT.map["G"][rc]["box"], 0)
+
 
 class InfoBar(object):
     """Info Bar object.
@@ -947,7 +951,7 @@ class InfoBar(object):
             "frozen": True,
             "frame_cnt": 0,
             "mouse_loc": (0, 0),
-            "grid_loc": (0, 0)}
+            "grid_loc": ""}
         self.set_default_text()
 
     def set_default_text(self):
@@ -1067,7 +1071,7 @@ class SaskanGame(object):
         """Keep tracks of what grid the mouse is in."""
         grid_r = 0
         grid_c = 0
-        IBAR.info_status["grid_loc"] = ("", "")
+        IBAR.info_status["grid_loc"] = ""
         for i, r in enumerate(GDAT.map["L"]["rows"]):
             if IBAR.info_status["mouse_loc"][1] >= r[0][1] and\
                IBAR.info_status["mouse_loc"][1] <= r[0][1] + GDAT.grid_px_h:
@@ -1076,13 +1080,11 @@ class SaskanGame(object):
         for i, c in enumerate(GDAT.map["L"]["cols"]):
             if IBAR.info_status["mouse_loc"][0] >= c[0][0] and\
                IBAR.info_status["mouse_loc"][0] <= c[0][0] + GDAT.grid_px_w:
-                IBAR.info_status["grid_loc"] = i + 1
                 grid_c = i + 1
                 break
         if grid_r > 0 and grid_c > 0:
-            IBAR.info_status["grid_loc"] = (grid_r, grid_c)
-        else:
-            IBAR.info_status["grid_loc"] = ""
+            IBAR.info_status["grid_loc"] =\
+                f"{str(grid_c - 1).zfill(2)}_{str(grid_r - 1).zfill(2)}"
 
     def track_state(self):
         """Keep track of the state of the app on each frame.
@@ -1099,7 +1101,8 @@ class SaskanGame(object):
                 IBAR.info_status["frame_cnt"] += 1
 
         IBAR.info_status["mouse_loc"] = pg.mouse.get_pos()
-        self.track_grid()
+        if GAMEMAP.is_visible:
+            self.track_grid()
 
         # For managing text input boxes:
         # if self.TIG.current is None:
@@ -1121,13 +1124,14 @@ class SaskanGame(object):
         #  posted in the GameData object
         if CONSOLE.is_visible is True:
             CONSOLE.draw()
-        if GAMEMAP.is_visible is True:
-            GAMEMAP.draw()
         if IBAR.info_status["on"] is True:
             IBAR.set_status_text()
         else:
             IBAR.set_default_text()
         IBAR.draw()
+        if GAMEMAP.is_visible is True:
+            GAMEMAP.draw()
+            GAMEMAP.draw_grid(IBAR.info_status["grid_loc"])
 
         # for txtin in self.TIG:
         #     txtin.draw()
