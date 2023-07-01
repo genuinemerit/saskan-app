@@ -4,18 +4,122 @@
 
 :author:    GM (genuinemerit @ pm.me)
 
-Transforms, conversions, calculations useful to the game,
-including use of game units and terminology.
+Transforms, conversions, calculations, algorithms
+useful to the game, including use of game units and terminology.
 """
 
-import math
-import json
-import pickle
+# import math
+import matplotlib.colors as mColors
+# import json
+# import pickle
 
 from dataclasses import dataclass   # fields
+# from matplotlib.patches import Rectangle as mRect
+# from matplotlib.patches import Circle as mCircle
+# from matplotlib.patches import Ellipse as mEllipse
+# from matplotlib.patches import Arc as mArc
+# from matplotlib.patches import RegularPolygon as mPolygon
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
+from pygame import Rect
 
+class SaskanRect(object):
+    """Manage extended rectangle functions, buidling on the pygame.Rect class.
+
+    - Create and modify rectangles
+        - top, left, bottom, right
+        - width, height
+        - top_left, top_right, bottom_left, bottom_right
+        - center
+    - Check for intersections
+    - Check for containment
+    - Check for adjacency
+    - Check for equality
+    - Check for overlap/collision
+    """
+
+    def __init__(self):
+        """Initialize a Saskan rectangle object.
+
+        For matplotlib.patches.Rectangle and colors:
+        See: https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Rectangle.html
+        and https://matplotlib.org/stable/tutorials/colors/colors.html
+        """
+        self.rect = {
+            "bottom": 0.0,
+            "right": 0.0,
+            "h": 0.0,
+            "w": 0.0,
+            "t": 0.0,
+            "y": 0.0,
+            "l": 0.0,
+            "x": 0.0,
+            "b": 0.0,
+            "r": 0.0,
+            "top_left": (0.0, 0.0),      # (x, y)
+            "top_right": (0.0, 0.0),     # (x, y)
+            "bottom_left": (0.0, 0.0),   # (x, y)
+            "bottom_right": (0.0, 0.0),  # (x, y)
+            "center": (0.0, 0.0),        # (x, y)
+            "center_w": 0.0,             # (x)
+            "center_x": 0.0,             # (x)
+            "center_h": 0.0,             # (y)
+            "center_y": 0.0,             # (y)
+            "fill": False,
+            "fill_color": None,
+            "line_width": 0.0,
+            "line_color": None,
+            "box": None     # Pygame Rect
+        }
+
+    def make_rect(self,
+                  p_top: float,
+                  p_left: float,
+                  p_width: float,
+                  p_height: float,
+                  p_line_width: float = 0.0,
+                  p_fill: bool = False,
+                  p_fill_color = None,
+                  p_line_color = None) -> dict:
+        """Create a rectangle from top, left, width, height.
+        Units are in whatever coordinate system makes sense, such as,
+        pixels, meters, kilometers, etc. This class makes no assumptions
+        about what the units represent.
+        Color definitions are pygame colors, as defined in pygame.Color.
+        :args:
+        - top: (float) top of rectangle (y)
+        - left: (float) left of rectangle (x)
+        - width: (float) width (w) of rectangle
+        - height: (float) height (h) of rectangle
+        - line_width: (float) width of rectangle border
+        - fill: (bool) fill the rectangle with color, default False
+        - fill_color: (matplotlib.colors) color to fill rectangle
+        - line_color: (matplotlib.colors) color of rectangle border
+        :return: (dict) rectangle data structure
+        """
+        self.rect["top"] = self.rect["t"] = self.rect["y"] = p_top
+        self.rect["left"] = self.rect["l"] = self.rect["x"] = p_left
+        self.rect["width"] = self.rect["w"] = p_width
+        self.rect["height"] = self.rect["h"] = p_height
+        self.rect["bottom"] = self.rect["b"] = p_top + p_height
+        self.rect["right"] = self.rect["r"] = p_left + p_width
+        self.rect["top_left"] = (p_left, p_top)
+        self.rect["top_right"] = (self.rect["right"], p_top)
+        self.rect["bottom_left"] = (p_left, self.rect["bottom"])
+        self.rect["bottom_right"] = (self.rect["right"], self.rect["bottom"])
+        self.rect["fill"] = p_fill
+        if p_fill_color is not None:
+            self.rect["fill_color"] = p_fill_color
+        if p_line_width > 0.0:
+            self.rect["line_width"] = p_line_width
+            if p_line_color is not None:
+                self.rect["line_color"] = p_line_color
+        self.rect["center_w"] = self.rect["center_x"] = p_width / 2.0
+        self.rect["center_h"] = self.rect["center_y"] = p_height / 2.0
+        self.rect["center"] = (self.rect["center_x"], self.rect["center_y"])
+        # This is the pygame rectangle:
+        self.rect["box"] = Rect((p_left, p_top), (p_width, p_height))
+        return self.rect
 
 class SaskanMath(object):
     """Class for game-related conversions and calculations.
@@ -33,8 +137,9 @@ class SaskanMath(object):
         :args: p_db_nm: str
             - Generic name of time data file object
             - Example: "time_data"
-        """
         self.S_MAP: dict = dict()
+        """
+        pass
 
     @dataclass
     class M():
@@ -213,6 +318,8 @@ class SaskanMath(object):
           h, but omit degree info.
         - Use decimal values to get finer-grained placements
 
+        This fits better in the saskan_game.py module and in config
+        data. See GameData class in saskan_game and saskan_geo config data.
         """
         grids = {"km_43.75":
                  {"_name": "region",
@@ -232,7 +339,6 @@ class SaskanMath(object):
                  "grid_cnt": {"h": 0.4, "w": 0.5},
                  "grid_off": {"l": 5, "t": 3}}}
 
-    # Consider putting all my transforms into a separate class.
     def dec_to_pct(self, p_decimal: float) -> str:
         """Convert decimal to percentage.
         """
@@ -432,7 +538,7 @@ class SaskanMath(object):
         return ga
 
     # carrry on adding these simple functions as needed,
-    # but do it when they are needed...
+    # but do it when they are needed, 'cuz this is f'n boring
 
         # IN_TO_MM = 25.4              # inches -> millimeters
         # MM_TO_IN = 0.03937007874     # millimeters -> inches
@@ -475,3 +581,9 @@ class SaskanMath(object):
         # YUZA_TO_KM = 4.096           # yuzas -> kilometers
         # YUZA_TO_M = 4096.0           # yuzas -> meters
         # YUZA_TO_MI = 2.545           # yuzas -> miles
+
+    def collision_2d_rect(self,
+                          p_rect1: Rect,
+                          p_rect2: Rect) -> bool:
+        """Collision detection for 2d rectangles."""
+        pass

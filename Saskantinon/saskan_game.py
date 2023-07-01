@@ -100,6 +100,7 @@ import pygame as pg
 import sys
 import webbrowser
 
+from copy import copy
 from dataclasses import dataclass
 from os import path
 from pathlib import Path
@@ -108,8 +109,10 @@ from pygame.locals import *
 
 from io_file import FileIO          # type: ignore
 from io_wiretap import WireTap      # type: ignore
+from saskan_math import SaskanRect  # type: ignore
 
 FI = FileIO()
+SR = SaskanRect()
 WT = WireTap()
 # Global constants for parameterized configs
 FRAME = "game_frame"
@@ -618,6 +621,20 @@ class GameData(object):
             self.map["L"]["cols"].append(
                 [(x, y), (x, y + self.line_px_h)])
 
+    def make_grid_key(self,
+                      p_col : int,
+                      p_row: int) -> str:
+        """Convert integer coordinates to string key
+        for use in the .map["G"] (grid) matrix.
+        :args:
+        - p_col: int, column number
+        - p_row: int, row number
+        :returns:
+        - str, key for the grid record, in "0n_0n" format
+        """
+        return f"{str(p_col).zfill(2)}_{str(p_row).zfill(2)}"
+
+
     def init_grid_data(self):
         """ Initialize a data record for each map grid.
         Store game data in the matrix of grids.
@@ -635,18 +652,18 @@ class GameData(object):
         Need to have enough data in each grid-record to be able to
             draw stuff relevant to that grid.
 
-        @TODO:
-        - Record the rect for each grid, so that we can draw it autonomously
-          from the grid lines.
+        @DEV:
+        Somewhere I have x and y reversed. Need to fix that! :-)
         """
         self.map["G"] = dict()
-        for ci, ln_x in enumerate(self.map["L"]["cols"]):
-            for ri, ln_y in enumerate(self.map["L"]["rows"]):
-                self.map["G"][f"{str(ci).zfill(2)}_{str(ri).zfill(2)}"] = {
-                    "id": f"col: {ci}, row: {ri}",
-                    "box": pg.Rect((ln_x[0][0], ln_y[0][1]),
-                                   (self.grid_px_w, self.grid_px_h))
-                }
+        for ci in range(0, self.cols_cnt):
+            ln_x = self.map["L"]["cols"][ci]
+            for ri in range(0, self.rows_cnt):
+                ln_y = self.map["L"]["rows"][ri]
+                rect = copy(SR.make_rect(ln_x[0][0], ln_y[0][1],
+                                    self.grid_px_w, self.grid_px_h))
+                self.map["G"][self.make_grid_key(ci, ri)] = {
+                    "rect": rect}
 
     def set_post(self,
                  p_post: dict):
@@ -775,27 +792,14 @@ class GameData(object):
         - Center the map within the grid N-S and E-W.
         - Draw boundaries of the map on top of the grid.
         - It may not align exactly to the grid, so this is "D" data.
+
         - For the grid records, indicate:
             - Is it inside, outside or on the boundary of .map["item"]
-
-            # Default grid and line dimensions.
-            self.grid_tloff = {"x": 17, "y": 18}
-            self.rows_cnt = 34
-            self.cols_cnt = 44
-            # default PyGame 'pixels' per grid-square.
-            self.grid_px_w = self.grid_px_h = 40
-            self.line_px_w = self.grid_px_w * self.cols_cnt
-            self.line_px_h = self.grid_px_h * self.rows_cnt
-            # default kilometers per grid-square.
-            self.grid_km_w = self.grid_km_h = 32.7775
-            self.line_km_w = self.grid_km_w * self.cols_cnt
-            self.line_km_h = self.grid_km_h * self.rows_cnt
         """
-        # use topleft of the gird as the origin of the map, not tloff from tl of frame
-        # that will be defined in .map["G"]['00_00')]
-        # this is easier to read if I break out the math into separate steps
-        grid_00 = {'x': self.map["G"]["00_00"]['box'].left,
-                   'y': self.map["G"]["00_00"]['box'].top}
+        # use topleft of the grid (not the overall frame) as the origin of
+        # the map. Easier to read math broken into separate steps.
+        grid_00 = {'x': self.map["G"]["00_00"]['rect']['box'].left,
+                   'y': self.map["G"]["00_00"]['rect']['box'].top}
         map_km = {'w': p_map["distance"]["width"]["amt"],
                   'h': p_map["distance"]["height"]["amt"]}
         map_scale = {'w': map_km['w'] / self.line_km_w,
@@ -806,33 +810,42 @@ class GameData(object):
                      'h': round(map_px['h'] / self.grid_px_h)}
         map_offset = {'w': (self.cols_cnt - map_grids['w']) / 2,
                       'h': (self.rows_cnt - map_grids['h']) / 2}
-        map_topleft = (grid_00["x"] + round((map_offset['w'] * self.grid_px_w), 2),
-                       grid_00["y"] + round((map_offset['h'] * self.grid_px_h), 2))
-
+        map_left = (grid_00["x"] + round((map_offset['w'] * self.grid_px_w), 2))
+        map_top = (grid_00["y"] + round((map_offset['h'] * self.grid_px_h), 2))
+        # Define rect for the entire map
         if map_km['h'] < self.line_km_h and map_km['w'] < self.line_km_w:
             map_ky =  self.post["item"]
             map_nm = FI.S[self.post["catg"]][map_ky]["name"]
             self.map["D"][map_ky] = {
-                "box": pg.Rect(map_topleft, (map_px['w'], map_px['h'])),
-                "grids": {
-                    "cols": map_grids['w'],
-                    "cols_offset": map_offset['w'],
-                    "rows": map_grids['h']
-                },
+                "rect": SR.make_rect(map_left, map_top, map_px['w'], map_px['h']),
                 "title": map_nm
             }
-            # Next, determine:
-            # - what grids are inside, outside or on the boundary of the item
-            # - what colors to highight grids inside (fully or partially) the item boundary
-            #    -- in other words, colors associated with various levels of mapping?
-            # - where and how to display a key or legend for the title and km dimensions
-            #   - maybe use fewer grid squares? ..
-            #      -- leave room for legend and control widgets?
-            #      -- or, use a separate window for that? some of the console perhaps?
-            #      -- can I make the console scrollable/collapsable, like a browser?
-            # - where and how to display descriptions on the map, options for that?
-            # Test colorizing a specific grid -- maybe when it is clicked or scrolled over.
-            #   -- First colorize grids inside the map boundary.
+        # Next, determine:
+        # - what grids are inside, outside or on the boundary of the item
+        #   -- need something like a collider algorithm for that
+        #   -- start simple, with rectangles
+        #   -- then, add more complex shapes
+        #   -- then, add more complex shapes with holes
+        #   -- then, add more complex shapes with holes and islands
+        #   -- then, add more complex shapes with holes and islands and tunnels
+        #   -- and so on... probably want to use a library before too long
+        #      but want to get a feel for the math first
+
+        # For each grid, do a collision check with the dimensions of the item boundary.
+
+
+        # - where to store that info (most likely in the grid records)
+        # - what colors to highight grids inside (fully or partially) the item boundary
+        #    -- in other words, colors associated with various levels of mapping?
+
+        # - where and how to display a key or legend for the title and km dimensions
+        #   - maybe use fewer grid squares? ..
+        #      -- leave room for legend and control widgets?
+        #      -- or, use a separate window for that? some of the console perhaps?
+        #      -- can I make the console scrollable/collapsable, like a browser?
+
+        # - where and how to display descriptions on the map, options for that?
+        #   -- First colorize grids inside the map boundary.
 
     def set_map_data(self):
         """Based on currently selected .post["catg"] and .post["item"],
@@ -906,7 +919,10 @@ class GameMap(object):
     """Define and handle the Game GUI window (rect).
 
     Display the map, scenes, game widgets, GUI controls.
-    It is a rect within the Frame real estate, not a separate Frame object."""
+    It is a rect within the Frame real estate, not a separate Frame object.
+    Methods in this class use data stored in the GameData object,
+    instantiated as GDAT in the main module.
+    """
 
     def __init__(self):
         """Initialize GameMap"""
@@ -924,19 +940,41 @@ class GameMap(object):
         """
         # Draw map container rect and grid lines ("L" data)
         pg.draw.rect(PG.WIN, PG.PC_SILVER, self.box, 5)
+
         for gline in GDAT.map["L"]["rows"]:
             pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
         for gline in GDAT.map["L"]["cols"]:
             pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
         # Draw map boundaries, title, etc. ("D" data)
         for _, v in GDAT.map["D"].items():
-            pg.draw.rect(PG.WIN, PG.PC_PALEPINK, v["box"], 5)
+            pg.draw.rect(PG.WIN, PG.PC_PALEPINK, v["rect"]["box"], 5)
 
-    def draw_grid(self, rc):
+    def draw_grid(self, grid_loc: str):
         """Highlight a particular grid.
+           Colorize a specific grid that is identified by key "rc".
+           For example:
+            The INFOBAR object stores as "grid_loc" value indicating
+            what grid the cursor is presently hovering over. When this
+            method is called from refesh_screen(), it passes that key
+            in the "rc" argument.
+        :args:
+        - grid_loc: (str) Column/Row key of grid to highlight,
+            in "0n_0n" (col, row) format, using leading zeros.
+
+        @DEV:
+        - Provide options for highlighting in different ways.
+        - Pygame colors can use an alpha channel for transparency, but..
+            - See: https://stackoverflow.com/questions/6339057/draw-a-transparent-rectangles-and-polygons-in-pygame
+            - Transparency is not supported directly by draw()
+            - Achieved using Surface alpha argument with blit()
         """
-        if rc != "":
-            pg.draw.rect(PG.WIN, PG.PC_PALEPINK, GDAT.map["G"][rc]["box"], 0)
+        if grid_loc != "":
+
+            pp(('GDAT.map["G"][grid_loc]', GDAT.map["G"][grid_loc]))
+
+            pg.draw.rect(
+                PG.WIN, PG.PC_PALEPINK,
+                GDAT.map["G"][grid_loc]["rect"]["box"], 0)
 
 
 class InfoBar(object):
@@ -1068,23 +1106,32 @@ class SaskanGame(object):
     # Loop Events
     # ==============================================================
     def track_grid(self):
-        """Keep tracks of what grid the mouse is in."""
-        grid_r = 0
-        grid_c = 0
+        """Keep track of what grid mouse is over.
+        Using "L" to ID grid loc, thinking it's faster than parsing
+          thru each element of the .map["G"] matrix.
+        Since "L" defines lines, it has a count one greater than # of
+          grids in each row or column.
+        So have to be a little careful with the math.
+        """
+        mouse_loc = IBAR.info_status["mouse_loc"]
         IBAR.info_status["grid_loc"] = ""
-        for i, r in enumerate(GDAT.map["L"]["rows"]):
-            if IBAR.info_status["mouse_loc"][1] >= r[0][1] and\
-               IBAR.info_status["mouse_loc"][1] <= r[0][1] + GDAT.grid_px_h:
-                grid_r = i + 1
-                break
-        for i, c in enumerate(GDAT.map["L"]["cols"]):
-            if IBAR.info_status["mouse_loc"][0] >= c[0][0] and\
-               IBAR.info_status["mouse_loc"][0] <= c[0][0] + GDAT.grid_px_w:
-                grid_c = i + 1
-                break
-        if grid_r > 0 and grid_c > 0:
+        grid_c = -1
+        for i in range(0, GDAT.cols_cnt):
+            c = GDAT.map["L"]["cols"][i]
+            if mouse_loc[0] >= c[0][0] and\
+               mouse_loc[0] <= c[0][0] + GDAT.grid_px_w:
+                    grid_c = i
+                    break
+        grid_r = -1
+        for i in range(0, GDAT.rows_cnt):
+            r = GDAT.map["L"]["rows"][i]
+            if mouse_loc[1] >= r[0][1] and\
+               mouse_loc[1] <= r[0][1] + GDAT.grid_px_h:
+                    grid_r = i
+                    break
+        if grid_r > -1 and grid_c > -1:
             IBAR.info_status["grid_loc"] =\
-                f"{str(grid_c - 1).zfill(2)}_{str(grid_r - 1).zfill(2)}"
+                GDAT.make_grid_key(grid_c, grid_r)
 
     def track_state(self):
         """Keep track of the state of the app on each frame.
