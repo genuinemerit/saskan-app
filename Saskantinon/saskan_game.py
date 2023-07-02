@@ -43,10 +43,10 @@ Saskan App GUI.  pygame version.
 + Simplify the menu code.
 + Manage status of menu items using metadata. Enable/disable based on state,
   not only on start/default, but following any given menu-item click.
++ Display console data.
 
 - Extend regions metadata (JSON) and code to support drawing high-level box (map) borders.
 - Load schema data for Saskan Lands.
-- Display console data.
 - Colorize grids based on political boundaries.
 - Show key/legend for political boundaries.
 - Add region names to map, using different fonts for different types of regions.
@@ -180,9 +180,9 @@ class PG:
     MBAR_H = FI.G[MENUS]["bar"]["h"]
     MBAR_MARGIN = FI.G[MENUS]["bar"]["margin"]
     MBAR_LOC = (MBAR_X, MBAR_Y)
-    # In-game "windows" = CONSOLE*, GAMEMAP*, IBAR*, PHELP*
-    CONSOLE = FI.G["game_windows"]["info"]
-    GAMEMAP = FI.G["game_windows"]["game"]
+    # In-game "windows" = CONSWIN*, GRIDWIN*, IBAR*, PHELP*
+    CONSWIN = FI.G["game_windows"]["info"]
+    GRIDWIN = FI.G["game_windows"]["game"]
     PHELP = FI.G["uri"]["help"]
     IBAR_X = FI.G[FRAME]["ibar"]["x"]
     IBAR_Y = FI.G[FRAME]["ibar"]["y"]
@@ -197,8 +197,6 @@ class GameMenu(object):
     and dynamic value attributes.
     Reference menus by both key and name. Associate menu bar with its items.
     Pull in static values from JSON and assign initial values to dynamic fields.
-
-    @DEV - Instead of setting texts to green, only set box borders to green.
     """
     def __init__(self):
         """Initialize the GameMenu object.
@@ -211,38 +209,35 @@ class GameMenu(object):
         for mb_ky in self.mitems.keys():
             self.draw_menu_items(mb_ky)
         # ==============================================================
-        msg = f"\nGameMenu initialized: {self}"
-        WT.log("info", msg, __file__, __name__, self, sys._getframe())
+        # msg = f"\nGameMenu initialized: {self}"
+        # WT.log("info", msg, __file__, __name__, self, sys._getframe())
         # ==============================================================
 
     def set_menu_bar(self):
         """Set up the menu bar.
         Instantiate MenuBar and add to the object.
-
-        @DEV - check logic for setting width of menu bar per text size.
-        - Can't figure out why first menu bar box is so wide. It doesn't seem to match
-          the actual configuration of the Rect() object.
-        - Going to try fixed widths for menus.
         """
-        self.mbars = {ky: {"nm": val["nm"]} for ky, val in FI.G[MENUS]["menu"].items()}
-
+        self.mbars =\
+            {ky: {"nm": val["nm"]} for ky, val in FI.G[MENUS]["menu"].items()}
         # initialize prev_x to left edge of menu bar per config
         x = PG.MBAR_X
         for mb_ky, attrs in self.mbars.items():
-
             self.mbars[mb_ky] =\
                 {"nm": attrs["nm"],
-                 "text": PG.F_SANS_SM.render(attrs["nm"], True,
-                         PG.PC_BLUEPOWDER, PG.PC_GRAY_DARK),
+                 "mb_text": PG.F_SANS_SM.render(attrs["nm"], True,
+                            PG.PC_BLUEPOWDER, PG.PC_GRAY_DARK),
                  "selected": False}
-            self.mbars[mb_ky]["tbox"] = self.mbars[mb_ky]["text"].get_rect()
-            self.mbars[mb_ky]["box"] =\
-                pg.Rect((x, PG.MBAR_Y), (PG.MBAR_W, PG.MBAR_H + (PG.MBAR_MARGIN * 2)))
-            x = self.mbars[mb_ky]["box"].right
-            self.mbars[mb_ky]["tbox"].left =\
-                self.mbars[mb_ky]["box"].left + (self.mbars[mb_ky]["box"].width / 2) - 12
-            self.mbars[mb_ky]["tbox"].top =\
-                self.mbars[mb_ky]["box"].top + PG.MBAR_MARGIN + 5
+            self.mbars[mb_ky]["mt_box"] =\
+                self.mbars[mb_ky]["mb_text"].get_rect()
+            self.mbars[mb_ky]["mb_box"] =\
+                pg.Rect((x, PG.MBAR_Y),
+                        (PG.MBAR_W, PG.MBAR_H + (PG.MBAR_MARGIN * 2)))
+            x = self.mbars[mb_ky]["mb_box"].right
+            self.mbars[mb_ky]["mt_box"].left =\
+                self.mbars[mb_ky]["mb_box"].left +\
+                    (self.mbars[mb_ky]["mb_box"].width / 2) - 12
+            self.mbars[mb_ky]["mt_box"].top =\
+                self.mbars[mb_ky]["mb_box"].top + PG.MBAR_MARGIN + 5
 
     def set_menu_items_state(self,
                             mb_ky: str,
@@ -267,27 +262,29 @@ class GameMenu(object):
                     self.mitems[mb_ky][mi_ky]["enabled"] = True
                     txt_color = PG.PC_BLUEPOWDER
             # Set text color and content of identified item
-            self.mitems[mb_ky][mi_ky]["text"] = PG.F_SANS_SM.render(
-                self.mitems[mb_ky][mi_ky]["nm"], True, txt_color, PG.PC_GRAY_DARK)
+            self.mitems[mb_ky][mi_ky]["mi_text"] =\
+                PG.F_SANS_SM.render(self.mitems[mb_ky][mi_ky]["nm"],
+                                    True, txt_color, PG.PC_GRAY_DARK)
         else:
             # Default selected item to enabled status
             self.mitems[mb_ky][mi_ky]["enabled"] = True
-            self.mitems[mb_ky][mi_ky]["text"] = PG.F_SANS_SM.render(
-                self.mitems[mb_ky][mi_ky]["nm"], True, PG.PC_BLUEPOWDER,
-                PG.PC_GRAY_DARK)
+            self.mitems[mb_ky][mi_ky]["mi_text"] =\
+                PG.F_SANS_SM.render(self.mitems[mb_ky][mi_ky]["nm"],
+                                    True, PG.PC_BLUEPOWDER, PG.PC_GRAY_DARK)
             # Identify dependent menu items and modify their enabled status
             if "disable" in list(self.mitems[mb_ky][mi_ky].keys()):
                 for dep_ky in self.mitems[mb_ky][mi_ky]["disable"]:
                     self.mitems[mb_ky][dep_ky]["enabled"] = False
-                    self.mitems[mb_ky][dep_ky]["text"] = PG.F_SANS_SM.render(
-                        self.mitems[mb_ky][dep_ky]["nm"], True, PG.PC_GRAY,
-                        PG.PC_GRAY_DARK)
+                    self.mitems[mb_ky][dep_ky]["mi_text"] =\
+                        PG.F_SANS_SM.render(self.mitems[mb_ky][dep_ky]["nm"],
+                                            True, PG.PC_GRAY, PG.PC_GRAY_DARK)
             if "enable" in list(self.mitems[mb_ky][mi_ky].keys()):
                 for dep_ky in self.mitems[mb_ky][mi_ky]["enable"]:
                     self.mitems[mb_ky][dep_ky]["enabled"] = True
-                    self.mitems[mb_ky][dep_ky]["text"] = PG.F_SANS_SM.render(
-                        self.mitems[mb_ky][dep_ky]["nm"], True,
-                        PG.PC_BLUEPOWDER, PG.PC_GRAY_DARK)
+                    self.mitems[mb_ky][dep_ky]["mi_text"] =\
+                        PG.F_SANS_SM.render(self.mitems[mb_ky][dep_ky]["nm"],
+                                            True, PG.PC_BLUEPOWDER,
+                                            PG.PC_GRAY_DARK)
 
     def set_menu_items(self):
         """Add a MenuItems (list of items) to the object.
@@ -302,8 +299,8 @@ class GameMenu(object):
             if "mlist_box" not in list(self.mbars[mb_ky].keys()):
                 # Define container box for list of menu items
                 # Store it in mbars
-                left = self.mbars[mb_ky]["box"].left
-                top = self.mbars[mb_ky]["box"].bottom
+                left = self.mbars[mb_ky]["mb_box"].left
+                top = self.mbars[mb_ky]["mb_box"].bottom
                 self.mbars[mb_ky]["mlist_box"] =\
                     pg.Rect((left, top), (PG.MBAR_W, 0))
             # Set up each menu item:
@@ -313,12 +310,12 @@ class GameMenu(object):
                 self.mitems[mb_ky][mi_ky]["selected"] = False
                 self.set_menu_items_state(mb_ky, mi_ky, p_use_default=True)
                 # Set text box
-                text_width = self.mitems[mb_ky][mi_ky]["text"].get_width()
-                left = self.mbars[mb_ky]["box"].left + (PG.MBAR_MARGIN * 4)
-                top = self.mbars[mb_ky]["box"].bottom +\
+                text_width = self.mitems[mb_ky][mi_ky]["mi_text"].get_width()
+                left = self.mbars[mb_ky]["mb_box"].left + (PG.MBAR_MARGIN * 4)
+                top = self.mbars[mb_ky]["mb_box"].bottom +\
                     (PG.MBAR_H * mi_x) + PG.MBAR_MARGIN
                 width = text_width + (PG.MBAR_MARGIN * 2)
-                self.mitems[mb_ky][mi_ky]["tbox"] =\
+                self.mitems[mb_ky][mi_ky]["mit_box"] =\
                     pg.Rect((left, top), (width, PG.MBAR_H))
                 # Adjust container box height
                 self.mbars[mb_ky]["mlist_box"].height += PG.MBAR_H
@@ -332,7 +329,7 @@ class GameMenu(object):
         :return: id of currently selected menu bar, else None
         """
         for mb_ky, mb_vals in self.mbars.items():
-            if mb_vals["box"].collidepoint(p_mouse_loc):
+            if mb_vals["mb_box"].collidepoint(p_mouse_loc):
                 self.mbars[mb_ky]["selected"] = True\
                     if self.mbars[mb_ky]["selected"] is False else False
                 for ky in [ky for ky in self.mbars.keys() if ky != mb_ky]:
@@ -357,16 +354,15 @@ class GameMenu(object):
         :return:
         - (str) id of currrently selected menu item, else None
         """
-        # Handle menu item click if a menu bar key was provided
         if mb_ky is None:
             return None
-        else:
+        else: # if a menu bar key was provided
             # Set all menu items in the list to unselected
             for mi_ky in [k for k, v in self.mitems[mb_ky].items()]:
                 self.mitems[mb_ky][mi_ky]["selected"] = False
             # See which, if any, menu item was clicked
             for mi_ky, mi_vals in self.mitems[mb_ky].items():
-                if mi_vals['tbox'].collidepoint(p_mouse_loc):
+                if mi_vals['mit_box'].collidepoint(p_mouse_loc):
                     # If it is enabled, set it to selected and others
                     # to unselected. Unselect the menu list.
                     if mi_vals["enabled"] is True:
@@ -391,10 +387,10 @@ class GameMenu(object):
         """
         for _, mb_vals in self.mbars.items():
             if mb_vals["selected"]:
-                pg.draw.rect(PG.WIN, PG.PC_SILVER, mb_vals["box"], 2)
+                pg.draw.rect(PG.WIN, PG.PC_SILVER, mb_vals["mb_box"], 2)
             else:
-                pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, mb_vals["box"], 2)
-            PG.WIN.blit(mb_vals["text"], mb_vals["tbox"])
+                pg.draw.rect(PG.WIN, PG.PC_BLUEPOWDER, mb_vals["mb_box"], 2)
+            PG.WIN.blit(mb_vals["mb_text"], mb_vals["mt_box"])
 
     def draw_menu_items(self,
                         mb_ky):
@@ -408,7 +404,7 @@ class GameMenu(object):
                          self.mbars[mb_ky]["mlist_box"], 0)
             for mi_vals in self.mitems[mb_ky].values():
                 # Draw each menu item in the selected list-box
-                PG.WIN.blit(mi_vals["text"], mi_vals["tbox"])
+                PG.WIN.blit(mi_vals["mi_text"], mi_vals["mit_box"])
 
 class HtmlDisplay(object):
     """Set content for display in external web browser.
@@ -416,9 +412,6 @@ class HtmlDisplay(object):
 
     def __init__(self):
         """ Initialize Html Display.
-
-        @DEV
-        - Look into ways of configuring browser window.
         """
         pass
 
@@ -454,12 +447,39 @@ class TextInput(pg.sprite.Sprite):
         - p_h: (int) height of text input widget
         """
         super().__init__()
-        self.t_box = pg.Rect(p_x, p_y, p_w, p_h)
+        self.t_rect = SR.make_rect(p_y, p_x, p_w, p_h)
+        self.t_box = self.t_rect["box"]
         self.t_value = ""
         self.t_font = PG.F_FIXED_LG
         self.t_color = PG.PC_GREEN
         self.text = self.t_font.render(self.t_value, True, self.t_color)
         self.is_selected = False
+
+    def update_text(self, p_text: str):
+        """ Update text value.
+        If text is too wide for the widget, truncate it.
+        - `self.value` is the current value of the text string.
+        - `self.text` is the rendered text surface.
+        It will gets refreshed in the `draw` method.
+
+        :args:
+        - p_text: (str) Text to render.
+        """
+        temp_txt = self.t_font.render(p_text, True, self.t_color)
+        # shouldn't this be a while loop?...
+        if temp_txt.get_rect().width > (self.t_box.w - 10):
+            p_text = p_text[:-1]
+            temp_txt = self.t_font.render(p_text, True, self.t_color)
+        self.t_value = p_text
+        self.text = temp_txt
+
+    def clicked(self, p_mouse_loc) -> bool:
+        """ Return True if mouse is clicked in the widget.
+        """
+        if self.t_box.collidepoint(p_mouse_loc):
+            self.is_selected = not(self.is_selected)
+            return True
+        return False
 
     def draw(self):
         """ Place text in the widget, centered in the box.
@@ -474,43 +494,21 @@ class TextInput(pg.sprite.Sprite):
             pg.draw.rect(PG.WIN, PG.PC_BLUE, self.t_box, 2)
         PG.WIN.blit(self.text, self.pos)
 
-    def clicked(self, p_mouse_loc) -> bool:
-        """ Return True if mouse is clicked in the widget.
-        """
-        if self.t_box.collidepoint(p_mouse_loc):
-            self.is_selected = not(self.is_selected)
-            return True
-        return False
-
-    def update_text(self, p_text: str):
-        """ Update text value.
-        If text is too wide for the widget, truncate it.
-        - `self.value` is the current value of the text string.
-        - `self.text` is the rendered text surface.
-        It actually gets updated in the `draw` method.
-
-        :args:
-        - p_text: (str) Newest version of text to render.
-        """
-        temp_txt = self.t_font.render(p_text, True, self.t_color)
-        if temp_txt.get_rect().width > (self.t_box.w - 10):
-            p_text = p_text[:-1]
-            temp_txt = self.t_font.render(p_text, True, self.t_color)
-        self.t_value = p_text
-        self.text = temp_txt
-
 
 class TextInputGroup(pg.sprite.Group):
     """Define a group object.
-    A pygame group is basically a list of objects.
-    Customized from the multiple sprites tracker to track text input widgets.
-    The `current` attribute holds the currently-selected txtin widget.
-    Conversely, the textinput object itself has an `is_selected` attribute
-    that is True if it is the currently-selected txtin widget.
-    If no textinput object is selected, then `current` is None and no
-    txtin object has is_selected == True.
+    A pygame group is a list of objects.
+    This class is helpful for handling multiple input widgets, as in a form.
 
-    This is helpful for handling multiple text input widgets, as if in a form.
+    Customized from the multiple sprites tracker to track text input widgets.
+    The `current` attribute holds the currently-selected textinput widget.
+    Conversely, the textinput object itself has an `is_selected` attribute
+    that is True if it is the currently-selected one.
+    If no textinput object is selected, then `current` is None and no
+    textinput object has is_selected == True.
+
+    @DEV:
+    - Do I actually use this? How? Where? Example?
     """
     def __init__(self):
         super().__init__()
@@ -519,215 +517,213 @@ class TextInputGroup(pg.sprite.Group):
 
 class GameData(object):
     """Retrieve static game data from JSON and image file(s).
-    Organize it into data structures for use by the game
-    console and the game map.
+    Organize it into data structures for use by game console and grid.
+    `console`, `con`, `conswin` refer to the text-based console "window".
+    `grid_window` `gridwin` refer to the game map "window".
+    `grid` refers to matrix inside the grid window.
+    `controls` (not defined yet) refers to GUI controls inside gridwin.
+    `map` refers to data that has been mapped to the grid and
+      is ready for display within / on top of the matrix.
 
     @DEV:
-    - Reorganize as needed into text, Pandas Dataframe, graph,
-      any other data formats that will be useful.
     - Consider how to handle layers of data, e.g. on a map, or
       in a scene, so that zoom-in, zoom-out, and other views
       can be handled without having to re-read the data.
-    - Think how to map dimensions of a given region to the
-      dimensions of the Game (map) window. Probably best to
-      start with a fixed size for a grid-square, compute number
-      of grids in the GUI region, and align data to that -- as
-      opposed to defining grid sizes based on dimensions in the
-      data, which could cause different grid sizes for different
-      sets of mapped data.
-      - So start out by defining a fixed grid size, then assign
-        a key to that grid, showing km per grid. Assign degrees
-        so that the display shows lat/long outside the range of the
-        data. Then center the mapped data on the display grid.
-      - Map the Saskan Lands major political boundaries, then work
-        on layering in different things .. more detailed regions,
-        towns, roads, geographical features, neighboring regions,
-        etc.
-      - Once I have a feelig for that, then work on mapping data
-        for a more zoomed-in region, like a town and its environs.
+    - Work on mapping data for a zoomed-in region, like a town and environs.
         Then for a scene, like a building, or a room.
-    - Consider where to provide screen real estate for GUI controls...
+    - Consider where to provide screen real estate for GUI controls like
       scroll, zoom, pan, select-move and so on.
-        - Those things may not be part of this class, but they will
-          interact with it at any rate.
+        - Those things may not be part of this class, but will interact.
     """
     def __init__(self):
         """Initialize Game Data structures
          - Geographical map(s)
-         - Event drivers
-         - Star map(s)
          - Data state trackers = "post", like post-it notes, or
             like data that has been POSTed to a server.
+        @DEV:
+         - Event drivers
+         - Star map(s)
          - etc.
         """
         self.divider = "-" * 16
-        self.console = {"box": None,
-                        "T": list()}
-        # "D" = data outside a specific grid
-        # "G" = grids, including a data record for each grid-square
-        # "L" = lines
-        self.map = {"box": None,
-                    "D": dict(),
-                    "G": dict(),
-                    "L": dict()}
+        # Currently loaded map data
         self.post = {"active": False,
                      "catg": None,
                      "item": None}
-
+        # Currently loaded console
+        self.console = {"is_visible": False,
+                        "con_box": None,
+                        "T": list(),
+                        "t_img": list(),
+                        "t_box": list()
+                        }
+        # Currently loaded grid
+        # "D" = data outside a specific grid
+        # "G" = grids matrix, with data record for each grid-square
+        # "L" = lines
+        self.grid = {"D": dict(),    # data outside a specific grid
+                     "L": dict(),    # lines
+                     "G": dict()}    # grid matrix, grid-square data recs}
         # Default grid and line dimensions.
-        self.grid_tloff = {"x": 17, "y": 18}
-        self.rows_cnt = 34
-        self.cols_cnt = 44
-        # Initialize methods...
-        self.init_map_dims()
-        self.init_grid_data()
+        self.init_grid_d()
+        self.init_grid_l()
+        self.init_grid_g()
 
-    def init_map_dims(self):
-        """
-        Define static, default map dimensions.
-        Add other dimensions as needed for zoom-in.
-        Use default units (km, px, deg) here.
-        Handle conversions elsewhere.
-        px refers to the pygame drawing units.
-        deg are + if N of eq, E of 'Greenwich';
-                - if S of eq, W of 'Greenwich'.
-        N.B.:
-        For now, default scaling is hard-coded here.
-        Will want to move that to a config file eventually.
-        """
-        # Default border box for game/map window.
-        self.map["box"] = pg.Rect(PG.GAMEMAP["x"], PG.GAMEMAP["y"],
-                                  PG.GAMEMAP["w"], PG.GAMEMAP["h"])
-        # default PyGame 'pixels' per grid-square.
-        self.grid_px_w = self.grid_px_h = 40
-        self.line_px_w = self.grid_px_w * self.cols_cnt
-        self.line_px_h = self.grid_px_h * self.rows_cnt
-        # default kilometers per grid-square.
-        self.grid_km_w = self.grid_km_h = 32.7775
-        self.line_km_w = self.grid_km_w * self.cols_cnt
-        self.line_km_h = self.grid_km_h * self.rows_cnt
-        # Default grid line coordinates.
-        self.map["L"] = {"rows": [], "cols": []}
-        for r in range(self.rows_cnt + 1):
-            x = self.grid_tloff["x"] + self.map["box"].x
-            y = self.grid_tloff["y"]  + self.map["box"].y +\
-                (r * self.grid_px_h)
-            self.map["L"]["rows"].append(
-                [(x, y), (x + self.line_px_w, y)])
-        for c in range(self.cols_cnt + 1):
-            x = self.grid_tloff["x"] + self.map["box"].x +\
-                (c * self.grid_px_w)
-            y = self.grid_tloff["y"] + self.map["box"].y
-            self.map["L"]["cols"].append(
-                [(x, y), (x, y + self.line_px_h)])
-
+    # helper set and make methods
+    # ==============================
     def make_grid_key(self,
                       p_col : int,
                       p_row: int) -> str:
         """Convert integer coordinates to string key
-        for use in the .map["G"] (grid) matrix.
+           for use in the .grid["G"] (grid data) matrix.
         :args:
         - p_col: int, column number
         - p_row: int, row number
         :returns:
-        - str, key for the grid record, in "0n_0n" format
+        - str, key for specific grid-square record, in "0n_0n" format
         """
         return f"{str(p_col).zfill(2)}_{str(p_row).zfill(2)}"
-
-
-    def init_grid_data(self):
-        """ Initialize a data record for each map grid.
-        Store game data in the matrix of grids.
-        Enhance using Pandas Dataframes, graphs, etc. as needed.
-        Hi-level index within the "map" structure is "G", referring to
-            "grid".
-        Hi-level index within a ["G"] record is "id", referring to shape,
-            location, and contents. May or may not be useful.
-        Thinking that other sub-sets of data might be useful for
-            tracking more dynamic data, such as:
-            - what type of mode(s) are currently active in the grid
-            - what avatars/objects are currently "in" the grid
-            - info tags like resources, elevation, etc.
-        This is just a starting point.
-        Need to have enough data in each grid-record to be able to
-            draw stuff relevant to that grid.
-
-        @DEV:
-        Somewhere I have x and y reversed. Need to fix that! :-)
-        """
-        self.map["G"] = dict()
-        for ci in range(0, self.cols_cnt):
-            ln_x = self.map["L"]["cols"][ci]
-            for ri in range(0, self.rows_cnt):
-                ln_y = self.map["L"]["rows"][ri]
-                rect = copy(SR.make_rect(ln_x[0][0], ln_y[0][1],
-                                    self.grid_px_w, self.grid_px_h))
-                self.map["G"][self.make_grid_key(ci, ri)] = {
-                    "rect": rect}
 
     def set_post(self,
                  p_post: dict):
         """Capture status settings, "posted" game data.
-        Such as:
-        - Key values pointing to data in JSON files, identifying what
-          external data sets to retrieve, use.
-        - Status information, such as:
-            - Game is active
-            - Game is paused
-            - Game is over
-            - Whose turn it is
+        Such as Key values pointing to data in JSON files
         :args:
-        - p_post (dict): name-value pairs of status settings to store
-           in the class's "post" structure.
+        - p_post (dict): name-value pairs for class .post structure.
           Defaults:
             - "catg": name of category to load from JSON
             - "item": name of item to load from JSON
-            - "active": boolean indicating whether a game is active
+            - "active": boolean indicating whether gamewin is active
         """
         for k, v in p_post.items():
             self.post[k] = v
 
-    def set_ln_attr_text(self,
-                         p_attr: dict):
-        """Use this function when the attribute contains a label (l)
-          and name (n), and that is all we want to display. For example,
-          this works for attributes like "type", ...
+    # gridwin initialization methods
+    # ==============================
+    def init_grid_d(self):
+        """
+        Define containing dimensions for the "D" matrix.
+        Define sizing of grid and its offset from gridwin.
+        Associate pygame px and km with grid dimensions.
+        - Set border box for gridwin.
+        - Set grid offset from gridwin.
+        - Set number of grid rows, cols.
+        - Set px and km per grid-square.
+        For conversions to other units, use SaskanMath class.
+        - px refers to the pygame drawing units.
+        @DEV:
+        - May add other dimensions as needed for zoom-in.
+        - For now, default scaling is hard-coded here.
+          Let's move that to a config file eventually.
+        """
+        self.grid["D"] = {
+            "is_visible": False,
+            "grid_rect": SR.make_rect(PG.GRIDWIN["y"], PG.GRIDWIN["x"],
+                                      PG.GRIDWIN["w"], PG.GRIDWIN["h"])}
+        self.grid["D"]["grid_box"] = self.grid["D"]["grid_rect"]["box"]
+        # TopLeft offset from gridwin to grid:
+        self.grid["D"]["offset"] = {"x": 17, "y": 18}
+        # Sizing of the matrix and of individual grid-squares:
+        self.grid["D"]["dim"] = {
+            "rows": 34,
+            "cols": 44,
+            "px": {"w": 40, "h": 40},
+            "km": {"w": 32.7775, "h": 32.7775}}
+
+    def init_grid_l(self):
+        """
+        Define dimensions for the "L" (lines) matrix.
+        """
+        grid_d = self.grid["D"]
+        d_dim = grid_d["dim"]
+        self.grid["L"]["dim"] = {
+            "vert_lns": d_dim["cols"] + 1,
+            "horz_lns": d_dim["rows"] + 1,
+            "px": {"w": d_dim["px"]["w"] * d_dim["cols"],
+                   "h": d_dim["px"]["h"] * d_dim["rows"]},
+            "km": {"w": d_dim["km"]["w"] * d_dim["cols"],
+                   "h": d_dim["km"]["h"] * d_dim["rows"]}}
+
+        # Set horiztonal line segment x,y coordinates.
+        self.grid["L"]["horz_ln"] = list()
+        left_x = grid_d["offset"]["x"] + grid_d["grid_box"].x
+        right_x = left_x + (d_dim["px"]["w"] * d_dim["cols"])
+        for hz in range(self.grid["L"]["dim"]["horz_lns"]):
+            y = grid_d["offset"]["y"]  + grid_d["grid_box"].y +\
+                (hz * d_dim["px"]["h"])
+            self.grid["L"]["horz_ln"].append([(left_x, y), (right_x, y)])
+
+        # Set vertical line segment x,y coordinates.
+        self.grid["L"]["vert_ln"] = list()
+        top_y = grid_d["offset"]["y"]  + grid_d["grid_box"].y
+        bottom_y = top_y + (d_dim["px"]["h"] * d_dim["rows"])
+        for vt in range(self.grid["L"]["dim"]["vert_lns"]):
+            x = grid_d["offset"]["x"]  + grid_d["grid_box"].x +\
+                (vt * d_dim["px"]["w"])
+            self.grid["L"]["vert_ln"].append([(x, top_y), (x, bottom_y)])
+
+    def init_grid_g(self):
+        """ Define in "G" matrix a data record for each grid-square.
+        - Define a rect and box for each grid-square.
+        """
+        for c in range(0, self.grid["D"]["dim"]["cols"]):
+            for r in range(0, self.grid["D"]["dim"]["rows"]):
+                g_ky = self.make_grid_key(c, r)
+                x = self.grid["L"]["vert_ln"][c][0][0]  # x of vert line
+                y = self.grid["L"]["horz_ln"][r][0][1]  # y of horz line
+                w = self.grid["D"]["dim"]["px"]["w"]    # width of a grid-square
+                h = self.grid["D"]["dim"]["px"]["h"]    # height of a grid-square
+                self.grid["G"][g_ky] = {"g_rect": copy(SR.make_rect(y, x, w, h))}
+                self.grid["G"][g_ky]["g_box"] = self.grid["G"][g_ky]["g_rect"]["box"]
+
+    # console methods
+    # =============================
+    def set_t_lbl_nm(self,
+                     p_attr: dict):
+        """Attribute contains a label (l) and name (n),
+           and that is all we want to display.
+           For example, attributes like "type", ...
+        :attr:
+        - p_attr (dict): name-value pairs to format
         """
         self.console["T"].append(self.divider)
         self.console["T"].append(f"{p_attr['label']}:")
         self.console["T"].append(f"  {p_attr['name']}")
 
-    def set_lnt_attr_text(self,
-                          p_attr: dict):
-        """Use this function when the attribute contains a label (l),
-          a name (n), and a type (t), and that's all we want to display.
-        For example, this works for attributes like "contained_by", ...
+    def set_t_lbl_nm_typ(self,
+                         p_attr: dict):
+        """Attribute contains a label (l), a name (n), and a type (t),
+        and that's all we want to display.
+        For example, attributes like "contained_by", ...
+        :attr:
+        - p_attr (dict): name-value pairs to format
         """
         self.console["T"].append(self.divider)
         self.console["T"].append(f"{p_attr['label']}:")
         self.console["T"].append(f"  {p_attr['name']} " +
                                  f"({p_attr['type']})")
 
-    def set_names_text(self,
-                       p_names: dict):
-        """Use this function when the attribute is "name".
-        There must be one value indexed by "common", plus optionally a set
+    def set_t_proper_names(self,
+                           p_names: dict):
+        """Attribute is "name", referring to proper names of things.
+        Must be one value indexed by "common"; optionally a set
         of names in different game languages or dialects.
         :attr:
-        - p_data (dict): name-value pairs of names to format
+        - p_names (dict): name-value pairs to format
         """
         self.console["T"].append(self.divider)
         self.console["T"].append(f"{p_names['label']}:")
         self.console["T"].append(f"  {p_names['common']}")
+        self.set_console_header(p_names['common'])
         if "other" in p_names.keys():
             for k, v in p_names["other"].items():
                 self.console["T"].append(f"    {k}: {v}")
 
-    def set_map_text(self,
-                     p_map: dict):
-        """Use this function when the attribute is "map".
+    def set_t_map(self,
+                  p_map: dict):
+        """Attribute is "map", referring to game-map data.
         :attr:
-        - p_data (dict): name-value pairs of map data to format
+        - p_map (dict): name-value pairs to format
         """
         self.console["T"].append(self.divider)
         if "distance" in p_map.keys():
@@ -735,91 +731,112 @@ class GameData(object):
             self.console["T"].append(f"{d['label']}:")
             for a in ["height", "width"]:
                 self.console["T"].append(f"  {d[a]['label']}:  " +
-                                         f"{d[a]['amt']} {d['unit']}")
+                                                 f"{d[a]['amt']} {d['unit']}")
         if "location" in p_map.keys():
             l = p_map["location"]
             self.console["T"].append(f"{l['label']}:")
             for a in ["top", "bottom", "left", "right"]:
                 self.console["T"].append(f"  {l[a]['label']}: " +
-                                         f"{l[a]['amt']}{l['unit']}")
+                                                 f"{l[a]['amt']}{l['unit']}")
 
-    def set_contains_text(self,
-                          p_contains: dict):
-        """Use this function when the attribute is "contains"."""
+    def set_t_contains(self,
+                       p_contains: dict):
+        """Attribute is "contains", referring to things contained by an object.
+        :attr:
+        - p_contains (dict): name-value pairs to format
+        """
         self.console["T"].append(self.divider)
         self.console["T"].append(f"{p_contains['label']}:")
         if "sub-region" in p_contains.keys():
-            self.console["T"].append(f"  {p_contains['sub-region']['label']}:")
+            self.console["T"].append(
+                f"  {p_contains['sub-region']['label']}:")
             for n in p_contains["sub-region"]["names"]:
                 self.console["T"].append(f"    {n}")
         if "movement" in p_contains.keys():
             # roads, waterways, rivers and lakes
-            self.console["T"].append(f"  {p_contains['movement']['label']}:")
-            attr = {k:v for k, v in p_contains["movement"].items() if k != "label"}
+            self.console["T"].append(
+                f"  {p_contains['movement']['label']}:")
+            attr = {k:v for k, v in p_contains["movement"].items()
+                    if k != "label"}
             for _, v in attr.items():
                 self.console["T"].append(f"    {v['label']}:")
                 for n in v["names"]:
                     self.console["T"].append(f"      {n}")
 
+    def render_text_lines(self):
+        """ Render lines of text to display in the GameConsole rect.
+        Store rendered text objects in .console["T"] structure.
+        """
+        x = self.console["title"]["box"].x
+        y = self.console["title"]["box"].y + MED_FONT_SZ
+        for i, c_txt in enumerate(self.console["T"]):
+            self.console["t_img"].append(
+                PG.F_SANS_SM.render(c_txt, True, PG.PC_BLUEPOWDER,
+                                    PG.PC_BLACK))
+            self.console["t_box"].append(
+                self.console["t_img"][i].get_rect())
+            self.console["t_box"][i].topleft =\
+                (x, y + ((SM_FONT_SZ + 2) * (i + 1)))
+
+    def set_console_header(self,
+                           p_hdr_text: str):
+        """Render header string for display in console."""
+        self.console["title"] = {"text": p_hdr_text}
+        self.console["title"]["img"] = PG.F_SANS_LG.render(
+            self.console["title"]["text"], True, PG.PC_BLUEPOWDER, PG.PC_BLACK)
+        self.console["title"]["box"] =\
+            self.console["title"]["img"].get_rect()
+        self.console["title"]["box"].topleft =\
+            (PG.CONSWIN["x"] + 5, PG.CONSWIN["y"] + 5)
+
     def set_console_text(self):
-        """For .post item indexed by "catg", format a list of strings
-            to render as text for display in Console.
-        Store list of strings in console structure, under a key of "T".
-        Source of config data to format is determined by value indexed by
-            .post["catg"].
-        Type of data to format is determined by value indexed by .post["item"]
+        """Format a list of strings to render as text for display in console.
+        Store list of strings in the .console["T"] structure.
+        .post["catg"] identifies source of config data to format.
+        .post["item"] identifies type of data to format.
         """
-        self.console["box"] = pg.Rect(PG.CONSOLE["x"], PG.CONSOLE["y"],
-                                      PG.CONSOLE["w"], PG.CONSOLE["h"])
+        self.console["is_visible"] = True
+        self.console["con_rect"] = SR.make_rect(PG.CONSWIN["y"], PG.CONSWIN["x"],
+                                   PG.CONSWIN["w"], PG.CONSWIN["h"])
+        self.console["con_box"] = self.console["con_rect"]["box"]
         self.console["T"] = list()
-        data = FI.S[self.post["catg"]][self.post["item"]]
-        if "type" in data.keys():
-            self.set_ln_attr_text(data["type"])
-        if "contained_by" in data.keys():
-            self.set_lnt_attr_text(data["contained_by"])
-        if "name" in data.keys():
-            self.set_names_text(data["name"])
-        if "map" in data.keys():
-            self.set_map_text(data["map"])
-        if "contains" in data.keys():
-            self.set_contains_text(data["contains"])
+        self.set_console_header(PG.CONSWIN["ttl"])
+        # Contents
+        con_data = FI.S[self.post["catg"]][self.post["item"]]
+        if "type" in con_data.keys():
+            self.set_t_lbl_nm(con_data["type"])
+        if "contained_by" in con_data.keys():
+            self.set_t_lbl_nm_typ(con_data["contained_by"])
+        if "name" in con_data.keys():
+            self.set_t_proper_names(con_data["name"])
+        if "map" in con_data.keys():
+            self.set_t_map(con_data["map"])
+        if "contains" in con_data.keys():
+            self.set_t_contains(con_data["contains"])
+        self.render_text_lines()
 
-    def set_map_boundaries(self,
-                           p_map: dict):
-        """Set the boundaries of the map, based on the map data.
-        - Fit the distance data for .post["item"] to default map scaling
-        as defined in .init_map_dims(). For example:
-        - Center the map within the grid N-S and E-W.
-        - Draw boundaries of the map on top of the grid.
-        - It may not align exactly to the grid, so this is "D" data.
+    # set map dimensions and content
+    # ================================
+    def set_map_dim(self,
+                    p_map: dict):
+        """Set dimensions of current map within the grid.
+        - Scale .post["item"] type data to grid default dims.
+        For example:
+        - Center the selected map within the grid N-S and E-W.
+        - Draw boundaries of the map on top of the grid and store
+          as .grid["D"] data.
+        - Indicate if each grid-square is inside, outside or crossing
+          the map boundaries. Store as .grid["G"] data.
+        N.B.
+        - Topleft of grid (not gridwin) is origin for map.
+        - Easier to read math broken into separate steps, rather than
+          one big function.
+        :attr:
+        - p_map (dict): game map name-value pairs from geo config data
+            For example, data for the "Saskan Lands" region.
+        @DEV:
+        - What to do if the map data defines an area larger than the grid?
 
-        - For the grid records, indicate:
-            - Is it inside, outside or on the boundary of .map["item"]
-        """
-        # use topleft of the grid (not the overall frame) as the origin of
-        # the map. Easier to read math broken into separate steps.
-        grid_00 = {'x': self.map["G"]["00_00"]['rect']['box'].left,
-                   'y': self.map["G"]["00_00"]['rect']['box'].top}
-        map_km = {'w': p_map["distance"]["width"]["amt"],
-                  'h': p_map["distance"]["height"]["amt"]}
-        map_scale = {'w': map_km['w'] / self.line_km_w,
-                     'h': map_km['h'] / self.line_km_h}
-        map_px = {'w': map_scale['w'] * self.line_px_w,
-                  'h': map_scale['h'] * self.line_px_h}
-        map_grids = {'w': round(map_px['w'] / self.grid_px_w),
-                     'h': round(map_px['h'] / self.grid_px_h)}
-        map_offset = {'w': (self.cols_cnt - map_grids['w']) / 2,
-                      'h': (self.rows_cnt - map_grids['h']) / 2}
-        map_left = (grid_00["x"] + round((map_offset['w'] * self.grid_px_w), 2))
-        map_top = (grid_00["y"] + round((map_offset['h'] * self.grid_px_h), 2))
-        # Define rect for the entire map
-        if map_km['h'] < self.line_km_h and map_km['w'] < self.line_km_w:
-            map_ky =  self.post["item"]
-            map_nm = FI.S[self.post["catg"]][map_ky]["name"]
-            self.map["D"][map_ky] = {
-                "rect": SR.make_rect(map_left, map_top, map_px['w'], map_px['h']),
-                "title": map_nm
-            }
         # Next, determine:
         # - what grids are inside, outside or on the boundary of the item
         #   -- need something like a collider algorithm for that
@@ -833,7 +850,6 @@ class GameData(object):
 
         # For each grid, do a collision check with the dimensions of the item boundary.
 
-
         # - where to store that info (most likely in the grid records)
         # - what colors to highight grids inside (fully or partially) the item boundary
         #    -- in other words, colors associated with various levels of mapping?
@@ -846,117 +862,132 @@ class GameData(object):
 
         # - where and how to display descriptions on the map, options for that?
         #   -- First colorize grids inside the map boundary.
+        """
+        grid_l = self.grid["L"]["dim"]
+        grid_d = self.grid["D"]["dim"]
+        grid_origin = {'x': self.grid["G"]["00_00"]['g_box'].left,
+                       'y': self.grid["G"]["00_00"]['g_box'].top}
+
+        map_km = {'w': p_map["distance"]["width"]["amt"],
+                  'h': p_map["distance"]["height"]["amt"]}
+        # Ratio of map width, height to grid-line width, height
+        map_scale = {'w': map_km['w'] / grid_l["km"]["w"],
+                     'h': map_km['h'] / grid_l["km"]["h"]}
+        map_px = {'w': map_scale['w'] * grid_l["px"]["w"],
+                  'h': map_scale['h'] * grid_l["px"]["h"]}
+        # Compute number of grid squares that fit in the map
+        map_grids = {'w': round(map_px['w'] / grid_d["px"]["w"]),
+                     'h': round(map_px['h'] / grid_d["px"]["h"])}
+        # Compute offset to center the map in the grid; by grid count, by pixels
+        map_offset = {'w': (grid_d["cols"] - map_grids['w']) / 2,
+                      'h': (grid_d["rows"] - map_grids['h']) / 2}
+        map_left = (grid_origin["x"] +
+                    round((map_offset['w'] *
+                           grid_d["px"]["w"]), 2))
+        map_top = (grid_origin["y"] +
+                   round((map_offset['h'] *
+                          grid_d["px"]["h"]), 2))
+        # Define rect and box for the map
+        if map_km['h'] < grid_l["km"]["h"] and\
+           map_km['w'] < grid_l["km"]["w"]:
+                self.grid["D"]["map"] = {
+                    "item_ky": self.post["item"],
+                    "item_nm": FI.S[self.post["catg"]][self.post["item"]]["name"],
+                    "m_rect": SR.make_rect(map_top, map_left, map_px['w'], map_px['h'])}
+                self.grid["D"]["map"]["m_box"] = self.grid["D"]["map"]["m_rect"]["box"]
+        # Do a collision check between the map box and each grid box
+        for gk, grec in GDAT.grid["G"].items():
+            self.grid["G"][gk]["is_inside"] = False
+            self.grid["G"][gk]["overlaps"] = False
+            if SR.rect_contains(self.grid["D"]["map"]["m_box"], grec["g_box"]):
+                self.grid["G"][gk]["is_inside"] = True
+            elif SR.rect_overlaps(self.grid["D"]["map"]["m_box"], grec["g_box"]):
+                self.grid["G"][gk]["overlaps"] = True
 
     def set_map_data(self):
         """Based on currently selected .post["catg"] and .post["item"],
-            assign values to the .map["D"] or ["G"] attributes.
-            .map["D"] is for data not confined to a specific grid
-            .map["G"][col][row] is a matrix of data for each grid
+            assign values to the .grid["D"] or ["G"] attributes.
+            .grid["D"] is for data not confined to a specific grid
+            .grid["G"][col_row] is a matrix of data for each grid
             For default structure of the grid data record, see .init_grid_data()
+        @TODO:
+        - For now just set the map dimensions and scaling it to the grid.
+        - Next, start defining map content into the grid ("G").
         """
+        self.grid["D"]["is_visible"] = True
         data = FI.S[self.post["catg"]][self.post["item"]]
         if "map" in data.keys():
-            self.set_map_boundaries(data["map"])
+            self.set_map_dim(data["map"])
 
 class GameConsole(object):
-    """Define and handle the Game Consoled (info) window (rect).
-
-    Display game data like score, etc.; and to contain text inputs.
-    It is a rect within the Frame real estate, not a separate Frame object.
+    """Draw the Game Consoled (info) window (rect).
+    Display game data like score, map descriptions, etc.
+    It is a rect within the Frame, not a separate Frame object.
+    N.B.:
+    - GameData class does data load and rendering stored in "T" matrix.
+    @DEV:
+    - May extend the console to handle text input fields.
     """
 
     def __init__(self):
         """ Initialize GameConsole.
         """
-        self.is_visible = False
-        self.box = pg.Rect(PG.CONSOLE["x"], PG.CONSOLE["y"],
-                           PG.CONSOLE["w"], PG.CONSOLE["h"])
-        self.title = None
-        self.text = None
-        self.img = None
-        WT.log("info", f"\nGameConsole instantiated: {str(self)}",
-               __file__, __name__, self, sys._getframe())
-
-    def set_console_text_line(self,
-                              p_lnno: int,
-                              p_text: str):
-        """ Set a line of text to display in the GameConsole rect.
-        :args:
-        - p_lnno: (int) Line number of text to display.
-        - p_text: (str) Text to display in line.
-        """
-        self.img = PG.F_SANS_SM.render(p_text, True,
-                                        PG.PC_BLUEPOWDER,
-                                        PG.PC_BLACK)
-        self.text = self.img.get_rect()
-        y = self.title.y + MED_FONT_SZ
-        self.text.topleft = (self.title.x,
-                             y + ((SM_FONT_SZ + 2) * (p_lnno + 1)))
+        pass
 
     def draw(self):
         """ Draw GameConsole.
-        - Black out the GameConsole rect.
+        - Draw the GameConsole rect.
         - Draw the console header.
-        - Incrementally add lines text (or inputs) to GameConsole
-          region based on current posting in GameData object.
+        - Draw text lines for GameConsole based on current GameData.
         """
-        # Draw console container rect.
-        pg.draw.rect(PG.WIN, PG.PC_BLUE, GDAT.console["box"], 1)
-        # Set and draw console header.
-        self.img = PG.F_SANS_LG.render(PG.CONSOLE["ttl"], True,
-                                       PG.PC_BLUEPOWDER, PG.PC_BLACK)
-        self.title = self.img.get_rect()
-        self.title.topleft = (PG.CONSOLE["x"] + 5,
-                              PG.CONSOLE["y"] + 5)
-        PG.WIN.blit(self.img, self.title)
-        # Set and draw lines of text, as defined in GameData object.
-        for i, ln in enumerate(GDAT.console["T"]):
-           self.set_console_text_line(i, ln)
-           PG.WIN.blit(self.img, self.text)
+        # Draw container rect and header.
+        pg.draw.rect(PG.WIN, PG.PC_BLACK, GDAT.console["con_box"], 0)
+        PG.WIN.blit(GDAT.console["title"]["img"],
+                    GDAT.console["title"]["box"])
+        # Draw lines of text, as rendered in GameData object.
+        for i, _ in enumerate(GDAT.console["T"]):
+           PG.WIN.blit(GDAT.console["t_img"][i],
+                       GDAT.console["t_box"][i])
 
 
 class GameMap(object):
     """Define and handle the Game GUI window (rect).
+    Draw the grid, the map, and (eventually) scenes, game widgets,
+    GUI controls and so on mapped to the grid.
 
-    Display the map, scenes, game widgets, GUI controls.
-    It is a rect within the Frame real estate, not a separate Frame object.
-    Methods in this class use data stored in the GameData object,
-    instantiated as GDAT in the main module.
+    This class use sdata stored in the GameData object.
     """
 
     def __init__(self):
         """Initialize GameMap"""
-        self.is_visible = False
-        self.box = pg.Rect(PG.GAMEMAP["x"], PG.GAMEMAP["y"],
-                           PG.GAMEMAP["w"], PG.GAMEMAP["h"])
-        WT.log("info", f"\nGameMap initialized: {str(self)}",
-               __file__, __name__, self, sys._getframe())
+        pass
 
     def draw(self):
         """Draw the Game map.
         draw(surface, color, coordinates, width)
-
-        Define additional types of structures as needed. e.g., graphs, etc.
         """
-        # Draw map container rect and grid lines ("L" data)
-        pg.draw.rect(PG.WIN, PG.PC_SILVER, self.box, 5)
-
-        for gline in GDAT.map["L"]["rows"]:
-            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
-        for gline in GDAT.map["L"]["cols"]:
-            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, gline)
-        # Draw map boundaries, title, etc. ("D" data)
-        for _, v in GDAT.map["D"].items():
-            pg.draw.rect(PG.WIN, PG.PC_PALEPINK, v["rect"]["box"], 5)
+        # Draw grid box with thick border
+        pg.draw.rect(PG.WIN, PG.PC_SILVER, GDAT.grid["D"]["grid_box"], 5)
+        # Draw grid lines
+        for vt in GDAT.grid["L"]["vert_ln"]:
+            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, vt)
+        for hz in GDAT.grid["L"]["horz_ln"]:
+            pg.draw.aalines(PG.WIN, PG.PC_WHITE, False, hz)
+        # Highlight grid squares inside or overlapping the map box
+        for gk, grec in GDAT.grid["G"].items():
+            if grec["is_inside"]:
+                pg.draw.rect(PG.WIN, PG.PC_WHITE, grec["g_box"], 0)
+            elif grec["overlaps"]:
+                pg.draw.rect(PG.WIN, PG.PC_SILVER, grec["g_box"], 0)
+        # Draw map box with thick border
+        pg.draw.rect(PG.WIN, PG.PC_PALEPINK, GDAT.grid["D"]["map"]["m_box"], 5)
 
     def draw_grid(self, grid_loc: str):
-        """Highlight a particular grid.
-           Colorize a specific grid that is identified by key "rc".
-           For example:
-            The INFOBAR object stores as "grid_loc" value indicating
-            what grid the cursor is presently hovering over. When this
-            method is called from refesh_screen(), it passes that key
-            in the "rc" argument.
+        """For now, just highlight/ colorized a grid-square.
+        The INFOBAR object stores a "grid_loc" value indicating
+        what grid the cursor is presently hovering over. When this
+        method is called from refesh_screen(), it passes that key
+        in the grid_loc argument.
         :args:
         - grid_loc: (str) Column/Row key of grid to highlight,
             in "0n_0n" (col, row) format, using leading zeros.
@@ -969,18 +1000,14 @@ class GameMap(object):
             - Achieved using Surface alpha argument with blit()
         """
         if grid_loc != "":
-
-            pp(('GDAT.map["G"][grid_loc]', GDAT.map["G"][grid_loc]))
-
-            pg.draw.rect(
-                PG.WIN, PG.PC_PALEPINK,
-                GDAT.map["G"][grid_loc]["rect"]["box"], 0)
+            pg.draw.rect(PG.WIN, PG.PC_PALEPINK,
+                GDAT.grid["G"][grid_loc]["g_box"], 0)
 
 
 class InfoBar(object):
     """Info Bar object.
     Deafault text is system info.
-    To change text, call GameData.set_console_text() function.
+    Show status text if it is turned on.
     """
     def __init__(self):
         """ Initialize Info Bar. """
@@ -1012,6 +1039,8 @@ class InfoBar(object):
         Set and draw the Info Bar text.
         Optionally include status info if the class's info_status["on"]
             attribute is True.
+        Just rendering the text here since the status info can change
+            every frame.
         """
         text = self.system_text + "   | " + self.status_text\
             if self.info_status["on"] is True else self.system_text
@@ -1094,8 +1123,6 @@ class SaskanGame(object):
             GDAT.set_post({"catg": 'geo',
                            "item": 'Saskan Lands',
                            "active": True})
-            CONSOLE.is_visible = True
-            GAMEMAP.is_visible = True
             GDAT.set_console_text()
             GDAT.set_map_data()
         elif p_mi_ky == "status":
@@ -1107,31 +1134,32 @@ class SaskanGame(object):
     # ==============================================================
     def track_grid(self):
         """Keep track of what grid mouse is over.
-        Using "L" to ID grid loc, thinking it's faster than parsing
-          thru each element of the .map["G"] matrix.
+        Use "L" (lines) data to ID grid loc. Maybe a little
+            faster than parsing thru each element of .grid["G"] matrix.
+
+        N.B.:
         Since "L" defines lines, it has a count one greater than # of
           grids in each row or column.
-        So have to be a little careful with the math.
         """
         mouse_loc = IBAR.info_status["mouse_loc"]
         IBAR.info_status["grid_loc"] = ""
-        grid_c = -1
-        for i in range(0, GDAT.cols_cnt):
-            c = GDAT.map["L"]["cols"][i]
-            if mouse_loc[0] >= c[0][0] and\
-               mouse_loc[0] <= c[0][0] + GDAT.grid_px_w:
-                    grid_c = i
+        grid_col = -1
+        for i in range(0, GDAT.grid["D"]["dim"]["cols"]):
+            vt = GDAT.grid["L"]["vert_ln"][i]
+            if mouse_loc[0] >= vt[0][0] and\
+               mouse_loc[0] <= vt[0][0] + GDAT.grid["D"]["dim"]["px"]["w"]:
+                    grid_col = i
                     break
-        grid_r = -1
-        for i in range(0, GDAT.rows_cnt):
-            r = GDAT.map["L"]["rows"][i]
-            if mouse_loc[1] >= r[0][1] and\
-               mouse_loc[1] <= r[0][1] + GDAT.grid_px_h:
-                    grid_r = i
+        grid_row = -1
+        for i in range(0, GDAT.grid["D"]["dim"]["rows"]):
+            hz = GDAT.grid["L"]["horz_ln"][i]
+            if mouse_loc[1] >= hz[0][1] and\
+               mouse_loc[1] <= hz[0][1] + GDAT.grid["D"]["dim"]["px"]["h"]:
+                    grid_row = i
                     break
-        if grid_r > -1 and grid_c > -1:
+        if grid_row > -1 and grid_col > -1:
             IBAR.info_status["grid_loc"] =\
-                GDAT.make_grid_key(grid_c, grid_r)
+                GDAT.make_grid_key(grid_col, grid_row)
 
     def track_state(self):
         """Keep track of the state of the app on each frame.
@@ -1146,9 +1174,8 @@ class SaskanGame(object):
         if IBAR.info_status["on"] is True and\
             IBAR.info_status["frozen"] is False:
                 IBAR.info_status["frame_cnt"] += 1
-
         IBAR.info_status["mouse_loc"] = pg.mouse.get_pos()
-        if GAMEMAP.is_visible:
+        if GDAT.grid["D"]["is_visible"] is True:
             self.track_grid()
 
         # For managing text input boxes:
@@ -1169,16 +1196,16 @@ class SaskanGame(object):
         PG.WIN.fill(PG.PC_BLACK)
         # display content based on what is currently
         #  posted in the GameData object
-        if CONSOLE.is_visible is True:
-            CONSOLE.draw()
+        if GDAT.console["is_visible"] is True:
+            CONSWIN.draw()
         if IBAR.info_status["on"] is True:
             IBAR.set_status_text()
         else:
             IBAR.set_default_text()
         IBAR.draw()
-        if GAMEMAP.is_visible is True:
-            GAMEMAP.draw()
-            GAMEMAP.draw_grid(IBAR.info_status["grid_loc"])
+        if GDAT.grid["D"]["is_visible"] is True:
+            GRIDWIN.draw()
+            GRIDWIN.draw_grid(IBAR.info_status["grid_loc"])
 
         # for txtin in self.TIG:
         #     txtin.draw()
@@ -1186,7 +1213,7 @@ class SaskanGame(object):
 
         # refresh the menus
         GMNU.draw_menu_bar()
-        for mb_ky, mi_ky in GMNU.mitems.items():
+        for mb_ky in GMNU.mitems.keys():
             GMNU.draw_menu_items(mb_ky)
 
         pg.display.update()
@@ -1247,6 +1274,6 @@ if __name__ == '__main__':
     GMNU = GameMenu()
     WHTM = HtmlDisplay()  # for Help windows
     IBAR = InfoBar()
-    CONSOLE = GameConsole()
-    GAMEMAP = GameMap()
+    CONSWIN = GameConsole()
+    GRIDWIN = GameMap()
     SaskanGame()

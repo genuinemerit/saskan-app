@@ -85,6 +85,21 @@ class SaskanRect(object):
         Units are in whatever coordinate system makes sense, such as,
         pixels, meters, kilometers, etc. This class makes no assumptions
         about what the units represent.
+        :args:
+        - top: (float) top of rectangle (y)
+        - left: (float) left of rectangle (x)
+        - width: (float) width (w) of rectangle
+        - height: (float) height (h) of rectangle
+        - line_width: (float) width of rectangle border
+        - fill: (bool) fill the rectangle with color, default False
+        - fill_color: (matplotlib.colors) color to fill rectangle
+        - line_color: (matplotlib.colors) color of rectangle border
+        :return: (dict) proprietary rectangle data structure, with pygame
+          Rect object referenced by "box" key
+
+        N.B.:
+        - Order of arguments is y, x, w, h, not x, y, w, h.
+
         Color definitions are pygame colors, as defined in pygame.Color.
         :args:
         - top: (float) top of rectangle (y)
@@ -103,7 +118,7 @@ class SaskanRect(object):
         self.rect["height"] = self.rect["h"] = p_height
         self.rect["bottom"] = self.rect["b"] = p_top + p_height
         self.rect["right"] = self.rect["r"] = p_left + p_width
-        self.rect["top_left"] = (p_left, p_top)
+        self.rect["top_left"] = (p_left, p_top)                 # (x, y)
         self.rect["top_right"] = (self.rect["right"], p_top)
         self.rect["bottom_left"] = (p_left, self.rect["bottom"])
         self.rect["bottom_right"] = (self.rect["right"], self.rect["bottom"])
@@ -120,6 +135,34 @@ class SaskanRect(object):
         # This is the pygame rectangle:
         self.rect["box"] = Rect((p_left, p_top), (p_width, p_height))
         return self.rect
+
+    def rect_contains(self,
+                      p_box_a: Rect,
+                      p_box_b: Rect) -> bool:
+        """Determine if rectangle A contains rectangle B.
+        use pygame contains
+        """
+        if p_box_a.contains(p_box_b):
+            return True
+        else:
+            return False
+
+    def rect_overlaps(self,
+                      p_box_a: Rect,
+                      p_box_b: Rect) -> bool:
+        """Determine if rectangle A and rectangle B overlap.
+        use pygame colliderect
+        """
+        if p_box_a.colliderect(p_box_b):
+            return True
+        else:
+            return False
+
+    def rect_borders(self, p_rect_a: dict, p_rect_b: dict) -> tuple:
+        """Determine if rectangle A and rectangle B share a border.
+        use pygame clipline
+        """
+        pass
 
 class SaskanMath(object):
     """Class for game-related conversions and calculations.
