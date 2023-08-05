@@ -4,6 +4,12 @@
 
  
  
+        map_px = {'w': map_scale['w'] * grid_l["px"]["w"],
+					 0.909092989231804 * 1760
+
+				  'h': map_scale['h'] * grid_l["px"]["h"]}
+				  	 0.8244087811312457 * 1360
+ 
  
  .grid["D"]
  {'dim': {'cols': 44,

@@ -3,6 +3,7 @@
 from Saskantinon.io_file import FileIO
 from Saskantinon.io_graph import GraphIO
 from Saskantinon.io_shell import ShellIO
+from Saskantinon.io_time import SpaceIO
 from Saskantinon.io_time import TimeIO
 from Saskantinon.io_wiretap import WireTap
 from Saskantinon.saskan_admin import SaskanAdmin

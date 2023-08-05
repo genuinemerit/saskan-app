@@ -1,0 +1,184 @@
+{
+    "space":{
+        "Universe" : {
+            "type": "UNIV",
+            "parent_type": null,
+            "child_type": "GALAXY",
+            "children": ["Milky Way"]
+        },
+        "Milky Way" : {
+            "type": "GALAXY",
+            "parent_type": "UNIV",
+            "parent": "Universe",
+            "child_type": "STAR",
+            "children": ["Fatune"]
+        },
+        "Fatune": {
+            "type": "STAR",
+            "parent_type": "GALAXY",
+            "parent": "Milky Way",
+            "category": [
+                "G",
+                "main sequence"],
+            "diameter": [{"km": 1.392e+9}],
+            "child_type": "PLANET",
+            "children": [
+                "Paulu-Kalur",
+                "Astrea",
+                "Gavor",
+                "Petra",
+                "Kalama",
+                "Korin",
+                "Jemlok"]
+        },
+        "Gavor": {
+            "type": "PLANET",
+            "parent_type": "STAR",
+            "parent": "Fatune",
+            "distance": [
+                {"km": 1.496e+8},
+                {"gau": 1.0}],
+            "diameter": [
+                {"km": 12756.0}],
+            "mass": [
+                {"kg": 5.9722e+24}],
+            "orbit": [
+                {"days": 365.24},
+                {"turns": 1.0}],
+            "rotation": [
+                {"days": 1.0}],
+            "description":
+                "Earth-llike planet with eight moons.",
+            "child_type": "MOON",
+            "children": [
+                "Endor",
+                "Sella",
+                "Lelako",
+                "Jembor",
+                "Calumbra",
+                "Zelembra",
+                "Shunna",
+                "Kanka"]
+        },
+        "Endor": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.07346e+24}],
+            "angular_diameter": [{"dg": 0.52}],
+            "distance": [{"km": 384400.0}],
+            "diameter": [{"km": 3500.0}],
+            "orbit": [
+                {"days": 27.45}],
+            "rotation": null,
+            "description": "Very similar to Earth's Moon. 2nd largest Gavoran moon.",
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Sella": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.06235e+24}],
+            "angular_diameter": [{"dg": 0.41}],
+            "distance": [{"km": 461280.0}],
+            "diameter": [{"km": 3300.0}],
+            "orbit": [
+                {"days": 36.08}],
+            "description": "Similar to Earth's Moon. 3rd largest Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Lelako": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.05123e+24}],
+            "angular_diameter": [{"dg": 0.31}],
+            "distance": [{"km": 422840.0}],
+            "diameter": [{"km": 2300.0}],
+            "orbit": [
+                {"days": 31.67}],
+            "description": "4th largest Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Jembor": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.05012e+24}],
+            "angular_diameter": [{"dg": 0.29}],
+            "distance": [{"km": 421420.0}],
+            "diameter": [{"km": 2100.0}],
+            "orbit": [
+                {"days": 31.51}],
+            "description": "5th largest Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Calumbra": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.04001e+24}],
+            "angular_diameter": [{"dg": 0.20}],
+            "distance": [{"km": 576600.0}],
+            "diameter": [{"km": 2000.0}],
+            "orbit": [
+                {"days": 50.43}],
+            "description": "6th largest Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Zelembra": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.08457e+24}],
+            "angular_diameter": [{"dg": 0.60}],
+            "distance": [{"km": 691920.0}],
+            "diameter": [{"km": 7300.0}],
+            "orbit": [
+                {"days": 66.29}],
+            "description": "Largest but most distant Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Shunna": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.03578e+24}],
+            "angular_diameter": [{"dg": 0.39}],
+            "distance": [{"km": 257548.0}],
+            "diameter": [{"km": 1750.0}],
+            "orbit": [
+                {"days": 15.06}],
+            "description": "2nd smallest, 2nd nearest Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        },
+        "Kanka": {
+            "type": "MOON",
+            "parent_type": "PLANET",
+            "parent": "Gavor",
+            "mass": [{"kg": 0.03245e+24}],
+            "angular_diameter": [{"dg": 0.27}],
+            "distance": [{"km": 256204.0}],
+            "diameter": [{"km": 1200.0}],
+            "orbit": [
+                {"days": 14.94}],
+            "description": "Smallest, nearest Gavoran moon.",
+            "rotation": null,
+            "child_type": "SHIP",
+            "children": []
+        }
+    }
+}

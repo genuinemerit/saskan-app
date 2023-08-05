@@ -36,6 +36,8 @@ class FileIO(object):
         self.G = self.G | self.get_configs("g_uri")
         self.S = self.get_schema("svc_schema")
         self.S = self.S | self.get_schema("saskan_geo")
+        self.S = self.S | self.get_schema("saskan_space")
+        self.S = self.S | self.get_schema("saskan_time")
 
     # Read-only methods
     # ==============================================================
