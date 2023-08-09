@@ -91,6 +91,111 @@ class SpaceIO(object):
         print(p_catg.title() + " of Moons" + "\n" + "-" * 40)
         pp((m_moons))
 
+    def common_lunar_orbits(self,
+                            max_days: float = 100000.00,
+                            full_rpt: int = 4):
+        """Compute synchronization of lunar orbits.
+
+        :args:
+        - max_days: (float) default = 5000.00
+            - Maximum number of days for which to compute lunar orbits.
+
+        - So far, the report shows days on which the moons are full, that is,
+          have completed an orbit. If more than one moon is full on the same day,
+          they are grouped together.
+
+          Next I need to be able to analyze that data. On what dates do full moons
+          of any kind occur? On what dates do multiples full moons occur? When do
+          specific combinations of full moons occur?  What are the patterns for
+          congurence of full moons?
+
+          Post results of this algorithm to a file or queue,
+          maybe a Pandas dataframe or any in-memory object in such a way as to be able
+          to perform analysis on the entire dataset.
+
+          My fantasy world is currently set at year AGD 4934. The AGD calendar uses
+          a 365 or 366 days year, with a leap day added every four years, for an average
+          year of 365.24 days.  That means we are presently up to day number 1,802,095 or so.
+          We can expect the fantasy world to continue for another 5,000 years, so that would
+          be 1,826,095 more days. Let's even things out and say I want full moons data for
+          a period of 10,000 years, or 3,650,000 days.
+
+          Before I go there, maybe see if I can come up with a simpler algorithm just to
+          identify days when there are multiple full moons.  Part of the challenge is that
+          the days are incremented by 0.01, then the "day" of a full moon is taken as the
+          integer rounding of the day -- close enough for what I need. But there can be a
+          hundred iterations of each "day", so need to be careful to filter out / prevent duplicates.
+
+          The queue should fill for each "integer day", with complete set of results for that "day",
+          then get emptied out to a file or other store when the integer day changes.
+          Throttle its contents based on desired analysis -- i.e., all full moons, only when
+          multples, specific combos, etc.
+
+          Continue to test with relatively small number of days, then scale up to 10,000 years.
+
+          Tested for 1 million years. Took about 3 minutes to run. Not sure how I can optimize it.
+          Tested for 3.5 millionyears. Took about 15 minutes.
+          There's a wee bug in the code where the year reported is always reset to the last year
+          that had full moons reported, e.g., year 9583. Obviously its becasue I am not printing
+          the year based on i_day, but the last counted year. D'oh!
+
+          Would also be handy to show the day (AGD calender) on which the full moons occur,
+          not just the total count of days since day 0.  This may be a good time to start
+          computing the FD and Terr. dates too.
+
+          Getting better! Another nice thing to have would be option to indicate near full
+          moon conjunctions. Let's say, for sake of argument, a near conjunction is when the
+          complete orbits are within 1 degree of each other. So if Moon A is at 360 / 0 degrees
+          in its orbit and Moon B is between 359 and 1 degrees, that would be a near conjunction.
+
+          Of course, this is all fantasy. I assuume all the moons have same or nearly same
+          ecliptic plane. Which is not how it works, say, on Jupiter. And even bigger fantasy,
+          I am assuming they were all in conjunction on Day Zero - the day of the Great Cataclysm.
+          Interestingly, after 3.5 million days, the most conjunctions I've seen is 5. Wondering
+          how long it would take to see all 8 in conjunction. Would it be the product of the
+          period of all their orbits?
+
+        """
+        def set_moons_struct():
+            """Init a local structure for augmenting moon schema data with orbits data.
+            """
+            moons = dict()
+            for m_nm, m_data in FI.S["space"].items():
+                if m_data["type"] == "MOON":
+                    orbit = m_data["orbit"][0]["days"]
+                    daily_arc = round(360/ orbit, 2)
+                    moons[m_nm] = {"Day": 0.00,
+                                "Arc": daily_arc,
+                                "Orbit": orbit,
+                                "arc_completed": 0.00,
+                                "orbits_completed": 0}
+            return moons
+
+        moons = set_moons_struct()
+        d_day = 00.00
+        day_increment = 0.01
+        q_data = dict()
+        while d_day < max_days:
+            d_day = round((d_day + day_increment), 2)
+            i_day = round(d_day)
+            for m_nm, m_data in moons.items():
+                arc_completed = m_data["arc_completed"] + (m_data["Arc"] * day_increment)
+                if arc_completed >= 360.00:
+                    m_data["orbits_completed"] += 1
+                    m_data["arc_completed"] = 360.00 - arc_completed
+                    if i_day not in q_data:
+                        q_data[i_day] = list()
+                    q_data[i_day].append((m_nm, m_data['orbits_completed']))
+                else:
+                    m_data["arc_completed"] = arc_completed
+        for i_day, m_data in q_data.items():
+            if len(m_data) >= full_rpt:
+                year = math.floor(i_day / 365.24)
+                d_day = i_day - (year * 365.24)
+                day = math.floor(d_day)
+                agd_wayt = round((d_day - day) * 100)
+                pp((f"AGD {year}.{day}.{agd_wayt} ({len(m_data)} full moons:)", m_data))
+
     def get_orbit_and_angular_diameter(
             self,
             p_moon: str):

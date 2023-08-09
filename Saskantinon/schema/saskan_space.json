@@ -35,6 +35,7 @@
             "type": "PLANET",
             "parent_type": "STAR",
             "parent": "Fatune",
+            "obliquity": [{"dg": 23.5}],
             "distance": [
                 {"km": 1.496e+8},
                 {"gau": 1.0}],
@@ -120,7 +121,7 @@
             "child_type": "SHIP",
             "children": []
         },
-        "Calumbra": {
+        "Calumb": {
             "type": "MOON",
             "parent_type": "PLANET",
             "parent": "Gavor",
@@ -135,7 +136,7 @@
             "child_type": "SHIP",
             "children": []
         },
-        "Zelembra": {
+        "Zelomb": {
             "type": "MOON",
             "parent_type": "PLANET",
             "parent": "Gavor",
