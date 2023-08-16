@@ -1,36 +1,37 @@
 {
     "time": {
-        "Turn": {
+        "Fatune_Turn": {
             "reference": ["space", "Gavor", "orbit", "turns"],
-            "description": "A Gavoran Turn is like an Earth Year",
-            "days": 365.24
+            "description": "A Fatune Turn is like an Earth Year. A solar year.",
+            "length": 365.24
         },
-        "Tern": {
+        "Leap_Turn": {
             "reference": ["space", "Gavor", "orbit", "turns"],
-            "description": "A Terpin Tern 4 Gavoran Turns plus one day",
-            "days": 1458.0
+            "description": "A Leap Tern equals 4 Fatune Turns including the leap day. Four solar years.",
+            "length": 1461.0
         },
         "Season": {
             "duration": [["days", 91.06],
                          ["turn", 0.25]],
-            "names": ["Spring", "Summer", "Autumn", "Winter"]
+            "names": ["Greening", "Burning", "Harvest", "Rainy"]
         },
         "Calendar": {
             "AGD": {
                 "name": ["AGD", "Agency Gavoran Date"],
                 "type": "solar, arithmetic",
-                "description": "Used by Agency, Landing = Turn Zero",
-                "count": ["turn", "day", "agd_wayt"],
+                "description": "Used by Agency",
+                "count": ["Turn", "day", "agd_wayt"],
                 "days": {"start": "midnight",
                          "length": [{"agd_wayt": 100.0},
                                     {"hour": 24.0}]},
                 "months": {"order":
                             [{"regular": 365, "leap": 366}],
                           "names": null},
-                "turn": {"start": ["Winter", "0.0.0"],
-                         "pre_zero": ["negative", "AGD"],
-                         "zero": 0,
-                         "current": 4934},
+                "turn": {"start": ["Rainy", "0.0.0"],
+                         "epoch_start": 1,
+                         "pre_cata": ["negative", "AGD"],
+                         "days": "Fatune_Turn",
+                         "ref_turn": 4936},
                 "leap": {"turns": 4,
                          "days": 1,
                          "rule": "add_one_day_at_year_end"}
@@ -38,8 +39,8 @@
             "FD": {
                 "name": ["FD", "Fatunik Date"],
                 "type": "solar, arithmetic",
-                "description": "Used by Fatunik Dominion, Arrival = Turn One",
-                "count": ["name", "watch", "day",  "month", "turn"],
+                "description": "Used by Fatunik Dominion",
+                "count": ["name", "watch", "day",  "month", "Turn"],
                 "days": {"start": "noon",
                          "length": [{"watch": 4.0},
                                     {"fd_wayt": 288.0},
@@ -64,10 +65,10 @@
                             "Juugal",
                             "Storming"
                           ]},
-                "turn": {"start": ["Summer", "FD High 1 Gleaming, 1"],
-                         "pre_zero": ["reverse", "BFD"],
-                         "zero": 1,
-                         "current": 4427},
+                "turn": {"start": ["Burning", "FD High 1 Gleaming, 1"],
+                         "epoch_start": -508,
+                         "days": "Fatune_Turn",
+                         "pre_cata": ["reverse", "BFD"]},
                 "leap": {"turns": 4,
                          "days": -1,
                          "rule": "remove_from_first_month"},
@@ -79,8 +80,8 @@
             "TER": {
                 "name": ["Ter.", "Terpin Date"],
                 "type": "solar, arithmetic, multi-turn",
-                "description": "Used by Terpin Community, Landing = Tern Zero",
-                "count": ["name", "tern", "month", "day", "trace"],
+                "description": "Used by Terpin Community",
+                "count": ["name", "Tern", "month", "day", "trace"],
                 "days": {"start": "sunrise",
                          "length": [{"trace": 8.0},
                                     {"hour": 24.0}]},
@@ -90,7 +91,7 @@
                              54, 54, 54, 54, 54,
                              54, 54, 54, 54, 54,
                              54, 54, 54, 54, 54,
-                             54, 54],
+                             54, 54, 3],
                           "names": [
                             "Khrbshone",
                             "Havorramind",
@@ -115,12 +116,13 @@
                             "Ripplesong",
                             "Aranzamoor",
                             "Moonshadows",
-                            "Patienceglow"
+                            "Patienceglow",
+                            "Fatunasong"
                           ]},
-                "tern": {"start": ["Spring", "Ter.0, 1 Khrbshone, Warm"],
-                         "pre_zero": ["negative", "Ter."],
-                         "zero": 0,
-                         "current": 360927},
+                "turn": {"start": ["Greening", "Ter.0, 1 Khrbshone, Warm"],
+                         "epoch_start": 359696,
+                         "days": "Leap_Turn",
+                         "pre_cata": ["negative", "Ter."]},
                 "leap": null,
                 "other": {
                     "trace_names": ["Warm", "Changing", "Cool"]

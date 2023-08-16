@@ -48,11 +48,13 @@ OK..
 - Created a saskan_time.json schema too but have not started filling it in yet. Want to use algorithms as much as I can when dealing with calendars, dates, times in the game context.
 """
 
+import glob
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 # import json
 import pickle
+import time
 
 from dataclasses import dataclass   # fields
 from matplotlib.animation import FuncAnimation
@@ -76,7 +78,84 @@ class SpaceIO(object):
         # moon = FI.S["space"]["Endor"]
         # self.get_orbit_and_angular_diameter(moon)
         # self.simulate_lunar_orbit()
-        pass
+        self.FULL_MOONS = dict()
+        self.CAL = dict()
+
+    def set_cal_file_name(self,
+                          p_nm: str):
+        """Return full name of a Calendar data file.
+        Each calender data file holds 1 Terpin turn =
+        4 AGD or FD turns.
+        :args:
+        - p_nm (str) - identify Terpin and AGD turns in
+            file name using format "tttttt_aaaa-aaaa"
+        """
+        file_nm = "/dev/shm/" + p_nm + "_Calendar.pickle"
+        # print("Pickle file name: " + file_nm)
+        return file_nm
+
+    def get_cal_file(self,
+                     p_nm: str):
+        """Retrieve the Calendar data file.
+
+        :args: p_db_nm (str) - turn-specific part of file name
+        """
+        try:
+            with open(self.set_cal_file_name(p_nm), 'rb') as f:
+                self.CAL = pickle.load(f)
+            print("Calendar data file retrieved.")
+        except FileNotFoundError:
+            print("No Calendar data file found.")
+
+    def write_cal_file(self,
+                     p_nm: str):
+        """Store the Calendar data in pickled file.
+        :args: p_nm (str) - turn-specific part of file name
+        :write:
+        - _{name}_Moons.pickle file
+        """
+        try:
+            with open(self.set_cal_file_name(p_nm), 'wb') as f:
+                pickle.dump(self.CAL, f)
+            print("Calendar data file saved.")
+        except Exception as e:
+            print(f"Calendar data file not saved:\n{str(e)}")
+
+    def set_moons_file_name(self,
+                            p_nm: str = "Full"):
+        """Return full name of Full Moons data file.
+        """
+        p_nm = "" if p_nm is None else p_nm.title() + "_"
+        file_nm = "/dev/shm/" + p_nm + "Moons.pickle"
+        print("Pickle file name: " + file_nm)
+        return file_nm
+
+    def get_moons_file(self,
+                       p_nm: str):
+        """Retrieve the Moons data file.
+
+        :args: p_db_nm (str) - generic file name
+        """
+        try:
+            with open(self.set_moons_file_name(p_nm), 'rb') as f:
+                self.FULL_MOONS = pickle.load(f)
+            print("Full Moons data file retrieved.")
+        except FileNotFoundError:
+            print("No Full Moons data file found.")
+
+    def write_moons_file(self,
+                       p_nm: str):
+        """Store the Full Moons data in pickled file.
+        :args: p_nm (str) - generic file name
+        :write:
+        - _{name}_Moons.pickle file
+        """
+        try:
+            with open(self.set_moons_file_name(p_nm), 'wb') as f:
+                pickle.dump(self.FULL_MOONS, f)
+            print("Full Moons data file saved.")
+        except Exception as e:
+            print(f"Full Moons data file not saved:\n{str(e)}")
 
     def sort_moons_by(self, p_catg: str):
         """Sort moons by specified characteristic.
@@ -91,110 +170,301 @@ class SpaceIO(object):
         print(p_catg.title() + " of Moons" + "\n" + "-" * 40)
         pp((m_moons))
 
-    def common_lunar_orbits(self,
-                            max_days: float = 100000.00,
-                            full_rpt: int = 4):
+    def common_lunar_orbits(self):
         """Compute synchronization of lunar orbits.
-
-        :args:
-        - max_days: (float) default = 5000.00
-            - Maximum number of days for which to compute lunar orbits.
-
-        - So far, the report shows days on which the moons are full, that is,
-          have completed an orbit. If more than one moon is full on the same day,
-          they are grouped together.
-
-          Next I need to be able to analyze that data. On what dates do full moons
-          of any kind occur? On what dates do multiples full moons occur? When do
-          specific combinations of full moons occur?  What are the patterns for
-          congurence of full moons?
-
-          Post results of this algorithm to a file or queue,
-          maybe a Pandas dataframe or any in-memory object in such a way as to be able
-          to perform analysis on the entire dataset.
-
-          My fantasy world is currently set at year AGD 4934. The AGD calendar uses
-          a 365 or 366 days year, with a leap day added every four years, for an average
-          year of 365.24 days.  That means we are presently up to day number 1,802,095 or so.
-          We can expect the fantasy world to continue for another 5,000 years, so that would
-          be 1,826,095 more days. Let's even things out and say I want full moons data for
-          a period of 10,000 years, or 3,650,000 days.
-
-          Before I go there, maybe see if I can come up with a simpler algorithm just to
-          identify days when there are multiple full moons.  Part of the challenge is that
-          the days are incremented by 0.01, then the "day" of a full moon is taken as the
-          integer rounding of the day -- close enough for what I need. But there can be a
-          hundred iterations of each "day", so need to be careful to filter out / prevent duplicates.
-
-          The queue should fill for each "integer day", with complete set of results for that "day",
-          then get emptied out to a file or other store when the integer day changes.
-          Throttle its contents based on desired analysis -- i.e., all full moons, only when
-          multples, specific combos, etc.
-
-          Continue to test with relatively small number of days, then scale up to 10,000 years.
-
-          Tested for 1 million years. Took about 3 minutes to run. Not sure how I can optimize it.
-          Tested for 3.5 millionyears. Took about 15 minutes.
-          There's a wee bug in the code where the year reported is always reset to the last year
-          that had full moons reported, e.g., year 9583. Obviously its becasue I am not printing
-          the year based on i_day, but the last counted year. D'oh!
-
-          Would also be handy to show the day (AGD calender) on which the full moons occur,
-          not just the total count of days since day 0.  This may be a good time to start
-          computing the FD and Terr. dates too.
-
-          Getting better! Another nice thing to have would be option to indicate near full
-          moon conjunctions. Let's say, for sake of argument, a near conjunction is when the
-          complete orbits are within 1 degree of each other. So if Moon A is at 360 / 0 degrees
-          in its orbit and Moon B is between 359 and 1 degrees, that would be a near conjunction.
-
-          Of course, this is all fantasy. I assuume all the moons have same or nearly same
-          ecliptic plane. Which is not how it works, say, on Jupiter. And even bigger fantasy,
-          I am assuming they were all in conjunction on Day Zero - the day of the Great Cataclysm.
-          Interestingly, after 3.5 million days, the most conjunctions I've seen is 5. Wondering
-          how long it would take to see all 8 in conjunction. Would it be the product of the
-          period of all their orbits?
-
         """
-        def set_moons_struct():
-            """Init a local structure for augmenting moon schema data with orbits data.
+        def init_moons_data():
+            """Init a local structure for augmenting moon schema data with
+            info on how much of the arc of orbit has been completed on a given
+            day, and how many orbits have been completed.
             """
-            moons = dict()
+            moons_data = dict()
             for m_nm, m_data in FI.S["space"].items():
                 if m_data["type"] == "MOON":
-                    orbit = m_data["orbit"][0]["days"]
-                    daily_arc = round(360/ orbit, 2)
-                    moons[m_nm] = {"Day": 0.00,
-                                "Arc": daily_arc,
-                                "Orbit": orbit,
-                                "arc_completed": 0.00,
-                                "orbits_completed": 0}
-            return moons
+                    moons_data[m_nm] = {
+                        "daily_arc": round(360/ m_data["orbit"][0]["days"], 2),
+                        "arc_done": 0.00, "orbits_done": 0}
+            return moons_data
 
-        moons = set_moons_struct()
-        d_day = 00.00
-        day_increment = 0.01
-        q_data = dict()
-        while d_day < max_days:
-            d_day = round((d_day + day_increment), 2)
-            i_day = round(d_day)
-            for m_nm, m_data in moons.items():
-                arc_completed = m_data["arc_completed"] + (m_data["Arc"] * day_increment)
-                if arc_completed >= 360.00:
-                    m_data["orbits_completed"] += 1
-                    m_data["arc_completed"] = 360.00 - arc_completed
-                    if i_day not in q_data:
-                        q_data[i_day] = list()
-                    q_data[i_day].append((m_nm, m_data['orbits_completed']))
+        def compute_orbits(max_days, day_incr, moons_data):
+            """Compute lunar orbits.
+            :args:
+            - max_days: (float)
+                Maximum number of days, since Day Zero, for which to compute lunar orbits.
+            - day_incr: (float)
+                Decimal increment for count of days since Day Zero.
+            - moons_data: (dict)  - see init_moons_data()
+
+            Writes data to self.FULL_MOONS when a full moon (orbit completion) occurs.
+            Full moon data is grouped by integer day.
+
+            @DEV:
+            - Enhance to account for near-conjunctions of moons, say when they are within
+                2 degrees or 5 degrees of each other.
+            """
+            ticker = ""
+            prev = math.floor(time.process_time())
+            full_moons = dict()
+            d_day = 0.00
+            while d_day < max_days:
+                d_day = round((d_day + day_incr), 2)
+                i_day = round(d_day)
+                for m_nm, m_data in moons_data.items():
+                    arc_done = (m_data["arc_done"] +
+                                (m_data["daily_arc"] * day_incr))
+                    if arc_done >= 360.00:
+                        m_data["orbits_done"] += 1
+                        m_data["arc_done"] = 360.00 - arc_done
+                        if i_day not in full_moons:
+                            full_moons[i_day] = list()
+                        full_moons[i_day].append(
+                            {m_nm: (m_data['orbits_done'], round(d_day, 2))})
+                    else:
+                        m_data["arc_done"] = arc_done
+                this = math.floor(time.process_time())
+                if this > prev:
+                    if this % 60 == 0:
+                        ticker = '.'
+                    else:
+                        ticker += "."
+                    print(ticker)
+                    prev = this
+            return full_moons
+
+        def convert_epoch_day_to_agd(full_moons: dict):
+            """Convert day number to AGD (Agency Gavoran Date format)
+
+            @DEV:
+            I may want to just keep index as Epoch Day if I am going
+            to use a single large calendar file to track all days since
+            the Catastrophe? Or maybe not. I'm not sure yet. It is easy
+            enough to convert to AGD, so I'll do that for now. Though
+            averaging out the length of a year to 365.24 days may not be
+            precise enough.
+
+            :args:
+            - full_moons: (dict) - see compute_orbits()
+            """
+            for epoch_day, m_data in full_moons.items():
+                if len(m_data) >= 0:
+                    year = math.floor(epoch_day / 365.24)
+                    d_day = epoch_day - (year * 365.24)
+                    day = math.floor(d_day)
+                    agd = f"{year:05d}.{day:03d}"
+                    self.FULL_MOONS[epoch_day] = {'agd': agd, 'data': m_data}
+
+        # common_lunar_orbits() main
+        # ==========================
+        # print(f"Start Time: {math.floor(time.process_time())} seconds")
+        self.FULL_MOONS = dict()
+        moons_data = init_moons_data()
+        full_moons = compute_orbits(3500000, 0.01, moons_data)
+        convert_epoch_day_to_agd(full_moons)
+        self.write_moons_file('Full')
+        elapsed = math.floor(time.process_time())
+        print(f"Elapsed Time: {round((elapsed / 60), 1)} minutes")
+
+    def analyze_full_moons(self,
+                           fulls_cnt: int = 1,
+                           start_epoch_day: int = 1,
+                           end_epoch_day: int = 3509999):
+        """Read in the Full Moons pickled data file.
+        Run various types of analysis on it.
+        - I have backed up file w/data for 10,000 years (3.5 M days) pickled
+          to /home/dave/saskan/cache/Full_Moons_3500000.pkl
+
+        :args:
+        - fulls_cnt: (int) default = 1
+            Greater than zero means: "report for days with any full moons".
+            Auto sets to 1 if less than 1.
+            One: report on all Full Moons.
+            Two: show data for dates when there are 2 or more Full Moons; ..
+        - start_epoch_day: (int) default = 1
+            Run report starting at specified epoch day
+        - end_epoch_day: (int) default = 0
+            Run report ending at specified epoch day
+
+        Other report options:
+        - Max number of Full Moons on a single day?
+        - Pattern of 4 Full Moons? Is there any regularity to it?
+        - ..for 2, 3, and 5 Full Moons?
+        - Rank moons that appear mot often in conjunction of...
+            - 2 full moons; 3; 4; 5
+
+        More complex analysis:
+        - Based on cycle(s) of full moon conjunctions, design lunar calendars:
+            - Straight arithmetic lunar-only, based on 1, 2, 3, 4 moons.
+            - Hybrid lunar-solar calendar based on 1, 2, 3, 4 moons.
+        """
+        self.get_moons_file('Full')
+        full_moons_rpt = dict()
+        full_moons_data = dict()
+        fulls_cnt = 1 if fulls_cnt < 1\
+            else fulls_cnt
+        start_epoch_day = 1 if start_epoch_day < 1 or start_epoch_day > 350000\
+            else start_epoch_day
+        end_epoch_day = 999999 if end_epoch_day < 1 or end_epoch_day > 3509999\
+            else end_epoch_day
+        full_moons_data = {e_day: data for e_day, data in self.FULL_MOONS.items()
+                          if len(data['data']) >= fulls_cnt and
+                          e_day >= start_epoch_day and
+                          e_day <= end_epoch_day}
+        full_moons_rpt = (len(full_moons_data), full_moons_data)
+        pp((full_moons_rpt))
+
+    def generate_calendars(self,
+                           p_start_terp_cnt: int=1,
+                           p_terp_calendars: int=1):
+        """
+        Let's start by generating a separate file for each Terpin turn.
+        :args:
+        - p_start_terp_cnt: (int) default = 1 - Terpin turn to start with.
+            Ter Count 1 = Ter Turn 359696
+        - p_terp_calendars_to_generate: (int) default = 1 - Number of calendar
+            files to generate. Each file contains one Terpin turn = 4 AGD and FD
+            turns.
+
+        @DEV:
+        The way this is currently set up, calendar generation has to
+        always start with the "cata" Terpin turn, and then proceed from there.
+        I can probably adjust that, but need to think about it. Probably just
+        add 1451 to the epoch start day? May also want to add a parameter to
+        indicate the count of Terpin turns to start with, and how many to
+        generate.
+
+        # The epochal ("cata") year in AGD is 1.
+        # The epochal ("cata") year in Terpin is 359696.
+        # The epochal ("cata") year in FD is -508
+
+        # There are 1451 days in a Terpin turn.
+        #  All Terpin turns are the same length.
+        # AGD and FD turns are 365.24 days long on avereage, varying in 4-turn
+        # cycles from 365 to 366 days.
+
+        # adjust for calendars that have a negative value for epoch_start_year
+        # NB - We assume no calendars use a year = 0.
+        """
+        def init_cal_data(p_start_terp_cnt,
+                           p_terp_calendars):
+            cal_schema = {c_nm: c_data for c_nm, c_data in FI.S["time"].items()}
+            p_start_terp_cnt = 0 if p_start_terp_cnt <= 1 else p_start_terp_cnt - 1
+            p_terp_calendars = 0 if p_terp_calendars <= 1 else p_terp_calendars - 1
+            cal = dict()
+            # Important to do TER first...
+            for c in ("TER", "AGD", "FD"):
+                c_data = cal_schema["Calendar"][c]
+                cal[c] = dict()
+                cal[c]["epoch_start"] = c_data["turn"]["epoch_start"]
+                cal[c]["diy_nm"] = c_data["turn"]["days"]
+                cal[c]["diy"] = cal_schema[c_data["turn"]["days"]]["length"]
+                if cal[c]["diy_nm"] == "Leap_Turn":
+                    cal[c]["turn"] = cal[c]["epoch_start"] + p_start_terp_cnt
+                    cal[c]["end_turn"] = cal[c]["turn"] + p_terp_calendars
+                elif cal[c]["diy_nm"] == "Fatune_Turn":
+                    multi_y = round((cal["TER"]["diy"] / cal[c]["diy"]))
+                    cal[c]["turn"] = cal[c]["epoch_start"] + (multi_y * p_start_terp_cnt)
+                    if cal[c]["epoch_start"] < 1 and cal[c]["turn"] >= 0:
+                        cal[c]["turn"] += 1
+                    cal[c]["end_turn"] = cal[c]["turn"] + (multi_y * (p_terp_calendars + 1)) - 1
+
+            epoch_day = 1 + (cal["TER"]["diy"] * p_start_terp_cnt)
+            return(cal, epoch_day, multi_y)
+
+        def set_turn_day(epoch_day, leap_cal_day, fatune_day):
+            self.CAL[epoch_day] = dict()
+            for c in ("TER", "AGD", "FD"):
+                if c == "TER":
+                    self.CAL[epoch_day]["TER"] = {
+                        "turn": f"{cal['TER']['turn']}",
+                        "day_in_turn": leap_cal_day}
                 else:
-                    m_data["arc_completed"] = arc_completed
-        for i_day, m_data in q_data.items():
-            if len(m_data) >= full_rpt:
-                year = math.floor(i_day / 365.24)
-                d_day = i_day - (year * 365.24)
-                day = math.floor(d_day)
-                agd_wayt = round((d_day - day) * 100)
-                pp((f"AGD {year}.{day}.{agd_wayt} ({len(m_data)} full moons:)", m_data))
+                    self.CAL[epoch_day][c] = {
+                        "turn": f"{cal[c]['turn']}",
+                        "day_in_turn": fatune_day}
+
+        def set_moon_data(epoch_day):
+            if epoch_day in self.FULL_MOONS:
+                self.CAL[epoch_day]["Moons"] = dict()
+                for m_data in self.FULL_MOONS[epoch_day]["data"]:
+                    for m_nm, m_info in m_data.items():
+                        self.CAL[epoch_day]["Moons"][m_nm] = {
+                            "epoch_day": m_info[1],
+                            "ang_diam_dg": FI.S["space"][m_nm]["angular_diameter"][0]["dg"],
+                            "dist_km": FI.S["space"][m_nm]["distance"][0]["km"]}
+
+        def pickle_cal_file(cal):
+            """ pickle the file and move on to next Leap_Year turn calendar"""
+            file_range = f"{cal['AGD']['turn']:04d}-{cal['AGD']['turn'] + 3:04d}." +\
+                         f"{cal['TER']['turn']:06d}"
+            self.write_cal_file(file_range)
+            self.CAL = dict()
+
+        # generate_calendars() main
+        # =========================
+        cal, epoch_day, multi_y = init_cal_data(p_start_terp_cnt, p_terp_calendars)
+        if epoch_day > 3509999:
+            print("Too far into the future. Max epoch day is 3509999.")
+            return False
+        self.get_moons_file('Full')
+
+        while cal["TER"]["turn"] <= cal["TER"]["end_turn"]:
+            leap_cal_day = 1
+            for fatune_cycle in range(1, multi_y + 1):
+                end_day = 367 if fatune_cycle == 4 else 366
+                for fatune_day in range(1, end_day):
+                    set_turn_day(epoch_day, leap_cal_day, fatune_day)
+                    set_moon_data(epoch_day)
+                    epoch_day +=1
+                    leap_cal_day += 1
+                for c in ("AGD", "FD"):
+                    cal[c]['turn'] += 1
+                    cal[c]['turn'] = 1 if cal[c]['turn'] == 0 else cal[c]['turn']
+            pickle_cal_file(cal)
+            cal["TER"]["turn"] += 1
+
+    def analyze_calendars(self,
+                          p_start_turn: int = 1,
+                          p_end_turn: int = 0):
+        """Analyze calendars. Run various types of reports.
+        :args:
+        - p_start_turn: (int) default = 1  AGD Turn to start with
+        - p_end_turn: (int) default = 0    AGD Turn to end with.
+        """
+        p_start_turn = 1 if p_start_turn < 1 or p_start_turn > 9999\
+            else p_start_turn
+        p_end_turn = p_start_turn if p_end_turn < p_start_turn\
+            else p_end_turn
+        p_end_turn = 9999 if p_end_turn < 1 or p_end_turn > 9999\
+            else p_end_turn
+        t_start = f"{p_start_turn:04d}"
+        t_end = f"{p_end_turn:04d}"
+        print(f"Start Fatune Turn: {t_start}\tEnd Fatune Turn: {t_end}")
+        cal_files = glob.glob(f"/dev/shm/*Calendar.pickle")
+        cals_to_analyze = list()
+        for cal_f_full in cal_files:
+            cal_nm = cal_f_full.split("/")[-1].split(".")[0].split("-")
+            if cal_nm[0] >= t_start or cal_nm[1] >= t_start:
+                cals_to_analyze.append(cal_f_full)
+            if cal_nm[1] >= t_end:
+                break
+        # print("Calendars to analyze:")
+        # pp((cals_to_analyze))
+        t_this = t_start
+        # print(f"t_this: {t_this}\tt_end: {t_end}")
+        while t_this <= t_end:
+            for cal_f in cals_to_analyze:
+                cal_nm = cal_f.split("/")[-1].split(".pickle")[0].split("_")[0]
+                cal_yrs = cal_nm.split(".")[0].split("-")
+                # pp(("cal_nm", cal_nm))
+                # pp(("cal_yrs", cal_yrs))
+                print(f"\nAnalyzing calendar: {cal_nm} for Fatune Turn: {t_this}")
+                if cal_yrs[0] >= t_this or cal_yrs[1] >= t_this:
+                    self.get_cal_file(cal_nm)
+                    cal_data = {e_day: data for e_day, data in self.CAL.items()
+                                if f"{int(data['AGD']['turn']):04d}" == t_this}
+                    pp((cal_data))
+                t_this = f"{int(t_this) + 1:04d}"
+                # print(f"Next... t_this: {t_this}\tt_end: {t_end}")
 
     def get_orbit_and_angular_diameter(
             self,
