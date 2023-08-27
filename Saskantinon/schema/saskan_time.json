@@ -1,56 +1,56 @@
 {
     "time": {
-        "Fatune_Turn": {
-            "reference": ["space", "Gavor", "orbit", "turns"],
-            "description": "A Fatune Turn is like an Earth Year. A solar year.",
-            "length": 365.24
+        "Turns": {
+            "FT": {
+                "reference": ["space", "Gavor", "orbit", "turns"],
+                "name": "Fatune Turn",
+                "description": "A Fatune Turn is like an Earth Year. One solar year. Leap day every four years.",
+                "days": 365.24
+            },
+            "TT": {
+                "reference": ["space", "Gavor", "orbit", "turns"],
+                "name": "Terpin Turn",
+                "description": "A Terpin Turn equals 4 Fatune Turns including the leap day. Four solar years.",
+                "days": 1461.0
+            }
         },
-        "Leap_Turn": {
-            "reference": ["space", "Gavor", "orbit", "turns"],
-            "description": "A Leap Tern equals 4 Fatune Turns including the leap day. Four solar years.",
-            "length": 1461.0
+        "Seasons": {
+            "duration": [91.31, "days"],
+            "names": {"Saskan": ["Rainy", "Greening", "Burning", "Harvest"],
+                      "common": ["winter", "spring", "summer", "autumn"]}
         },
-        "Season": {
-            "duration": [["days", 91.06],
-                         ["turn", 0.25]],
-            "names": ["Greening", "Burning", "Harvest", "Rainy"]
-        },
-        "Calendar": {
+        "Calendars": {
             "AGD": {
                 "name": ["AGD", "Agency Gavoran Date"],
-                "type": "solar, arithmetic",
                 "description": "Used by Agency",
-                "count": ["Turn", "day", "agd_wayt"],
+                "count": ["turn", "day", "agd_wayt"],
                 "days": {"start": "midnight",
                          "length": [{"agd_wayt": 100.0},
                                     {"hour": 24.0}]},
-                "months": {"order":
-                            [{"regular": 365, "leap": 366}],
-                          "names": null},
-                "turn": {"start": ["Rainy", "0.0.0"],
+                "months": {"days_in_month": [365],
+                            "names": [""]},
+                "turn": {"season_start": "Rainy",
                          "epoch_start": 1,
                          "pre_cata": ["negative", "AGD"],
-                         "days": "Fatune_Turn",
-                         "ref_turn": 4936},
-                "leap": {"turns": 4,
+                         "type": "FT"},
+                "leap": {"turn": 4,
                          "days": 1,
-                         "rule": "add_one_day_at_year_end"}
+                         "rule": "add_to_first_month"}
             },
             "FD": {
                 "name": ["FD", "Fatunik Date"],
-                "type": "solar, arithmetic",
                 "description": "Used by Fatunik Dominion",
-                "count": ["name", "watch", "day",  "month", "Turn"],
+                "count": ["name", "watch", "day",  "month", "turn"],
                 "days": {"start": "noon",
                          "length": [{"watch": 4.0},
                                     {"fd_wayt": 288.0},
                                     {"hour": 24.0}]},
-                "months": {"order":
-                            [{"regular": 6, "leap": 5},
+                "months": {"days_in_month":
+                             [5,
                              30, 30, 30, 30,
                              30, 30, 30, 30,
                              30, 30, 30, 30],
-                          "names": [
+                           "names": [
                             "Gleaming",
                             "Fatunor",
                             "Blooming",
@@ -65,13 +65,13 @@
                             "Juugal",
                             "Storming"
                           ]},
-                "turn": {"start": ["Burning", "FD High 1 Gleaming, 1"],
+                "turn": {"season_start": "Burning",
                          "epoch_start": -508,
-                         "days": "Fatune_Turn",
+                         "type": "FT",
                          "pre_cata": ["reverse", "BFD"]},
-                "leap": {"turns": 4,
-                         "days": -1,
-                         "rule": "remove_from_first_month"},
+                "leap": {"turn": 4,
+                         "days": 1,
+                         "rule": "add_to_first_month"},
                 "other": {
                     "watch_names": [
                         "High", "Falling", "Fatune Rest", "Rising"]
@@ -79,13 +79,12 @@
             },
             "TER": {
                 "name": ["Ter.", "Terpin Date"],
-                "type": "solar, arithmetic, multi-turn",
                 "description": "Used by Terpin Community",
-                "count": ["name", "Tern", "month", "day", "trace"],
+                "count": ["name", "turn", "month", "day", "trace"],
                 "days": {"start": "sunrise",
                          "length": [{"trace": 8.0},
                                     {"hour": 24.0}]},
-                "months": {"order":
+                "months": {"days_in_month":
                             [54, 54, 54, 54, 54,
                              54, 54, 54, 54, 54,
                              54, 54, 54, 54, 54,
@@ -119,9 +118,9 @@
                             "Patienceglow",
                             "Fatunasong"
                           ]},
-                "turn": {"start": ["Greening", "Ter.0, 1 Khrbshone, Warm"],
+                "turn": {"season_start": "Greening",
                          "epoch_start": 359696,
-                         "days": "Leap_Turn",
+                         "type": "TT",
                          "pre_cata": ["negative", "Ter."]},
                 "leap": null,
                 "other": {

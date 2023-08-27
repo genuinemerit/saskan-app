@@ -56,6 +56,7 @@ import numpy as np
 import pickle
 import time
 
+from copy import copy
 from dataclasses import dataclass   # fields
 from matplotlib.animation import FuncAnimation
 from pprint import pformat as pf        # noqa: F401
@@ -313,158 +314,375 @@ class SpaceIO(object):
         pp((full_moons_rpt))
 
     def generate_calendars(self,
-                           p_start_terp_cnt: int=1,
-                           p_terp_calendars: int=1):
+                           start_ft_turn: int=1,
+                           ft_cal_turns: int=4):
         """
-        Let's start by generating a separate file for each Terpin turn.
+        Generate a calendar file for each 4 FD turns.
         :args:
-        - p_start_terp_cnt: (int) default = 1 - Terpin turn to start with.
-            Ter Count 1 = Ter Turn 359696
-        - p_terp_calendars_to_generate: (int) default = 1 - Number of calendar
-            files to generate. Each file contains one Terpin turn = 4 AGD and FD
-            turns.
+        - start_ft_turn: (int) default = 1 - FT turn to start with.
+        - ft_cal_turns: (int) default = 1 - Number of FT calendars to generate.
 
-        @DEV:
-        The way this is currently set up, calendar generation has to
-        always start with the "cata" Terpin turn, and then proceed from there.
-        I can probably adjust that, but need to think about it. Probably just
-        add 1451 to the epoch start day? May also want to add a parameter to
-        indicate the count of Terpin turns to start with, and how many to
-        generate.
+        Regardless of request, generate 4 FT turns per file,
+        always ending with a leap year.
+        This means each file covers one Terpin (TT) turn.
 
-        # The epochal ("cata") year in AGD is 1.
-        # The epochal ("cata") year in Terpin is 359696.
-        # The epochal ("cata") year in FD is -508
+        Currently we have two types of calendars, both Solar.
+        - A Fatune_Turn (FT, annual solar) calendar (AGD, FD) has
+          365.24 days on avereage, varying 4-turn cycles from 365 to 366 days.
+        - There are 1451 days in a Leap_Turn calendar (TT, quadrennial solar)
+          calendar (TER). All Terpin turns are the same length.
 
-        # There are 1451 days in a Terpin turn.
-        #  All Terpin turns are the same length.
-        # AGD and FD turns are 365.24 days long on avereage, varying in 4-turn
-        # cycles from 365 to 366 days.
-
-        # adjust for calendars that have a negative value for epoch_start_year
-        # NB - We assume no calendars use a year = 0.
+        - No calendars use a year = 0.
+        - The epochal ("cata") starting turn numbers are:
+            - AGD: 1
+            - TER: 359696
+            - FD: -508
+        - Day 1 of the calendars:
+            - AGD: Winter solstice
+            - FD: Summer solstice
+            - TER: Spring equinox
+        - Month names and lengths vary between calendars.
         """
-        def init_cal_data(p_start_terp_cnt,
-                           p_terp_calendars):
-            cal_schema = {c_nm: c_data for c_nm, c_data in FI.S["time"].items()}
-            p_start_terp_cnt = 0 if p_start_terp_cnt <= 1 else p_start_terp_cnt - 1
-            p_terp_calendars = 0 if p_terp_calendars <= 1 else p_terp_calendars - 1
-            cal = dict()
-            # Important to do TER first...
-            for c in ("TER", "AGD", "FD"):
-                c_data = cal_schema["Calendar"][c]
-                cal[c] = dict()
-                cal[c]["epoch_start"] = c_data["turn"]["epoch_start"]
-                cal[c]["diy_nm"] = c_data["turn"]["days"]
-                cal[c]["diy"] = cal_schema[c_data["turn"]["days"]]["length"]
-                if cal[c]["diy_nm"] == "Leap_Turn":
-                    cal[c]["turn"] = cal[c]["epoch_start"] + p_start_terp_cnt
-                    cal[c]["end_turn"] = cal[c]["turn"] + p_terp_calendars
-                elif cal[c]["diy_nm"] == "Fatune_Turn":
-                    multi_y = round((cal["TER"]["diy"] / cal[c]["diy"]))
-                    cal[c]["turn"] = cal[c]["epoch_start"] + (multi_y * p_start_terp_cnt)
-                    if cal[c]["epoch_start"] < 1 and cal[c]["turn"] >= 0:
-                        cal[c]["turn"] += 1
-                    cal[c]["end_turn"] = cal[c]["turn"] + (multi_y * (p_terp_calendars + 1)) - 1
-
-            epoch_day = 1 + (cal["TER"]["diy"] * p_start_terp_cnt)
-            return(cal, epoch_day, multi_y)
-
-        def set_turn_day(epoch_day, leap_cal_day, fatune_day):
-            self.CAL[epoch_day] = dict()
-            for c in ("TER", "AGD", "FD"):
-                if c == "TER":
-                    self.CAL[epoch_day]["TER"] = {
-                        "turn": f"{cal['TER']['turn']}",
-                        "day_in_turn": leap_cal_day}
+        def init_seasons(s_schema):
+            """ Initialize static seasons data.
+            :args:
+            - s_schema: (dict) - schema data for seasons
+            """
+            season_days = s_schema["duration"][0]
+            seasons = dict()
+            for sx, s_data in enumerate(s_schema["names"]["common"]):
+                s_ord = sx + 1
+                seasons[s_ord] = {"nm": s_schema["names"]["Saskan"][sx]}
+                if sx in (0, 2):
+                    seasons[s_ord]["event"] =\
+                        {"nm": "Equinox",
+                         "day": round((s_ord * season_days) - season_days)}
                 else:
-                    self.CAL[epoch_day][c] = {
-                        "turn": f"{cal[c]['turn']}",
-                        "day_in_turn": fatune_day}
+                    seasons[s_ord]["event"] =\
+                        {"nm": "Solstice",
+                         "day": round((s_ord * season_days) - season_days)}
+                if seasons[s_ord]["event"]["day"] == 0:
+                    seasons[s_ord]["event"]["day"] = 1
+            return(seasons)
 
-        def set_moon_data(epoch_day):
+        def init_turn_types(t_schema):
+            """ Initialize static turn-type data.
+            :args:
+            - t_schema: (dict) - schema data for turn-types
+            """
+            turns = dict()
+            for t_nm, t_data in t_schema.items():
+                turns[t_nm] = {"diy": t_data["days"],
+                               "rel_to_FT": round(
+                                t_schema["FT"]["days"] / t_data["days"], 2)}
+            return(turns)
+
+        def init_cal_data(start_ft_turn,
+                          ft_cal_turns,
+                          turns,
+                          seasons,
+                          c_schema):
+            """Initialize calendar data.
+            :args:
+            - p_start_tt: (int) default = 1 - Terpin turn to start with.
+            - ft_cal_turns: (int) default = 1 - Number of FT turns to generate.
+            - turns: (dict) - static data on turn types
+            - seasons: (dict) - static data on seasons
+            - c_schema: (dict) - schema data for calendars
+
+            - Pull static data from schema to use in this function.
+            - Compute static data using AGD (FT) solar year as base cycle.
+              - Start day is always Day 1 on the AGD (FT) calendar.
+              - Adjust start FT turn to align with TT turns, in 4 year chunks.
+            - Adjust FT cycle starts per each calendar's epoch-start-year.
+            - Adjust TT cycle starts by reducing FT start-cycle per ratio of
+              FT cycles in a TT cycle,
+              then add that to TT calendar epoch-start-year.
+            - Adjust start day for each calendar, per calendar start-season.
+            """
+            cal = dict()
+            for c in list(c_schema.keys()):
+                cal[c] = dict()
+                cal[c]["turn_type"] = c_schema[c]["turn"]["type"]
+                cal[c]['months'] = c_schema[c]['months']
+                cal[c]["leap"] = c_schema[c]["leap"]
+            while ft_cal_turns % cal["AGD"]["leap"]["turn"] != 0:
+                ft_cal_turns += 1
+            end_ft_turn = start_ft_turn + ft_cal_turns - 1
+            for c in list(c_schema.keys()):
+                if cal[c]["turn_type"] == "FT":
+                    cal[c]["start_turn"] =\
+                        c_schema[c]["turn"]["epoch_start"] +\
+                        (start_ft_turn - 1)
+                if cal[c]["turn_type"] == "TT":
+                    cal[c]["start_turn"] =\
+                        round(c_schema[c]["turn"]["epoch_start"] +\
+                              ((start_ft_turn - 1) * turns["TT"]["rel_to_FT"]))
+                sx = [sx for sx, s_data in seasons.items()
+                      if s_data["nm"] == c_schema[c]["turn"]["season_start"]]
+                cal[c]["start_day_seq"] = seasons[sx[0]]["event"]["day"]
+            return start_ft_turn, end_ft_turn, cal
+
+        def init_cal_work(start_ft_turn: int,
+                          turns: dict,
+                          cal_data: dict):
+            """Initialize local structure for detailing calendar files.
+            Set starting day of Epoch.
+            Initialize the self.CAL structure.
+            """
+            epoch_day = round(turns["FT"]["diy"] * (start_ft_turn - 1) + 1)
+            self.CAL[epoch_day] = dict()
+            for c in list(cal_data.keys()):
+                self.CAL[epoch_day][c] = dict()
+                self.CAL[epoch_day][c]["turn"] = cal_data[c]["start_turn"]
+                self.CAL[epoch_day][c]["day_seq"] = cal_data[c]["start_day_seq"]
+            return epoch_day
+
+        def assign_season(epoch_day: int,
+                          seasons: dict):
+            """Assign season to a day on the working calendar (self.CAL).
+            """
+            self.CAL[epoch_day]["season"] = dict()
+            for _, s_data in seasons.items():
+                if self.CAL[epoch_day]["AGD"]["day_seq"]\
+                    >= s_data["event"]["day"]:
+                     self.CAL[epoch_day]["season"]["nm"] = s_data["nm"]
+                if self.CAL[epoch_day]["AGD"]["day_seq"]\
+                    == s_data["event"]["day"]:
+                    self.CAL[epoch_day]["season"]["event"] =\
+                        s_data["event"]["nm"]
+
+        def init_start_turn(epoch_day: int,
+                            cal_data: dict):
+            """Adjust year on self.CAL to align with season.
+            If a solar cycle starts on winter solstice, then
+            no adjustment is needed.
+            In initialization of self.CAL, the start_day_seq is set, which
+            indicates when, in relationship to the start of the solar cycle
+            (AGD), sequential day, that the calendar year starts. That
+            number does not change. This is really just part of the
+            initialization, since as we go forward, we just increment the
+            previous day_seqa numbers and based on that, set the months and
+            increment the turn numbers according to rules for each calendar.
+            If it starts on any other seasonal point, then the turn number
+            should be decremented by 1 if the current date is less than the
+            seasonal transition date.
+            """
+            for c in list(cal_data.keys()):
+                if self.CAL[epoch_day]["AGD"]["day_seq"]\
+                    < cal_data[c]["start_day_seq"]:
+                        self.CAL[epoch_day][c]["turn"] -= 1
+
+        def assign_moon_data(epoch_day):
+            """Set data on self.CAL for full moons, if any, on given epoch day.
+            For each full moon, get its angular diameter, distance from planet,
+            and epoch day with a decimal fraction, which tells us at what time
+            during the day the moon is completely full. These values can be
+            used by the renderer to draw the moons in the sky.
+            """
             if epoch_day in self.FULL_MOONS:
-                self.CAL[epoch_day]["Moons"] = dict()
+                self.CAL[epoch_day]["moons"] = dict()
                 for m_data in self.FULL_MOONS[epoch_day]["data"]:
-                    for m_nm, m_info in m_data.items():
-                        self.CAL[epoch_day]["Moons"][m_nm] = {
+                    for moon_nm, m_info in m_data.items():
+                        self.CAL[epoch_day]["moons"][moon_nm] = {
                             "epoch_day": m_info[1],
-                            "ang_diam_dg": FI.S["space"][m_nm]["angular_diameter"][0]["dg"],
-                            "dist_km": FI.S["space"][m_nm]["distance"][0]["km"]}
+                            "ang_diam_dg":
+                              FI.S["space"][moon_nm]["angular_diameter"][0]["dg"],
+                            "dist_km":
+                              FI.S["space"][moon_nm]["distance"][0]["km"]}
 
-        def pickle_cal_file(cal):
-            """ pickle the file and move on to next Leap_Year turn calendar"""
-            file_range = f"{cal['AGD']['turn']:04d}-{cal['AGD']['turn'] + 3:04d}." +\
-                         f"{cal['TER']['turn']:06d}"
+        def get_days_in_turn(ft_cycle_turn: int,
+                             cal_data: dict,
+                             cal_key: str):
+            """Get number of days in the current turn.
+            :args:
+            - ft_cycle_turn: (int) - turn number (1..4) in a FT cycle
+            - cal_data: (dict) - calendar data
+            - cal_key: (str) - calendar key
+            :return:
+            - diy: (int) - days in year for selected calendar turn
+            """
+            diy = round(turns[cal_data[cal_key]["turn_type"]]['diy'])
+            if cal_data[cal_key]["leap"] is not None:
+                if ft_cycle_turn\
+                    % cal_data[cal_key]["leap"]["turn"] == 0:
+                        diy += cal_data[cal_key]["leap"]["days"]
+            return diy
+
+        def set_months_data(epoch_day,
+                            LT_cycle_day,
+                            FT_cycle_day,
+                            cal):
+            """Set data for months and month-day.
+            - Does calendar uses a leap day adjustment?
+            - Is it a leap turn?
+            - How many days in the current turn?
+            - Does the calendar use months?
+            - Get number of days in each month and their names.
+            - Handle leap year adjustments for days in month.
+            - Set date as string in format "tttt.mm.dd"
+            """
+            for c in ("TER", "AGD", "FD"):
+                turn_day = LT_cycle_day if cal[c]["diy_nm"] == "Leap_Turn"\
+                    else FT_cycle_day
+                month_day = turn_day
+                month_nm = None
+                if cal[c]["months"]["names"] is not None:
+                    for m_ix, m_nm in enumerate(cal[c]['months']['names']):
+                        days_in_month =\
+                            cal[c]['months']['days_in_month'][m_ix]
+                        if 'leap_rule' in cal[c]:
+                            if m_ix == 0 and\
+                                cal[c]['leap_rule'] ==\
+                                    "add_to_first_month":
+                                        days_in_month += cal[c]["leap_days"]
+                            if m_ix == len(cal[c]['months']['names']) - 1 and\
+                                    cal[c]['leap_rule'] ==\
+                                        "add_one_day_at_year_end":
+                                days_in_month += cal[c]["leap_days"]
+                        if month_day > days_in_month:
+                            month_day -= days_in_month
+                        else:
+                            month_nm = m_nm
+                            break
+                else:
+                    month_day = FT_cycle_day
+                month_nm = f".{month_nm}" if month_nm is not None else ''
+                self.CAL[epoch_day][c]["date"] =\
+                    f"{cal[c]['turn']:04d}{month_nm}.{month_day}"
+
+        def pickle_cal_file(report_day):
+            """ Pickle the file, using specified self.CAL data.
+            """
+            file_range = f"{self.CAL[report_day]['AGD']['turn'] - 3:05d}-" +\
+                         f"{self.CAL[report_day]['AGD']['turn']:05d}"
             self.write_cal_file(file_range)
-            self.CAL = dict()
+            print(f"\nCalendars file written for {file_range}" +
+                  f" with {len(self.CAL)} data records")
 
         # generate_calendars() main
         # =========================
-        cal, epoch_day, multi_y = init_cal_data(p_start_terp_cnt, p_terp_calendars)
-        if epoch_day > 3509999:
-            print("Too far into the future. Max epoch day is 3509999.")
-            return False
-        self.get_moons_file('Full')
 
-        while cal["TER"]["turn"] <= cal["TER"]["end_turn"]:
-            leap_cal_day = 1
-            for fatune_cycle in range(1, multi_y + 1):
-                end_day = 367 if fatune_cycle == 4 else 366
-                for fatune_day in range(1, end_day):
-                    set_turn_day(epoch_day, leap_cal_day, fatune_day)
-                    set_moon_data(epoch_day)
-                    epoch_day +=1
-                    leap_cal_day += 1
-                for c in ("AGD", "FD"):
-                    cal[c]['turn'] += 1
-                    cal[c]['turn'] = 1 if cal[c]['turn'] == 0 else cal[c]['turn']
-            pickle_cal_file(cal)
-            cal["TER"]["turn"] += 1
+        # @DEV:
+        # Appears to be duplicating last year of data as first year of the next file
+        # for example 00001-00004,  then then next file is 00004-00007, when it should
+        # be 00005-00008.  Not sure if data is actually duplicated or if it is just
+        # misnaming the files. Take a look at content of each file first to check if
+        # it is only a naming problem.
+
+        self.CAL = dict()
+        cal_schema = {c_nm: c_data for c_nm, c_data in FI.S["time"].items()}
+        seasons = init_seasons(cal_schema["Seasons"])
+        turns = init_turn_types(cal_schema["Turns"])
+        start_ft_turn, end_ft_turn, cal_data =\
+            init_cal_data(start_ft_turn, ft_cal_turns,
+                          turns, seasons, cal_schema["Calendars"])
+        # Initialize first day of the calendars.
+        epoch_day = init_cal_work(start_ft_turn, turns, cal_data)
+        assign_season(epoch_day, seasons)
+        init_start_turn(epoch_day, cal_data)
+        self.get_moons_file('Full') # Refreshes self.FULL_MOONS
+        assign_moon_data(epoch_day)
+
+        # Loop for max FT turns.
+        while self.CAL[epoch_day]["AGD"]["turn"] < end_ft_turn:
+            # Start fresh LT cycle
+            ft_cycle_turn = 1
+            prev_agd_turn = self.CAL[epoch_day]["AGD"]["turn"] - 1
+            # Loop for an FT leap-year "cycle" = 1 TT turn
+            while ft_cycle_turn < cal_data["AGD"]["leap"]["turn"] + 1:
+                cycle_days = get_days_in_turn(ft_cycle_turn, cal_data, "AGD")
+                ft_cycle_day = 1
+                # Adjust the AGD record for first day of the turn
+                self.CAL[epoch_day]["AGD"]["turn"] = prev_agd_turn + 1
+                self.CAL[epoch_day]["AGD"]["day_seq"] = ft_cycle_day
+                # Loop for one FT turn
+                while ft_cycle_day < cycle_days + 1:
+                    # Process each calendar day after the first one
+                    prior_day = epoch_day
+                    epoch_day += 1
+                    ft_cycle_day += 1
+                    self.CAL[epoch_day] = dict()
+
+                    for c in list(cal_data.keys()):
+                        self.CAL[epoch_day][c] = dict()
+                        self.CAL[epoch_day][c]["turn"] =\
+                            copy(self.CAL[prior_day][c]["turn"])
+                        self.CAL[epoch_day][c]["day_seq"] =\
+                                    self.CAL[prior_day][c]["day_seq"] + 1
+                        if c == "AGD":
+                            self.CAL[epoch_day][c]["day_seq"] = copy(ft_cycle_day)
+                        else:
+                            diy = get_days_in_turn(ft_cycle_turn, cal_data, c)
+                            if (self.CAL[epoch_day][c]["day_seq"] ) > diy:
+                                self.CAL[epoch_day][c]["turn"] += 1
+                                self.CAL[epoch_day][c]["day_seq"] = 1
+
+                    assign_season(epoch_day, seasons)
+                    assign_moon_data(epoch_day)
+
+                ft_cycle_turn += 1
+                prev_agd_turn = self.CAL[epoch_day]["AGD"]["turn"]
+
+            cache_CAL = copy(self.CAL[epoch_day])
+            del self.CAL[epoch_day]
+            pickle_cal_file(prior_day)
+            self.CAL = {epoch_day: cache_CAL}
+
+        elapsed = math.floor(time.process_time())
+        print("\nElapsed Time: " +
+              f"{round((math.floor(time.process_time()) / 60), 1)} minutes")
 
     def analyze_calendars(self,
-                          p_start_turn: int = 1,
-                          p_end_turn: int = 0):
+                          t_start: int = 1,
+                          t_end: int = 0):
         """Analyze calendars. Run various types of reports.
         :args:
-        - p_start_turn: (int) default = 1  AGD Turn to start with
-        - p_end_turn: (int) default = 0    AGD Turn to end with.
+        - t_start: (int) default = 1  AGD Turn to start analysis
+        - t_end: (int) default = 0    AGD Turn to end analysis.
+        - p_convert: (str)                 Convert AGD date to other dates
         """
-        p_start_turn = 1 if p_start_turn < 1 or p_start_turn > 9999\
-            else p_start_turn
-        p_end_turn = p_start_turn if p_end_turn < p_start_turn\
-            else p_end_turn
-        p_end_turn = 9999 if p_end_turn < 1 or p_end_turn > 9999\
-            else p_end_turn
-        t_start = f"{p_start_turn:04d}"
-        t_end = f"{p_end_turn:04d}"
-        print(f"Start Fatune Turn: {t_start}\tEnd Fatune Turn: {t_end}")
-        cal_files = glob.glob(f"/dev/shm/*Calendar.pickle")
-        cals_to_analyze = list()
-        for cal_f_full in cal_files:
-            cal_nm = cal_f_full.split("/")[-1].split(".")[0].split("-")
-            if cal_nm[0] >= t_start or cal_nm[1] >= t_start:
-                cals_to_analyze.append(cal_f_full)
-            if cal_nm[1] >= t_end:
-                break
-        # print("Calendars to analyze:")
-        # pp((cals_to_analyze))
+        def get_cal_files(t_start, t_end):
+            t_start = 1 if t_start < 1 else t_start
+            t_end = t_start if t_end < t_start else t_end
+            t_end = 9999 if t_end < 1 else t_end
+            print(f"Start Fatune Turn: {t_start}\tEnd Fatune Turn: {t_end}")
+            cal_files = glob.glob(f"/dev/shm/*Calendar.pickle")
+            cal_files.sort()
+            cals_to_analyze = list()
+            for cal_f_full in cal_files:
+                cal_nm = cal_f_full.split("/")[-1]
+                cal_nm = cal_nm.split(".")[0]
+                cal_nm = cal_nm.split("_")[0]
+                cal_range = cal_nm.split("-")
+                if int(cal_range[0]) >= t_start or int(cal_range[1]) >= t_start:
+                    cals_to_analyze.append(cal_f_full)
+                if int(cal_range[1]) >= t_end:
+                    break
+            return t_start, t_end, cals_to_analyze
+
+        # analyze_calendars main
+        # ======================
+        t_start, t_end, cals_to_analyze = get_cal_files(t_start, t_end)
         t_this = t_start
-        # print(f"t_this: {t_this}\tt_end: {t_end}")
-        while t_this <= t_end:
-            for cal_f in cals_to_analyze:
-                cal_nm = cal_f.split("/")[-1].split(".pickle")[0].split("_")[0]
-                cal_yrs = cal_nm.split(".")[0].split("-")
-                # pp(("cal_nm", cal_nm))
-                # pp(("cal_yrs", cal_yrs))
-                print(f"\nAnalyzing calendar: {cal_nm} for Fatune Turn: {t_this}")
-                if cal_yrs[0] >= t_this or cal_yrs[1] >= t_this:
-                    self.get_cal_file(cal_nm)
-                    cal_data = {e_day: data for e_day, data in self.CAL.items()
-                                if f"{int(data['AGD']['turn']):04d}" == t_this}
-                    pp((cal_data))
-                t_this = f"{int(t_this) + 1:04d}"
-                # print(f"Next... t_this: {t_this}\tt_end: {t_end}")
+        if len(cals_to_analyze) > 0:
+            while t_this <= t_end:
+                for cal_f in cals_to_analyze:
+                    cal_nm = cal_f.split("/")[-1]
+                    cal_nm = cal_nm.split(".")[0]
+                    cal_nm = cal_nm.split("_")[0]
+                    cal_range = cal_nm.split("-")
+                    print(f"\nAnalyzing calendar: {cal_nm} for Fatune Turn: {t_this}")
+                    if int(cal_range[0]) >= t_this or int(cal_range[1]) >= t_this:
+                        self.get_cal_file(cal_nm)
+                        cal_data = {e_day: data for e_day, data in self.CAL.items()
+                                    if data['AGD']['turn'] == t_this}
+                        # do actual analysis here
+                        # remove display of turn and turn_seq_day if not helpful
+                        # pp((cal_data))
+                    t_this += 1
+        else:
+            print("No calendar files found to analyze in requested range.")
 
     def get_orbit_and_angular_diameter(
             self,
