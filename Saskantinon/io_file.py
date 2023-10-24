@@ -27,21 +27,22 @@ class FileIO(object):
 
     def __init__(self):
         """Initialize FileIO object."""
-        self.D = self.get_configs("d_dirs")
-        self.C = self.get_configs("c_context")
-        self.T = self.get_configs(f"t_texts_{self.C['lang']}")
-        self.G = self.get_configs("g_frame")
-        self.G = self.G | self.get_configs("g_menus")
-        self.G = self.G | self.get_configs("g_windows")
-        self.G = self.G | self.get_configs("g_uri")
+        self.D = self.get_config("d_dirs")
+        self.C = self.get_config("c_context")
+        self.T = self.get_config(f"t_texts_{self.C['lang']}")
+        self.G = self.get_config("g_frame")
+        self.G = self.G | self.get_config("g_menus")
+        self.G = self.G | self.get_config("g_windows")
+        self.G = self.G | self.get_config("g_uri")
         self.S = self.get_schema("svc_schema")
         self.S = self.S | self.get_schema("saskan_geo")
-        self.S = self.S | self.get_schema("saskan_space")
+        self.S = self.S | self.get_schema("saskan_astro")
         self.S = self.S | self.get_schema("saskan_time")
 
-    # Read-only methods
+    # Read methods
     # ==============================================================
-    def get_dir(self, p_path: str):
+    @classmethod
+    def get_dir(cls, p_path: str):
         """Read a directory and return its contents.
 
         Args:
@@ -57,13 +58,9 @@ class FileIO(object):
         except Exception as err:
             raise(err)
 
+    @classmethod
     def get_file(self, p_path: str):
         """Read in an entire file and return its contents.
-
-        @DEV:
-        - Try changing to aiofiles
-        - Remove return() logic and make this an async function.
-        - Verify success elsewhere.
 
         Args:
             p_path: Legit path to file location.
@@ -80,7 +77,41 @@ class FileIO(object):
         except Exception as err:
             raise (err)
 
-    def get_configs(self, p_cfg_nm: str):
+    @classmethod
+    def get_json_file(cls,
+                      p_path: str):
+        """Read in an entire JSON file and return its contents as dict.
+
+        Args:
+            p_path (str): Legit path to JSON file location.
+        Return
+            File content (Dict or None)
+        """
+        content = None
+        try:
+            content = json.loads(cls.get_file(p_path))
+            return content
+        except Exception as err:
+            raise (err)
+
+    @classmethod
+    def get_pickle(cls,
+                   p_path: str):
+        """Unpickle an object.
+        Args:
+            p_path: Legit path to pickled object location.
+        Return:
+            Unpickled Object or None
+        """
+        obj = None
+        try:
+            with open(p_path, "rb") as f:
+                obj = pickle.load(f)
+        except Exception as err:
+            raise (err)
+        return obj
+
+    def get_config(self, p_cfg_nm: str):
         """Read configuration data...
         - from shared memory pickle if it exists (full path)
         - else from app space if it exists (path relative to app PY)
@@ -142,53 +173,10 @@ class FileIO(object):
                 sch = json.loads(sch_j)
         return sch
 
-    # CHMOD methods
-    # ==============================================================
-    def make_readable(self, p_path: str):
-        """Make file at path readable for all.
-
-        Args:
-            p_path: File to make readable.
-        """
-        try:
-            cmd = f"chmod u=rw,g=r,o=r {p_path}"
-            ok, msg = SI.run_cmd(cmd)
-            if not ok:
-                raise(msg)
-        except Exception as err:
-            raise(err)
-
-    def make_writable(self, p_path: str):
-        """Make file at path writable for all.
-
-        Args:
-            p_path: File to make writable.
-        """
-        try:
-            cmd = f"chmod u=rwx,g=rwx,o=rwx {p_path}"
-            ok, msg = SI.run_cmd(cmd)
-            if not ok:
-                raise(msg)
-        except Exception as err:
-            raise(err)
-
-    def make_executable(self, p_path: str):
-        """Make file at path executable for all.
-
-        Args:
-            p_path: File to make executable.
-        """
-        try:
-            cmd = f"chmod u=rwx,g=rx,o=rx {p_path}"
-            ok, msg = SI.run_cmd(cmd)
-            if not ok:
-                raise(msg)
-        except Exception as err:
-            raise(err)
-
     # Write methods
     # ==============================================================
-    def make_dir(self, p_path: str):
+    @classmethod
+    def make_dir(cls, p_path: str):
         """Create directory at specified location.
 
         Success if directory already exists.
@@ -204,32 +192,55 @@ class FileIO(object):
         if not Path(p_path).exists():
             raise Exception(f"{p_path} directory creation failed.")
 
-    def delete_file(self, p_path: str):
+    @classmethod
+    def delete_file(cls, p_path: str):
         """Remove a file.
 
         Args:
             p_path: Valid path to file to be removed.
-        Returns:
-            (Status (bool), Message (str or None))
         """
         try:
             remove(p_path)
         except OSError as err:
             raise(err)
 
-    def copy_file(self, p_path_from: str, p_path_to: str):
-        """Copy a file to a different location.
+    @classmethod
+    def copy_one_file(cls,
+                      p_path_from: str,
+                      p_path_to: str):
+        """Copy one file from source to target.
 
         Args:
-            p_path_from: path of file to be moved
-            p_path_to: destination path
+            p_path_from (str): full path of file to be moved
+            p_path_to (str): destination path
         """
         try:
-            shutil.copy(p_path_from, p_path_to)
+            shutil.copy2(p_path_from, p_path_to)
         except OSError as err:
-            raise(err)
+            raise (err)
 
-    def make_link(self, p_link_from: str, p_link_to: str):
+    @classmethod
+    def copy_all_files(cls,
+                       p_path_from: str,
+                       p_path_to: str):
+        """Copy all files in dir from source to target.
+
+        Args:
+            p_path_from (str): full path of a dir with files to be moved
+            p_path_to (str): destination path
+        """
+        try:
+            cmd = f"cp -rf {p_path_from}/* {p_path_to}"
+            ok, msg = SI.run_cmd(cmd)
+            if not ok:
+                raise (msg)
+        except Exception as err:
+            raise (err)
+
+    @classmethod
+    def make_link(cls,
+                  p_link_from: str,
+                  p_link_to: str):
         """Make a symbolic link from the designated file
            at the requested destination.
 
@@ -242,20 +253,10 @@ class FileIO(object):
         except OSError as err:
             raise(err)
 
-    def copy_files(self, p_tgt_dir: str, p_files):
-        """Copy from [SRC] to [TGT]/saskan
-
-        Args:
-            p_tgt_dir: Legit path to a directory.
-            p_files: (Path iterdir object) files to copy.
-        """
-        for f in p_files:
-            if Path(f).is_file():
-                file_name = str(f).split("/")[-1]
-                tgt_file = path.join(p_tgt_dir, file_name)
-                self.copy_file(str(f), tgt_file)
-
-    def append_file(self, p_path: str, p_text: str):
+    @classmethod
+    def append_file(cls,
+                    p_path: str,
+                    p_text: str):
         """Append text to specified text file.
 
         Create file if it does not already exist.
@@ -272,29 +273,30 @@ class FileIO(object):
         except Exception as err:
             raise(err)
 
-    def write_file(self, p_path: str, p_data):
+    @classmethod
+    def write_file(cls,
+                   p_path: str,
+                   p_data,
+                   p_file_type: str = "w+"):
         """Write or overwrite data to specified file.
-
         Create file if it does not already exist.
-
-        @DEV:
-        - Do away with return and make this an async function.
-        - Use a separate function to check if file exists.
 
         Args:
             p_path: Legit path to a file location.
             p_data: Text to append to the file.
-        Return:
-            (Status (bool), Message (str or None))
+            p_file_type (str): default = "w+"
         """
         try:
-            f = open(p_path, "w+")
+            f = open(p_path, p_file_type)
             f.write(p_data)
             f.close()
         except Exception as err:
             raise(err)
 
-    def pickle_object(self, p_path: str, p_obj):
+    @classmethod
+    def write_pickle(cls,
+                     p_path: str,
+                     p_obj):
         """Pickle an object.
 
         Args:
@@ -306,21 +308,74 @@ class FileIO(object):
         except Exception as err:
             raise(err)
 
-    def unpickle_object(self, p_path: str):
-        """Unpickle an object.
+    # CHMOD methods
+    # ==============================================================
+    @classmethod
+    def make_readable(cls, p_path: str):
+        """Make file at path readable for all.
+
         Args:
-            p_path: Legit path to pickled object location.
-        Return:
-            Unpickled Object or None"""
-        obj = None
+            p_path: File to make readable.
+        """
         try:
-            with open(p_path, "rb") as f:
-                obj = pickle.load(f)
+            cmd = f"chmod u=rw,g=r,o=r {p_path}"
+            ok, msg = SI.run_cmd(cmd)
+            if not ok:
+                raise(msg)
         except Exception as err:
             raise(err)
-        return obj
 
-    # Special-purpose methods
+    @classmethod
+    def make_writable(cls, p_path: str):
+        """Make file at path writable for all.
+
+        Args:
+            p_path: File to make writable.
+        """
+        try:
+            cmd = f"chmod u=rwx,g=rwx,o=rwx {p_path}"
+            ok, msg = SI.run_cmd(cmd)
+            if not ok:
+                raise(msg)
+        except Exception as err:
+            raise(err)
+
+    @classmethod
+    def make_executable(cls, p_path: str):
+        """Make file at path executable for all.
+
+        Args:
+            p_path: File to make executable.
+        """
+        try:
+            cmd = f"chmod u=rwx,g=rx,o=rx {p_path}"
+            ok, msg = SI.run_cmd(cmd)
+            if not ok:
+                raise(msg)
+        except Exception as err:
+            raise(err)
+
+    # Analysis methods
+    # ==============================================================
+    @classmethod
+    def diff_files(cls,
+                   p_file_a: str,
+                   p_file_b: str) -> str:
+        """Diff two files and return the result.
+        :args:
+        - p_file_a (str): full path to file A
+        - p_file_b (str): full path to file B
+        """
+        try:
+            cmd = f"diff {p_file_a} {p_file_b}"
+            ok, msg = SI.run_cmd(cmd)
+            if not ok:
+                raise (msg)
+            return msg
+        except Exception as err:
+            raise (err)
+
+    # Special-purpose methods (maybe move to an io_data class?)
     # ==============================================================
     def pickle_saskan(self, p_app_dir):
         """Set up shared memory directories for saskan app.

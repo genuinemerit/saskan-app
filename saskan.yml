@@ -3,14 +3,12 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-# Other dependencies are installed using pip:
-#  - pygame
-  - python=3.10.6
+  - python=3.10.12
   - pip
   - mypy
   - flake8
+  - pytest
   - isort
-  - arrow
   - pathlib
   - requests
   - tzlocal
@@ -19,27 +17,28 @@ dependencies:
   - pandas
   - twisted
   - tornado
+  - nltk
+  - Levenshtein
   - music21
   - sympy
   - matplotlib
-  - nltk
-  - Levenshtein
   - networkx
-
-# May be added later:
-#  - odfpy
+  - tabulate
+  - numbers-parser
+  - beautifulsoup4
+  - selenium
+  - odfpy
+  - pendulum
+  - PyPDF2
 
 # Required at OS level:
-# - netstat (via net-tools installed with apt-get)
+# sudo apt-get -y install --upgrade net-tools (use netstat from this toolset to monitor services)
 
-# Suggested for trying to do graphviz with networkx
-# - graphviz gsfonts (via apt-get)
-
-# 2021-10-10  11:00
-# Path: saskan.yml
-
-# pygame was not available in the conda-forge channel
-# Have to install it using pip.
+# Libraries not available in the conda-forge channel or not recommended to use from conda-forge:
+# conda activate saskan, then...
+# pip install --upgrade pygame
+# pip install --upgrade tabula-py (the project owners recommend not using conda forge for this package)
+# pip install --upgrade pdfquery
 
 # conda env list
 # conda env remove -n saskan

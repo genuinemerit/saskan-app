@@ -240,9 +240,9 @@ class GameMenu(object):
                 self.mbars[mb_ky]["mb_box"].top + PG.MBAR_MARGIN + 5
 
     def set_menu_items_state(self,
-                            mb_ky: str,
-                            mi_ky: str,
-                            p_use_default: bool = False):
+                             mb_ky: str,
+                             mi_ky: str,
+                             p_use_default: bool = False):
         """Set the enabled state of identified menu item and/or
            set the enabled status of dependent menu items.
         Dependent menu items are always in the same menu list as the

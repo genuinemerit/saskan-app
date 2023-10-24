@@ -8,17 +8,9 @@ Transforms, conversions, calculations, algorithms
 useful to the game, including use of game units and terminology.
 """
 
-# import math
 import matplotlib.colors as mColors
-# import json
-# import pickle
 
 from dataclasses import dataclass   # fields
-# from matplotlib.patches import Rectangle as mRect
-# from matplotlib.patches import Circle as mCircle
-# from matplotlib.patches import Ellipse as mEllipse
-# from matplotlib.patches import Arc as mArc
-# from matplotlib.patches import RegularPolygon as mPolygon
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
 from pygame import Rect

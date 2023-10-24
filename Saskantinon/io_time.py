@@ -4,6 +4,23 @@
 
 :author:    GM (genuinemerit @ pm.me)
 
+:classes:
+- AstroIO     # Newer prototype.
+- TimeIO      # Older prototype. But some good ideas.
+
+Related:
+- io_file.py
+- io_time_test.py
+- saskan_math.py
+- saskan_report.py
+
+Schema and Config files:
+- configs/d_dirs.json        # directories
+- configs/t_texts_en.json    # text strings in English
+- schema/saskan_space.json   # astronomical bodies
+- schema/saskan_time.json    # planet revolutions, seasons, calendars
+- schema/saskan_geo.json     # Gavor-Havorra, Saskan geography
+
 Prototype definitions of astro-temporal events
 in game world's local star system. Define calendars
 for the passage of time, including era, epoch, year,
@@ -12,40 +29,44 @@ phases of moons, timing of planetary conjunctions.
 
 A single time zone encompasses the lands, spread over 2182031 km^2.
 (1660 km east-west, 1310 km north-south), located in the
-northern hemisphere. Two major time zones would be better.
-Given the low technology level, more local and regional variations
-would be entirely appropriate.
-
+northern hemisphere.
 
 @DEV:
-- Static Values were hard-coded in first prototype.
-    - Abstract them into a combo of config JSON file +
-      algo-driven data.
+- Multiple, distinct, smaller class modules may be better.
+- Two major time zones would be better.
+- Given the low technology level, more local and regional variations
+  would be entirely appropriate.
 - Provide tweaks to alter local time settings in various ways.
 - Provide a way to set a time zone, for example, or to allow
   for oddball variations in terminology and accuracy.
-- Rather than hard-coding the Moons data, provide an algorithm to
-  compute their mass, rotation, revolution, position, relative
-  to the planet. In any case, have more than two moons.
-- Try to come up with some kind of algorithm to estimate tides
-  on the major shores and river deltas of the game world.
-- Do the same for planets.
-- All of this implies bringing a geo data set into the mix.
-    - Use io_graphs, as useful, to visualize the geo data.
-    - Use the places spreadsheet as a starting point, but store as JSON.
-- Do something similar for stars in local galaxy and galaxies in local cluster.
+- Use algorithms for all heavenly movements and computations.
+- I've worked with moons so far.
+- Add in planetary movements, seasons, stars.
 - See ontology lab (universe.py, region.py) for ideas.
 - See map_build.py and other prototype modules for ideas.
 - See schema/places_data.ods for ideas about data.
 - Try to use accurate-ish formulae for the calculations,
   BUT don't get obsessed with it. Goal is to have something fun
   to play with, not to be an accurate astro-geo simulator.
+- May want to break out different kind of geographical data, e.g.,
+  political vs. physical vs. cultural vs. economic, etc.; and
+  changes over time.
 
-OK..
+- Created a schema, saskan_space.json and started filling in data.
+- ChatGPT was very helpful in trying to come with something resembling
+   a plausible planet + satellites system. I'm not sure how much of it
+   I'll use, but it's a start.
+- Created a saskan_time.json schema too but have not started filling it in yet.
+   Want to use algorithms as much as I can when dealing with calendars, dates,
+   times in the game context; avoid hard-coding, even as configs, except
+   when really necessary and helpful.
+- Eventually break into separate Space and Time classes.
+- May want to make Calendars a separate class too, as well as Seasons.
+- Related to all of that would be Astro and Geo classes.
 
-- Created a schema, saskan_space.json and started filling in data. ChatGPT was very helpful in trying to come with something resembling a plausible planet + satellites system. I'm not sure how much of it I'll use, but it's a start. Would be interesting to see if I can use GPT inside VS Word / GitHub Pilot to write code simulating movement of heavenly bodies, phases of the moons, etc.
+- Would be nice to have a way to generate a random system
 
-- Created a saskan_time.json schema too but have not started filling it in yet. Want to use algorithms as much as I can when dealing with calendars, dates, times in the game context.
+- Don't worry about using /dev/shm for now. Just use a local file.
 """
 
 import glob
@@ -68,13 +89,11 @@ from saskan_math import SaskanMath      # type: ignore
 FI = FileIO()
 SM = SaskanMath()
 
-class SpaceIO(object):
+class AstroIO(object):
     """Class for astronomical data and methods.
     """
     def __init__(self):
-        """Manage astronomical data.
-        Pull in schema from saskan_space.json.
-        Derive addtional data
+        """Allocate class-level variables.
         """
         # moon = FI.S["space"]["Endor"]
         # self.get_orbit_and_angular_diameter(moon)

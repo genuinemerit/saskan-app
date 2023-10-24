@@ -1,5 +1,5 @@
 {
-    "APP": "saskan",
+    "APP": "/home/dave/saskan",
     "BIN": "/usr/local/bin",
     "MEM": "/dev/shm",
     "ADIRS": {"CFG": "config",
