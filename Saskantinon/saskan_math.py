@@ -4,16 +4,21 @@
 
 :author:    GM (genuinemerit @ pm.me)
 
-Transforms, conversions, calculations, algorithms
-useful to the game, including use of game units and terminology.
+:classes:
+- SaskanRect - Manage extended rectangle functions, buidling on pygame.Rect
+- SaskanMath - Game-related conversions and calculations
+
+Transforms, conversions, calculations, algorithms useful to the game,
+including use of game units and terminology.
 """
 
-import matplotlib.colors as mColors
+# import matplotlib.colors as mColors
 
 from dataclasses import dataclass   # fields
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
 from pygame import Rect
+
 
 class SaskanRect(object):
     """Manage extended rectangle functions, buidling on the pygame.Rect class.
@@ -34,7 +39,7 @@ class SaskanRect(object):
         """Initialize a Saskan rectangle object.
 
         For matplotlib.patches.Rectangle and colors:
-        See: https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Rectangle.html
+        See: https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.Rectangle.html   # noqa: E501
         and https://matplotlib.org/stable/tutorials/colors/colors.html
         """
         self.rect = {
@@ -71,8 +76,8 @@ class SaskanRect(object):
                   p_height: float,
                   p_line_width: float = 0.0,
                   p_fill: bool = False,
-                  p_fill_color = None,
-                  p_line_color = None) -> dict:
+                  p_fill_color=None,
+                  p_line_color=None) -> dict:
         """Create a rectangle from top, left, width, height.
         Units are in whatever coordinate system makes sense, such as,
         pixels, meters, kilometers, etc. This class makes no assumptions
@@ -156,69 +161,81 @@ class SaskanRect(object):
         """
         pass
 
+
 class SaskanMath(object):
     """Class for game-related conversions and calculations.
        Includes templates for map grids.
     """
     def __init__(self):
-        """Manage time, calendar and astronomical data.
-        Store data in a pickled dict: CALENDAR_DB.
-
-        To save the CALENDAR_DB pickle, call:
-            self.set_time_db(p_db_nm)
-        To retieve it, call:
-            self.get_time_db(p_db_nm)
-
-        :args: p_db_nm: str
-            - Generic name of time data file object
-            - Example: "time_data"
-        self.S_MAP: dict = dict()
+        """Manage measurements and conversion relevant to
+        context of the game. This includes both real world
+        units as well as some unique to the 'saskan' game world.
         """
         pass
 
     @dataclass
     class M():
-        """Names of measurements assigned to a meaningful
-        variable or abbreviation.
+        """Types of measurements or objects assigned to a
+        meaningful abbreviation and name in English.
         """
         # math, geometry, currency
         AR = "area"
+        AX = "axes (a, b, c)"
         DC = "decimal"
         DI = "diameter"
+        DIM = "dimensions (x, y, z)"
+        HT = "height"
         INT = "integer"
+        LG = "length"
         PCT = "percent"
         RD = "radius"
+        VE = "vector"
         VL = "volume"
+        WD = "width"
+        # geometry shapes
+        BX = "box"
+        CI = "circle"
+        EL = "ellipsoid"
+        RC = "rectangle"
+        SH = "sphere"
         # weight
         GM = "grams"
         KG = "kilograms"
         LB = "pounds"
         OZ = "ounces"
-        # mass
-        BA = "baryonic"
+        # energy
+        AMP = "amperes (A)"
+        OH = "ohms (Ω)"
+        V = "volts (V)"
+        WA = "watts (W)"
+        # mass, matter
+        DE = "dark energy"
+        DM = "dark matter"
+        BM = "baryonic matter"
         MS = "mass"
-        SM = "solar mass"
-        # distance & area, metric, imperial, saskan
+        SMS = "solar mass"
+        # distance & area
         CM = "centimeters"
         FT = "feet"
-        GA = "gawos"
+        GA = "gawos"        # saskan
         IN = "inches"
-        KA = "katas"
+        KA = "katas"        # saskan
         KM = "kilometers"
         M = "meters"
-        M2 = "square meters"
-        M3 = "cubic meters"
         MI = "miles"
         MM = "millimeters"
         NM = "nautical miles"
-        NOB = "nobs"
-        THWAB = "thwabs"
-        TWA = "twas"
-        YUZA = "yuzas"
+        NOB = "nobs"        # saskan
+        THWAB = "thwabs"    # saskan
+        TWA = "twas"        # saskan
+        YUZA = "yuzas"      # saskan
+        # area
+        M2 = "square meters"
+        M3 = "cubic meters"
         # distance, geographical
         DGLAT = "degrees latitude"
         DGLONG = "degrees longitude"
-        # direction
+        # direction, geographical
         N = "north"
         E = "east"
         S = "south"
@@ -229,23 +246,37 @@ class SaskanMath(object):
         NW = "northwest"
         NS = "north-south"
         EW = "east-west"
-        # distance and area, astronomical
-        AU = "astronomical units"
-        GLY = "gigalight years"
-        GLY2 = "square gigalight years"
-        GLY3 = "cubic gigalight years"
+        # distance, astronomical
+        AU = "astronomical unit"     # distance from Fatune to Gavor
+        GLY = "gigalight year"
         GPC = "gigaparsec"
-        GPC2 = "square gigaparsecs"
-        GPC3 = "cubic gigaparsecs"
         KPC = "kiloparsec"
-        LM = "light minutes"
-        LS = "light seconds"
-        LY = "light years"
-        LY2 = "square light years"
-        LY3 = "cubic light years"
+        LM = "light minute"
+        LS = "light second"
+        LY = "light year"
         MPC = "megaparsec"
         PC = "parsec"
-        TU = "total universe"
+        # area, astronomical
+        GLY2 = "square gigalight year"
+        GLY3 = "cubic gigalight year"
+        GPC2 = "square gigaparsec"
+        GPC3 = "cubic gigaparsec"
+        LY2 = "square light year"
+        LY3 = "cubic light year"
+        # objects, astronomical
+        GC = "galactic cluster"         # saskan
+        TP = "timing pulsar"            # saskan
+        TU = "total universe"           # saskan
+        XU = "external universe"        # saskan
+        # time-related, real world and saskan
+        S = "second"         # expressed relative to TP pulses
+        ET = "elapsed time"  # age, duration, time passed
+        GY = "gavoran year"         # saskan
+        # rates, speeds, velocities
+        ER = "expansion rate"  # of a volume
+        UE = "universal expansion KM/S per MPC"  # km/s per Mpc
+        # names, labels
+        NM = "name"
 
     @dataclass
     class C():

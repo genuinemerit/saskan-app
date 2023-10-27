@@ -91,7 +91,7 @@ mass is 1.0.
       scan results.
 """
 
-import glob
+# import glob
 import math
 import matplotlib.pyplot as plt
 import numpy as np
@@ -100,8 +100,8 @@ import pickle
 import random
 import time
 
-from copy import copy
-from dataclasses import dataclass   # fields
+# from copy import copy
+# from dataclasses import dataclass   # fields
 from os import path
 from matplotlib.animation import FuncAnimation
 from pprint import pformat as pf        # noqa: F401
@@ -113,117 +113,53 @@ from saskan_math import SaskanMath      # type: ignore
 FI = FileIO()
 SM = SaskanMath()
 
-import pickle
 
 class UniverseModel:
+    """Class for modeling a universe.
+    - TU = Total Universe
+    - GC = Galactic Cluster in which the game is played
+    - TP = Timing Pulsar (neutron star) in the GC which
+           regulates time measurements within the GC.
+    - XU = External Universe, outside of the GC
+
+    All values are defined as a 2-tuple where [0] = value
+    and [1] = type of measurement unit, as defined
+    by the SaskanMath() class. The type of object, i.e., what
+    is being measured, is also identified via reference
+    to a value defined in the SaskanMath() class's "M"
+    dataclass.
+    """
     def __init__(self,
-                 randomize: bool = False,
-                 random_seed: int = None,
-                 cluster_name: str = None):
-        self.randomize = randomize
-        self.random_seed = random_seed
+                 p_randomize: bool = False,
+                 p_random_seed: int = None,
+                 p_cluster_name: str = None):
+        self.randomize = p_randomize
+        self.random_seed = p_random_seed
         # Put the tu values into a dictionary
-        if randomize:
+        self.tu = dict()
+        if self.randomize:
             # Generate a random TU within predefined constraints
-            self.tu_radius = self.generate_random_radius()
+            self.tu[SM.M.RD] = self.generate_random_radius()
         else:
             # Use predefined constraints for TU
-            self.tu_radius = 14.25e9  # 14.25 gigaparsecs
-        self.tu_age = 13.787e9  # Age of TU in years
-        self.tu_expansion_rate = 73.3  # km/s per Mpc
-        self.tu_dark_energy = 0.683  # 68.3%
-        self.tu_dark_matter = 0.274  # 27.4%
-        self.tu_baryonic_matter = 0.043  # 4.3%
-        self.tu_mass = 1.5e53  # 1.5 x 10^53 kg
-
+            self.tu[SM.M.RD] = (14.25e9, SM.M.GPC)  # 14.25 gigaparsecs
+        # May want to play with varying these values some...
+        self.tu[SM.M.ET] = (13.787e9, SM.M.GY)  # Age of TU in Gavoran years
+        self.tu[SM.M.ER] = (73.3, SM.M.UE)  # km/s per Mpc
+        self.tu[SM.M.MS] = (1.5e53, SM.M.KG)  # 1.5 x 10^53 kg = matter in TU
+        self.tu[SM.M.DE] = (0.683, SM.M.PCT)  # 68.3%, of total matter in TU
+        self.tu[SM.M.DM] = (0.274, SM.M.PCT)  # 27.4%, of total matter in TU
+        self.tu[SM.M.BM] = (0.043, SM.M.PCT)  # 4.3%, of total matter in TU
         # Define the GC and TP within the TU
-        self.gc = self.generate_galactic_cluster(cluster_name)
+        self.gc = self.generate_galactic_cluster(p_cluster_name)
         self.tp = self.generate_timing_pulsar()
-
-    def generate_galactic_cluster(self, cluster_name):
-        """
-        A standard geometric formula for defining the shape of a flattened sphere can be based on the equation of an ellipsoid. An ellipsoid is a three-dimensional shape that can represent a flattened or stretched sphere. The formula for an ellipsoid is:
-
-\[
-\frac{{x^2}}{{a^2}} + \frac{{y^2}}{{b^2}} + \frac{{z^2}}{{c^2}} = 1
-\]
-
-Where:
-- \(a\) represents the semi-major axis, which controls the extent of the ellipsoid along the x-axis.
-- \(b\) represents the semi-minor axis, which controls the extent of the ellipsoid along the y-axis.
-- \(c\) represents the semi-minor axis, which controls the extent of the ellipsoid along the z-axis.
-
-To create a flattened sphere shape, you can set \(a\) and \(b\) to be equal to each other but smaller than \(c\). This will result in an ellipsoid that is flattened along one axis (the z-axis) compared to a perfect sphere.
-
-For example, if you want a flattened sphere with a significant flattening along the z-axis, you can set \(a\) and \(b\) to be smaller values than \(c\). The specific values of \(a\), \(b\), and \(c\) will determine the exact shape and degree of flattening of the ellipsoid.
-        """
-        # Define the Galactic Cluster within the TU
-
-        # Generate a random name for the cluster if not provided
-        if cluster_name is None:
-            cluster_name = self.generate_random_cluster_name()
-
-        # Generate a random location vector (x, y, z) in megaparsecs
-        # This locates the GC center as a random point within the TU
-        # in relation to the TU center (center of the universe)
-        x = random.uniform(-self.tu_radius, self.tu_radius)
-        y = random.uniform(-self.tu_radius, self.tu_radius)
-        z = random.uniform(-self.tu_radius, self.tu_radius)
-
-        # Generate a random sized ellipsoid in parsecs
-        # You can modify these constraints as needed
-        min_size = 1e6  # 1 million parsecs
-        max_size = 1e7  # 10 million parsecs
-        size_x = random.uniform(min_size, max_size)
-        size_y = size_x * random.uniform(0.5, 0.8)
-        size_z = size_y * random.uniform(0.1, 0.2)
-        axis_a = size_x / 2
-        axis_b = size_y / 2
-        axis_c = size_z / 2
-
-        # Generate a random mass as a percentage of the total baryonic mass in the TU
-        # You can modify these constraints as needed
-        min_mass_percentage = 0.01  # 1% - smaller cluster
-        max_mass_percentage = 0.05  # 5% - larger cluster
-        mass_percentage = random.uniform(min_mass_percentage, max_mass_percentage)
-        baryonic_matter = mass_percentage * self.tu_baryonic_matter
-
-        gc_data = {
-            "name": cluster_name,
-            "location": (x, y, z),
-            "size_x": size_x,
-            "size_y": size_y,
-            "size_z": size_z,
-            "axis_a": axis_a,
-            "axis_b": axis_b,
-            "axis_c": axis_c,
-            "baryonic_matter": baryonic_matter
-            # Include more cluster details here
-        }
-        return gc_data
-
-    def generate_random_cluster_name(self):
-        # Generate a random name for the Galactic Cluster
-        # You can customize the list of possible names
-        cluster_names = ["Crius Cluster", "Themis Cluster", "Iapetus Cluster", "Cronus Cluster"]
-        return random.choice(cluster_names)
-
-    def generate_timing_pulsar(self):
-        # Define the timing pulsar within the GC
-        # Compute a location within the GC that is
-        # a random distance from the GC center but
-        # relatively close (inner 1/3rd of the ellipsoid)
-        # to the core/center of the galactic cluster.
-        tp_data = {
-            "name": "Timing Pulsar",
-            # Include more pulsar details here
-        }
-        return tp_data
+        self.xu = self.generate_external_universe()
 
     def generate_random_radius(self):
-        # Generate a random TU radius within predefined constraints
-        # You can modify this method based on your requirements
-        import random
+        """Generate a random TU radius within predefined constraints.
+        :returns:
+        - (float, int) - radius, unit of measurement (gigaparsecs)
+        """
 
         if self.random_seed is not None:
             random.seed(self.random_seed)
@@ -231,34 +167,188 @@ For example, if you want a flattened sphere with a significant flattening along 
         # Generate a random radius within a predefined range
         min_radius = 14.0e9
         max_radius = 14.5e9
-        return random.uniform(min_radius, max_radius)
+        return (random.uniform(min_radius, max_radius), SM.M.GPC)
 
+    def generate_galactic_cluster(self,
+                                  p_cluster_name: str = None) -> dict:
+        """
+        Define the Galactic Cluster (GC) within the TU.
 
+        Generate a random location vector (x, y, z) in megaparsecs
+        locating the GC center as a random point within the TU
+        in relation to the TU center (center of the universe)
+        Ensure that x, y, and z are at least 2/3 of the TU radius.
 
-# Example usage:
-# Create a UniverseModel instance and generate a random Galactic Cluster
-# model = UniverseModel(randomize=True)
-# gc = model.generate_galactic_cluster()
-# print(gc)
+        Shaped like a thick flattened sphere, like a chubby pancake.
+        A standard geometric formula for defining the shape of a
+        flattened sphere can be based on the equation of an ellipsoid.
+        An ellipsoid is a three-dimensional shape that can represent a
+        flattened or stretched sphere. The formula for an ellipsoid is:
+        frac{{x^2}}{{a^2}} + \frac{{y^2}}{{b^2}} + \frac{{z^2}}{{c^2}} = 1
 
-    def save_to_file(self, filename):
-        # Save the model to a file using pickle
-        with open(filename, "wb") as file:
-            pickle.dump(self, file)
+        Where:
+        - a represents the semi-major axis, controls extent along the x-axis.
+        - b represents the semi-minor axis, controls extent along the y-axis.
+        - c represents the semi-minor axis, controls extent along the z-axis.
 
-    @classmethod
-    def load_from_file(cls, filename):
-        # Load the model from a file using pickle
-        with open(filename, "rb") as file:
-            return pickle.load(file)
+        To create a flattened sphere shape, set a and b to equal each other
+        but smaller (?) than c. This results in an ellipsoid that is flattened
+        along one axis (z-axis) compared to a perfect sphere.
 
-# Example usage:
-# Create a UniverseModel instance and save it to a file
-# model = UniverseModel(randomize=True)
-# model.save_to_file("universe_model.pkl")
+        Specific values of a, b, and c will determine exact shape and degree
+        of flattening of the ellipsoid.  A typical value is for a, b and c
+        to be 1/2 the value of x, y, and z respectively.
 
-# Load the model from a file
-# loaded_model = UniverseModel.load_from_file("universe_model.pkl")
+        To get a better sense of the shape of an ellipsoid, plot it in
+        three dimensions, then use matplotlib for a rough visualization.
+        For a more accurate visualization, use a 3D modeling program like
+        Blender or Maya.
+
+        The volume of an ellipsoid is given by:
+
+        V=4/3 X π X a X b X c
+         where a, b, and c are the semi-axes of the ellipsoid.
+
+        :args:
+        - p_cluster_name (str) - (optional) name of the galactic cluster
+        :returns:
+        - (dict) - data defining the galactic cluster
+        """
+        # Name
+        cluster_name = p_cluster_name
+        if cluster_name is None:
+            cluster_name = self.generate_random_cluster_name()
+        # location of galactic cluster center relative to TU center
+        min_distance = (2/3) * self.tu[SM.M.RD][0]
+        while True:
+            lx = random.uniform(-self.tu[SM.M.RD][0], self.tu[SM.M.RD][0])
+            ly = random.uniform(-self.tu[SM.M.RD][0], self.tu[SM.M.RD][0])
+            lz = random.uniform(-self.tu[SM.M.RD][0], self.tu[SM.M.RD][0])
+            distance = (lx**2 + ly**2 + lz**2)**0.5
+            if distance >= min_distance:
+                break
+        # Generate a random sized ellipsoid in parsecs
+        min_size = 1e6  # 1 million parsecs
+        max_size = 1e7  # 10 million parsecs
+        x = random.uniform(min_size, max_size)
+        y = x * random.uniform(0.5, 0.8)
+        z = y * random.uniform(0.1, 0.2)
+        a = x / 2
+        b = y / 2
+        c = z / 2
+        # Calculate the volume of the ellipsoid
+        volume = (4/3) * 3.14159265359 * a * b * c
+        # Generate a GC mass as a pct of the total baryonic matter in TU
+        # This will produce a denser or less dense galatic cluster.
+        min_mass_pct = 0.01  # 1% - smaller cluster
+        max_mass_pct = 0.05  # 5% - larger cluster
+        mass_pct = random.uniform(min_mass_pct, max_mass_pct)
+        gc_data = {
+            "galactic cluster": (cluster_name, SM.M.NM),
+            f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
+            "shape": ((((x, y, z), SM.M.DIM),
+                       ((a, b, c), SM.M.AX)), SM.M.EL),
+            SM.M.DE:
+            (mass_pct * self.tu[SM.M.DE][0] * self.tu[SM.M.MS][0], SM.M.KG),
+            SM.M.DM:
+            (mass_pct * self.tu[SM.M.DM][0] * self.tu[SM.M.MS][0], SM.M.KG),
+            SM.M.BM:
+            (mass_pct * self.tu[SM.M.BM][0] * self.tu[SM.M.MS][0], SM.M.KG),
+            SM.M.VL: (volume, SM.M.GPC3)}
+
+        return gc_data
+
+    def generate_random_cluster_name(self):
+        """Generate a random name for the Galactic Cluster
+        May want to add logic to come up with a name that is
+        based on coordinates, or other legendary names,
+        including in-game legends and myths.
+        """
+        cluster_names = ["Crius Cluster", "Themis Cluster",
+                         "Iapetus Cluster", "Cronus Cluster"]
+        return random.choice(cluster_names)
+
+    def generate_timing_pulsar(self):
+        """Define the timing pulsar within the GC.
+        Compute a location within the GC that is
+        a random distance from the GC center but
+        relatively close (inner 1/3rd of the ellipsoid)
+        to the core/center of the galactic cluster.
+        Keep in mind that the shape of the cluster
+        is ellipsoid, not a sphere; so the calculuation
+        will be a bit more complex than just using
+        one radius value.
+        """
+        pp((self.gc["shape"]))
+        pp((self.gc["shape"][0]))
+        pp((self.gc["shape"][0][0]))
+        pp((self.gc["shape"][0][0][0]))
+        pp((self.gc["shape"][0][0][0][0]))
+        gc_x = self.gc["shape"][0][0][0][0]
+        gc_y = self.gc["shape"][0][0][0][1]
+        gc_z = self.gc["shape"][0][0][0][2]
+        max_x = (gc_x / 2) * 0.33
+        max_y = (gc_y / 2) * 0.33
+        max_z = (gc_z / 2) * 0.33
+        while True:
+            lx = random.uniform(-gc_x, gc_x)
+            if lx <= max_x:
+                break
+        while True:
+            ly = random.uniform(-gc_y, gc_y)
+            if ly <= max_y:
+                break
+        while True:
+            lz = random.uniform(-gc_z, gc_z)
+            if lz <= max_z:
+                break
+        tp_data = {
+            SM.M.NM: ("Clock Pulsar", SM.M.TP),
+            f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC)
+        }
+        return tp_data
+
+    def generate_external_universe(self):
+        """Define the External Universe (XU) within the TU.
+        It contains all the mass that is not in the GC.
+        """
+        xu_data = {
+            SM.M.NM: ("Beyond the Rim", SM.M.XU),
+            SM.M.DE: (((self.tu[SM.M.DE][0] * self.tu[SM.M.MS][0]) -
+                       self.gc[SM.M.DE][0]), SM.M.KG),
+            SM.M.DM: (((self.tu[SM.M.DM][0] * self.tu[SM.M.MS][0]) -
+                       self.gc[SM.M.DM][0]), SM.M.KG),
+            SM.M.BM: (((self.tu[SM.M.BM][0] * self.tu[SM.M.MS][0]) -
+                       self.gc[SM.M.BM][0]), SM.M.KG)
+        }
+        return xu_data
+
+    # Example usage:
+    # Create a UniverseModel instance and generate a random Galactic Cluster
+    # model = UniverseModel(randomize=True)
+    # gc = model.generate_galactic_cluster()
+    # print(gc)
+
+    # Use standard io_file() methods instead....
+    # def save_to_file(self, filename):
+    #     # Save the model to a file using pickle
+    #     with open(filename, "wb") as file:
+    #         pickle.dump(self, file)
+
+    # @classmethod
+    # def load_from_file(cls, filename):
+    #     # Load the model from a file using pickle
+    #     with open(filename, "rb") as file:
+    #         return pickle.load(file)
+
+    # Example usage:
+    # Create a UniverseModel instance and save it to a file
+    # model = UniverseModel(randomize=True)
+    # model.save_to_file("universe_model.pkl")
+
+    # Load the model from a file
+    # Take note -- a class object can be instantiated from a pickle...
+    # loaded_model = UniverseModel.load_from_file("universe_model.pkl")
 
 
 class AstroIO(object):
@@ -267,7 +357,7 @@ class AstroIO(object):
     def __init__(self):
         """Allocate class-level variables.
         """
-        self.UNIV = dict()
+        self.UNIV = dict()  # UniverseModel() or load from pickle
         self.GALAXY = dict()
         self.STARS = dict()
         self.PLANETS = dict()
@@ -490,13 +580,11 @@ class AstroIO(object):
         That is a meausrement of frequency which could be reproduced
         anywhere in the universe. But it is still culturally-bound in
         that the second itself is derived from the planet Earth's
-        relationship to it Sun.
+        relationship to it Sun. This type of time measure is referred
+        to as an atomic clock.
+        To be more precise, an atomic second related to the unperturbed
+        ground state hyperfine transition frequency of the caesium-133 atom.
 
-        Time dilation is a phenomenon that occurs when a reference
-        frame is moving relative to another reference frame. In the
-        case of very fast travel, especially near the speed of light,
-        time itself will slow down for the traveler. Also, space-time
-        is curved in gravity wells like solar systems.
 
         Meausuring the rate of pulsar pulses is also very reliable,
         and is the basis for some navigation systems. Not all pulsars
@@ -510,6 +598,26 @@ class AstroIO(object):
         a particular mature rotation-based pulsar) must be selected.
         This could be the basis for a universal time standard,
         a "celestial clock" that is used by the Agency.
+
+        A pulsar is a highly magnetized rotating neutron star that emits
+        beams of electromagnetic radiation out of its magnetic poles.
+        Sort of like a galatic lighthouse. The periods range from
+        milliseconds to seconds.  The fastest known pulsar, PSR J1748-2446ad,
+        rotates 716 times per second, so its period is 1.4 milliseconds.
+        Pulsars can be more accurate, consistent than atomic clocks.
+
+        The idea for the game is to make up a pulsar llike PSR J1748-2446ad,
+        assign it a very regular period, and use it as a universal time
+        in reference to all other units.
+
+
+        Time dilation is a phenomenon that occurs when a reference
+        frame is moving relative to another reference frame. In the
+        case of very fast travel, especially near the speed of light,
+        time itself will slow down for the traveler. Also, space-time
+        is curved in gravity wells like solar systems. This will need
+        to be accounted for if interstellar travel and/or near-light-speed
+        or (so-called) warp speed travel is allowed in the game.
         """
         pass
 
@@ -893,7 +1001,6 @@ class AstroIO(object):
         ani = FuncAnimation(fig, animate, frames=num_steps, interval=50, blit=True)
 
         plt.show()
-
 
 
     def planetary_congruence(self):

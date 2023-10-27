@@ -17,7 +17,7 @@ from os import path, remove, symlink, system
 from pathlib import Path
 from pprint import pprint as pp  # noqa: F401
 
-from io_shell import ShellIO  # type: ignore
+from io_shell import ShellIO
 
 SI = ShellIO()
 
