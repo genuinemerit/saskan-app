@@ -42,3 +42,5 @@ name: saskan channels:
 
 # Note that sqlite3 is part of the standard package both in Ubutu and in
 # python3. No need for install.
+# For sqlite command line commands, see: 
+#   https://www.sqlitetutorial.net/sqlite-commands/
