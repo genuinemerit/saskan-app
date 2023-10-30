@@ -150,9 +150,10 @@ class UniverseModel:
         self.tu[SM.M.DE] = (0.683, SM.M.PCT)  # 68.3%, of total matter in TU
         self.tu[SM.M.DM] = (0.274, SM.M.PCT)  # 27.4%, of total matter in TU
         self.tu[SM.M.BM] = (0.043, SM.M.PCT)  # 4.3%, of total matter in TU
+        self.tu[SM.M.TU] = ("", SM.M.NM)
         # Define the GC and TP within the TU
         self.gc = self.generate_galactic_cluster(p_cluster_name)
-        self.tp = self.generate_timing_pulsar()
+        self.tp = self.generate_timing_pulsar(p_cluster_name)
         self.xu = self.generate_external_universe()
 
     def generate_random_radius(self):
@@ -245,6 +246,7 @@ class UniverseModel:
         mass_pct = random.uniform(min_mass_pct, max_mass_pct)
         gc_data = {
             "galactic cluster": (cluster_name, SM.M.NM),
+            "container": ("", SM.M.TU),
             f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
             "shape": ((((x, y, z), SM.M.DIM),
                        ((a, b, c), SM.M.AX)), SM.M.EL),
@@ -268,7 +270,8 @@ class UniverseModel:
                          "Iapetus Cluster", "Cronus Cluster"]
         return random.choice(cluster_names)
 
-    def generate_timing_pulsar(self):
+    def generate_timing_pulsar(self,
+                               p_cluster_nm: str):
         """Define the timing pulsar within the GC.
         Compute a location within the GC that is
         a random distance from the GC center but
@@ -278,12 +281,9 @@ class UniverseModel:
         is ellipsoid, not a sphere; so the calculuation
         will be a bit more complex than just using
         one radius value.
+        :args:
+        - p_cluster_nm (str) Name of containing cluster
         """
-        pp((self.gc["shape"]))
-        pp((self.gc["shape"][0]))
-        pp((self.gc["shape"][0][0]))
-        pp((self.gc["shape"][0][0][0]))
-        pp((self.gc["shape"][0][0][0][0]))
         gc_x = self.gc["shape"][0][0][0][0]
         gc_y = self.gc["shape"][0][0][0][1]
         gc_z = self.gc["shape"][0][0][0][2]
@@ -303,7 +303,8 @@ class UniverseModel:
             if lz <= max_z:
                 break
         tp_data = {
-            SM.M.NM: ("Clock Pulsar", SM.M.TP),
+            SM.M.TP: ("Clock Pulsar", SM.M.NM),
+            "container": (p_cluster_nm, SM.M.GC),
             f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC)
         }
         return tp_data
@@ -313,7 +314,8 @@ class UniverseModel:
         It contains all the mass that is not in the GC.
         """
         xu_data = {
-            SM.M.NM: ("Beyond the Rim", SM.M.XU),
+            SM.M.XU: ("Beyond the Rim", SM.M.NM),
+            "container": ("", SM.M.TU),
             SM.M.DE: (((self.tu[SM.M.DE][0] * self.tu[SM.M.MS][0]) -
                        self.gc[SM.M.DE][0]), SM.M.KG),
             SM.M.DM: (((self.tu[SM.M.DM][0] * self.tu[SM.M.MS][0]) -

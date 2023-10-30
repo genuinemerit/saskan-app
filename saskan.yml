@@ -1,9 +1,7 @@
-name: saskan
-channels:
+name: saskan channels:
   - conda-forge
-  - defaults
-dependencies:
-  - python=3.10.12
+  - defaults dependencies:
+#  - python=3.10.12 -- native base is already 3.11
   - pip
   - mypy
   - flake8
@@ -31,17 +29,16 @@ dependencies:
   - pendulum
   - PyPDF2
 
-# Required at OS level:
-# sudo apt-get -y install --upgrade net-tools (use netstat from this toolset to monitor services)
+# Required at OS level: sudo apt-get -y install --upgrade net-tools (use netstat
+# from this toolset to monitor services)
 
-# Libraries not available in the conda-forge channel or not recommended to use from conda-forge:
-# conda activate saskan, then...
-# pip install --upgrade pygame
-# pip install --upgrade tabula-py (the project owners recommend not using conda forge for this package)
-# pip install --upgrade pdfquery
+# Libraries not available in the conda-forge channel or not recommended to use
+# from conda-forge: conda activate saskan, then... pip install --upgrade pygame
+# pip install --upgrade tabula-py (the project owners recommend not using conda
+# forge for this package) pip install --upgrade pdfquery
 
-# conda env list
-# conda env remove -n saskan
-# conda env create -f ./saskan.yml
-# conda activate saskan
-# conda deactivate
+# conda env list conda env remove -n saskan conda env create -f ./saskan.yml
+# conda activate saskan conda deactivate
+
+# Note that sqlite3 is part of the standard package both in Ubutu and in
+# python3. No need for install.
