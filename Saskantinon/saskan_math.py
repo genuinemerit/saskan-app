@@ -10,6 +10,15 @@
 
 Transforms, conversions, calculations, algorithms useful to the game,
 including use of game units and terminology.
+
+Units are as follows unless otherwise noted:
+- distance => kilometers, or gigaparsecs
+- mass => kilograms
+- day => 1 rotation of planet Gavor
+- year a/k/a turn => 1 orbit of Gavor around its star, Faton
+- rotation => multiple or fraction of Gavoran days; or galactic seconds
+- orbit => revolution of Gavor around Faton:
+    multiple, fractional Gavoran years (turns); or galactic seconds
 """
 
 # import matplotlib.colors as mColors
@@ -214,7 +223,7 @@ class SaskanMath(object):
         BM = "baryonic matter"
         MS = "mass"
         SMS = "solar mass"
-        # distance & area
+        # distance
         CM = "centimeters"
         FT = "feet"
         GA = "gawos"        # saskan
@@ -269,12 +278,15 @@ class SaskanMath(object):
         TU = "total universe"           # saskan
         XU = "external universe"        # saskan
         # time-related, real world and saskan
-        S = "second"         # expressed relative to TP pulses
-        ET = "elapsed time"  # age, duration, time passed
-        GY = "gavoran year"         # saskan
+        GS = "galactic second"          # 'galactic' second; saskan
+        GMS = "galactic millisecond"    # 'galactic' millisecond; saskan
+        PS = "pulses per second"        # 'galactic' second as # of pulses
+        ET = "elapsed time"             # age, duration, time passed
+        GY = "gavoran year"             # saskan
         # rates, speeds, velocities
-        ER = "expansion rate"  # of a volume
+        ER = "expansion rate"           # of a volume
         UE = "universal expansion KM/S per MPC"  # km/s per Mpc
+        PR = "period of rotation"
         # names, labels
         NM = "name"
 

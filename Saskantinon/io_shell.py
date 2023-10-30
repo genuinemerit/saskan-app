@@ -9,7 +9,7 @@ we do want to get feedback from the shell and not use nohup.
 Not sure if this will work anywhere but Linux. Probably not.
 """
 import os
-# import time
+import pendulum
 
 import subprocess as shl
 
@@ -25,6 +25,25 @@ class ShellIO(object):
         """Initialize the object.
         """
         pass
+
+    @classmethod
+    def get_standard_date(cls,
+                          p_date_value: str,
+                          p_date_format: str) -> tuple:
+        """
+        Convert to pendulum date-time object, then strip out date only to
+        get a date string in format YYYY-MM-DD. Return both the string and
+        the date object.
+
+        :args:
+        - p_date_value (str): Date string to convert.
+        - p_date_format (str): Format of incoming string, eg. "MM/DD/YYYY"
+        :returns:
+        - (tuple): (Date string, pendulum date-time object)
+        """
+        pendulum_date = pendulum.from_format(p_date_value, p_date_format)
+        string_date = pendulum_date.to_date_string()
+        return (string_date, pendulum_date)
 
     @classmethod
     def run_cmd(cls, cmd):

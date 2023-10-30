@@ -5,6 +5,7 @@
 :author:    GM (genuinemerit @ pm.me)
 
 :classes:
+- UniverseModel   # Define a Game Universe and GalaxyCluster
 - AstroIO
 
 Related:
@@ -17,91 +18,17 @@ Schema and Config files:
 - configs/d_dirs.json        # directories
 - configs/t_texts_en.json    # text strings in English
 - schema/saskan_astro.json   # astronomical bodies
-
-Units are as follows unless otherwise noted:
-- distance => kilometers, or gigaparsecs
-- mass => kilograms
-- day => 1 rotation of planet Gavor
-- year a/k/a turn => 1 orbit of Gavor around its star, Faton
-- rotation => multiple or fraction of Gavoran days
-- orbit => revolution of Gavor around Faton:
-    multiple, fractional Gavoran years (turns)
-
-Use saskan_math.py to do all unit conversions.
-
-Angular diameter is the apparent size of an object as
-seen from a point of view, i.e., how big a moon appears
-in the sky. Given the distance (d) and diameter (D) of
-an object, its angular diameter (δ) can be calculated
-as follows:
-δ = 2 × arctan(D/2d)
-
-In this class, we want to focus on
-- actual and apparent (from Gavor) sizes
-- mass and gravity
-- distance from Gavor
-- relative motion (speed, direction)
-Try to avoid:
-- Jumping into time units.
-    - See section of defining a second in non-relative terms.
-    - Think of days as rotations of planet or moon, years as orbits.
-- Making the math too complex
-- Hard-coding values too much, even in schema
-
-Math...
-
-The area of a sphere is 4 * Pi * radius squared (4 * pi * r**2).
-
-The distance between two points (x1, y1), (x2, y2) on a plane is:
-the square root of (x2 - x1) squared plus (y2 - y1) squared,
-that is:  sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-The distance between two points in xyz-space is square root of
-sum of the squares of the differences between coordinates.
-That is,
-    given P1 = (x1,y1,z1) and P2 = (x2,y2,z2),
-    the distance between P1 and P2 is given by
-    d(P1,P2) = sqrt ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2).
-
-This measures will come into play when we start to define bodies
-in space and the graviational effect they have on each other.
-
-A common measure of mass is the solar mass, which is the mass of
-our Sun, Sol. In the game world, of Fatun. In either case, it
-is unit. The mass of the Sun is 1.9891 x 10^30 kg. But one solar
-mass is 1.0.
-
-@DEV:
-- Breaking out astro-only data and algorithms that
-  were being prototyped in io_time.py.
-- Multiple, distinct, smaller class modules are better.
-- Use algorithms for all heavenly movements and computations.
-- I've worked with moons so far.
-    - Add in planetary movements, seasons, stars.
-- See ontology lab (universe.py, region.py) for more ideas.
-- Try to use accurate-ish formulae for the calculations,
-  BUT don't get obsessed with it. Goal is to have something fun
-  to play with, not to be an accurate astro-geo simulator.
-- Get help from ChatGPT.
-- Consider randomization, raw generation as options, as well
-  as bodies that are pre-defined in the schema.
-- Don't worry about using /dev/shm for now.
-    - Just use a local file. Pickling objects is fine; does not
-      have to be JSON.  But it is useful to be able to search,
-      scan results.
+- may add in use of SASKAN_DB database also
 """
 
-# import glob
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-# import json
+import pendulum
 import pickle
 import random
 import time
 
-# from copy import copy
-# from dataclasses import dataclass   # fields
 from os import path
 from matplotlib.animation import FuncAnimation
 from pprint import pformat as pf        # noqa: F401
@@ -122,46 +49,118 @@ class UniverseModel:
            regulates time measurements within the GC.
     - XU = External Universe, outside of the GC
 
-    All values are defined as a 2-tuple where [0] = value
-    and [1] = type of measurement unit, as defined
+    All values are defined as a 2-tuple where
+    [0] = value and [1] = type of measurement unit, as defined
     by the SaskanMath() class. The type of object, i.e., what
     is being measured, is also identified via reference
-    to a value defined in the SaskanMath() class's "M"
-    dataclass.
+    to a value defined in SaskanMath()'s "M" dataclass.
+
+    For the purposes of the game, we consider mass and matter to
+    be the same thing. Antimatter equals matter at the big bang, but
+    then almost entirely vanishes. No one know why. Theoretically,
+    the universe should not exist since matter and antimatter should
+    have annihilated each other. But it does. So, we will assume that
+    the universe is made of matter, not antimatter, and that the
+    antimatter "went somewhere".
+    
+    For game purposes, the Total Universe is considered to be a sphere.
+    The origin point at the center of the sphere is where this known
+    universe began, its big bang point. Or in game terms, where the
+    last game universe ended and a new one began.
+
+    Volume of known universe: 3.566 x 10^80 cubic meters
+    Another estimate is 415,065 Glyr3  (cubic gigalight years)
     """
     def __init__(self,
+                 p_load_model_nm: str = None,
                  p_randomize: bool = False,
-                 p_random_seed: int = None,
-                 p_cluster_name: str = None):
+                 p_univ_name: str = None,
+                 p_cluster_name: str = None,
+                 p_pulsar_name: str = None,
+                 p_random_seed: int = None):
+        """Load or create Total Universe, External Universe,
+           Galactic Cluster and Timing Pulsar.
+        :args:
+        - p_load_model_nm (optional). If provided, load object from
+          pickled file with this name. Ignore all other parameters.
+          If not provided, pass all other params to generate_universe().
+        """
+        if p_load_model_nm is not None:
+            model_nm = p_load_model_nm if '.pkl' in p_load_model_nm\
+                else p_load_model_nm + '.pkl'
+            file_path = path.join(FI.D['APP'],
+                                  FI.D['ADIRS']['SAV'],
+                                  model_nm)
+            self.UNIV = FI.get_pickle(file_path)
+        else:
+            self.generate_universe(p_randomize,
+                                   p_univ_name,
+                                   p_cluster_name,
+                                   p_pulsar_name,
+                                   p_random_seed)
+        pp((self.UNIV))
+
+    def generate_universe(self,
+                          p_randomize: bool = False,
+                          p_univ_name: str = None,
+                          p_cluster_name: str = None,
+                          p_pulsar_name: str = None,
+                          p_random_seed: int = None):
+        """Define data for a new Total Universe, External Universe,
+           Galactic Cluster and Timing Pulsar. Use standard estimates
+           for known universe, with small tweaks for variety.
+        :args:
+        - p_randomize (optional). If true, randomize size of TU.
+        - p_univ_name (optional). If provided, name of Total Universe.
+        - p_cluster_name (optional). If provided, name of Galactic Cluster.
+        - p_pulsar_name (optional). If provided, name of Timing Pulsar.
+        - p_random_seed (optional). If provided, use to seed randomization.
+        """
         self.randomize = p_randomize
         self.random_seed = p_random_seed
-        # Put the tu values into a dictionary
-        self.tu = dict()
+        TU = dict()
         if self.randomize:
-            # Generate a random TU within predefined constraints
-            self.tu[SM.M.RD] = self.generate_random_radius()
+            # Generate random TU size within predefined constraints
+            TU[SM.M.RD] = self.generate_random_radius()
+            variance = TU[SM.M.RD][0] / 14.25e9
         else:
-            # Use predefined constraints for TU
-            self.tu[SM.M.RD] = (14.25e9, SM.M.GPC)  # 14.25 gigaparsecs
-        # May want to play with varying these values some...
-        self.tu[SM.M.ET] = (13.787e9, SM.M.GY)  # Age of TU in Gavoran years
-        self.tu[SM.M.ER] = (73.3, SM.M.UE)  # km/s per Mpc
-        self.tu[SM.M.MS] = (1.5e53, SM.M.KG)  # 1.5 x 10^53 kg = matter in TU
-        self.tu[SM.M.DE] = (0.683, SM.M.PCT)  # 68.3%, of total matter in TU
-        self.tu[SM.M.DM] = (0.274, SM.M.PCT)  # 27.4%, of total matter in TU
-        self.tu[SM.M.BM] = (0.043, SM.M.PCT)  # 4.3%, of total matter in TU
-        self.tu[SM.M.TU] = ("", SM.M.NM)
+            # Use predefined size for TU
+            TU[SM.M.RD] = (14.25e9, SM.M.GPC)  # 14.25 gigaparsecs
+            variance = 1.00
+        # Volume of known universe: 3.566 x 10^80 cubic meters
+        # or 415,065 cubic giga lightyears
+        TU[SM.M.VL] = (415065 * variance, SM.M.GLY3)
+        # Age of TU in Gavoran years
+        TU[SM.M.ET] = (13.787e9, SM.M.GY)
+        # Expansion rate: km/s per Mpc
+        TU[SM.M.ER] = (73.3, SM.M.UE)
+        # Total matter in TU: 1.5 x 10^53 kg
+        TU[SM.M.MS] = (1.5e53 * variance, SM.M.KG)
+        # Dark Energy: 68.3%, of total matter in TU
+        TU[SM.M.DE] = (TU[SM.M.MS][0] * 0.683, SM.M.KG)
+        # Dark Matter: 27.4%, of total matter in TU
+        TU[SM.M.DM] = (TU[SM.M.MS][0] * 0.274, SM.M.KG)
+        # Baryonic Matter: 4.3%, of total matter in TU
+        TU[SM.M.BM] = (TU[SM.M.MS][0] * 0.043, SM.M.KG)
+        tu_nm = p_univ_name 
+        if p_univ_name is None:
+            tu_nm = f"{pendulum.now().to_iso8601_string()}"
+            tu_nm = tu_nm.replace('-', '').replace(':', '')[:15]
+            tu_nm = "UNIV_" + tu_nm.replace('T', '_')
+        else:
+            tu_nm = p_univ_name 
+        TU[SM.M.TU] = (tu_nm, SM.M.NM)
         # Define the GC and TP within the TU
-        self.gc = self.generate_galactic_cluster(p_cluster_name)
-        self.tp = self.generate_timing_pulsar(p_cluster_name)
-        self.xu = self.generate_external_universe()
+        GC = self.generate_galactic_cluster(TU, p_cluster_name)
+        TP = self.generate_timing_pulsar(GC, p_cluster_name)
+        XU = self.generate_external_universe(TU, GC)
+        self.UNIV = {'tu': TU, 'xu': XU, 'gc': GC, 'tp': TP}
 
-    def generate_random_radius(self):
+    def generate_random_radius(self) -> tuple:
         """Generate a random TU radius within predefined constraints.
         :returns:
         - (float, int) - radius, unit of measurement (gigaparsecs)
         """
-
         if self.random_seed is not None:
             random.seed(self.random_seed)
 
@@ -171,9 +170,16 @@ class UniverseModel:
         return (random.uniform(min_radius, max_radius), SM.M.GPC)
 
     def generate_galactic_cluster(self,
-                                  p_cluster_name: str = None) -> dict:
+                                  p_TU: dict,
+                                  p_cluster_name: str = None,) -> dict:
         """
         Define the Galactic Cluster (GC) within the TU.
+
+        :args:
+        - p_TU (dict) - data for the Total Universe
+        - p_cluster_name (str) - (optional) name of the galactic cluster
+        :returns:
+        - (dict) - data defining the galactic cluster
 
         Generate a random location vector (x, y, z) in megaparsecs
         locating the GC center as a random point within the TU
@@ -210,21 +216,17 @@ class UniverseModel:
         V=4/3 X π X a X b X c
          where a, b, and c are the semi-axes of the ellipsoid.
 
-        :args:
-        - p_cluster_name (str) - (optional) name of the galactic cluster
-        :returns:
-        - (dict) - data defining the galactic cluster
         """
         # Name
         cluster_name = p_cluster_name
         if cluster_name is None:
             cluster_name = self.generate_random_cluster_name()
         # location of galactic cluster center relative to TU center
-        min_distance = (2/3) * self.tu[SM.M.RD][0]
+        min_distance = (2/3) * p_TU[SM.M.RD][0]
         while True:
-            lx = random.uniform(-self.tu[SM.M.RD][0], self.tu[SM.M.RD][0])
-            ly = random.uniform(-self.tu[SM.M.RD][0], self.tu[SM.M.RD][0])
-            lz = random.uniform(-self.tu[SM.M.RD][0], self.tu[SM.M.RD][0])
+            lx = random.uniform(-p_TU[SM.M.RD][0], p_TU[SM.M.RD][0])
+            ly = random.uniform(-p_TU[SM.M.RD][0], p_TU[SM.M.RD][0])
+            lz = random.uniform(-p_TU[SM.M.RD][0], p_TU[SM.M.RD][0])
             distance = (lx**2 + ly**2 + lz**2)**0.5
             if distance >= min_distance:
                 break
@@ -251,42 +253,100 @@ class UniverseModel:
             "shape": ((((x, y, z), SM.M.DIM),
                        ((a, b, c), SM.M.AX)), SM.M.EL),
             SM.M.DE:
-            (mass_pct * self.tu[SM.M.DE][0] * self.tu[SM.M.MS][0], SM.M.KG),
+            (mass_pct * p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0], SM.M.KG),
             SM.M.DM:
-            (mass_pct * self.tu[SM.M.DM][0] * self.tu[SM.M.MS][0], SM.M.KG),
+            (mass_pct * p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0], SM.M.KG),
             SM.M.BM:
-            (mass_pct * self.tu[SM.M.BM][0] * self.tu[SM.M.MS][0], SM.M.KG),
+            (mass_pct * p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0], SM.M.KG),
             SM.M.VL: (volume, SM.M.GPC3)}
-
         return gc_data
 
-    def generate_random_cluster_name(self):
+    def generate_random_cluster_name(self) -> str:
         """Generate a random name for the Galactic Cluster
         May want to add logic to come up with a name that is
         based on coordinates, or other legendary names,
         including in-game legends and myths.
+        :returns:
+        - (str) Name assigned to the GalacticCluster.
         """
         cluster_names = ["Crius Cluster", "Themis Cluster",
                          "Iapetus Cluster", "Cronus Cluster"]
         return random.choice(cluster_names)
 
     def generate_timing_pulsar(self,
-                               p_cluster_nm: str):
+                               p_GC: dict,
+                               p_cluster_nm: str,
+                               p_pulsar_nm: str = None) -> dict:
         """Define the timing pulsar within the GC.
+        :args:
+        - p_GC (dict) Data about the Galactic Cluster
+        - p_cluster_nm (str) Name of containing cluster
+        - p_pulsar_nm (str) Optional. Name of neutron star / timing pulsar
+        :returns:
+        - (dict) Data about the Timing Pulsar
+
         Compute a location within the GC that is
         a random distance from the GC center but
         relatively close (inner 1/3rd of the ellipsoid)
         to the core/center of the galactic cluster.
-        Keep in mind that the shape of the cluster
-        is ellipsoid, not a sphere; so the calculuation
-        will be a bit more complex than just using
+        Cluster shape is ellipsoid, not a sphere; so
+        calculuation is more complex than just using
         one radius value.
-        :args:
-        - p_cluster_nm (str) Name of containing cluster
+
+        cesium-133 vibrates exactly 9,192,631,770 times per second.
+        That is a meausre of frequency which could be reproduced
+        anywhere in the universe. But it is still culturally-bound in
+        that the second itself is derived from the planet Earth's
+        relationship to it Sun. This type of time measure is referred
+        to as an atomic clock.
+        To be more precise, an atomic second related to the unperturbed
+        ground state hyperfine transition frequency of the caesium-133 atom.
+
+        Meausuring the rate of pulsar pulses is also very reliable,
+        and is the basis for some navigation systems. Not all pulsars
+        have the same frequency, but they are all very regular.
+        See: https://link.springer.com/article/10.1007/s11214-017-0459-0
+
+        Although observing and correctly measuring the frequency of the
+        pulses of a pulsar is technolgically complex, it is very accurate
+        and has been proposed as a superior method of timekeeping for
+        autonomous spacecraft navigation.  A reference location (that is,
+        a particular mature rotation-based pulsar) must be selected.
+        This could be the basis for a universal time standard,
+        a "galactic clock" that is used, in the game context, by the Agency.
+
+        A pulsar is a highly magnetized rotating neutron star that emits
+        beams of electromagnetic radiation out of its magnetic poles.
+        Sort of like a galatic lighthouse. The periods range from
+        milliseconds to seconds.  The fastest known pulsar, PSR J1748-2446ad,
+        rotates 716 times per second, so its period is 1.4 milliseconds.
+        Pulsars can be more accurate, consistent than atomic clocks.
+
+        For the game purposes, we'll define the pulsar rate as close to
+        716 times per second.
+
+        The idea for the game is to make up a pulsar llike PSR J1748-2446ad,
+        assign it a very regular period, and use it as a universal time
+        in reference to all other units.
+
+        Time dilation is a phenomenon that occurs when a reference
+        frame is moving relative to another reference frame. In the
+        case of very fast travel, especially near the speed of light,
+        time itself will slow down for the traveler. Also, space-time
+        is curved in gravity wells like solar systems. This will need
+        to be accounted for if interstellar travel and/or near-light-speed
+        or (so-called) warp speed travel is allowed in the game.
         """
-        gc_x = self.gc["shape"][0][0][0][0]
-        gc_y = self.gc["shape"][0][0][0][1]
-        gc_z = self.gc["shape"][0][0][0][2]
+        # Generate a random radius within a predefined range
+        min_rate = 700  # pulses (rotational frequency) per 'galactic second'
+        max_rate = 732
+        pulse_rate = random.uniform(min_rate, max_rate)
+        # Compute the period in milliseconds
+        period_ms = (1 / pulse_rate) * 1000
+        # Determine pulsar location
+        gc_x = p_GC["shape"][0][0][0][0]
+        gc_y = p_GC["shape"][0][0][0][1]
+        gc_z = p_GC["shape"][0][0][0][2]
         max_x = (gc_x / 2) * 0.33
         max_y = (gc_y / 2) * 0.33
         max_z = (gc_z / 2) * 0.33
@@ -302,28 +362,53 @@ class UniverseModel:
             lz = random.uniform(-gc_z, gc_z)
             if lz <= max_z:
                 break
+        # Set star name
+        star_names = [(f"N_{str(lx)[:5].replace('-', '').replace(',', '')}_" +
+                      f"{str(ly)[:5].replace('-', '').replace(',', '')}_" +
+                      f"{str(lz)[:5].replace('-', '').replace(',', '')}"),
+                      "Timing Pulsar", "Celestial Chrono", "Luminous Sentry",
+                      "Eternal Beacon", "Pendula Galaxia", "Nova Clock",
+                      "Star Clock"]
+        star_nm = p_pulsar_nm if p_pulsar_nm is not None\
+            else random.choice(star_names)
         tp_data = {
-            SM.M.TP: ("Clock Pulsar", SM.M.NM),
+            SM.M.TP: (star_nm, SM.M.NM),
             "container": (p_cluster_nm, SM.M.GC),
-            f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC)
+            f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
+            SM.M.GS: (pulse_rate, SM.M.PS),
+            SM.M.PR: (period_ms, SM.M.GMS)
         }
         return tp_data
 
-    def generate_external_universe(self):
+    def generate_external_universe(self,
+                                   p_TU: dict,
+                                   p_GC: dict) -> dict:
         """Define the External Universe (XU) within the TU.
-        It contains all the mass that is not in the GC.
+        :args:
+        - TU (dict) Data about the Total Universe.
+        - GC (dict) Data about the Galacti Cluster.
+
+        XU contains all the mass that is not in the GC.
         """
         xu_data = {
             SM.M.XU: ("Beyond the Rim", SM.M.NM),
             "container": ("", SM.M.TU),
-            SM.M.DE: (((self.tu[SM.M.DE][0] * self.tu[SM.M.MS][0]) -
-                       self.gc[SM.M.DE][0]), SM.M.KG),
-            SM.M.DM: (((self.tu[SM.M.DM][0] * self.tu[SM.M.MS][0]) -
-                       self.gc[SM.M.DM][0]), SM.M.KG),
-            SM.M.BM: (((self.tu[SM.M.BM][0] * self.tu[SM.M.MS][0]) -
-                       self.gc[SM.M.BM][0]), SM.M.KG)
+            SM.M.DE: (((p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0]) -
+                       p_GC[SM.M.DE][0]), SM.M.KG),
+            SM.M.DM: (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) -
+                       p_GC[SM.M.DM][0]), SM.M.KG),
+            SM.M.BM: (((p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0]) -
+                       p_GC[SM.M.BM][0]), SM.M.KG)
         }
         return xu_data
+
+    def save_universe(self):
+        """Pickle UNIV object and write to a file."""
+        file_path = path.join(FI.D['APP'],
+                              FI.D['ADIRS']['SAV'],
+                              self.UNIV['tu'][SM.M.TU][0] + '.pkl')
+        FI.write_pickle(file_path, self.UNIV)
+        print(f"UniverseModel saved to {str(file_path)}")
 
     # Example usage:
     # Create a UniverseModel instance and generate a random Galactic Cluster
@@ -348,7 +433,7 @@ class UniverseModel:
     # model = UniverseModel(randomize=True)
     # model.save_to_file("universe_model.pkl")
 
-    # Load the model from a file
+    # Load the model (instantiated class object) from a file
     # Take note -- a class object can be instantiated from a pickle...
     # loaded_model = UniverseModel.load_from_file("universe_model.pkl")
 
@@ -390,8 +475,6 @@ class AstroIO(object):
         building on the previous one and accepting parameters.
 
 
-
-
         - TU = The Total Universe. The entire game universe. Most of it
         will be non-playable. For game purposes, define it as a sphere
         with a radius close to 14.25 gigaparsecs, expanding at a rate of 73.3 kilometers per second per megaparsec, in all directions.
@@ -418,18 +501,6 @@ class AstroIO(object):
         For game purposes, take 4.3% as the approximate area of
         the TU sphere that contains galaxies, stars, planets, etc.
 
-        For the purposes of the game, consider mass and matter to
-        be the same thing. Antimatter equals matter at the big bang, but
-        then almost entirely vanishes. No one know why. Theoretically,
-        the universe should not exist since matter and antimatter should
-        have annihilated each other. But it does. So, we will assume that
-        the universe is made of matter, not antimatter, and that the
-        antimatter "went somewhere".
-
-        The origin point at the center of the sphere is where this known
-        universe began, its big bang point. Or in game terms, where the
-        last game universe ended and a new one began.
-
         It is exapanding in all directions at a rate of 73.3 kilometers
         per second per megaparsec.
 
@@ -441,20 +512,9 @@ class AstroIO(object):
         For game purposes, I will take 4.3% as the approximate area of
         the TU sphere that contains galaxies, stars, planets, etc.
 
-        For the purposes of the game, we will consider mass and matter to
-        be the same thing. Antimatter equals matter at the big bang, but
-        then almost entirely vanishes. No one know why. Theoretically,
-        the universe should not exist since matter and antimatter should
-        have annihilated each other. But it does. So, we will assume that
-        the universe is made of matter, not antimatter, and that the
-        antimatter "went somewhere".
-
-        Volume of known universe: 3.566 x 10^80 cubic meters
-        Another estimate is 415,065 Glyr3  (cubic gigalight years)
-
         The universe may be infinite. We guess at measure of the
         __observable__ universe. Being accurate is hard since no one
-        really knows its shape, and it is expanding, and that expansi
+        really knows its shape, and it is expanding, and that expansion
         will limited by the mass of all the matter in the universe, and
         the nature of that mass is also a bit of a mystery.
         We can use these numbers, and vary them a little, just for fun!
@@ -476,6 +536,48 @@ class AstroIO(object):
         Situate some supernovae, black holes, galaxy cluster, etc. in
         the XU.
 
+        Angular diameter is the apparent size of an object as
+        seen from a point of view, i.e., how big a moon appears
+        in the sky. Given the distance (d) and diameter (D) of
+        an object, its angular diameter (δ) can be calculated
+        as follows:
+        δ = 2 × arctan(D/2d)
+
+        In this class, we want to focus on
+        - actual and apparent (from Gavor) sizes
+        - mass and gravity
+        - distance from Gavor
+        - relative motion (speed, direction)
+        Try to avoid:
+        - Jumping into time units.
+            - See section of defining a second in non-relative terms.
+            - Think of days as rotations of planet or moon, years as orbits.
+        - Making the math too complex
+        - Hard-coding values too much, even in schema
+
+        Math...
+
+        The area of a sphere is 4 * Pi * radius squared (4 * pi * r**2).
+
+        The distance between two points (x1, y1), (x2, y2) on a plane is:
+        the square root of (x2 - x1) squared plus (y2 - y1) squared,
+        that is:  sqrt((x2 - x1)**2 + (y2 - y1)**2)
+
+        The distance between two points in xyz-space is square root of
+        sum of the squares of the differences between coordinates.
+        That is,
+            given P1 = (x1,y1,z1) and P2 = (x2,y2,z2),
+            the distance between P1 and P2 is given by
+            d(P1,P2) = sqrt ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2).
+
+        This measures will come into play when we start to define bodies
+        in space and the graviational effect they have on each other.
+
+        A common measure of mass is the solar mass, which is the mass of
+        our Sun, Sol. In the game world, of Fatun. In either case, it
+        is unit. The mass of the Sun is 1.9891 x 10^30 kg. But one solar
+        mass is 1.0.
+
         Define one or more python methods, organized in a class module,
         to generate a model TU for game play  purposes. It should indicate
         size, mass, rate of expansion, etc., using center of sphere as
@@ -492,25 +594,19 @@ class AstroIO(object):
         to save the model to a file, such as a pickled file, and to load it
         from a file.
 
-
-
-
         - GG - The Game Galaxy: section of TU that is playable.
         It is one galaxy within the GC. There can be multiple GG's
         within a GC.
 
+        - SSG - Simulated Star Systems Group is a section of the GG where
+        multiple star systems are simulated, including their planets and
+        the planets' satellites. It begins with describing the star only.
+        Fill in other details only as needed. The SSG is a defined playable
+        area of the GG.
 
+        There can be multiple SSG's within a GG.
 
-        - SG - Simulated Galaxy a section of the GG where star systems
-        are simulated, including their planets and the planets' satellites.
-        It begins with describing the star only. Fill in other details only
-        as needed. The SG is a defined playable area of the GG.
-
-        There can be multiple SG's within a GG.
-
-
-
-        - SSS - Simulated Star System. A section of the SG where a star
+        - SSS - Simulated Star System. A section of the SSG where a star
         and its planets are simulated. It begins with describing the star
         only. Fill in other details only as needed. The SSS is a defined
         playable area of the SG. There can be multiple SSS's within a SG.
@@ -544,37 +640,6 @@ class AstroIO(object):
         expansion, etc. for each section of such a play Universe.
         """
         pass
-
-        def set_TU() -> dict:
-            """
-            - Total Universe (TU): a sphere measured in gigaparsecs, the
-            largest possible unit defined for game play.
-
-            Diameter of the known universe is about 28.5 gigaparsecs;
-            radius is 14.25 gigaparsecs. This will be fairly constant,
-            with only minor changes for each generation. It fluctuates
-            as the universe expands. In the old version I used the "big
-            bang" animation to center the universe, and as a splash screen,
-            similar to some video games.
-
-                - So, either pick a random diameter within constraints, or
-                allow for an input indicating a slightly larger or slightly
-                smaller universe.
-
-            Age of the TU is 13.787±0.020 billion years, give or take, with
-            only Agency calendars going back more than 4,000 Gavoran years
-            or so.
-
-            For unit measurement conversions, see the 'C' dataclass.
-            For unit names, see the 'M' dataclass.
-
-
-            """
-
-            return TU
-
-        TU = set_TU()
-        pp((self.M.TU.title(), TU))
 
     def define_pulsar(self):
         """
