@@ -438,6 +438,122 @@ class UniverseModel:
     # loaded_model = UniverseModel.load_from_file("universe_model.pkl")
 
 
+class GalaxyModel:
+    """Class for modeling the Game Galaxy (GG).
+    """
+
+    def __init__(object,
+                 p_UNIV: object):
+        """Initialize class for a Game Galaxy.
+        :args:
+        - p_UNIV (UniverseModel object) - an instantiated universe
+        - p_galaxy_nm (str) Optional. Name of the Game Galaxy.
+
+        There can be one to many GG's within the Galactic Cluster.
+        GG's should not overlap with one another, so it is 
+        necessary to have access to any existing Game Galaxies when
+        generating a new one.
+
+        Strictly speaking there are both galactic groups and galactic
+        clusters. The latter have thousands of galaxies; the former
+        have hundreds of galaxies. For game purposes, we will refer
+        to both as "clusters". May want to revisit the GC generator
+        to distinguish them, but for now, let's just assume that our
+        game GC is a cluster, that it can hold thousands of galaxies.
+
+        Size and content.
+        - Large - trillions of stars, a millions light-years diameter.
+        - Small - a few thousand stars, a few hundred light-years diameter.
+        - Almost always a supermassive black hole at the center, on the 
+          order of 4.1 million solar (Sol) masses.
+
+        Shape:
+        - Most are spiral or elliptical in shape, but this is located within
+          a "halo" defined by the gravity well of the galactic core.
+        - Some have an irregular shape.
+        - Many have a galactic bulge at the center. More common in larger
+          clusters. The bulge is thought to have formed by the merger of
+          nearby galaxies. 
+        - An elliptical bulge of densely-packed stars & globules surrounds the
+          nucleus (super-massive black hole or SMBH). Maybe 10% of radius.
+          The bulge is thicker than the surrounding "disk". A smaller, newer,
+          more isolated galaxy may have a SMBH without a bulge.
+
+        Sprial shape:
+        - Spiral arms of stars emerge from the bulge.  Two very large, emitted
+          from the ends of the central bulge; two very sparse, also emitted
+          from the ends, trailing "behind" the large spirals. The minor spiral
+          may or may not join up with "its" major spiral.
+        - The thickness of the arms diminishes the further from the bulge.
+        - Seen from the side, the galaxy looks like a classic "UFO" shape.
+        - Distribution of stars in the sprials varies and there are outliers.
+        - Earth-Moon system in about 2/3rds of the way from the core, in a 
+          minor arm which later rejoins a major arm. 
+        - Some globular clusters are located far from the "disk" but within
+          the "halo" (sphere / gravity well) of the core.
+
+        Disk shape:
+        - Stars are arranged move evenly in a flattish "disk" emanating from
+          the core.
+
+        Movement:
+        - Galaxies generally rotate around their core.
+        - The Earth's solar system rotates around the Milky Way core
+          once every 240 million Earth years.
+        - This kind of movement is interesting, but probably not
+          relevant to the game until (maybe) I add space travel.
+        - The Milky Way is medium sized sprial. About 100,000 light-years
+          across, and 1,000 light years thick. Roughly a roundish ellipsoid.
+          It is thought to have 100 to 400 billion stars. Let's just pretend
+          the number is 300 billion.
+        - The entire galaxy moves at about 600 km/second with respect to
+          an "extragalactic frame of reference". For game purposes, we can
+          define some kind of galactic movement around the center of the GC,
+          and then define a movement of the GC around the center of the TU.
+
+        Measurement:
+        - We divide the Milky Way into quadrants releative to the location of
+          our Sun.
+        - For game purposes, it will probably make more sense to use galactic
+          core as the center/reference point.
+
+        Simulation:
+        - The first step might be to define a distribution pattern of baryonic
+          matter. Not concerned with dark energy and dark matter for now.
+        - Galactic bulge: may be disk-like, elliptoid, spherical, non-existent. 
+        - There is much more... stars are born and die. I am not entirely sure
+          how relevant any that will be for game purposes, since the timelines
+          are so vastly out of line. The game covers about 5,000 Gavoran years, 
+          and so far is entirely from the POV of one planet, though that could
+          expand. But even then, I am thinking maybe 50,000 years and keeping
+          to solar systems relatively close to the main planet. We'll see.
+        - Suggest we just make up some proportions, for example:
+            - SMBH is about 4.1 million solar masses.
+            - Bulge is roughly the same.
+            - So that is 8.2 million out of ~300 billion. 
+            - Make a proportion of 2.7333e-05 mass in core vs. the arms.
+            - Just compute a number of start in the galaxy, then divide up
+              the baryonic mass available. For each star, goof around with
+              that number, seeing if I can't come up with something reasonably
+              fun  for a G-type yellow star system, etc. (then keep breaking
+              it down for planets, satellites, asteroids, globular clusters,
+              etc.) It doesn't really matter than much, does it? 
+            - I suppose some kind of algorithm that says, OK, if I have x
+              amount of matter available, then I should allocate n star systems.
+
+        Tweaks to UniverseModel:
+        - Determine if the Galactic Cluster is large, medium or small.
+        - Make that available as a parameter.
+        - Adjust the GC size based on that. Record S, M, L in the GC object. 
+        - Allow for multiple, but non-overlapping Galactic Clusters.
+        - Go ahead and start using sqlite to keep track of the
+          astronomical inventory? Pickle for details, sql for index,
+          store location of pickles in the database. If that is too much
+          trouble, then just use JSON.
+        """
+        pass
+
+
 class AstroIO(object):
     """Class for astronomical data and methods.
     """
@@ -449,150 +565,7 @@ class AstroIO(object):
         self.STARS = dict()
         self.PLANETS = dict()
         self.MOONS = dict()
-
-    def set_astro_file_name(self,
-                            p_schema: str) -> path:
-        """Return full path to an Astro data file.
-        They are stored in $APP/cache/
-        :args:
-        - p_schema (str) - like 'universe', 'galaxy',
-            'star', 'planet', or 'moon'
         """
-        file_nm = path.join(
-            FI.D["APP"], FI.D["ADIRS"]["SAV"],
-            f"astro_{p_schema}.pickle")
-        return file_nm
-
-    def define_universe(self,
-                        p_smaller: bool = False,
-                        p_larger: bool = False) -> dict:
-        """Define universe. Drawing on some of the concepts in the old
-        'universe.py' module (see ontology_lab).
-
-        Concepts defining the game space include the following.
-
-        There should be callable python methods for each of these,
-        building on the previous one and accepting parameters.
-
-
-        - TU = The Total Universe. The entire game universe. Most of it
-        will be non-playable. For game purposes, define it as a sphere
-        with a radius close to 14.25 gigaparsecs, expanding at a rate of 73.3 kilometers per second per megaparsec, in all directions.
-
-        It is the largest astronomical  unit  defined for game play.  Size
-        should be fairly constant, with only minor changes for each newly
-        created object; then should fluctuates as the game universe expands during game time (only relevant for very long-lasting scenarios).
-
-        Age of a TU at start of a game is 13.787±0.020 billion years, give or take.  The game software can generate multiple universes, but each
-        is assumed to "occupy" the same space and time as the others and
-        they do not interact with each other.
-
-        The origin point at the center of the sphere is where this known
-        universe began, its big bang point. Or in game terms, where the
-        last game universe ended and a new one began. This may be used in
-        a ludic context related to generations of "karma" and so on, but
-        has no actual physical model.
-
-        Dark Energy comprisees 68.3% of the universe, Dark Matter 27.4%,
-        remaining 4.3% is baryonic matter (stars, planets, life, etc.),
-        also referred to as "ordinary matter".
-
-        Ordinary matter/mass = approximately 1.5×10^53 kg
-        For game purposes, take 4.3% as the approximate area of
-        the TU sphere that contains galaxies, stars, planets, etc.
-
-        It is exapanding in all directions at a rate of 73.3 kilometers
-        per second per megaparsec.
-
-        Dark Energy comprisees 68.3% of the universe, Dark Matter 27.4%,
-        remaining 4.3% is baryonic matter (stars, planets, life, etc.),
-        also referred to as "ordinary matter".
-
-        Ordinary matter/mass = 1.5×10^53 kg
-        For game purposes, I will take 4.3% as the approximate area of
-        the TU sphere that contains galaxies, stars, planets, etc.
-
-        The universe may be infinite. We guess at measure of the
-        __observable__ universe. Being accurate is hard since no one
-        really knows its shape, and it is expanding, and that expansion
-        will limited by the mass of all the matter in the universe, and
-        the nature of that mass is also a bit of a mystery.
-        We can use these numbers, and vary them a little, just for fun!
-
-        - GC - The Game galaxy Cluster which contains the playable galaxy.
-        It is located in the XU, but is named and defined in a bit more
-        detail, including have some of its galaxies identified. It's
-        definition includes info about the galactic core.
-
-        - TP = The timing pulsar. Within a GC define a pulsar that is
-        used to measure time by space-traveling civilizations within that
-        cluster. It is a very regular pulsar, and is used as a universal time
-        standard. It is not the only pulsar in the cluster, but is the one
-        that is used for timekeeping.
-
-        - XU - External Universe: section(s) of TU that are not playable;
-        no detailed galactic clusters.  Everything outside of the GC.
-        Simulate some forces, movement, but not any inhabited systems.
-        Situate some supernovae, black holes, galaxy cluster, etc. in
-        the XU.
-
-        Angular diameter is the apparent size of an object as
-        seen from a point of view, i.e., how big a moon appears
-        in the sky. Given the distance (d) and diameter (D) of
-        an object, its angular diameter (δ) can be calculated
-        as follows:
-        δ = 2 × arctan(D/2d)
-
-        In this class, we want to focus on
-        - actual and apparent (from Gavor) sizes
-        - mass and gravity
-        - distance from Gavor
-        - relative motion (speed, direction)
-        Try to avoid:
-        - Jumping into time units.
-            - See section of defining a second in non-relative terms.
-            - Think of days as rotations of planet or moon, years as orbits.
-        - Making the math too complex
-        - Hard-coding values too much, even in schema
-
-        Math...
-
-        The area of a sphere is 4 * Pi * radius squared (4 * pi * r**2).
-
-        The distance between two points (x1, y1), (x2, y2) on a plane is:
-        the square root of (x2 - x1) squared plus (y2 - y1) squared,
-        that is:  sqrt((x2 - x1)**2 + (y2 - y1)**2)
-
-        The distance between two points in xyz-space is square root of
-        sum of the squares of the differences between coordinates.
-        That is,
-            given P1 = (x1,y1,z1) and P2 = (x2,y2,z2),
-            the distance between P1 and P2 is given by
-            d(P1,P2) = sqrt ((x2 - x1)2 + (y2 - y1)2 + (z2 - z1)2).
-
-        This measures will come into play when we start to define bodies
-        in space and the graviational effect they have on each other.
-
-        A common measure of mass is the solar mass, which is the mass of
-        our Sun, Sol. In the game world, of Fatun. In either case, it
-        is unit. The mass of the Sun is 1.9891 x 10^30 kg. But one solar
-        mass is 1.0.
-
-        Define one or more python methods, organized in a class module,
-        to generate a model TU for game play  purposes. It should indicate
-        size, mass, rate of expansion, etc., using center of sphere as
-        (rough) reference point to identify TU, XU, and GC boundaries and
-        characteristics, including the total baryonic mass available to work
-        with in the GC and location of the TP within the GC.
-
-        Parameters:  allow for either accepting  a random diameter within
-        pre-defined constraints, or for a simple input indicating to
-        generate the model of a slightly larger or slightly smaller
-        universe, in relationship to the predefined constraints.
-
-        Return the model as an instantiated class object. Include methods
-        to save the model to a file, such as a pickled file, and to load it
-        from a file.
 
         - GG - The Game Galaxy: section of TU that is playable.
         It is one galaxy within the GC. There can be multiple GG's
@@ -624,8 +597,6 @@ class AstroIO(object):
         the inner planets.  The sun should be a yellow dwarf, not a
         red dwarf, so that it can support life.
 
-
-
         SPS - Simulated Planetary System. A section of the SSS where
         a planet and its satellites are simulated. It begins with the
         planet. Fill in other details only as needed. The SPS is a
@@ -638,58 +609,6 @@ class AstroIO(object):
 
         Based on inputs and rules, return dimensions, mass, rate of
         expansion, etc. for each section of such a play Universe.
-        """
-        pass
-
-    def define_pulsar(self):
-        """
-        cesium-133 vibrates exactly 9,192,631,770 times per second.
-        That is a meausrement of frequency which could be reproduced
-        anywhere in the universe. But it is still culturally-bound in
-        that the second itself is derived from the planet Earth's
-        relationship to it Sun. This type of time measure is referred
-        to as an atomic clock.
-        To be more precise, an atomic second related to the unperturbed
-        ground state hyperfine transition frequency of the caesium-133 atom.
-
-
-        Meausuring the rate of pulsar pulses is also very reliable,
-        and is the basis for some navigation systems. Not all pulsars
-        have the same frequency, but they are all very regular.
-        See: https://link.springer.com/article/10.1007/s11214-017-0459-0
-
-        Although observing and correctly measuring the frequency of the
-        pulses of a pulsar is technolgically complex, it is very accurate
-        and has been proposed as a superior method of timekeeping for
-        autonomous spacecraft navigation.  A reference location (that is,
-        a particular mature rotation-based pulsar) must be selected.
-        This could be the basis for a universal time standard,
-        a "celestial clock" that is used by the Agency.
-
-        A pulsar is a highly magnetized rotating neutron star that emits
-        beams of electromagnetic radiation out of its magnetic poles.
-        Sort of like a galatic lighthouse. The periods range from
-        milliseconds to seconds.  The fastest known pulsar, PSR J1748-2446ad,
-        rotates 716 times per second, so its period is 1.4 milliseconds.
-        Pulsars can be more accurate, consistent than atomic clocks.
-
-        The idea for the game is to make up a pulsar llike PSR J1748-2446ad,
-        assign it a very regular period, and use it as a universal time
-        in reference to all other units.
-
-
-        Time dilation is a phenomenon that occurs when a reference
-        frame is moving relative to another reference frame. In the
-        case of very fast travel, especially near the speed of light,
-        time itself will slow down for the traveler. Also, space-time
-        is curved in gravity wells like solar systems. This will need
-        to be accounted for if interstellar travel and/or near-light-speed
-        or (so-called) warp speed travel is allowed in the game.
-        """
-        pass
-
-    def define_galactic_cluster(self):
-        """Define galactic cluster (GC) inside an IU structure.
         """
         pass
 

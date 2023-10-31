@@ -12,5 +12,6 @@
                "MON": "mon"},
     "LOGFILE": "saskan_log",
     "MONFILE": "saskan_mon",
+    "DBNAME": "SASKAN_DB",
     "LOGCFG": "DEBUG"
 }
