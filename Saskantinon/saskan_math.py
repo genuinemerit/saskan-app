@@ -187,7 +187,7 @@ class SaskanMath(object):
         """Types of measurements or objects assigned to a
         meaningful abbreviation and name in English.
         """
-        # math, geometry, currency
+        # math, general geometry
         AR = "area"
         AX = "axes (a, b, c)"
         DC = "decimal"
@@ -198,6 +198,7 @@ class SaskanMath(object):
         LG = "length"
         PCT = "percent"
         RD = "radius"
+        SZ = "size"
         VE = "vector"
         VL = "volume"
         WD = "width"
@@ -207,6 +208,7 @@ class SaskanMath(object):
         EL = "ellipsoid"
         RC = "rectangle"
         SH = "sphere"
+        SP = "spiral"
         # weight
         GM = "grams"
         KG = "kilograms"
@@ -238,7 +240,7 @@ class SaskanMath(object):
         THWAB = "thwabs"    # saskan
         TWA = "twas"        # saskan
         YUZA = "yuzas"      # saskan
-        # area
+        # area, volume
         M2 = "square meters"
         M3 = "cubic meters"
         # distance, geographical
@@ -287,8 +289,10 @@ class SaskanMath(object):
         ER = "expansion rate"           # of a volume
         UE = "universal expansion KM/S per MPC"  # km/s per Mpc
         PR = "period of rotation"
-        # names, labels
+        # names, labels, qualities
         NM = "name"
+        REL = "relative"
+        SHP = "shape"
 
     @dataclass
     class C():

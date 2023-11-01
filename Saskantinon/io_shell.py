@@ -8,8 +8,10 @@ we do want to get feedback from the shell and not use nohup.
 
 Not sure if this will work anywhere but Linux. Probably not.
 """
+import hashlib      # generate hash keys
 import os
 import pendulum
+import secrets
 
 import subprocess as shl
 
@@ -25,6 +27,27 @@ class ShellIO(object):
         """Initialize the object.
         """
         pass
+
+    @classmethod
+    def get_key(cls):
+        """Generate a cryptographically strong key.
+        """
+        key = secrets.token_urlsafe(32)
+        return key
+
+    @classmethod
+    def get_hash(cls,
+                 p_data_in: str) -> str:
+        """Create hash of input string, returning UTF-8 hex-string.
+           Use SHA-512 by default.
+        :args:
+        - p_data_in: {str} data to hash
+        :returns:
+        - {str} hex-string hash key
+        """
+        v_hash = hashlib.sha512()
+        v_hash.update(p_data_in.encode("utf-8"))
+        return v_hash.hexdigest()
 
     @classmethod
     def get_standard_date(cls,

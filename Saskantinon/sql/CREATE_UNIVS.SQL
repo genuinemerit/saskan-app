@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS univs (
+	_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+	object_path TEXT NOT NULL
+)

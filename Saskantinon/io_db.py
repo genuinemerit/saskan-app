@@ -2,6 +2,8 @@
 # coding: utf-8
 
 """Manage data for saskan_data app using sqlite3.
+   - Set all DB datatypes to Text, to begin with.
+   - Later, add hash_id and audit fields.
 
 :module:    io_db.py
 :classes:
@@ -81,19 +83,25 @@ class DataBase(object):
         return SQL
 
     def get_db_columns(self,
-                       p_sql: str) -> list:
+                       p_tbl_nm: str = None,
+                       p_sql: str = None) -> list:
         """ For currently open connection and cursor, for the
         specified SQL SELECT file, return a list of the table's
         column names.
         :args:
-        - p_sql (str) Text content of a well-structured
-          SQL SELECT file, where table name is the last
-          word in the first line.
+        - p_tbl_nm (str) Optional. If provided, use this instead
+          of scanning the SQL code.
+        - p_sql (str) Optional. Text content of a well-structured
+          SQL SELECT file, where table name is the last word in the
+          first line. Use this is p_tbl_nm is not provided.
         :returns:
         - (list) of column names for the table
         """
-        SQL = p_sql
-        tbl_nm = SQL.split('\n')[0].split(' ')[-1]
+        if p_tbl_nm is None:
+            SQL = p_sql
+            tbl_nm = SQL.split('\n')[0].split(' ')[-1]
+        else:
+            tbl_nm = p_tbl_nm
         self.cur.execute(f"PRAGMA table_info({tbl_nm})")
         cols = self.cur.fetchall()
         col_nms = [c[1] for c in cols]
@@ -101,7 +109,8 @@ class DataBase(object):
 
     def execute_select(self,
                        p_sql_nm: str) -> dict:
-        """Run a SQL SELECT file.
+        """Run a SQL SELECT file which does not use
+           any dynamic parameters.
         :args:
         - p_sql_nm (str): Name of external SQL file
         :returns:
@@ -109,13 +118,49 @@ class DataBase(object):
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-        COLS = self.get_db_columns(SQL)
+        COLS = self.get_db_columns(p_sql=SQL)
         self.cur.execute(SQL)
         DATA = [r for r in self.cur.fetchall()]
         result = {col: [row[i] for row in DATA]
                   for i, col in enumerate(COLS)}
         self.disconnect_db()
         return result
+
+    def execute_dml(self,
+                    p_sql_nm: str):
+        """Run a SQL CREATE, DELETE, INSERT or MODIFY file
+           which does not use any dynamic parameters.
+        :args:
+        - p_sql_nm (str): Name of external SQL file
+        """
+        self.connect_db()
+        SQL = self.get_sql_file(p_sql_nm)
+        self.cur.execute(SQL)
+        self.db_conn.commit()
+        self.disconnect_db()
+
+    def execute_dml_proc(self,
+                         p_sql_nm: str,
+                         p_tbl_nm: str,
+                         p_values: dict):
+        """Run a SQL INSERT or UPDATE file
+           which uses dynamic parameters.
+           Parameters are column names.
+        :args:
+        - p_sql_nm (str): Name of external SQL file
+        - p_tbl_nm (str): Name of SQL table being modfified
+        - p_values (dict): Column Name -> Value to insert or update
+        """
+        self.connect_db()
+        SQL = self.get_sql_file(p_sql_nm)
+        COLS = self.get_db_columns(p_tbl_nm=p_tbl_nm)
+        for col_nm, col_val in p_values.items():
+            SQL = SQL.replace(f"%{col_nm.lower()}%", f"'{col_val}'")
+        # print("DEBUG: Modified SQL text: ")
+        # print(SQL)
+        self.cur.execute(SQL)
+        self.db_conn.commit()
+        self.disconnect_db()
 
     # =======================================================
     # Worry about all this later...

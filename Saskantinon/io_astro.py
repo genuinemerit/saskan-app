@@ -34,10 +34,14 @@ from matplotlib.animation import FuncAnimation
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
 
+from io_db import DataBase              # type: ignore
 from io_file import FileIO              # type: ignore
+from io_shell import ShellIO            # type: ignore
 from saskan_math import SaskanMath      # type: ignore
 
+DB = DataBase()
 FI = FileIO()
+SI = ShellIO()
 SM = SaskanMath()
 
 
@@ -337,7 +341,6 @@ class UniverseModel:
         to be accounted for if interstellar travel and/or near-light-speed
         or (so-called) warp speed travel is allowed in the game.
         """
-        # Generate a random radius within a predefined range
         min_rate = 700  # pulses (rotational frequency) per 'galactic second'
         max_rate = 732
         pulse_rate = random.uniform(min_rate, max_rate)
@@ -404,38 +407,15 @@ class UniverseModel:
 
     def save_universe(self):
         """Pickle UNIV object and write to a file."""
-        file_path = path.join(FI.D['APP'],
-                              FI.D['ADIRS']['SAV'],
-                              self.UNIV['tu'][SM.M.TU][0] + '.pkl')
+        univ_nm = self.UNIV['tu'][SM.M.TU][0]
+        file_path = path.join(FI.D['APP'], FI.D['ADIRS']['SAV'],
+                              univ_nm + '.pkl')
         FI.write_pickle(file_path, self.UNIV)
         print(f"UniverseModel saved to {str(file_path)}")
-
-    # Example usage:
-    # Create a UniverseModel instance and generate a random Galactic Cluster
-    # model = UniverseModel(randomize=True)
-    # gc = model.generate_galactic_cluster()
-    # print(gc)
-
-    # Use standard io_file() methods instead....
-    # def save_to_file(self, filename):
-    #     # Save the model to a file using pickle
-    #     with open(filename, "wb") as file:
-    #         pickle.dump(self, file)
-
-    # @classmethod
-    # def load_from_file(cls, filename):
-    #     # Load the model from a file using pickle
-    #     with open(filename, "rb") as file:
-    #         return pickle.load(file)
-
-    # Example usage:
-    # Create a UniverseModel instance and save it to a file
-    # model = UniverseModel(randomize=True)
-    # model.save_to_file("universe_model.pkl")
-
-    # Load the model (instantiated class object) from a file
-    # Take note -- a class object can be instantiated from a pickle...
-    # loaded_model = UniverseModel.load_from_file("universe_model.pkl")
+        DB.execute_dml_proc("INSERT_UNIV_PROC", "univs",
+                            {"_id": SI.get_key(), "name": univ_nm,
+                             "object_path": file_path})
+        pp((DB.execute_select("SELECT_ALL_UNIVS")))
 
 
 class GalaxyModel:
@@ -443,11 +423,16 @@ class GalaxyModel:
     """
 
     def __init__(object,
-                 p_UNIV: object):
+                 p_UNIV: object,
+                 p_load_model_nm: str = None,
+                 p_galaxy_nm: str = None,
+                 p_galaxy_sz: str = "M"):
         """Initialize class for a Game Galaxy.
         :args:
         - p_UNIV (UniverseModel object) - an instantiated universe
-        - p_galaxy_nm (str) Optional. Name of the Game Galaxy.
+        - p_load_model_nm (str) Optional. Name of instantiated Game Galaxy.
+            If provided, load object from pickle and ignore remaining params.
+            Otherwise, generate new GG using remaining params.
 
         There can be one to many GG's within the Galactic Cluster.
         GG's should not overlap with one another, so it is 
@@ -462,7 +447,8 @@ class GalaxyModel:
         game GC is a cluster, that it can hold thousands of galaxies.
 
         Size and content.
-        - Large - trillions of stars, a millions light-years diameter.
+        - Large - trillions of stars, millions of light-years diameter.
+        - Medium - billions or millions of stars. 100,000-ish light-years diameter
         - Small - a few thousand stars, a few hundred light-years diameter.
         - Almost always a supermassive black hole at the center, on the 
           order of 4.1 million solar (Sol) masses.
@@ -551,8 +537,99 @@ class GalaxyModel:
           store location of pickles in the database. If that is too much
           trouble, then just use JSON.
         """
-        pass
+        if p_load_model_nm is not None:
+            model_nm = p_load_model_nm if '.pkl' in p_load_model_nm\
+                else p_load_model_nm + '.pkl'
+            file_path = path.join(FI.D['APP'],
+                                  FI.D['ADIRS']['SAV'],
+                                  model_nm)
+            self.GG = FI.get_pickle(file_path)
+        else:
+            self.generate_galaxy(p_galaxy_nm,
+                                 p_galazy_sz)
+        pp((self.GG))
 
+    def generate_galaxy(p_galaxy_nm: str = None,,
+                        p_galaxy_sz: str = "M")
+        """
+        Generate a new Game Galaxy (GG) object.
+        :args:
+        - p_galaxy_nm (str) Optional. Name of the Game Galaxy.
+        - p_galaxy_sz (str) Optional. Size of Game Galaxy.
+                            Must be in ('S', 'M', 'L').
+                            Defaults to 'M'.
+        """
+        self.GG = dict()
+        gg_sz= p_galaxy_sz.upper() if p_galaxy_sz in ('S', 'M', 'L') else 'M'
+        # Small, Medium or Large?
+        self.GG[SM.M.SZ] = (gg_sz, SM.M.REL)
+        # Dimensions
+        if gg_sz == 'S':
+            # diameter = hundred or so light-years
+            gg_stars_diam = random.randrange(100, 501)
+            # small or no bulge
+            # thousands of stars
+            gg_stars_count =\
+                (random.randrange(50_000, 800_000_001), SM.M.INT)
+            # small black hole or no black hole (solar masses)
+            gg_bh_solar_mass =\
+                random.choice(None, gg_stars_count *
+                                    random.randrange(0.005, 0.0071))
+        elif gg_sz == 'M':
+            # diameter = 100,000 or so light-years
+            gg_stars_diam = random.randrange(80_000, 500_001)
+            # visible bulge
+            # millions to billions of stars
+            gg_stars_count =\
+                (random.randrange(500_000_000, 500_000_000_001), SM.M.INT)
+            # super massive black hole (mass in solar masses)
+            gg_bh_solar_mass = (gg_stars_count *
+                                random.randrange(0.015, 0.021))
+        else:  # is 'L'
+            # diameter = millions of light-years
+            gg_stars_diam = random.randrange(2_000_000, 100_000_001)
+            # large bulge
+            # trillions of stars
+            gg_stars_count =\
+                (random.randrange(1_000_000_000_000, 10_000_000_000_001), SM.M.INT)
+            # super massive black hole (mass in solar masses)
+            gg_bh_solar_mass = (gg_stars_count *
+                                random.randrange(0.018, 0.027))
+
+        gg_halo_radius = ((gg_stars_diam / 2) +
+                          (gg_stars_diam * random.randrange(0.01, 0.03)))
+        gg_stars_thick = gg_stars_diam * random.randrange(0.08, 0.12)
+
+        # Stars arranged in a spiral or disk (ellipsoid)?
+        self.GG[f"stars {SM.M.SHP}"] = (random.choice([SM.M.EL, SM.M.SP]), SM.M.SHP)
+
+        # Central bulge: None, sphere, or disk (ellipsoid)?
+        if gg_sz == 'S':
+            gg_bulge_shape = random.choice(SM.M.SP, None)
+        else:
+            gg_bulge_shape = random.choice(SM.M.SP, SM.M.EL)
+        self.GG[f"bulge {SM.M.SHP}"] = (gg_bulge_shape, SM.M.SHP)
+        # Central bulge size...
+        # Division of mass into regular stars and irregular globules
+        # Mass in kilograms of...
+        # - total galaxy
+        # - black hole
+        # - bulge
+        # - all stars + globular stuff + asteroids etc.
+        # Shape of distribution of star systems (even, spiral arms, etc.)
+        # Back up in UniverseModel, verify that galactic cluster does not
+        #  overlap with an existing galactic cluster?? No... not yet anyway.
+        #  Only allowing for one galactic cluster within a universe.
+        #  All others are "by definition" unreachable and outside (in XU)
+        # Location of the galaxy within the galactic cluster
+        # - Verify it does not overlap with another galaxy,
+        #   or if it does overlap, deal with collisions (messy) / identify
+        #   the collision zone.
+        # Determine movement of galaxy within the cluster, of the cluster
+        #  within the TU (may do that in UM().)
+        # Determine expansion of TU... will it be noticeable within game time?
+        # Assign sectors to the GG.
+        # If really ambitious, attempt to visualize a model of the GG.
 
 class AstroIO(object):
     """Class for astronomical data and methods.

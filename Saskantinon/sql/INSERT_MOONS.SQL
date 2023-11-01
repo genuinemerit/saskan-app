@@ -1,4 +1,4 @@
-INSERT INTO SASKAN_DB.moons (_id, name, relative_size, description)
+INSERT INTO moons (_id, name, relative_size, description)
 VALUES 
    ('ENDR', 'Endor', 100, 'creative and destructive forces, metal, lava'),
    ('SELL', 'Sella', 90, 'joy, openness, reflection, lakes, marshes, wandering'),
