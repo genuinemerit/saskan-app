@@ -76,7 +76,7 @@ class UniverseModel:
     Another estimate is 415,065 Glyr3  (cubic gigalight years)
     """
     def __init__(self,
-                 p_load_model_nm: str = None,
+                 p_load_univ: str = None,
                  p_randomize: bool = False,
                  p_univ_name: str = None,
                  p_cluster_name: str = None,
@@ -85,13 +85,13 @@ class UniverseModel:
         """Load or create Total Universe, External Universe,
            Galactic Cluster and Timing Pulsar.
         :args:
-        - p_load_model_nm (optional). If provided, load object from
+        - p_load_univ (optional). If provided, load object from
           pickled file with this name. Ignore all other parameters.
           If not provided, pass all other params to generate_universe().
         """
-        if p_load_model_nm is not None:
-            model_nm = p_load_model_nm if '.pkl' in p_load_model_nm\
-                else p_load_model_nm + '.pkl'
+        if p_load_univ is not None:
+            model_nm = p_load_univ if '.pkl' in p_load_univ\
+                else p_load_univ + '.pkl'
             file_path = path.join(FI.D['APP'],
                                   FI.D['ADIRS']['SAV'],
                                   model_nm)
@@ -422,15 +422,15 @@ class GalaxyModel:
     """Class for modeling the Game Galaxy (GG).
     """
 
-    def __init__(object,
+    def __init__(self,
                  p_UNIV: object,
-                 p_load_model_nm: str = None,
+                 p_load_galaxy: str = None,
                  p_galaxy_nm: str = None,
                  p_galaxy_sz: str = "M"):
         """Initialize class for a Game Galaxy.
         :args:
         - p_UNIV (UniverseModel object) - an instantiated universe
-        - p_load_model_nm (str) Optional. Name of instantiated Game Galaxy.
+        - p_load_galaxy (str) Optional. Name of instantiated Game Galaxy.
             If provided, load object from pickle and ignore remaining params.
             Otherwise, generate new GG using remaining params.
 
@@ -537,22 +537,25 @@ class GalaxyModel:
           store location of pickles in the database. If that is too much
           trouble, then just use JSON.
         """
-        if p_load_model_nm is not None:
-            model_nm = p_load_model_nm if '.pkl' in p_load_model_nm\
-                else p_load_model_nm + '.pkl'
+        self.UNIV = p_UNIV.UNIV
+        if p_load_galaxy is not None:
+            model_nm = p_load_galaxy if '.pkl' in p_load_galaxy\
+                else p_load_galaxy + '.pkl'
             file_path = path.join(FI.D['APP'],
                                   FI.D['ADIRS']['SAV'],
                                   model_nm)
             self.GG = FI.get_pickle(file_path)
         else:
             self.generate_galaxy(p_galaxy_nm,
-                                 p_galazy_sz)
+                                 p_galaxy_sz)
         pp((self.GG))
 
-    def generate_galaxy(p_galaxy_nm: str = None,,
-                        p_galaxy_sz: str = "M")
+    def generate_galaxy(self,
+                        p_galaxy_nm: str = None,
+                        p_galaxy_sz: str = "M"):
         """
         Generate a new Game Galaxy (GG) object.
+        Break up the parts of the GG into separate methods.
         :args:
         - p_galaxy_nm (str) Optional. Name of the Game Galaxy.
         - p_galaxy_sz (str) Optional. Size of Game Galaxy.
@@ -562,55 +565,112 @@ class GalaxyModel:
         self.GG = dict()
         gg_sz= p_galaxy_sz.upper() if p_galaxy_sz in ('S', 'M', 'L') else 'M'
         # Small, Medium or Large?
-        self.GG[SM.M.SZ] = (gg_sz, SM.M.REL)
         # Dimensions
         if gg_sz == 'S':
             # diameter = hundred or so light-years
             gg_stars_diam = random.randrange(100, 501)
             # small or no bulge
             # thousands of stars
-            gg_stars_count =\
-                (random.randrange(50_000, 800_000_001), SM.M.INT)
+            gg_total_mass = random.randrange(50_000, 800_000_001)
             # small black hole or no black hole (solar masses)
-            gg_bh_solar_mass =\
-                random.choice(None, gg_stars_count *
-                                    random.randrange(0.005, 0.0071))
+            pct = random.randrange(50, 71) / 10000
+            gg_blackhole_mass = (None, (gg_total_mass * pct))
         elif gg_sz == 'M':
             # diameter = 100,000 or so light-years
             gg_stars_diam = random.randrange(80_000, 500_001)
             # visible bulge
             # millions to billions of stars
-            gg_stars_count =\
-                (random.randrange(500_000_000, 500_000_000_001), SM.M.INT)
+            gg_total_mass = random.randrange(500_000_000, 500_000_000_001)
             # super massive black hole (mass in solar masses)
-            gg_bh_solar_mass = (gg_stars_count *
-                                random.randrange(0.015, 0.021))
+            pct = random.randrange(15, 21) / 1000
+            gg_blackhole_mass = gg_total_mass * pct
         else:  # is 'L'
             # diameter = millions of light-years
             gg_stars_diam = random.randrange(2_000_000, 100_000_001)
             # large bulge
             # trillions of stars
-            gg_stars_count =\
-                (random.randrange(1_000_000_000_000, 10_000_000_000_001), SM.M.INT)
+            gg_total_mass = random.randrange(1_000_000_000_000, 10_000_000_000_001)
             # super massive black hole (mass in solar masses)
-            gg_bh_solar_mass = (gg_stars_count *
-                                random.randrange(0.018, 0.027))
+            pct = random.randrange(18, 27) / 1000
+            gg_blackhole_mass = gg_total_mass * pct
 
-        gg_halo_radius = ((gg_stars_diam / 2) +
-                          (gg_stars_diam * random.randrange(0.01, 0.03)))
-        gg_stars_thick = gg_stars_diam * random.randrange(0.08, 0.12)
-
-        # Stars arranged in a spiral or disk (ellipsoid)?
-        self.GG[f"stars {SM.M.SHP}"] = (random.choice([SM.M.EL, SM.M.SP]), SM.M.SHP)
-
-        # Central bulge: None, sphere, or disk (ellipsoid)?
+        pct = random.randrange(1, 3) / 100
+        gg_halo_radius = ((gg_stars_diam / 2) + (gg_stars_diam * pct))
+        pct = random.randrange(8, 12) / 100
+        gg_stars_thick = gg_stars_diam * pct
         if gg_sz == 'S':
-            gg_bulge_shape = random.choice(SM.M.SP, None)
+            gg_bulge_shape = random.choice([SM.M.SP, None])
         else:
-            gg_bulge_shape = random.choice(SM.M.SP, SM.M.EL)
-        self.GG[f"bulge {SM.M.SHP}"] = (gg_bulge_shape, SM.M.SHP)
-        # Central bulge size...
-        # Division of mass into regular stars and irregular globules
+            gg_bulge_shape = random.choice([SM.M.SP, SM.M.EL])
+
+        if gg_blackhole_mass is None:
+            pct = random.randrange(7, 15) / 1000
+            gg_bulge_mass = gg_total_mass * pct
+        elif gg_sz == 'S':
+            gg_bulge_mass = gg_blackhole_mass * 0.8
+        else:
+            gg_bulge_mass = gg_blackhole_mass * 1.1
+
+        if gg_bulge_shape is None:
+            gg_bulge_diam = 0.0
+            gg_bulge_thick = 0.0
+        elif gg_bulge_shape is SM.M.SP:
+            gg_bulge_thick = gg_stars_thick * 0.2
+            gg_bulge_diam = gg_bulge_thick
+        elif gg_sz == 'S':
+            gg_bulge_diam = gg_stars_diam * 0.1
+            gg_bulge_thick = gg_stars_thick * 1.1
+        elif gg_sz == 'M':
+            gg_bulge_diam = gg_stars_diam * 0.2
+            gg_bulge_thick = gg_stars_thick * 1.2
+        elif gg_sz == 'L':
+            gg_bulge_diam = gg_stars_diam * 0.3
+            gg_bulge_thick = gg_stars_thick * 1.3
+        if gg_bulge_shape == SM.M.EL:
+            gg_bulge_width = gg_bulge_diam * 0.7
+        else:
+            gg_bulge_width = gg_bulge_diam
+
+        star_matter_mass = gg_total_mass - (gg_blackhole_mass + gg_bulge_mass)
+        pct = random.randrange(997, 999) / 1000
+        gg_star_matter = star_matter_mass * pct
+        gg_glob_matter = star_matter_mass - gg_star_matter
+
+        gg_stars_shape = random.choice([SM.M.EL, SM.M.SP])
+        if gg_stars_shape == SM.M.EL:
+            gg_stars_width = gg_stars_diam * 0.7
+        else:
+            gg_stars_width = gg_stars_diam
+
+        # Matter of galactic cluster in kilograms
+        gc_matter_kg = self.UNIV['gc'][SM.M.BM][0]
+        # Volume of galactic cluster in gigaparsecs
+        gc_volume_gpc3 = self.UNIV['gc'][SM.M.VL][0]
+        # Convert game galaxy radius to volume in cubic gigaparsecs
+        gg_volume_gpc3 = (4/3) * math.pi * ((gg_halo_radius / 3.09e19)**3)
+        # Percentage of galaxy volume vs. galactic cluster volume
+        pct_gg_to_gc = (gg_volume_gpc3 / gc_volume_gpc3) * 100
+        # Percentage of galaxy baryonic matter:
+        gg_matter_kg = gc_matter_kg * pct_gg_to_gc
+
+        self.GG[f"{SM.M.GG} {SM.M.REL} {SM.M.SZ}"] = (gg_sz, SM.M.REL)
+        self.GG[f"{SM.M.GG} {SM.M.SZ}"] = (pct_gg_to_gc, SM.M.PCT +
+                                           f" of {SM.M.GC}")
+        self.GG[f"{SM.M.GG} {SM.M.VL}"] = (gg_volume_gpc3, SM.M.GPC3)
+        self.GG[f"{SM.M.GG} {SM.M.BM}"] = (gg_matter_kg, SM.M.KG)
+        self.GG[f"{SM.M.GH} {SM.M.RD}"] = (gg_halo_radius, SM.M.LY)
+        self.GG[f"{SM.M.BH} {SM.M.MS}"] = (gg_blackhole_mass, SM.M.SMS)
+        self.GG[f"{SM.M.GB} {SM.M.SHP}"] = (gg_bulge_shape, SM.M.SHP)
+        self.GG[f"{SM.M.GB} {SM.M.MS}"] = (gg_bulge_mass, SM.M.SMS)
+        self.GG[f"{SM.M.GB} {SM.M.DIM}"] = ((gg_bulge_diam, SM.M.LY),
+                                        (gg_bulge_width, SM.M.LY),
+                                        (gg_bulge_thick, SM.M.LY))
+        self.GG[f"{SM.M.SC} {SM.M.SHP}"] = (gg_stars_shape, SM.M.SHP)
+        self.GG[f"{SM.M.SC} {SM.M.DIM}"] = ((gg_stars_diam, SM.M.LY),
+                                        (gg_stars_width, SM.M.LY),
+                                        (gg_stars_thick, SM.M.LY))
+        self.GG[f"{SM.M.SC} {SM.M.MS}"] = (gg_star_matter, SM.M.SMS)
+        self.GG[f"{SM.M.IG} {SM.M.MS}"] = (gg_glob_matter, SM.M.SMS)
         # Mass in kilograms of...
         # - total galaxy
         # - black hole

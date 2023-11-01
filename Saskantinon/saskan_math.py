@@ -190,6 +190,7 @@ class SaskanMath(object):
         # math, general geometry
         AR = "area"
         AX = "axes (a, b, c)"
+        CNT = "count"
         DC = "decimal"
         DI = "diameter"
         DIM = "dimensions (x, y, z)"
@@ -275,7 +276,13 @@ class SaskanMath(object):
         LY2 = "square light year"
         LY3 = "cubic light year"
         # objects, astronomical
-        GC = "galactic cluster"         # saskan
+        BH = "black hole"
+        GG = "galaxy"
+        GB = "galactic bulge"
+        GC = "galactic cluster"
+        GH = "galactic halo"
+        IG = "interstellar matter"
+        SC = "star cluster"
         TP = "timing pulsar"            # saskan
         TU = "total universe"           # saskan
         XU = "external universe"        # saskan
