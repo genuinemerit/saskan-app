@@ -48,7 +48,10 @@ SM = SaskanMath()
 class UniverseModel:
     """Class for modeling a universe.
     - TU = Total Universe
-    - GC = Galactic Cluster in which the game is played
+    - GC = Galactic Cluster. Generally speaking, only one is needed to
+      manage a game, but from a purely algorithmic perspective, we can have
+      1 to many GC within a TU. This might even be handy in macro scale
+      gaming.
     - TP = Timing Pulsar (neutron star) in the GC which
            regulates time measurements within the GC.
     - XU = External Universe, outside of the GC
@@ -73,105 +76,151 @@ class UniverseModel:
     last game universe ended and a new one began.
 
     Volume of known universe: 3.566 x 10^80 cubic meters
-    Another estimate is 415,065 Glyr3  (cubic gigalight years)
+    Another estimate is 415,065 Glyr3  (cubic gigalight years).
+    For game purposes, the size of the universe will randomly fluctuate
+    around this value.
+
+    @TODO:
+    - Store location and size (centerpoint relative to center of Univ,
+      volume) of the Galactic Cluster on the database.
+    - It must have a foreign key associating the GC with a UNIV.
+    - Use that persisted data when computing the location of a new GC
+      to make sure that it does not overlap with any existing GC.
+    - Ask ChatGPT to help with collision algoriths for spheres
+      and ellipsoids in a 3D space. It may be necessary to imagine
+      both universe and cluster(s) as contained in rects? Not sure.
+      Could make some math easier anyway!
+    - Figuring this out will mean we can use similar logic when handling
+      galaxies within the cluster, star systems within the galaxy and so on.
     """
     def __init__(self,
-                 p_load_univ: str = None,
-                 p_randomize: bool = False,
                  p_univ_name: str = None,
                  p_cluster_name: str = None,
-                 p_pulsar_name: str = None,
-                 p_random_seed: int = None):
+                 p_pulsar_name: str = None):
         """Load or create Total Universe, External Universe,
            Galactic Cluster and Timing Pulsar.
-        :args:
-        - p_load_univ (optional). If provided, load object from
-          pickled file with this name. Ignore all other parameters.
-          If not provided, pass all other params to generate_universe().
-        """
-        if p_load_univ is not None:
-            model_nm = p_load_univ if '.pkl' in p_load_univ\
-                else p_load_univ + '.pkl'
-            file_path = path.join(FI.D['APP'],
-                                  FI.D['ADIRS']['SAV'],
-                                  model_nm)
-            self.UNIV = FI.get_pickle(file_path)
-        else:
-            self.generate_universe(p_randomize,
-                                   p_univ_name,
-                                   p_cluster_name,
-                                   p_pulsar_name,
-                                   p_random_seed)
-        pp((self.UNIV))
 
-    def generate_universe(self,
-                          p_randomize: bool = False,
-                          p_univ_name: str = None,
-                          p_cluster_name: str = None,
-                          p_pulsar_name: str = None,
-                          p_random_seed: int = None):
-        """Define data for a new Total Universe, External Universe,
-           Galactic Cluster and Timing Pulsar. Use standard estimates
-           for known universe, with small tweaks for variety.
-        :args:
-        - p_randomize (optional). If true, randomize size of TU.
-        - p_univ_name (optional). If provided, name of Total Universe.
-        - p_cluster_name (optional). If provided, name of Galactic Cluster.
-        - p_pulsar_name (optional). If provided, name of Timing Pulsar.
-        - p_random_seed (optional). If provided, use to seed randomization.
+        If Univ name is already in use, then load object from store, but
+            proceed with Cluster, Pulsar creation and XU computation.
+        If Cluster name is already in use, then stop, no need to generate
+            any new data.
+        If either a new Universe or a new Cluster was generated, then save
+            the new data to database.
         """
-        self.randomize = p_randomize
-        self.random_seed = p_random_seed
-        TU = dict()
-        if self.randomize:
-            # Generate random TU size within predefined constraints
-            TU[SM.M.RD] = self.generate_random_radius()
-            variance = TU[SM.M.RD][0] / 14.25e9
-        else:
-            # Use predefined size for TU
-            TU[SM.M.RD] = (14.25e9, SM.M.GPC)  # 14.25 gigaparsecs
-            variance = 1.00
-        # Volume of known universe: 3.566 x 10^80 cubic meters
-        # or 415,065 cubic giga lightyears
-        TU[SM.M.VL] = (415065 * variance, SM.M.GLY3)
-        # Age of TU in Gavoran years
-        TU[SM.M.ET] = (13.787e9, SM.M.GY)
-        # Expansion rate: km/s per Mpc
-        TU[SM.M.ER] = (73.3, SM.M.UE)
-        # Total matter in TU: 1.5 x 10^53 kg
-        TU[SM.M.MS] = (1.5e53 * variance, SM.M.KG)
-        # Dark Energy: 68.3%, of total matter in TU
-        TU[SM.M.DE] = (TU[SM.M.MS][0] * 0.683, SM.M.KG)
-        # Dark Matter: 27.4%, of total matter in TU
-        TU[SM.M.DM] = (TU[SM.M.MS][0] * 0.274, SM.M.KG)
-        # Baryonic Matter: 4.3%, of total matter in TU
-        TU[SM.M.BM] = (TU[SM.M.MS][0] * 0.043, SM.M.KG)
-        tu_nm = p_univ_name 
-        if p_univ_name is None:
-            tu_nm = f"{pendulum.now().to_iso8601_string()}"
-            tu_nm = tu_nm.replace('-', '').replace(':', '')[:15]
-            tu_nm = "UNIV_" + tu_nm.replace('T', '_')
-        else:
-            tu_nm = p_univ_name 
-        TU[SM.M.TU] = (tu_nm, SM.M.NM)
-        # Define the GC and TP within the TU
-        GC = self.generate_galactic_cluster(TU, p_cluster_name)
-        TP = self.generate_timing_pulsar(GC, p_cluster_name)
-        XU = self.generate_external_universe(TU, GC)
-        self.UNIV = {'tu': TU, 'xu': XU, 'gc': GC, 'tp': TP}
+        univ = self.generate_universe(p_univ_name,
+                                      p_cluster_name,
+                                      p_pulsar_name)
+
+        pp((univ))
+
+        # self.save_universe(univ)
 
     def generate_random_radius(self) -> tuple:
         """Generate a random TU radius within predefined constraints.
         :returns:
         - (float, int) - radius, unit of measurement (gigaparsecs)
         """
-        if self.random_seed is not None:
-            random.seed(self.random_seed)
-
-        # Generate a random radius within a predefined range
         min_radius = 14.0e9
         max_radius = 14.5e9
-        return (random.uniform(min_radius, max_radius), SM.M.GPC)
+        return random.uniform(min_radius, max_radius)
+
+    def set_universe_name(self,
+                          p_univ_name: str = None) -> str:
+        """Use provided name or generate one.
+        If name is already in use, then load data. Only generate a new
+            Galactic Cluster within the existing Universe.
+        The caller can tell if a TU already existed because the returned
+            TU object has more than one key. If it is a new Universe, then
+            the returned object only has one key (object type/name).
+        :args: (str) Optional. Universe name or none.
+        :returns: (str) Universe Name
+        """
+        if p_univ_name is not None:
+            tu_nm = p_univ_name
+        else:
+            tu_nm = f"{pendulum.now().to_iso8601_string()}"
+            tu_nm = tu_nm.replace('-', '').replace(':', '')[:15]
+            tu_nm = "UNIV_" + tu_nm.replace('T', '_')
+        db_tu = DB.execute_select('SELECT_ALL_UNIVS')
+
+        if tu_nm in db_tu['univ_name']:
+            print(f"Loading UNIV '{tu_nm}' from stored data")
+            # Unpickle data from DB for the TU
+            TU = pickle.loads(db_tu['univ_object'])
+        else:
+            print(f"Generating new TU... '{tu_nm}'")
+        TU = {SM.M.TU: (tu_nm, SM.M.NM)}
+        return(TU)
+
+    def save_universe(self):
+        """Pickle UNIV and/or CLUSTER object and write to DB table.
+        It may be the case that a new Galactic Cluster is being created
+        within an existing universe. In that case, we get a new timing
+        pulsar to go with it, we prevent collisions, and we recompute the
+        size of the XU.
+        """
+        univ_nm = self.UNIV['tu'][SM.M.TU][0]
+        file_path = path.join(FI.D['APP'], FI.D['ADIRS']['SAV'],
+                              univ_nm + '.pkl')
+        FI.write_pickle(file_path, self.UNIV)
+        print(f"UniverseModel saved to {str(file_path)}")
+        DB.execute_dml_proc("INSERT_UNIV_PROC", "univs",
+                            {"_id": SI.get_key(), "name": univ_nm,
+                             "object_path": file_path})
+        pp((DB.execute_select("SELECT_ALL_UNIVS")))
+
+    def generate_universe(self,
+                          p_univ_name: str = None,
+                          p_cluster_name: str = None,
+                          p_pulsar_name: str = None) -> dict:
+        """Define data for a new Total Universe, External Universe,
+           Galactic Cluster and Timing Pulsar. Use standard estimates
+           for known universe, with small tweaks for variety.
+        :args:
+        - p_univ_name (optional). If provided, name of Total Universe.
+        - p_cluster_name (optional). If provided, name of Galactic Cluster.
+        - p_pulsar_name (optional). If provided, name of Timing Pulsar.
+        :returns: (dict) with data for TU, XU, GC and TP if new universe, or
+            data from only XU, GC and TP if new cluster only
+        """
+        TU = self.set_universe_name(p_univ_name)
+        if len(list(TU.keys())) == 1:
+            r = self.generate_random_radius()
+            variance = r / 14.25e9
+            TU[SM.M.RD] = (r, SM.M.GPC)                      # Radius
+            TU[SM.M.VL] = (415065 * variance, SM.M.GLY3)     # Volume
+            TU[SM.M.ET] = (13.787e9, SM.M.GY)                # Age
+            TU[SM.M.ER] = (73.3, SM.M.UE)                    # Expansion rate
+            TU[SM.M.MS] = (1.5e53 * variance, SM.M.KG)       # Total matter
+            TU[SM.M.DE] = (TU[SM.M.MS][0] * 0.683, SM.M.KG)  # Dark energy
+            TU[SM.M.DM] = (TU[SM.M.MS][0] * 0.274, SM.M.KG)  # Dark matter
+            TU[SM.M.BM] = (TU[SM.M.MS][0] * 0.043, SM.M.KG)  # Baryonic matter
+        # Determine whether new Galactic Cluster is needed.
+        # Look up Galactic Cluster name in Database. If it already exists,
+        #  then we're done. Otherwise, create new cluster and pulsar and
+        #  re-compute the external universe.
+        GC = self.generate_galactic_cluster(TU, p_cluster_name)
+        TP = self.generate_timing_pulsar(GC, p_cluster_name)
+        XU = self.compute_external_universe(TU, GC)
+
+        # hmmm... it's not that I don't want to return the TU data; it's that
+        # I only want to save it if it is new. Maybe a flag is in order here.
+        if len(list(TU.keys())) == 1:
+            UNIV = {'tu': TU, 'xu': XU, 'gc': GC, 'tp': TP}
+        else:
+            UNIV = {'xu': XU, 'gc': GC, 'tp': TP}
+
+    def generate_random_cluster_name(self) -> str:
+        """Generate a random name for the Galactic Cluster
+        May want to add logic to come up with a name that is
+        based on coordinates, or other legendary names,
+        including in-game legends and myths.
+        :returns:
+        - (str) Name assigned to the GalacticCluster.
+        """
+        cluster_names = ["Crius Cluster", "Themis Cluster",
+                         "Iapetus Cluster", "Cronus Cluster"]
+        return random.choice(cluster_names)
 
     def generate_galactic_cluster(self,
                                   p_TU: dict,
@@ -210,22 +259,19 @@ class UniverseModel:
         of flattening of the ellipsoid.  A typical value is for a, b and c
         to be 1/2 the value of x, y, and z respectively.
 
-        To get a better sense of the shape of an ellipsoid, plot it in
-        three dimensions, then use matplotlib for a rough visualization.
-        For a more accurate visualization, use a 3D modeling program like
-        Blender or Maya.
-
         The volume of an ellipsoid is given by:
-
         V=4/3 X π X a X b X c
          where a, b, and c are the semi-axes of the ellipsoid.
 
+        Eventually, maybe using Blender?, get a better sense of the shape of
+        the ellipsoid by plotting and visualizing it in three dimensions. I am
+        not yet 100% sure that I am defining the ellipsoid shapes correctly.
         """
-        # Name
         cluster_name = p_cluster_name
         if cluster_name is None:
             cluster_name = self.generate_random_cluster_name()
-        # location of galactic cluster center relative to TU center
+        # Set location of galactic cluster center relative to TU center
+        # in gigaparsecs.
         min_distance = (2/3) * p_TU[SM.M.RD][0]
         while True:
             lx = random.uniform(-p_TU[SM.M.RD][0], p_TU[SM.M.RD][0])
@@ -234,7 +280,7 @@ class UniverseModel:
             distance = (lx**2 + ly**2 + lz**2)**0.5
             if distance >= min_distance:
                 break
-        # Generate a random sized ellipsoid in parsecs
+        # Generate a random sized ellipsoid in parsecs.
         min_size = 1e6  # 1 million parsecs
         max_size = 1e7  # 10 million parsecs
         x = random.uniform(min_size, max_size)
@@ -243,48 +289,35 @@ class UniverseModel:
         a = x / 2
         b = y / 2
         c = z / 2
-        # Calculate the volume of the ellipsoid
-        volume = (4/3) * 3.14159265359 * a * b * c
-        # Generate a GC mass as a pct of the total baryonic matter in TU
+        # Calculate the volume of the ellipsoid.
+        volume = (4/3) * math.pi * a * b * c
+        # Generate a GC mass as a pct of the total baryonic matter in TU.
         # This will produce a denser or less dense galatic cluster.
         min_mass_pct = 0.01  # 1% - smaller cluster
         max_mass_pct = 0.05  # 5% - larger cluster
         mass_pct = random.uniform(min_mass_pct, max_mass_pct)
+        univ_mass_kg = p_TU[SM.M.MS][0]
         gc_data = {
-            "galactic cluster": (cluster_name, SM.M.NM),
-            "container": ("", SM.M.TU),
-            f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
-            "shape": ((((x, y, z), SM.M.DIM),
-                       ((a, b, c), SM.M.AX)), SM.M.EL),
-            SM.M.DE:
-            (mass_pct * p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0], SM.M.KG),
-            SM.M.DM:
-            (mass_pct * p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0], SM.M.KG),
-            SM.M.BM:
-            (mass_pct * p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0], SM.M.KG),
+            SM.M.GC: (cluster_name, SM.M.NM),
+            SM.M.TU: (p_TU[SM.M.TU][0], SM.M.CON),
+            f"{SM.M.LOC} {SM.M.VE}": ((lx, ly, lz), SM.M.GPC),
+            f"{SM.M.EL} {SM.M.SHA}": ((((x, y, z), SM.M.DIM),
+                                       ((a, b, c), SM.M.AX)), SM.M.PC),
+            SM.M.DE: (mass_pct * p_TU[SM.M.DE][0] * univ_mass_kg, SM.M.KG),
+            SM.M.DM: (mass_pct * p_TU[SM.M.DM][0] * univ_mass_kg, SM.M.KG),
+            SM.M.BM: (mass_pct * p_TU[SM.M.BM][0] * univ_mass_kg, SM.M.KG),
             SM.M.VL: (volume, SM.M.GPC3)}
+        # Before saving, check to see if this GC overlaps with an
+        # existing one for this universe. Keep re-doing until there is no
+        # overlap with an existing galatic cluster.
         return gc_data
-
-    def generate_random_cluster_name(self) -> str:
-        """Generate a random name for the Galactic Cluster
-        May want to add logic to come up with a name that is
-        based on coordinates, or other legendary names,
-        including in-game legends and myths.
-        :returns:
-        - (str) Name assigned to the GalacticCluster.
-        """
-        cluster_names = ["Crius Cluster", "Themis Cluster",
-                         "Iapetus Cluster", "Cronus Cluster"]
-        return random.choice(cluster_names)
 
     def generate_timing_pulsar(self,
                                p_GC: dict,
-                               p_cluster_nm: str,
                                p_pulsar_nm: str = None) -> dict:
         """Define the timing pulsar within the GC.
         :args:
         - p_GC (dict) Data about the Galactic Cluster
-        - p_cluster_nm (str) Name of containing cluster
         - p_pulsar_nm (str) Optional. Name of neutron star / timing pulsar
         :returns:
         - (dict) Data about the Timing Pulsar
@@ -347,9 +380,9 @@ class UniverseModel:
         # Compute the period in milliseconds
         period_ms = (1 / pulse_rate) * 1000
         # Determine pulsar location
-        gc_x = p_GC["shape"][0][0][0][0]
-        gc_y = p_GC["shape"][0][0][0][1]
-        gc_z = p_GC["shape"][0][0][0][2]
+        gc_x = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][0]
+        gc_y = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][1]
+        gc_z = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][2]
         max_x = (gc_x / 2) * 0.33
         max_y = (gc_y / 2) * 0.33
         max_z = (gc_z / 2) * 0.33
@@ -376,14 +409,14 @@ class UniverseModel:
             else random.choice(star_names)
         tp_data = {
             SM.M.TP: (star_nm, SM.M.NM),
-            "container": (p_cluster_nm, SM.M.GC),
-            f"location {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
+            SM.M.CON: (p_GC[SM.M.GC][0], SM.M.GC),
+            f"{SM.M.LOC} {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
             SM.M.GS: (pulse_rate, SM.M.PS),
             SM.M.PR: (period_ms, SM.M.GMS)
         }
         return tp_data
 
-    def generate_external_universe(self,
+    def compute_external_universe(self,
                                    p_TU: dict,
                                    p_GC: dict) -> dict:
         """Define the External Universe (XU) within the TU.
@@ -395,7 +428,7 @@ class UniverseModel:
         """
         xu_data = {
             SM.M.XU: ("Beyond the Rim", SM.M.NM),
-            "container": ("", SM.M.TU),
+            SM.M.CON: (p_TU[SM.M.TU][0], SM.M.TU),
             SM.M.DE: (((p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0]) -
                        p_GC[SM.M.DE][0]), SM.M.KG),
             SM.M.DM: (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) -
@@ -404,18 +437,6 @@ class UniverseModel:
                        p_GC[SM.M.BM][0]), SM.M.KG)
         }
         return xu_data
-
-    def save_universe(self):
-        """Pickle UNIV object and write to a file."""
-        univ_nm = self.UNIV['tu'][SM.M.TU][0]
-        file_path = path.join(FI.D['APP'], FI.D['ADIRS']['SAV'],
-                              univ_nm + '.pkl')
-        FI.write_pickle(file_path, self.UNIV)
-        print(f"UniverseModel saved to {str(file_path)}")
-        DB.execute_dml_proc("INSERT_UNIV_PROC", "univs",
-                            {"_id": SI.get_key(), "name": univ_nm,
-                             "object_path": file_path})
-        pp((DB.execute_select("SELECT_ALL_UNIVS")))
 
 
 class GalaxyModel:

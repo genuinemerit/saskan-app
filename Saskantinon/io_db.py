@@ -118,7 +118,13 @@ class DataBase(object):
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
+
+        pp((SQL))
+
         COLS = self.get_db_columns(p_sql=SQL)
+
+        pp((COLS))
+
         self.cur.execute(SQL)
         DATA = [r for r in self.cur.fetchall()]
         result = {col: [row[i] for row in DATA]

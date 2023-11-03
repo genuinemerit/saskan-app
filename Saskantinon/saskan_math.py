@@ -191,6 +191,7 @@ class SaskanMath(object):
         AR = "area"
         AX = "axes (a, b, c)"
         CNT = "count"
+        CON = "container"
         DC = "decimal"
         DI = "diameter"
         DIM = "dimensions (x, y, z)"
@@ -209,6 +210,7 @@ class SaskanMath(object):
         EL = "ellipsoid"
         RC = "rectangle"
         SH = "sphere"
+        SHA = "shape"
         SP = "spiral"
         # weight
         GM = "grams"
@@ -248,6 +250,7 @@ class SaskanMath(object):
         DGLAT = "degrees latitude"
         DGLONG = "degrees longitude"
         # direction, geographical
+        LOC = "location"
         N = "north"
         E = "east"
         S = "south"
