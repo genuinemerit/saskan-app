@@ -11,12 +11,39 @@
 </head>
 <body>
 <div class="page-title">Astro Data Wiki</div>
+<h1>To Do / Current Design Questions</h1>
+<ul>
+    <li>Store location and size (centerpoint relative to center of Univ,
+      volume) of the Galactic Cluster on the database.
+    <li>It must have a foreign key associating the GC with a UNIV.
+    <li>Use that persisted data when computing the location of a new GC
+      to make sure that it does not overlap with any existing GC.
+    <li>Ask ChatGPT to help with collision algoriths for spheres
+      and ellipsoids in a 3D space. It may be necessary to imagine
+      both universe and cluster(s) as contained in rects? Not sure.
+      Could make some math easier anyway!
+    <li>Figuring this out will mean we can use similar logic when handling
+      galaxies within the cluster, star systems within the galaxy and so on.
+</ul>
+
+
+<h1>Data Management</h1>
+
+<h2>Data Persistence</h2>
+    All values are stored as a 2-tuple where [0] = value and [1] = type
+    of measurement unit, as defined by the SaskanMath() class.
+
+    The type of object, i.e., what is being measured, is also identified
+    via reference to a value defined in SaskanMath()'s "M" dataclass.
+
+    Data stored in pickled format as a BLOB on sqlite3 database.
+
 <h1>UniverseModel</h1>
 
 <h2>Mass and Matter</h2>
     For the purposes of the game, we consider mass and matter to
     be the same thing. Antimatter equals matter at the big bang, but
-    then almost entirely vanishes. No one know why. Theoretically,
+    then almost entirely vanishes. No one knows why. Theoretically,
     the universe should not exist since matter and antimatter should
     have annihilated each other. But it does. So, we will assume that
     the universe is made of matter, not antimatter, and that the
@@ -33,5 +60,112 @@
     Another estimate is 415,065 Glyr3  (cubic gigalight years).
     For game purposes, the size of the universe will randomly fluctuate
     around this value.
+
+<h1>Galactic Cluster Model</h1>
+
+
+<h2>Location of Cluster</h2>
+        Generate a random location vector (x, y, z) in megaparsecs
+        locating the GC center as a random point within the TU
+        in relation to the TU center (center of the universe)
+        Ensure that x, y, and z are at least 2/3 of the TU radius.
+
+<h2>Shape of Cluster</h2>
+        Shaped like a thick flattened sphere, like a chubby pancake.
+        A standard geometric formula for defining the shape of a
+        flattened sphere can be based on the equation of an ellipsoid.
+        An ellipsoid is a three-dimensional shape that can represent a
+        flattened or stretched sphere. The formula for an ellipsoid is:
+        frac{{x^2}}{{a^2}} + \frac{{y^2}}{{b^2}} + \frac{{z^2}}{{c^2}} = 1
+
+        Where:
+        - a represents the semi-major axis, controls extent along the x-axis.
+        - b represents the semi-minor axis, controls extent along the y-axis.
+        - c represents the semi-minor axis, controls extent along the z-axis.
+
+        To create a flattened sphere shape, set a and b to equal each other
+        but smaller (?) than c. This results in an ellipsoid that is flattened
+        along one axis (z-axis) compared to a perfect sphere.
+
+        Specific values of a, b, and c will determine exact shape and degree
+        of flattening of the ellipsoid.  A typical value is for a, b and c
+        to be 1/2 the value of x, y, and z respectively.
+
+<h2>Volume of Cluster</h2>
+        The volume of an ellipsoid is given by:
+        V=4/3 X π X a X b X c
+         where a, b, and c are the semi-axes of the ellipsoid.
+
+<h2>Visualization of Cluster</h2>
+        Eventually, maybe use Blender. Get a better sense of the shape of
+        the ellipsoid by plotting and visualizing it in three dimensions. I am
+        not yet 100% sure that I am defining the ellipsoid shapes correctly.
+
+        Break each calculation into a method. If it seems they could have an
+        abstract use, try to parameterize appropriately. For very common
+        formulas (distance, volume, etc) move them into saskan_math.
+
+<h1>Timing Pulsar</h1>
+
+<h2>Location of Pulsar</h2>
+        Compute a location within the GC that is
+        a random distance from the GC center but
+        relatively close (inner 1/3rd of the ellipsoid)
+        to the core/center of the galactic cluster.
+        Cluster shape is ellipsoid, not a sphere; so
+        calculuation is more complex than just using
+        one radius value.
+
+<h2>Atomic Clock</h2>
+        cesium-133 vibrates exactly 9,192,631,770 times per second.
+        That is a meausre of frequency which could be reproduced
+        anywhere in the universe. But it is still culturally-bound in
+        that the second itself is derived from the planet Earth's
+        relationship to it Sun. This type of time measure is referred
+        to as an atomic clock.
+        To be more precise, an atomic second related to the unperturbed
+        ground state hyperfine transition frequency of the caesium-133 atom.
+
+<h2>Pulsar Clock</h2>
+        Meausuring the rate of pulsar pulses is also very reliable,
+        and is the basis for some navigation systems. Not all pulsars
+        have the same frequency, but they are all very regular.
+        See: https://link.springer.com/article/10.1007/s11214-017-0459-0
+
+        Although observing and correctly measuring the frequency of the
+        pulses of a pulsar is technolgically complex, it is very accurate
+        and has been proposed as a superior method of timekeeping for
+        autonomous spacecraft navigation.  A reference location (that is,
+        a particular mature rotation-based pulsar) must be selected.
+        This could be the basis for a universal time standard,
+        a "galactic clock" that is used, in the game context, by the Agency.
+
+<h2>Galactic Lighthouse</h2>
+        A pulsar is a highly magnetized rotating neutron star that emits
+        beams of electromagnetic radiation out of its magnetic poles.
+        Sort of like a galatic lighthouse. The periods range from
+        milliseconds to seconds.  The fastest known pulsar, PSR J1748-2446ad,
+        rotates 716 times per second, so its period is 1.4 milliseconds.
+        Pulsars can be more accurate, consistent than atomic clocks.
+
+        For the game purposes, we'll define the pulsar rate as close to
+        716 times per second.
+
+        The idea for the game is to make up a pulsar llike PSR J1748-2446ad,
+        assign it a very regular period, and use it as a universal time
+        in reference to all other units.
+
+<h2>Time Dilation</h2>
+        Time dilation is a phenomenon that occurs when a reference
+        frame is moving relative to another reference frame. In the
+        case of very fast travel, especially near the speed of light,
+        time itself will slow down for the traveler. Also, space-time
+        is curved in gravity wells like solar systems. This will need
+        to be accounted for if interstellar travel and/or near-light-speed
+        or (so-called) warp speed travel is allowed in the game.
+
+
+
+
 </body>
 </html>

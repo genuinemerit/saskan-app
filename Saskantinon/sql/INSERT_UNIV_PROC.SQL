@@ -1,3 +1,2 @@
-INSERT INTO univs (_id, name, object_path)
-VALUES 
-   (%_id%, %name%, %object_path%);
+INSERT INTO univs (univ_name, univ_object)
+VALUES (?, ?);

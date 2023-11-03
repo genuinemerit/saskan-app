@@ -134,8 +134,8 @@ class DataBase(object):
 
     def execute_dml(self,
                     p_sql_nm: str):
-        """Run a SQL CREATE, DELETE, INSERT or MODIFY file
-           which does not use any dynamic parameters.
+        """Run a static SQL CREATE, DELETE, INSERT or MODIFY file, that is,
+           a 'hard-coded' one which does not use any dynamic parameters.
         :args:
         - p_sql_nm (str): Name of external SQL file
         """
@@ -145,26 +145,31 @@ class DataBase(object):
         self.db_conn.commit()
         self.disconnect_db()
 
-    def execute_dml_proc(self,
-                         p_sql_nm: str,
-                         p_tbl_nm: str,
-                         p_values: dict):
-        """Run a SQL INSERT or UPDATE file
-           which uses dynamic parameters.
-           Parameters are column names.
+    def execute_insert(self,
+                       p_sql_nm: str,
+                       p_values: tuple):
+        """Run a SQL INSERT file which uses dynamic values.
+           Values are the column names in specified order.
+           For now I will assume that:
+            - INSERTs will always expect full list of values
+            - caller knows what values to provide and in what order
         :args:
         - p_sql_nm (str): Name of external SQL file
-        - p_tbl_nm (str): Name of SQL table being modfified
-        - p_values (dict): Column Name -> Value to insert or update
+        - p_values (tuple): n-tuple of values to insert or update
+
+        @TODO:
+        - Make a similar method to handle UPDATE via SQL file.
+        - In that case, we'll want the PK value separately from the update
+          values. And I think I can just always expect all col values.
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-        COLS = self.get_db_columns(p_tbl_nm=p_tbl_nm)
-        for col_nm, col_val in p_values.items():
-            SQL = SQL.replace(f"%{col_nm.lower()}%", f"'{col_val}'")
+        # COLS = self.get_db_columns(p_tbl_nm=p_tbl_nm)
+        # for col_nm, col_val in p_values.items():
+        #    SQL = SQL.replace(f"%{col_nm.lower()}%", f"'{col_val}'")
         # print("DEBUG: Modified SQL text: ")
         # print(SQL)
-        self.cur.execute(SQL)
+        self.cur.execute(SQL, p_values)
         self.db_conn.commit()
         self.disconnect_db()
 
