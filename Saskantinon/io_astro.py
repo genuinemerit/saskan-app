@@ -127,11 +127,13 @@ class UniverseModel:
     def set_universe_name(self,
                           p_univ_name: str = None) -> str:
         """Use provided name or generate one.
-        If name is already in use, then load data. Only generate a new
+        If name is already in use, then load data. then only generate a new
             Galactic Cluster within the existing Universe.
+        Otherwise (new univ name) then generate both new universe and
+            a new Galactic Cluster.
         The caller can tell if a TU already existed because the returned
             TU object has more than one key. If it is a new Universe, then
-            the returned object only has one key (object type/name).
+            the returned object only has one key (for the object type/name).
         :args: (str) Optional. Universe name or none.
         :returns: (str) Universe Name
         """
@@ -141,8 +143,8 @@ class UniverseModel:
             tu_nm = f"{pendulum.now().to_iso8601_string()}"
             tu_nm = tu_nm.replace('-', '').replace(':', '')[:15]
             tu_nm = "UNIV_" + tu_nm.replace('T', '_')
-        db_tu = DB.execute_select('SELECT_ALL_UNIVS')
 
+        db_tu = DB.execute_select('SELECT_ALL_UNIVS')
         if tu_nm in db_tu['univ_name']:
             print(f"Loading UNIV '{tu_nm}' from stored data")
             # Unpickle data from DB for the TU
@@ -158,6 +160,11 @@ class UniverseModel:
         within an existing universe. In that case, we get a new timing
         pulsar to go with it, we prevent collisions, and we recompute the
         size of the XU.
+
+        N.B...
+        Call this more in-line rather than at end of main process.
+        i.e., once we know we've generated a new TU, then save it.
+        Same with GC/TP. XU is slightly different in that it can be modified.
         """
         univ_nm = self.UNIV['tu'][SM.M.TU][0]
         file_path = path.join(FI.D['APP'], FI.D['ADIRS']['SAV'],
@@ -168,6 +175,66 @@ class UniverseModel:
                             {"_id": SI.get_key(), "name": univ_nm,
                              "object_path": file_path})
         pp((DB.execute_select("SELECT_ALL_UNIVS")))
+
+    def generate_random_cluster_name(self) -> str:
+        """Generate a random name for the Galactic Cluster
+        May want to add logic to come up with a name that is
+        based on coordinates, as with universe, or other legendary names,
+        including in-game legends and myths.
+
+        Little bit of chicken and egg. How can I assign coordinates before
+        I know if it already exists? I think I am liking the requirement of
+        a proper name more and more, for any kind of astronomical structure.
+        :returns:
+        - (str) Name assigned to the GalacticCluster.
+        """
+        cluster_names = ["Crius Cluster", "Themis Cluster",
+                         "Iapetus Cluster", "Cronus Cluster"]
+        return random.choice(cluster_names)
+
+    def generate_cluster_components(p_new_universe,
+                                    p_TU: dict,
+                                    p_cluster_name: str = None,
+                                    p_pulsar_name: str = None):
+        """
+        Determine whether new Galactic Cluster is needed.
+        Look up Galactic Cluster name in Database. If it already exists,
+        and we are NOT creating a new universe, then we're done.
+
+        Otherwise, create new cluster and pulsar and
+        re-compute the external universe. Name of GC may need to
+        be tweaked if it is being created in a new Universe, but one already
+        exists in another universe with that name.
+        """
+        if cluster_name is None:
+            cluster_name = self.generate_random_cluster_name()
+        else:
+            cluster_name = p_cluster_name
+
+        p_new_cluster = False
+        db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
+        if cluster_name in db_gc['cluster_name']:
+            print(f"Cluster name '{p_cluster_name}' already in use")
+            if db_gc['univ_name_fk'] == p_TU[SM.M.TU][0]:
+                print(f"Univ names match. All done.")
+                # Unpickle the GC data
+                # Pull in the XU data -- also store that on a separate
+                # table now, but it has a 1:1 relation to the univs table.
+            else:
+                p_new_cluster = True
+                # modify the cluster name, e.g. by adding a sequence or
+                # some random letters or numbers to it
+        else:
+            p_new_cluster = True
+
+        if p_new_cluster:
+            print(f"Generating new cluster... '{tu_nm}'")
+            GC = self.generate_galactic_cluster(p_TU, cluster_name)
+            TP = self.generate_timing_pulsar(GC, cluster_name)
+            XU = self.compute_external_universe(p_TU, GC)
+
+        # pick up refactoring here
+        exit
 
     def generate_universe(self,
                           p_univ_name: str = None,
@@ -184,7 +251,8 @@ class UniverseModel:
             data from only XU, GC and TP if new cluster only
         """
         TU = self.set_universe_name(p_univ_name)
-        if len(list(TU.keys())) == 1:
+        new_universe = True if len(list(TU.keys())) == 1 else False
+        if new_universe:
             r = self.generate_random_radius()
             variance = r / 14.25e9
             TU[SM.M.RD] = (r, SM.M.GPC)                      # Radius
@@ -195,6 +263,9 @@ class UniverseModel:
             TU[SM.M.DE] = (TU[SM.M.MS][0] * 0.683, SM.M.KG)  # Dark energy
             TU[SM.M.DM] = (TU[SM.M.MS][0] * 0.274, SM.M.KG)  # Dark matter
             TU[SM.M.BM] = (TU[SM.M.MS][0] * 0.043, SM.M.KG)  # Baryonic matter
+
+        self.generate_cluster_components(
+            new_universe, p_TU, p_cluster_name, p_pulsar_name)
         # Determine whether new Galactic Cluster is needed.
         # Look up Galactic Cluster name in Database. If it already exists,
         #  then we're done. Otherwise, create new cluster and pulsar and
@@ -209,18 +280,6 @@ class UniverseModel:
             UNIV = {'tu': TU, 'xu': XU, 'gc': GC, 'tp': TP}
         else:
             UNIV = {'xu': XU, 'gc': GC, 'tp': TP}
-
-    def generate_random_cluster_name(self) -> str:
-        """Generate a random name for the Galactic Cluster
-        May want to add logic to come up with a name that is
-        based on coordinates, or other legendary names,
-        including in-game legends and myths.
-        :returns:
-        - (str) Name assigned to the GalacticCluster.
-        """
-        cluster_names = ["Crius Cluster", "Themis Cluster",
-                         "Iapetus Cluster", "Cronus Cluster"]
-        return random.choice(cluster_names)
 
     def generate_galactic_cluster(self,
                                   p_TU: dict,
@@ -266,10 +325,11 @@ class UniverseModel:
         Eventually, maybe using Blender?, get a better sense of the shape of
         the ellipsoid by plotting and visualizing it in three dimensions. I am
         not yet 100% sure that I am defining the ellipsoid shapes correctly.
+
+        Break each calculation into a method. If it seems they could have an
+        abstract use, try to parameterize appropriately. For very common
+        formulas (distance, volume, etc) move them into saskan_math.
         """
-        cluster_name = p_cluster_name
-        if cluster_name is None:
-            cluster_name = self.generate_random_cluster_name()
         # Set location of galactic cluster center relative to TU center
         # in gigaparsecs.
         min_distance = (2/3) * p_TU[SM.M.RD][0]
@@ -321,6 +381,8 @@ class UniverseModel:
         - p_pulsar_nm (str) Optional. Name of neutron star / timing pulsar
         :returns:
         - (dict) Data about the Timing Pulsar
+
+        Move these copious comments into the wiki or HTML pages.
 
         Compute a location within the GC that is
         a random distance from the GC center but
@@ -425,6 +487,7 @@ class UniverseModel:
         - GC (dict) Data about the Galacti Cluster.
 
         XU contains all the mass that is not in the GC.
+        The XU has to be recomputed when a new galactic cluster is added.
         """
         xu_data = {
             SM.M.XU: ("Beyond the Rim", SM.M.NM),
