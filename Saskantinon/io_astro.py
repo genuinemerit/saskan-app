@@ -62,24 +62,6 @@ class UniverseModel:
     is being measured, is also identified via reference
     to a value defined in SaskanMath()'s "M" dataclass.
 
-    For the purposes of the game, we consider mass and matter to
-    be the same thing. Antimatter equals matter at the big bang, but
-    then almost entirely vanishes. No one know why. Theoretically,
-    the universe should not exist since matter and antimatter should
-    have annihilated each other. But it does. So, we will assume that
-    the universe is made of matter, not antimatter, and that the
-    antimatter "went somewhere".
-    
-    For game purposes, the Total Universe is considered to be a sphere.
-    The origin point at the center of the sphere is where this known
-    universe began, its big bang point. Or in game terms, where the
-    last game universe ended and a new one began.
-
-    Volume of known universe: 3.566 x 10^80 cubic meters
-    Another estimate is 415,065 Glyr3  (cubic gigalight years).
-    For game purposes, the size of the universe will randomly fluctuate
-    around this value.
-
     @TODO:
     - Store location and size (centerpoint relative to center of Univ,
       volume) of the Galactic Cluster on the database.

@@ -1,0 +1,207 @@
+/*
+	@author  (c) 2019 Genuine Merit Software
+*/
+body {
+    font-family: \'Gill Sans\', Verdana, Arial, Helvetica, sans-serif;
+    font-size: smaller;
+    background: black;
+    color: rgb(204,255,230);
+    /* set margin to 0 and overflow to hidden, to
+        use the complete page. This disables automatic scrolling.
+    margin: 0;
+    overflow: hidden;
+    */
+    /* set margins on right/left */
+        margin: 2px 20px 2px 20px;
+        padding: 1px 0px 0px 1px;
+}
+button {
+    cursor: pointer;
+    font-weight: bold;
+    height: 30px;
+    width: 70px;
+    top: 0%;
+    padding-top: 0px;
+    margin-top: 0px;
+    background: linear-gradient(#f2f7f3, #a8aca8);
+}
+a {
+    /* color: rgb(95, 95, 223); */
+    color: rgb(125, 125, 223);
+    text-decoration: none;
+}
+a:hover {
+    color: lightblue;
+    text-decoration: underline;
+}
+
+a:active {
+    color: green;
+    text-decoration: underline;
+}
+em {
+    color:#99ff99;
+}
+table {
+    padding-top: 5px;
+    border-width: 0px;
+}
+th {
+    text-align: left;
+}
+td {
+    border-spacing: (15px, 5px);
+    vertical-align: text-top;
+}
+.bold {
+    font-weight: bold;
+}
+.lightcyan {
+    color: rgb(204,255,230);
+}
+.snow {
+    color: #edf9fc;
+}
+.gray {
+    color: rgb(179, 189, 201);
+}
+.black {
+    color: #000000;
+}
+.dark {
+    color: #171a1f;
+}
+.datum {
+    /* color: #00ff00; */
+    color:#99ff99;
+    background: black;
+}
+.sunny {
+    color: #f7e2a5;
+}
+.padleft {
+    padding-left: 3rem;
+}
+.wider {
+    width: 140px;
+}
+.clickable {
+    cursor: pointer;
+    color: rgb(157, 151, 238);
+}
+.clickable:hover {
+    color: lightblue;
+    text-decoration: underline;
+}
+.round {
+    border: 1px solid;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+	font-size:14px;
+}
+.round:hover {
+    background:#f7e2a5;
+    color: #0688fa;
+}
+.round:active {
+	position:relative;
+	top:1px;
+}
+.gradbtn {
+    box-shadow:inset 0px -3px 7px 0px #29bbff;
+	background:linear-gradient(to bottom, #2dabf9 5%, #0688fa 100%);
+    background-color:#2dabf9;
+	border-radius:3px;
+	border:1px solid #0b0e07;
+	display:inline-block;
+	cursor:pointer;
+	font-size:14px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #263666;
+}
+.gradbtn:hover {
+	background:linear-gradient(to bottom, #0688fa 5%, #2dabf9 100%);
+	background-color:#0688fa;
+}
+.gradbtn:active {
+	position:relative;
+	top:1px;
+}
+.page_title {
+    position: absolute;
+    top: 5px;
+    left: 40%;
+    width: 468px;
+    height: 29px;
+    text-align: left;
+    font-weight: bold;
+    font-size: large;
+}
+.div_title {
+    top: 5px;
+    left: 40%;
+    height: 29px;
+    text-align: left;
+    font-weight: bold;
+    font-size: large;
+}
+.menu {
+    position: absolute;
+    top: 40px;
+    left: 5%;
+}
+.main_content {
+    position: absolute;
+    top: 75px;
+    left: 5%;
+    width: 95%;
+}
+.hidden {
+    visibility: hidden;
+    display: none;
+}
+
+.col20 {
+    width: 19%;
+    position: absolute;
+    left: 0%;
+}
+.col30 {
+    width: 29%;
+    position: absolute;
+    left: 0%;
+}
+.col40 {
+    width: 38%;
+    position: absolute;
+    left: 0%;
+}
+.col50 {
+    width: 47%;
+    position: absolute;
+    left: 0%;
+}
+.col60 {
+    width: 57%;
+    position: absolute;
+    left: 0%;
+}
+.col70 {
+    width: 67%;
+    left: 0%;
+}
+.col80 {
+    width: 77%;
+    position: absolute;
+    left: 0%;
+}
+.col90 {
+    width: 87%;
+    position: absolute;
+    left: 0%;
+}
+.col100 {
+    width: 96%;
+    position: absolute;
+    left: 0%;
+}
