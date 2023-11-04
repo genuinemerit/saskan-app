@@ -1,0 +1,114 @@
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="Content-Type" content="charset=utf-8" />
+    <meta name="creator" content="GM" />
+    <meta name="copyright" content="(c) 2023 Genuine Merit Software" />
+    <meta name="contact" content="genuinemerit @ pm dot me" />
+    <style type="text/css" media="screen"></style>
+    <link rel="stylesheet" type="text/css" href="saskan.css">
+<title>Astro Data Wiki</title>
+</head>
+<body>
+<div class="page-title">Astro Data Wiki</div>
+
+<h1>GalaxyModel</h1>
+
+<h2>Galactic Groups and Clusters</h2>
+        Strictly speaking there are both galactic groups and galactic
+        clusters. The latter have thousands of galaxies; the former
+        have hundreds of galaxies. For game purposes, we will refer
+        to both as "clusters". May want to revisit the GC generator
+        to distinguish them, but for now, let's just assume that our
+        game GC is a cluster, that it can hold thousands of galaxies.
+
+<h2>Relationships</h2>
+        There can be one to many GG's within the Galactic Cluster.
+        GG's should not overlap with one another, so it is
+        necessary to have access to any existing Game Galaxies when
+        generating a new one.
+
+<h2>Size and content of Galaxies</h2>
+        - Large - trillions of stars, millions of light-years diameter.
+        - Medium - billions or millions of stars. 100,000-ish light-years diameter
+        - Small - a few thousand stars, a few hundred light-years diameter.
+        - Almost always a supermassive black hole at the center, on the
+          order of 4.1 million solar (Sol) masses.
+
+<h2>Shape of Galaxies</h2>
+        - Most are spiral or elliptical in shape, but this is located within
+          a "halo" defined by the gravity well of the galactic core.
+        - Some have an irregular shape.
+        - Many have a galactic bulge at the center. More common in larger
+          clusters. The bulge is thought to have formed by the merger of
+          nearby galaxies.
+        - An elliptical bulge of densely-packed stars & globules surrounds the
+          nucleus (super-massive black hole or SMBH). Maybe 10% of radius.
+          The bulge is thicker than the surrounding "disk". A smaller, newer,
+          more isolated galaxy may have a SMBH without a bulge.
+
+<h2>Spiral Galaxies</h2>
+        - Spiral arms of stars emerge from the bulge.  Two very large, emitted
+          from the ends of the central bulge; two very sparse, also emitted
+          from the ends, trailing "behind" the large spirals. The minor spiral
+          may or may not join up with "its" major spiral.
+        - The thickness of the arms diminishes the further from the bulge.
+        - Seen from the side, the galaxy looks like a classic "UFO" shape.
+        - Distribution of stars in the sprials varies and there are outliers.
+        - Earth-Moon system in about 2/3rds of the way from the core, in a
+          minor arm which later rejoins a major arm.
+        - Some globular clusters are located far from the "disk" but within
+          the "halo" (sphere / gravity well) of the core.
+
+<h2>Disk-shaped Galaxies</h2>
+        Disk shape:
+        - Stars are arranged move evenly in a flattish "disk" emanating from
+          the core.
+
+<h2>Movement of Galaxies</h2>
+        - Galaxies generally rotate around their core.
+        - The Earth's solar system rotates around the Milky Way core
+          once every 240 million Earth years.
+        - This kind of movement is interesting, but probably not
+          relevant to the game until (maybe) I add space travel.
+        - The Milky Way is medium sized sprial. About 100,000 light-years
+          across, and 1,000 light years thick. Roughly a roundish ellipsoid.
+          It is thought to have 100 to 400 billion stars. Let's just pretend
+          the number is 300 billion.
+        - The entire galaxy moves at about 600 km/second with respect to
+          an "extragalactic frame of reference". For game purposes, we can
+          define some kind of galactic movement around the center of the GC,
+          and then define a movement of the GC around the center of the TU.
+
+<h2>Measurement of Galaxies</h2>
+        - We divide the Milky Way into quadrants releative to the location of
+          our Sun.
+        - For game purposes, it will probably make more sense to use galactic
+          core as the center/reference point.
+
+<h2>Simulation of Galaxies</h2>
+        - The first step might be to define a distribution pattern of baryonic
+          matter. Not concerned with dark energy and dark matter for now.
+        - Galactic bulge: may be disk-like, elliptoid, spherical, non-existent.
+        - There is much more... stars are born and die. I am not entirely sure
+          how relevant any that will be for game purposes, since the timelines
+          are so vastly out of line. The game covers about 5,000 Gavoran years,
+          and so far is entirely from the POV of one planet, though that could
+          expand. But even then, I am thinking maybe 50,000 years and keeping
+          to solar systems relatively close to the main planet. We'll see.
+        - Suggest we just make up some proportions, for example:
+            - SMBH is about 4.1 million solar masses.
+            - Bulge is roughly the same.
+            - So that is 8.2 million out of ~300 billion.
+            - Make a proportion of 2.7333e-05 mass in core vs. the arms.
+            - Just compute a number of start in the galaxy, then divide up
+              the baryonic mass available. For each star, goof around with
+              that number, seeing if I can't come up with something reasonably
+              fun  for a G-type yellow star system, etc. (then keep breaking
+              it down for planets, satellites, asteroids, globular clusters,
+              etc.) It doesn't really matter than much, does it?
+            - I suppose some kind of algorithm that says, OK, if I have x
+              amount of matter available, then I should allocate n star systems.
+
+</body>
+</html>

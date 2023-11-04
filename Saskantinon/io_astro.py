@@ -59,6 +59,24 @@ class UniverseModel:
     - TP = Timing Pulsar (neutron star) in the GC which
            regulates time measurements within the GC.
     - XU = External Universe, outside of the GC
+
+    @TODO
+    - Good, but some edge unit test cases need work:
+        - If both univ name and cluster name already exist, but not in the
+          same universe, it gets confused (?) and switches to the univ that
+          is associated with the existing cluster.
+        - Do more tests on various combinations to make sure it working
+          as expected.
+        - Consider trying a 2D visualization rather then going down the
+          rabbit hole of a 3D visualization? See viz_lab for some starting
+          points using matplotlib. Processing might also be an option for
+          simpler visualizations.
+        - Also see:
+          https://matplotlib.org/stable/gallery/shapes_and_collections/ellipse_demo.html
+           and
+          https://matplotlib.org/stable/gallery/shapes_and_collections/ellipse_collection.html
+        - Should be able to have some simple fun with those. Can probably do
+          something similar in PyGame for that matter.
     """
 
     def __init__(self,
@@ -82,11 +100,15 @@ class UniverseModel:
         - 1:1 TU---XU
         """
         new_univ, TU = self.generate_universe(p_univ_name)
-        new_cluster, GC = self.generate_cluster(new_univ, TU,
+        new_cluster, GC = self.generate_cluster(new_univ,
+                                                TU,
                                                 p_cluster_name,
                                                 p_pulsar_name)
-        # if new_univ or new_cluster:
-        #    XU = self.compute_external_universe(TU, GC)
+        XU = self.compute_external_universe(new_univ,
+                                            new_cluster,
+                                            TU)
+
+        pp((TU, GC, XU))
 
     def set_universe_name(self,
                           p_univ_name: str = None) -> tuple:
@@ -250,6 +272,73 @@ class UniverseModel:
         gc_bm = mass_pct * p_TU[SM.M.BM][0] * univ_mass_kg
         return(gc_vol, gc_de, gc_dm, gc_bm)
 
+    def set_pulsar_name(self,
+                        p_pulsar_name: str = None) -> str:
+        """Assign or generate name for timing pulsar.
+        It is contained within the Galactic Cluster object, so does not
+        have to be unique.
+        """
+        if p_pulsar_name is not None:
+            p_nm = p_pulsar_name
+        else:
+            a1 = random.choice(["Timer", "Chrono", "Clockwork",
+                   "Lighthouse", "Beacon", "Pendumlum"])
+            a2 = random.choice(["Pulsar", "Star", "Nova",
+                   "Sentry", "Stupa"])
+            n = str(round(random.uniform(100, 10000)))
+            p_nm = f"{a1} {a2} {n}"
+        return p_nm
+
+    def set_pulsar_location(self,
+                            p_GC) -> tuple:
+        """Set pulsar location within inner third of the cluster space.
+        :args:
+        - p_GC (dict): data about the cluster
+        :returns:
+        - (float, float, float): (x, y, z in megaparsecs offset from center)
+        """
+        gc_x = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][0]
+        gc_y = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][1]
+        gc_z = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][2]
+        max_x = (gc_x / 2) * 0.33
+        max_y = (gc_y / 2) * 0.33
+        max_z = (gc_z / 2) * 0.33
+        while True:
+            lx = random.uniform(-gc_x, gc_x)
+            if lx <= max_x:
+                break
+        while True:
+            ly = random.uniform(-gc_y, gc_y)
+            if ly <= max_y:
+                break
+        while True:
+            lz = random.uniform(-gc_z, gc_z)
+            if lz <= max_z:
+                break
+        pulsar_vector = (lx, ly, lz)
+        return pulsar_vector
+
+    def generate_timing_pulsar(self,
+                               p_GC: dict,
+                               p_pulsar_name: str = None) -> dict:
+        """Define the timing pulsar within the GC.
+        :args:
+        - p_GC (dict) Data about the Galactic Cluster
+        - p_pulsar_nm (str) Optional. Name of neutron star / timing pulsar
+        :returns:
+        - (dict) Updated version of GC object with Pulsar data
+        """
+        GC = p_GC
+        p_nm = self.set_pulsar_name(p_pulsar_name)
+        GC[SM.M.TP] = (p_nm, SM.M.NM)
+        # pulses (rotational frequency) per 'galactic second'
+        # in milliseconds
+        pulse_rate = (1 / random.uniform(700, 732)) * 1000
+        GC[f"{SM.M.TP} {SM.M.PR}"] = (pulse_rate, SM.M.PMS)
+        pulsar_vector = self.set_pulsar_location(GC)
+        GC[f"{SM.M.TP} {SM.M.LOC} {SM.M.VE}"] = (pulsar_vector, SM.M.GPC)
+        return GC
+
     def generate_cluster(self,
                          p_new_universe: bool,
                          p_TU: dict,
@@ -272,106 +361,99 @@ class UniverseModel:
             px, py, pz, a, b, c = self.set_cluster_size()
             gc_vol, gc_de, gc_dm, gc_bm =\
                 self.set_cluster_vol_and_mass(a, b, c, p_TU)
-            GC[SM.M.TU]: (p_TU[SM.M.TU][0], SM.M.CON)              # Container
-            GC[f"{SM.M.LOC} {SM.M.VE}"]: ((lx, ly, lz), SM.M.GPC)  # Location
-            GC[f"{SM.M.EL} {SM.M.SHA}"]: ((((px, py, pz), SM.M.DIM),
-                                ((a, b, c), SM.M.AX)), SM.M.PC)    # Shape/size
-            GC[SM.M.VL]: (gc_vol, SM.M.GPC3)               # Volume
-            GC[SM.M.DE]: (gc_de, SM.M.KG)                  # Dark Energy kg
-            GC[SM.M.DM]: (gc_dm, SM.M.KG)                  # Dark Matter kg
-            GC[SM.M.BM]: (gc_bm, SM.M.KG)                  # Baryonic Matter kg
-
-            # @TODO:... pick up here...
-            # Add timing pulsar generation here
-            # Store TP data in the clusters table
-
+            GC[SM.M.TU] = (p_TU[SM.M.TU][0], SM.M.CON)   # Container
+            GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"] =\
+                ((lx, ly, lz), SM.M.GPC)                 # Location
+            GC[f"{SM.M.EL} {SM.M.SHA}"] =\
+                ((((px, py, pz), SM.M.DIM),
+                 ((a, b, c), SM.M.AX)), SM.M.PC)         # Shape/size
+            GC[f"{SM.M.GC} {SM.M.VL}"] =\
+                (gc_vol, SM.M.GPC3)                      # Volume
+            GC[SM.M.DE] = (gc_de, SM.M.KG)               # Dark Energy kg
+            GC[SM.M.DM] = (gc_dm, SM.M.KG)               # Dark Matter kg
+            GC[SM.M.BM] = (gc_bm, SM.M.KG)               # Baryonic Matter kg
+            GC = self.generate_timing_pulsar(GC, p_pulsar_name)
             DB.execute_insert(
                 'INSERT_CLUSTER_PROC',
                 (GC[SM.M.GC][0], p_TU[SM.M.TU][0], pickle.dumps(GC)))
         return(new_cluster, GC)
 
-    def generate_timing_pulsar(self,
-                               p_GC: dict,
-                               p_pulsar_nm: str = None) -> dict:
-        """Define the timing pulsar within the GC.
+    def set_xu_name(self,
+                    new_univ: bool,
+                    p_TU: dict) -> str:
+        """Assign name for a new External Universe object.
+        It is the PK on a table, so has to be unique.
+        It has a 1:1 relationship with a TU, which it is derived from.
         :args:
-        - p_GC (dict) Data about the Galactic Cluster
-        - p_pulsar_nm (str) Optional. Name of neutron star / timing pulsar
+        - new_univ (bool): Flag indicating if it is a new universe
+        - p_TU (dict): Data about Total Universe
         :returns:
-        - (dict) Data about the Timing Pulsar
-
-        Move these copious comments into the wiki or HTML pages.
-
+        - (str): Either new XU name or name of XU associated with p_TU
         """
-        min_rate = 700  # pulses (rotational frequency) per 'galactic second'
-        max_rate = 732
-        pulse_rate = random.uniform(min_rate, max_rate)
-        # Compute the period in milliseconds
-        period_ms = (1 / pulse_rate) * 1000
-        # Determine pulsar location
-        gc_x = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][0]
-        gc_y = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][1]
-        gc_z = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][2]
-        max_x = (gc_x / 2) * 0.33
-        max_y = (gc_y / 2) * 0.33
-        max_z = (gc_z / 2) * 0.33
-        while True:
-            lx = random.uniform(-gc_x, gc_x)
-            if lx <= max_x:
-                break
-        while True:
-            ly = random.uniform(-gc_y, gc_y)
-            if ly <= max_y:
-                break
-        while True:
-            lz = random.uniform(-gc_z, gc_z)
-            if lz <= max_z:
-                break
-        # Set star name
-        star_names = [(f"N_{str(lx)[:5].replace('-', '').replace(',', '')}_" +
-                      f"{str(ly)[:5].replace('-', '').replace(',', '')}_" +
-                      f"{str(lz)[:5].replace('-', '').replace(',', '')}"),
-                      "Timing Pulsar", "Celestial Chrono", "Luminous Sentry",
-                      "Eternal Beacon", "Pendula Galaxia", "Nova Clock",
-                      "Star Clock"]
-        star_nm = p_pulsar_nm if p_pulsar_nm is not None\
-            else random.choice(star_names)
-        tp_data = {
-            SM.M.TP: (star_nm, SM.M.NM),
-            SM.M.CON: (p_GC[SM.M.GC][0], SM.M.GC),
-            f"{SM.M.LOC} {SM.M.VE}":  ((lx, ly, lz), SM.M.GPC),
-            SM.M.GS: (pulse_rate, SM.M.PS),
-            SM.M.PR: (period_ms, SM.M.GMS)
-        }
-        return tp_data
+        def compute_new_xu_nm():
+            xu_nm = p_TU[SM.M.TU][0].split(" ")[:2]
+            xu_nm = " ".join(xu_nm) + " XU"
+            xu_nm += "_" + str(round(random.uniform(10, 1000)))
+            return xu_nm
+
+        db_xu = DB.execute_select('SELECT_ALL_XUS')
+
+        pp(("db_xu", db_xu))
+
+        if new_univ:
+            print("New Universe...")
+            xu_nm = compute_new_xu_nm()
+            while xu_nm in db_xu['xu_name']:
+                xu_nm = compute_new_xu_nm
+        else:
+            print("Old Universe...")
+            for rx, u_nm in enumerate(db_xu['univ_name_fk']):
+                if u_nm == p_TU[SM.M.TU][0]:
+                    xu_nm = db_xu['xu_name'][rx]
+                    break
+        return xu_nm
 
     def compute_external_universe(self,
-                                   p_TU: dict,
-                                   p_GC: dict) -> dict:
+                                  new_univ: bool,
+                                  new_cluster: bool,
+                                  p_TU: dict) -> dict:
         """Define the External Universe (XU) within the TU.
-
-        @TODO:
-        Add new XU record if it is a new universe, otherwise, update
-        the existing XU record associated with the current TU.
-
-        :args:
-        - TU (dict) Data about the Total Universe.
-        - GC (dict) Data about the Galacti Cluster.
-
         XU contains all the mass that is not in the GC.
-        The XU has to be recomputed when a new galactic cluster is added.
+        XU has to be recomputed whenever a new galactic cluster is added.
+        Add new XU record if it is a new universe, otherwise, update
+          existing XU record associated with the current TU.
+        :args:
+        - new_univ (bool):    Flag indicating if it is a new universe
+        - new_cluster (bool): Flag indicating if it is a new cluster
+        - TU (dict) Data about the Total Universe.
+        :returns:
+        - XU (dict) Data about the External Universe (new or modified)
         """
-        xu_data = {
-            SM.M.XU: ("Beyond the Rim", SM.M.NM),
-            SM.M.CON: (p_TU[SM.M.TU][0], SM.M.TU),
-            SM.M.DE: (((p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0]) -
-                       p_GC[SM.M.DE][0]), SM.M.KG),
-            SM.M.DM: (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) -
-                       p_GC[SM.M.DM][0]), SM.M.KG),
-            SM.M.BM: (((p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0]) -
-                       p_GC[SM.M.BM][0]), SM.M.KG)
-        }
-        return xu_data
+        XU = dict()
+        de = 0.0
+        dm = 0.0
+        bm = 0.0
+        xu_nm = self.set_xu_name(new_univ, p_TU)
+        XU[SM.M.XU] = (xu_nm, SM.M.NM)
+        XU[SM.M.CON]: (p_TU[SM.M.TU][0], SM.M.TU)
+        db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
+        for gx, u_nm in enumerate(db_gc['univ_name_fk']):
+            if u_nm == p_TU[SM.M.TU][0]:
+                GC = pickle.loads(db_gc['cluster_object'][0])
+                de += GC[SM.M.DE][0]
+                dm += GC[SM.M.DM][0]
+                bm += GC[SM.M.BM][0]
+        XU[SM.M.DE] = (((p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0]) - de), SM.M.KG),
+        XU[SM.M.DM] = (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) - dm), SM.M.KG),
+        XU[SM.M.BM] = (((p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0]) - bm), SM.M.KG)
+        if new_univ:
+            DB.execute_insert(
+                'INSERT_XU_PROC',
+                (XU[SM.M.XU][0], p_TU[SM.M.TU][0], pickle.dumps(XU)))
+        elif new_cluster:
+            # UPDATE
+            pass
+        return XU
 
 
 class GalaxyModel:
@@ -392,109 +474,6 @@ class GalaxyModel:
         - p_load_galaxy (str) Optional. Name of instantiated Game Galaxy.
             If provided, load object from pickle and ignore remaining params.
             Otherwise, generate new GG using remaining params.
-
-        There can be one to many GG's within the Galactic Cluster.
-        GG's should not overlap with one another, so it is 
-        necessary to have access to any existing Game Galaxies when
-        generating a new one.
-
-        Strictly speaking there are both galactic groups and galactic
-        clusters. The latter have thousands of galaxies; the former
-        have hundreds of galaxies. For game purposes, we will refer
-        to both as "clusters". May want to revisit the GC generator
-        to distinguish them, but for now, let's just assume that our
-        game GC is a cluster, that it can hold thousands of galaxies.
-
-        Size and content.
-        - Large - trillions of stars, millions of light-years diameter.
-        - Medium - billions or millions of stars. 100,000-ish light-years diameter
-        - Small - a few thousand stars, a few hundred light-years diameter.
-        - Almost always a supermassive black hole at the center, on the 
-          order of 4.1 million solar (Sol) masses.
-
-        Shape:
-        - Most are spiral or elliptical in shape, but this is located within
-          a "halo" defined by the gravity well of the galactic core.
-        - Some have an irregular shape.
-        - Many have a galactic bulge at the center. More common in larger
-          clusters. The bulge is thought to have formed by the merger of
-          nearby galaxies. 
-        - An elliptical bulge of densely-packed stars & globules surrounds the
-          nucleus (super-massive black hole or SMBH). Maybe 10% of radius.
-          The bulge is thicker than the surrounding "disk". A smaller, newer,
-          more isolated galaxy may have a SMBH without a bulge.
-
-        Sprial shape:
-        - Spiral arms of stars emerge from the bulge.  Two very large, emitted
-          from the ends of the central bulge; two very sparse, also emitted
-          from the ends, trailing "behind" the large spirals. The minor spiral
-          may or may not join up with "its" major spiral.
-        - The thickness of the arms diminishes the further from the bulge.
-        - Seen from the side, the galaxy looks like a classic "UFO" shape.
-        - Distribution of stars in the sprials varies and there are outliers.
-        - Earth-Moon system in about 2/3rds of the way from the core, in a 
-          minor arm which later rejoins a major arm. 
-        - Some globular clusters are located far from the "disk" but within
-          the "halo" (sphere / gravity well) of the core.
-
-        Disk shape:
-        - Stars are arranged move evenly in a flattish "disk" emanating from
-          the core.
-
-        Movement:
-        - Galaxies generally rotate around their core.
-        - The Earth's solar system rotates around the Milky Way core
-          once every 240 million Earth years.
-        - This kind of movement is interesting, but probably not
-          relevant to the game until (maybe) I add space travel.
-        - The Milky Way is medium sized sprial. About 100,000 light-years
-          across, and 1,000 light years thick. Roughly a roundish ellipsoid.
-          It is thought to have 100 to 400 billion stars. Let's just pretend
-          the number is 300 billion.
-        - The entire galaxy moves at about 600 km/second with respect to
-          an "extragalactic frame of reference". For game purposes, we can
-          define some kind of galactic movement around the center of the GC,
-          and then define a movement of the GC around the center of the TU.
-
-        Measurement:
-        - We divide the Milky Way into quadrants releative to the location of
-          our Sun.
-        - For game purposes, it will probably make more sense to use galactic
-          core as the center/reference point.
-
-        Simulation:
-        - The first step might be to define a distribution pattern of baryonic
-          matter. Not concerned with dark energy and dark matter for now.
-        - Galactic bulge: may be disk-like, elliptoid, spherical, non-existent. 
-        - There is much more... stars are born and die. I am not entirely sure
-          how relevant any that will be for game purposes, since the timelines
-          are so vastly out of line. The game covers about 5,000 Gavoran years, 
-          and so far is entirely from the POV of one planet, though that could
-          expand. But even then, I am thinking maybe 50,000 years and keeping
-          to solar systems relatively close to the main planet. We'll see.
-        - Suggest we just make up some proportions, for example:
-            - SMBH is about 4.1 million solar masses.
-            - Bulge is roughly the same.
-            - So that is 8.2 million out of ~300 billion. 
-            - Make a proportion of 2.7333e-05 mass in core vs. the arms.
-            - Just compute a number of start in the galaxy, then divide up
-              the baryonic mass available. For each star, goof around with
-              that number, seeing if I can't come up with something reasonably
-              fun  for a G-type yellow star system, etc. (then keep breaking
-              it down for planets, satellites, asteroids, globular clusters,
-              etc.) It doesn't really matter than much, does it? 
-            - I suppose some kind of algorithm that says, OK, if I have x
-              amount of matter available, then I should allocate n star systems.
-
-        Tweaks to UniverseModel:
-        - Determine if the Galactic Cluster is large, medium or small.
-        - Make that available as a parameter.
-        - Adjust the GC size based on that. Record S, M, L in the GC object. 
-        - Allow for multiple, but non-overlapping Galactic Clusters.
-        - Go ahead and start using sqlite to keep track of the
-          astronomical inventory? Pickle for details, sql for index,
-          store location of pickles in the database. If that is too much
-          trouble, then just use JSON.
         """
         self.UNIV = p_UNIV.UNIV
         if p_load_galaxy is not None:

@@ -55,6 +55,8 @@ class DataBase(object):
 
     def connect_db(self):
         """Open DB connection to SASKAN_DB.
+        Indicate that the DB should help to maintain referential
+        integrity for foreign keys.
 
         Create a SASKAN_DB file if one does not already exist.
         :sets:
@@ -63,6 +65,7 @@ class DataBase(object):
         """
         self.disconnect_db()
         self.db_conn = sq3.connect(self.DB)
+        self.db_conn.execute("PRAGMA foreign_keys = ON;")
         self.cur = self.db_conn.cursor()
 
     def get_sql_file(self,
@@ -118,13 +121,7 @@ class DataBase(object):
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-
-        pp((SQL))
-
         COLS = self.get_db_columns(p_sql=SQL)
-
-        pp((COLS))
-
         self.cur.execute(SQL)
         DATA = [r for r in self.cur.fetchall()]
         result = {col: [row[i] for row in DATA]

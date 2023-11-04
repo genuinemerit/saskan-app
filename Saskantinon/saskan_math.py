@@ -292,13 +292,15 @@ class SaskanMath(object):
         # time-related, real world and saskan
         GS = "galactic second"          # 'galactic' second; saskan
         GMS = "galactic millisecond"    # 'galactic' millisecond; saskan
-        PS = "pulses per second"        # 'galactic' second as # of pulses
+        PMS = "pulses per millisecond"  # 'galactic' second as # of pulses
         ET = "elapsed time"             # age, duration, time passed
         GY = "gavoran year"             # saskan
         # rates, speeds, velocities
         ER = "expansion rate"           # of a volume
-        UE = "universal expansion KM/S per MPC"  # km/s per Mpc
-        PR = "period of rotation"
+        UE = "universal expansion"      # km/s per Mpc
+        PRO = "period of rotation"
+        PRV = "period of revolution"
+        PR = "pulse rate"
         # names, labels, qualities
         NM = "name"
         REL = "relative"
