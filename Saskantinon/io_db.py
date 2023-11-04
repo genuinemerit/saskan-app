@@ -152,7 +152,7 @@ class DataBase(object):
             - caller knows what values to provide and in what order
         :args:
         - p_sql_nm (str): Name of external SQL file
-        - p_values (tuple): n-tuple of values to insert or update
+        - p_values (tuple): n-tuple of values to insert
 
         @TODO:
         - Make a similar method to handle UPDATE via SQL file.
@@ -161,14 +161,31 @@ class DataBase(object):
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-        # COLS = self.get_db_columns(p_tbl_nm=p_tbl_nm)
-        # for col_nm, col_val in p_values.items():
-        #    SQL = SQL.replace(f"%{col_nm.lower()}%", f"'{col_val}'")
-        # print("DEBUG: Modified SQL text: ")
-        # print(SQL)
         self.cur.execute(SQL, p_values)
         self.db_conn.commit()
         self.disconnect_db()
+
+    def execute_update(self,
+                       p_sql_nm: str,
+                       p_key_val: str,
+                       p_values: tuple):
+        """Run a SQL UPDATE file which uses dynamic values.
+           Key value is the matching condition for WHERE clause (prim key).
+           Values are the column names in specified order.
+           For now I will assume that:
+            - UPDATEs will always expect full list of values
+            - caller knows what values to provide and in what order
+        :args:
+        - p_sql_nm (str): Name of external SQL file
+        - p_key_val (str): Value of primary key to match on
+        - p_values (tuple): n-tuple of values to update
+        """
+        self.connect_db()
+        SQL = self.get_sql_file(p_sql_nm)
+        self.cur.execute(SQL, p_values + (p_key_val,))
+        self.db_conn.commit()
+        self.disconnect_db()
+
 
     # =======================================================
     # Worry about all this later...

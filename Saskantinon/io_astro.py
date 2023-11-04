@@ -59,24 +59,6 @@ class UniverseModel:
     - TP = Timing Pulsar (neutron star) in the GC which
            regulates time measurements within the GC.
     - XU = External Universe, outside of the GC
-
-    @TODO
-    - Good, but some edge unit test cases need work:
-        - If both univ name and cluster name already exist, but not in the
-          same universe, it gets confused (?) and switches to the univ that
-          is associated with the existing cluster.
-        - Do more tests on various combinations to make sure it working
-          as expected.
-        - Consider trying a 2D visualization rather then going down the
-          rabbit hole of a 3D visualization? See viz_lab for some starting
-          points using matplotlib. Processing might also be an option for
-          simpler visualizations.
-        - Also see:
-          https://matplotlib.org/stable/gallery/shapes_and_collections/ellipse_demo.html
-           and
-          https://matplotlib.org/stable/gallery/shapes_and_collections/ellipse_collection.html
-        - Should be able to have some simple fun with those. Can probably do
-          something similar in PyGame for that matter.
     """
 
     def __init__(self,
@@ -100,15 +82,10 @@ class UniverseModel:
         - 1:1 TU---XU
         """
         new_univ, TU = self.generate_universe(p_univ_name)
-        new_cluster, GC = self.generate_cluster(new_univ,
-                                                TU,
-                                                p_cluster_name,
-                                                p_pulsar_name)
-        XU = self.compute_external_universe(new_univ,
-                                            new_cluster,
-                                            TU)
-
-        pp((TU, GC, XU))
+        new_cluster, GC = self.generate_cluster(new_univ, TU,
+                                                p_cluster_name, p_pulsar_name)
+        XU = self.compute_external_universe(new_univ, new_cluster, TU)
+        pp(("TU: ", TU, "GC: ", GC, "XU: ", XU))
 
     def set_universe_name(self,
                           p_univ_name: str = None) -> tuple:
@@ -130,11 +107,12 @@ class UniverseModel:
                     "Oblivion", "Infinity"])
             tu_nm = f"{a1} {a2} {n}"
         db_tu = DB.execute_select('SELECT_ALL_UNIVS')
-        if tu_nm in db_tu['univ_name']:
-            new_universe = False
-            TU = pickle.loads(db_tu['univ_object'][0])
-        else:
-            new_universe = True
+        new_universe = True
+        for tx, u_nm in enumerate(db_tu['univ_name']):
+            if tu_nm == u_nm:
+                new_universe = False
+                TU = pickle.loads(db_tu['univ_object'][tx])
+        if new_universe:
             TU = {SM.M.TU: (tu_nm, SM.M.NM)}
         return(new_universe, TU)
 
@@ -160,6 +138,7 @@ class UniverseModel:
             TU[SM.M.DE] = (TU[SM.M.MS][0] * 0.683, SM.M.KG)  # Dark energy
             TU[SM.M.DM] = (TU[SM.M.MS][0] * 0.274, SM.M.KG)  # Dark matter
             TU[SM.M.BM] = (TU[SM.M.MS][0] * 0.043, SM.M.KG)  # Baryonic matter
+            print(f"New Universe added: {TU[SM.M.TU][0]}")
             DB.execute_insert('INSERT_UNIV_PROC',
                               (TU[SM.M.TU][0], pickle.dumps(TU)))
         return(new_universe, TU)
@@ -191,18 +170,21 @@ class UniverseModel:
             gc_nm = f"{a1} {a2} {n}"
 
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
-        if gc_nm in db_gc['cluster_name']:
-            if p_new_universe:
-                gc_nm_tweak = gc_nm
-                while gc_nm_tweak in db_gc['cluster_name']:
-                    gc_nm_tweak = gc_nm + " " +\
-                        str(round(random.uniform(1, 100)))
-                new_cluster = True
-                GC = {SM.M.GC: (gc_nm_tweak, SM.M.NM)}
-            else:
-                new_cluster = False
-                GC = pickle.loads(db_gc['cluster_object'][0])
-        else:
+        cluster_nm_found = False
+        for gx, g_nm in enumerate(db_gc['cluster_name']):
+            if g_nm == gc_nm:
+                cluster_nm_found = True
+                if p_new_universe:
+                    gc_nm_tweak = gc_nm
+                    while gc_nm_tweak in db_gc['cluster_name']:
+                        gc_nm_tweak = gc_nm + " " +\
+                            str(round(random.uniform(1, 100)))
+                    new_cluster = True
+                    GC = {SM.M.GC: (gc_nm_tweak, SM.M.NM)}
+                else:
+                    new_cluster = False
+                    GC = pickle.loads(db_gc['cluster_object'][gx])
+        if not cluster_nm_found:
             new_cluster = True
             GC = {SM.M.GC: (gc_nm, SM.M.NM)}
         return(new_cluster, GC)
@@ -229,7 +211,7 @@ class UniverseModel:
         return(lx, ly, lz)
 
     def set_cluster_size(self) -> tuple:
-        """Compute a ellipsoid size and shape for the galactic cluster,
+        """Compute a 3D ellipsoid size and shape for the galactic cluster,
         centered around its location and measured in parsecs.
         :returns:
         - (float * 6): (x, y, z are width, depth, height;
@@ -261,8 +243,8 @@ class UniverseModel:
         - p_c (float): relative z axis of ellipsoid
         - p_TU (dict): data about total universe
         :returns:
-        - (float * 4): (GC total volume in GPC3; GC dark energy, dark matter,
-                        and baryonic matter in kilograms)
+        - (float * 4): (GC total volume in cubic gigaparsecs,
+                        GC dark energy, dark matter, baryonic matter in kg)
         """
         gc_vol = (4/3) * math.pi * p_a * p_b * p_c
         mass_pct = random.uniform(0.01, 0.05)
@@ -331,8 +313,7 @@ class UniverseModel:
         GC = p_GC
         p_nm = self.set_pulsar_name(p_pulsar_name)
         GC[SM.M.TP] = (p_nm, SM.M.NM)
-        # pulses (rotational frequency) per 'galactic second'
-        # in milliseconds
+        # pulses (rotational frequency) per 'galactic second' in milliseconds
         pulse_rate = (1 / random.uniform(700, 732)) * 1000
         GC[f"{SM.M.TP} {SM.M.PR}"] = (pulse_rate, SM.M.PMS)
         pulsar_vector = self.set_pulsar_location(GC)
@@ -373,6 +354,7 @@ class UniverseModel:
             GC[SM.M.DM] = (gc_dm, SM.M.KG)               # Dark Matter kg
             GC[SM.M.BM] = (gc_bm, SM.M.KG)               # Baryonic Matter kg
             GC = self.generate_timing_pulsar(GC, p_pulsar_name)
+            print(f"New cluster added: {GC[SM.M.GC][0]}")
             DB.execute_insert(
                 'INSERT_CLUSTER_PROC',
                 (GC[SM.M.GC][0], p_TU[SM.M.TU][0], pickle.dumps(GC)))
@@ -380,35 +362,30 @@ class UniverseModel:
 
     def set_xu_name(self,
                     new_univ: bool,
-                    p_TU: dict) -> str:
+                    p_univ_name: str) -> str:
         """Assign name for a new External Universe object.
-        It is the PK on a table, so has to be unique.
-        It has a 1:1 relationship with a TU, which it is derived from.
+        It is the PK on a table, so it has to be unique in INSERT.
+        It has a 1:1 relationship with a TU, which it derives from.
         :args:
         - new_univ (bool): Flag indicating if it is a new universe
-        - p_TU (dict): Data about Total Universe
+        - p_univ_name (str): Name of the current Total Universe
         :returns:
-        - (str): Either new XU name or name of XU associated with p_TU
+        - (str): Either new XU name or name of XU related to p_TU
         """
         def compute_new_xu_nm():
-            xu_nm = p_TU[SM.M.TU][0].split(" ")[:2]
+            xu_nm = p_univ_name.split(" ")[:2]
             xu_nm = " ".join(xu_nm) + " XU"
             xu_nm += "_" + str(round(random.uniform(10, 1000)))
             return xu_nm
 
         db_xu = DB.execute_select('SELECT_ALL_XUS')
-
-        pp(("db_xu", db_xu))
-
         if new_univ:
-            print("New Universe...")
             xu_nm = compute_new_xu_nm()
             while xu_nm in db_xu['xu_name']:
                 xu_nm = compute_new_xu_nm
         else:
-            print("Old Universe...")
             for rx, u_nm in enumerate(db_xu['univ_name_fk']):
-                if u_nm == p_TU[SM.M.TU][0]:
+                if u_nm == p_univ_name:
                     xu_nm = db_xu['xu_name'][rx]
                     break
         return xu_nm
@@ -433,13 +410,14 @@ class UniverseModel:
         de = 0.0
         dm = 0.0
         bm = 0.0
-        xu_nm = self.set_xu_name(new_univ, p_TU)
+        xu_nm = self.set_xu_name(new_univ, p_TU[SM.M.TU][0])
+        tu_nm = p_TU[SM.M.TU][0]
         XU[SM.M.XU] = (xu_nm, SM.M.NM)
-        XU[SM.M.CON]: (p_TU[SM.M.TU][0], SM.M.TU)
+        XU[SM.M.CON]: (tu_nm, SM.M.TU)
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
         for gx, u_nm in enumerate(db_gc['univ_name_fk']):
-            if u_nm == p_TU[SM.M.TU][0]:
-                GC = pickle.loads(db_gc['cluster_object'][0])
+            if u_nm == tu_nm:
+                GC = pickle.loads(db_gc['cluster_object'][gx])
                 de += GC[SM.M.DE][0]
                 dm += GC[SM.M.DM][0]
                 bm += GC[SM.M.BM][0]
@@ -447,35 +425,36 @@ class UniverseModel:
         XU[SM.M.DM] = (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) - dm), SM.M.KG),
         XU[SM.M.BM] = (((p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0]) - bm), SM.M.KG)
         if new_univ:
+            print(f"New XU created: {xu_nm}")
             DB.execute_insert(
-                'INSERT_XU_PROC',
-                (XU[SM.M.XU][0], p_TU[SM.M.TU][0], pickle.dumps(XU)))
+                'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(XU)))
         elif new_cluster:
-            # UPDATE
-            pass
+            print(f"Updated existing XU: {xu_nm}")
+            DB.execute_insert(
+                'UPDATE_XU_PROC', (pickle.dumps(XU), xu_nm))
+        else:
+            print(f"No changes made to XU: {xu_nm}")
         return XU
 
 
 class GalaxyModel:
     """Class for modeling the Game Galaxy (GG).
-
-        @TODO:
-        - Incorporate lessons learned from refactoring TU and GC into GG model.
     """
 
     def __init__(self,
-                 p_UNIV: object,
-                 p_load_galaxy: str = None,
-                 p_galaxy_nm: str = None,
+                 p_univ_name: str,
+                 p_cluster_name: str,
+                 p_galaxy_name: str = None,
                  p_galaxy_sz: str = "M"):
         """Initialize class for a Game Galaxy.
         :args:
-        - p_UNIV (UniverseModel object) - an instantiated universe
-        - p_load_galaxy (str) Optional. Name of instantiated Game Galaxy.
-            If provided, load object from pickle and ignore remaining params.
-            Otherwise, generate new GG using remaining params.
+        - p_univ_name (str): Name of universe to put GC in
+        - p_cluster_name (str): Name of cluster to put GC in
+        - p_galaxy_name (str) Optional.  If provided, load existing galaxy.
+            Otherwise, generate new gamaing galaxy.
+        - p_galazy_size (str) Default = 'M'. Must be S, M or L.
         """
-        self.UNIV = p_UNIV.UNIV
+        db_tu = DB.execute_select('SELECT_ALL_GALAXIES')
         if p_load_galaxy is not None:
             model_nm = p_load_galaxy if '.pkl' in p_load_galaxy\
                 else p_load_galaxy + '.pkl'
