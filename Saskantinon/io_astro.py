@@ -199,6 +199,9 @@ class UniverseModel:
         :returns:
         - (float, float, float): (x, y, z in gigaparsecs from universe center
                                   to center of cluster)
+
+        @TODO:
+        - Prevent collisions between Galactic Clusters
         """
         min_distance = (2/3) * p_TU[SM.M.RD][0]
         while True:
@@ -447,6 +450,7 @@ class GalaxyModel:
                  p_galaxy_name: str = None,
                  p_galaxy_sz: str = "M"):
         """Initialize class for a Game Galaxy.
+        If univ name or cluster name are not found on DB, stop.
         :args:
         - p_univ_name (str): Name of universe to put GC in
         - p_cluster_name (str): Name of cluster to put GC in
@@ -454,159 +458,232 @@ class GalaxyModel:
             Otherwise, generate new gamaing galaxy.
         - p_galazy_size (str) Default = 'M'. Must be S, M or L.
         """
-        db_tu = DB.execute_select('SELECT_ALL_GALAXIES')
-        if p_load_galaxy is not None:
-            model_nm = p_load_galaxy if '.pkl' in p_load_galaxy\
-                else p_load_galaxy + '.pkl'
-            file_path = path.join(FI.D['APP'],
-                                  FI.D['ADIRS']['SAV'],
-                                  model_nm)
-            self.GG = FI.get_pickle(file_path)
-        else:
-            self.generate_galaxy(p_galaxy_nm,
-                                 p_galaxy_sz)
+        TU_found, self.GC =\
+            self.get_univ_and_galaxy(p_univ_name, p_cluster_name)
+        if TU_found and self.GC is not None:
+            new_galaxy, self.GG =\
+                self.get_galaxy_name(p_cluster_name, p_galaxy_name)
+        if new_galaxy:
+            self.GG = self.generate_new_galaxy(p_cluster_name, p_galaxy_sz)
         pp((self.GG))
 
-    def generate_galaxy(self,
-                        p_galaxy_nm: str = None,
-                        p_galaxy_sz: str = "M"):
-        """
-        Generate a new Game Galaxy (GG) object.
-        Break up the parts of the GG into separate methods.
+    def get_univ_and_galaxy(self,
+                            p_univ_name: str,
+                            p_cluster_name: str) -> tuple:
+        """Retrieve galaxy, cluster and external universe objects from DB.
         :args:
+        - p_univ_name (str): Name of universe to put GC in
+        - p_cluster_name (str): Name of cluster to put GC in
+        :returns:
+        - (bool, dict): (flag indicating TU found or not, GC data)
+        """
+        tu_found = False
+        GC = None
+        db = DB.execute_select('SELECT_ALL_UNIVS')
+        for x, nm in enumerate(db['univ_name']):
+            if nm == p_univ_name:
+                tu_found = True
+                break
+        db = DB.execute_select('SELECT_ALL_CLUSTERS')
+        for x, nm in enumerate(db['cluster_name']):
+            if nm == p_cluster_name:
+                GC = pickle.loads(db['cluster_object'][x])
+                break
+        return(tu_found, GC)
+
+    def get_galaxy_name(self,
+                        p_cluster_name: str,
+                        p_galaxy_name: str = None) -> tuple:
+        """Either retrieve existing Game Galaxy object for specified name
+        and cluster, or assign a name to a new Galaxy object.
+        :args:
+        - p_cluster_nm (str) Name of the containing Galactic Cluster.
         - p_galaxy_nm (str) Optional. Name of the Game Galaxy.
+        :returns:
+        - (bool, dict): (Flag indicating new galaxy or not,
+                         Data about the Game Galaxy)
+        """
+        GG = dict()
+        new_galaxy = True
+        if p_galaxy_name is not None:
+            db = DB.execute_select('SELECT_ALL_GALAXIES')
+            for x, nm in enumerate(db['galaxy_name']):
+                if nm == p_galaxy_name\
+                and db['cluster_name'][x] == p_cluster_name:
+                    new_galaxy = False
+                    GG = db['galaxy_object'][x]
+                    break
+            if new_galaxy:
+                GG[SM.M.GG] = (p_galaxy_name, SM.M.NM)
+        else:
+            a1 = random.choice(["Brilliant", "Lustrous", "Twinkling",
+                   "Silvery", "Argent", "Glistening"])
+            a2 = random.choice(["Way", "Trail", "Cloud",
+                   "Wave", "Skyway"])
+            n =  random.choice(["Galaxy", "Cosmos", "Nebula",
+                   "Megacosm", "Space"])
+            GG[SM.M.GG] = (f"{a1} {a2} {n}", SM.M.NM)
+        return new_galaxy, GG
+
+    def set_galaxy_dims(self,
+                        p_gg_sz: str) -> tuple:
+        """Set basic dimensions for galaxy: diameter of star cluster,
+          total mass, black hole mass, halo radius, and thickness of stars.
+        :args:
+        - p_gg_sz (str): 'S', 'M' or 'L'
+        :returns:
+        - (float X 5): (diameter of star structure, total mass of galaxy,
+                        mass of central black hole, radius of galactic halo,
+                        thickness (z-dim) of star structure)
+        """
+        dims = {'S': {'diam': random.randrange(100, 501),
+                      'mass': random.randrange(50_000, 800_000_001),
+                      'bh_pct': random.randrange(50, 71) / 10000},
+                'M': {'diam': random.randrange(80_000, 500_001),
+                      'mass': random.randrange(500_000_000, 500_000_000_001),
+                      'bh_pct': random.randrange(15, 21) / 1000},
+                'L': {'diam': random.randrange(2_000_000, 100_000_001),
+                      'mass': random.randrange(1_000_000_000_000,
+                                               10_000_000_000_001),
+                      'bh_pct': random.randrange(18, 27) / 1000}}
+        bhole_mass = dims[p_gg_sz]['mass'] * dims[p_gg_sz]['bh_pct']
+        halo_r = (dims[p_gg_sz]['diam'] / 2) +\
+                 (dims[p_gg_sz]['diam'] * (random.randrange(1, 3) / 100))
+        stars_z = dims[p_gg_sz]['diam'] * (random.randrange(8, 12) / 100)
+
+        return (halo_r, dims[p_gg_sz]['diam'], stars_z,
+                dims[p_gg_sz]['mass'], bhole_mass)
+
+    def set_galactic_bulge(self,
+                           p_sz: str,
+                           p_total_m: float,
+                           p_bhole_m: float,
+                           p_stars_x: float,
+                           p_stars_z: float) -> tuple:
+        """Compute the size, shape and mass of the galactic bulge.
+        :args:
+        - p_sz (str): Galaxy size (S, M, L)
+        - p_total_m (float): Total galaxy mass
+        - p_bhole_m (float): Mass of the black hole
+        - p_star_x (float): Diameter (x-dim) of the stars cluster
+        - p_star_z (float): Height/thick (z-dim) of stars cluster
+        :returns:
+        - (str, float X 4): (bulge shape, mass, x, y, z dims)
+        """
+        if p_sz == 'S':
+            b_shape = SM.M.SP
+            b_mass = p_bhole_m * 0.8
+        else:
+            b_shape = random.choice([SM.M.SP, SM.M.EL])
+            b_mass = p_bhole_m * 1.1
+        if b_shape == SM.M.SP:
+            b_x = b_y = b_z = p_stars_z * 0.2
+        else:
+            dims = {'S': {'x': p_stars_x * 0.1,
+                          'z': p_stars_x * 0.1},
+                    'M': {'x': p_stars_x * 0.2,
+                          'z': p_stars_z * 1.2},
+                    'L': {'x': p_stars_x * 0.3,
+                          'z': p_stars_z * 1.3}}
+            b_x = dims[p_sz]['x']
+            b_z = dims[p_sz]['z']
+            b_y = b_x * 0.7
+        return (b_shape, b_mass, b_x, b_y, b_z)
+
+    def set_galactic_matter_and_shape(self,
+                                      p_total_m: float,
+                                      p_bhole_m: float,
+                                      p_bulge_m: float,
+                                      p_stars_x: float,
+                                      p_halo_r: float) -> tuple:
+        """Compute amount of matter in the galaxy.
+           Assign a shape to the galaxy's star cluster.
+        :args:
+        - p_total_m (float): Total mass/matter in galaxy
+        - p_bhole_m (float): Mass of black hole
+        - p_bulge_m (float): Mass of galactic bulge
+        - p_stars_x (float): Width of stars cluster
+        - p_halo_r (float):  Radius of entire galaxy out to halo
+        :returns:
+        (str, float X 5): (shape of stars cluster, y-dim of stars,
+                           mass (kg) of stars, mass (kg) of non-stellar
+                           baryonic galactic (globular) matter, vol of
+                           galaxy in cubic gigaparsecs, mass (kg) of galaxy)
+
+        @TODO:
+        - Take a closer look at these values to see if they make any sense.
+        """
+        total_stars_m = p_total_m - (p_bhole_m + p_bulge_m)
+        stars_m = total_stars_m * (random.randrange(997, 999) / 1000)
+        globular_m = total_stars_m - stars_m
+        stars_shape = random.choice([SM.M.EL, SM.M.SP])
+        if stars_shape == SM.M.EL:
+            stars_y = p_stars_x * 0.7
+        else:
+            stars_y = p_stars_x
+        g_vol_gpc3 = (4/3) * math.pi * ((p_halo_r / 3.09e19)**3)
+        g_mass_kg = self.GC[SM.M.BM][0] *\
+            ((g_vol_gpc3 / self.GC[f"{SM.M.GC} {SM.M.VL}"][0]) * 100)
+        return (stars_shape, stars_y, stars_m,
+                globular_m, g_vol_gpc3, g_mass_kg)
+
+    def generate_new_galaxy(self,
+                            p_cluster_name: str,
+                            p_galaxy_sz: str = "M"):
+        """
+        Populate a new Game Galaxy (GG) object. Parts include:
+        - the star cluster within the galaxy, spiral or disk
+        - the black hole at center of galaxy
+        - the overall halo of the galaxy
+        - the concentrated bulge of of stars around the black hole
+        :args:
+        - p_cluster_name (str): Name of enclosing cluster.
         - p_galaxy_sz (str) Optional. Size of Game Galaxy.
                             Must be in ('S', 'M', 'L').
                             Defaults to 'M'.
+        :returns:
+        - (dict): Data about the new galaxy
+
+        @TODO:
+        - Avoid collisions between galaxies inside the galactic cluster
+        - (Maybe?) compute galactic rotation within the galactic cluster
+        - Simple visualizations
         """
-        self.GG = dict()
-        gg_sz= p_galaxy_sz.upper() if p_galaxy_sz in ('S', 'M', 'L') else 'M'
-        # Small, Medium or Large?
-        # Dimensions
-        if gg_sz == 'S':
-            # diameter = hundred or so light-years
-            gg_stars_diam = random.randrange(100, 501)
-            # small or no bulge
-            # thousands of stars
-            gg_total_mass = random.randrange(50_000, 800_000_001)
-            # small black hole or no black hole (solar masses)
-            pct = random.randrange(50, 71) / 10000
-            gg_blackhole_mass = (None, (gg_total_mass * pct))
-        elif gg_sz == 'M':
-            # diameter = 100,000 or so light-years
-            gg_stars_diam = random.randrange(80_000, 500_001)
-            # visible bulge
-            # millions to billions of stars
-            gg_total_mass = random.randrange(500_000_000, 500_000_000_001)
-            # super massive black hole (mass in solar masses)
-            pct = random.randrange(15, 21) / 1000
-            gg_blackhole_mass = gg_total_mass * pct
-        else:  # is 'L'
-            # diameter = millions of light-years
-            gg_stars_diam = random.randrange(2_000_000, 100_000_001)
-            # large bulge
-            # trillions of stars
-            gg_total_mass = random.randrange(1_000_000_000_000, 10_000_000_000_001)
-            # super massive black hole (mass in solar masses)
-            pct = random.randrange(18, 27) / 1000
-            gg_blackhole_mass = gg_total_mass * pct
+        GG = self.GG
+        g_sz = p_galaxy_sz.upper() if p_galaxy_sz in ('S', 'M', 'L') else 'M'
 
-        pct = random.randrange(1, 3) / 100
-        gg_halo_radius = ((gg_stars_diam / 2) + (gg_stars_diam * pct))
-        pct = random.randrange(8, 12) / 100
-        gg_stars_thick = gg_stars_diam * pct
-        if gg_sz == 'S':
-            gg_bulge_shape = random.choice([SM.M.SP, None])
-        else:
-            gg_bulge_shape = random.choice([SM.M.SP, SM.M.EL])
+        halo_r, stars_x, stars_z, total_m, bhole_m =\
+            self.set_galaxy_dims(g_sz)
 
-        if gg_blackhole_mass is None:
-            pct = random.randrange(7, 15) / 1000
-            gg_bulge_mass = gg_total_mass * pct
-        elif gg_sz == 'S':
-            gg_bulge_mass = gg_blackhole_mass * 0.8
-        else:
-            gg_bulge_mass = gg_blackhole_mass * 1.1
+        bulge_shape, bulge_m, b_x, b_y, b_z =\
+            self.set_galactic_bulge(g_sz, total_m, bhole_m, stars_x, stars_z)
 
-        if gg_bulge_shape is None:
-            gg_bulge_diam = 0.0
-            gg_bulge_thick = 0.0
-        elif gg_bulge_shape is SM.M.SP:
-            gg_bulge_thick = gg_stars_thick * 0.2
-            gg_bulge_diam = gg_bulge_thick
-        elif gg_sz == 'S':
-            gg_bulge_diam = gg_stars_diam * 0.1
-            gg_bulge_thick = gg_stars_thick * 1.1
-        elif gg_sz == 'M':
-            gg_bulge_diam = gg_stars_diam * 0.2
-            gg_bulge_thick = gg_stars_thick * 1.2
-        elif gg_sz == 'L':
-            gg_bulge_diam = gg_stars_diam * 0.3
-            gg_bulge_thick = gg_stars_thick * 1.3
-        if gg_bulge_shape == SM.M.EL:
-            gg_bulge_width = gg_bulge_diam * 0.7
-        else:
-            gg_bulge_width = gg_bulge_diam
+        stars_shape, stars_y, stars_m, globs_m, g_vol, g_mass =\
+            self.set_galactic_matter_and_shape(total_m, bhole_m, bulge_m,
+                                               stars_x, halo_r)
 
-        star_matter_mass = gg_total_mass - (gg_blackhole_mass + gg_bulge_mass)
-        pct = random.randrange(997, 999) / 1000
-        gg_star_matter = star_matter_mass * pct
-        gg_glob_matter = star_matter_mass - gg_star_matter
+        self.GG[SM.M.GC] = (p_cluster_name, SM.M.CON)
+        self.GG[f"{SM.M.GG} {SM.M.REL} {SM.M.SZ}"] = (g_sz, SM.M.REL)
+        self.GG[f"{SM.M.GG} {SM.M.VL}"] = (g_vol, SM.M.GPC3)
+        self.GG[f"{SM.M.GG} {SM.M.BM}"] = (g_mass, SM.M.KG)
+        self.GG[f"{SM.M.GH} {SM.M.RD}"] = (halo_r, SM.M.LY)
+        self.GG[f"{SM.M.BH} {SM.M.MS}"] = (bhole_m, SM.M.SMS)
+        self.GG[f"{SM.M.GB} {SM.M.SHP}"] = (bulge_shape, SM.M.SHP)
+        self.GG[f"{SM.M.GB} {SM.M.MS}"] = (bulge_m, SM.M.SMS)
+        self.GG[f"{SM.M.GB} {SM.M.DIM}"] =\
+            ((b_x, SM.M.LY), (b_y, SM.M.LY), (b_z, SM.M.LY),
+             SM.M.DIM)
+        self.GG[f"{SM.M.SC} {SM.M.SHP}"] = (stars_shape, SM.M.SHP)
+        self.GG[f"{SM.M.SC} {SM.M.DIM}"] =\
+            ((stars_x, SM.M.LY), (stars_y, SM.M.LY), (stars_z, SM.M.LY),
+             SM.M.DIM)
+        self.GG[f"{SM.M.SC} {SM.M.MS}"] = (stars_m, SM.M.SMS)
+        self.GG[f"{SM.M.IG} {SM.M.MS}"] = (globs_m, SM.M.SMS)
+        DB.execute_insert(
+            'INSERT_GALAXY_PROC', (GG[SM.M.GG][0], p_cluster_name,
+                                   pickle.dumps(GG)))
+        return self.GG
 
-        gg_stars_shape = random.choice([SM.M.EL, SM.M.SP])
-        if gg_stars_shape == SM.M.EL:
-            gg_stars_width = gg_stars_diam * 0.7
-        else:
-            gg_stars_width = gg_stars_diam
-
-        # Matter of galactic cluster in kilograms
-        gc_matter_kg = self.UNIV['gc'][SM.M.BM][0]
-        # Volume of galactic cluster in gigaparsecs
-        gc_volume_gpc3 = self.UNIV['gc'][SM.M.VL][0]
-        # Convert game galaxy radius to volume in cubic gigaparsecs
-        gg_volume_gpc3 = (4/3) * math.pi * ((gg_halo_radius / 3.09e19)**3)
-        # Percentage of galaxy volume vs. galactic cluster volume
-        pct_gg_to_gc = (gg_volume_gpc3 / gc_volume_gpc3) * 100
-        # Percentage of galaxy baryonic matter:
-        gg_matter_kg = gc_matter_kg * pct_gg_to_gc
-
-        self.GG[f"{SM.M.GG} {SM.M.REL} {SM.M.SZ}"] = (gg_sz, SM.M.REL)
-        self.GG[f"{SM.M.GG} {SM.M.SZ}"] = (pct_gg_to_gc, SM.M.PCT +
-                                           f" of {SM.M.GC}")
-        self.GG[f"{SM.M.GG} {SM.M.VL}"] = (gg_volume_gpc3, SM.M.GPC3)
-        self.GG[f"{SM.M.GG} {SM.M.BM}"] = (gg_matter_kg, SM.M.KG)
-        self.GG[f"{SM.M.GH} {SM.M.RD}"] = (gg_halo_radius, SM.M.LY)
-        self.GG[f"{SM.M.BH} {SM.M.MS}"] = (gg_blackhole_mass, SM.M.SMS)
-        self.GG[f"{SM.M.GB} {SM.M.SHP}"] = (gg_bulge_shape, SM.M.SHP)
-        self.GG[f"{SM.M.GB} {SM.M.MS}"] = (gg_bulge_mass, SM.M.SMS)
-        self.GG[f"{SM.M.GB} {SM.M.DIM}"] = ((gg_bulge_diam, SM.M.LY),
-                                        (gg_bulge_width, SM.M.LY),
-                                        (gg_bulge_thick, SM.M.LY))
-        self.GG[f"{SM.M.SC} {SM.M.SHP}"] = (gg_stars_shape, SM.M.SHP)
-        self.GG[f"{SM.M.SC} {SM.M.DIM}"] = ((gg_stars_diam, SM.M.LY),
-                                        (gg_stars_width, SM.M.LY),
-                                        (gg_stars_thick, SM.M.LY))
-        self.GG[f"{SM.M.SC} {SM.M.MS}"] = (gg_star_matter, SM.M.SMS)
-        self.GG[f"{SM.M.IG} {SM.M.MS}"] = (gg_glob_matter, SM.M.SMS)
-        # Mass in kilograms of...
-        # - total galaxy
-        # - black hole
-        # - bulge
-        # - all stars + globular stuff + asteroids etc.
-        # Shape of distribution of star systems (even, spiral arms, etc.)
-        # Back up in UniverseModel, verify that galactic cluster does not
-        #  overlap with an existing galactic cluster?? No... not yet anyway.
-        #  Only allowing for one galactic cluster within a universe.
-        #  All others are "by definition" unreachable and outside (in XU)
-        # Location of the galaxy within the galactic cluster
-        # - Verify it does not overlap with another galaxy,
-        #   or if it does overlap, deal with collisions (messy) / identify
-        #   the collision zone.
-        # Determine movement of galaxy within the cluster, of the cluster
-        #  within the TU (may do that in UM().)
-        # Determine expansion of TU... will it be noticeable within game time?
-        # Assign sectors to the GG.
-        # If really ambitious, attempt to visualize a model of the GG.
 
 class AstroIO(object):
     """Class for astronomical data and methods.
@@ -625,53 +702,6 @@ class AstroIO(object):
         It is one galaxy within the GC. There can be multiple GG's
         within a GC.
 
-        - SSG - Simulated Star Systems Group is a section of the GG where
-        multiple star systems are simulated, including their planets and
-        the planets' satellites. It begins with describing the star only.
-        Fill in other details only as needed. The SSG is a defined playable
-        area of the GG.
-
-        There can be multiple SSG's within a GG.
-
-        - SSS - Simulated Star System. A section of the SSG where a star
-        and its planets are simulated. It begins with describing the star
-        only. Fill in other details only as needed. The SSS is a defined
-        playable area of the SG. There can be multiple SSS's within a SG.
-
-        The SSS needs to be about 1/3 of the way towards the galactic core
-        from the rim of the GG. Any closer and destruction by supernovae
-        is likely.  Star systems expected to have life-bearing planets
-        should include at least two gas giants, not just one, so that
-        they can tug on each other and prevent the rocky planets from
-        being sucked into the sun along with the gas giant.
-
-        Other scenarios are possible, but this is the most common one.
-
-        An SSS sun should be relatively small but large enough to warm
-        the inner planets.  The sun should be a yellow dwarf, not a
-        red dwarf, so that it can support life.
-
-        SPS - Simulated Planetary System. A section of the SSS where
-        a planet and its satellites are simulated. It begins with the
-        planet. Fill in other details only as needed. The SPS is a
-        defined playable area of the SSS. There can -- and really should
-        be multiple SPS's within a SSS.
-
-        If the SPS is intended to support organic life, it should be
-        relatively close to the star, but not too close, or be a moon
-        of a gas giant and have its own atmosphere.
-
-        Based on inputs and rules, return dimensions, mass, rate of
-        expansion, etc. for each section of such a play Universe.
-        """
-        pass
-
-    def define_galaxy(self):
-        """Define galaxy (GX) inside a GC structure.
-
-        Galaxies in the SU need to be suitably distant from each other.
-        Galactic collisions/mergers are common in the TU, but would be
-        problematic in the SU.
         """
         pass
 
