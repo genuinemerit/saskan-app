@@ -85,7 +85,7 @@ class UniverseModel:
         new_cluster, GC = self.generate_cluster(new_univ, TU,
                                                 p_cluster_name, p_pulsar_name)
         XU = self.compute_external_universe(new_univ, new_cluster, TU)
-        pp(("TU: ", TU, "GC: ", GC, "XU: ", XU))
+        # pp(("TU: ", TU, "GC: ", GC, "XU: ", XU))
 
     def set_universe_name(self,
                           p_univ_name: str = None) -> tuple:
@@ -112,6 +112,7 @@ class UniverseModel:
             if tu_nm == u_nm:
                 new_universe = False
                 TU = pickle.loads(db_tu['univ_object'][tx])
+                break
         if new_universe:
             TU = {SM.M.TU: (tu_nm, SM.M.NM)}
         return(new_universe, TU)
@@ -121,13 +122,17 @@ class UniverseModel:
         """Define data for a new Total Universe.
         If a new Univ, use standard estimates for known universe,
            with small tweaks for variety.
+        We pretend the Universe is a sphere, but sometimes treat it as a
+           cube for convenience, i.e. for gross-level collision detection.
+        Later we'll use PyGame and maybe other tools for more sophisticated
+           physics.
         :args:
         - p_univ_name (optional). If provided, name of Total Universe.
         :returns: (bool, dict) (new universe flag, total univ dict)
         """
         new_universe, TU = self.set_universe_name(p_univ_name)
         if new_universe:
-            # note that random.uniform() alway returns a float
+            # random.uniform() alway returns a float
             r = random.uniform(14.0e9, 14.5e9)
             variance = r / 14.25e9
             TU[SM.M.RD] = (r, SM.M.GPC)                      # Radius
@@ -323,6 +328,61 @@ class UniverseModel:
         GC[f"{SM.M.TP} {SM.M.LOC} {SM.M.VE}"] = (pulsar_vector, SM.M.GPC)
         return GC
 
+    def detect_collision(self,
+                         p_u_nm: str,
+                         p_loc: tuple,
+                         p_sz: tuple) -> bool:
+        """Determine if the newly defined cluster collides with an existing
+        cluster within the same universe. Detection is very gross/close level,
+        not precise. Just draw a bounding rectangle and compare edges.
+        :args:
+        - p_u_nm (str): Name of current universe
+        - p_loc (tuple): (x, y, z) of new cluster center location
+        - p_sz (tuple): (x, y, z, a, b, c) for new cluster ellipsoid shape
+        :returns:
+        - (bool) True if collision detected, else False
+        """
+        # Define bounding rectangle sides for the new cluster.
+        # May want to go ahead and store this in the object?
+        # For now we assume no pitch, yaw or roll for the ellipsoids.
+        x = 0
+        y = 1
+        z = 2
+        lft_n = p_loc[x] - (p_sz[x] / 2)
+        rgt_n = p_loc[x] + (p_sz[x] / 2)
+        top_n = p_loc[y] - (p_sz[y] / 2)
+        bot_n = p_loc[y] + (p_sz[y] / 2)
+        fnt_n = p_loc[z] - (p_sz[z] / 2)
+        bck_n = p_loc[z] + (p_sz[z] / 2)
+        collision_detected = False
+
+        db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
+        c_in_univ = dict()
+        for ix, db_u_nm in enumerate(db_gc['univ_name_fk']):
+            if db_u_nm == p_u_nm:
+                c_in_univ[db_gc['cluster_name'][ix]] =\
+                    pickle.loads(db_gc['cluster_object'][ix])
+        if len(c_in_univ) > 0:
+            # Define bounding rect for other clusters and compare
+            for c_nm, c in c_in_univ.items():
+
+                print(f"Comparing to cluster {c_nm}...")
+
+                loc = c[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"][0]
+                shp = c[f"{SM.M.EL} {SM.M.SHA}"][0][0][0]
+                lft_o = loc[x] - (shp[x] / 2)
+                rgt_o = loc[x] + (shp[x] / 2)
+                top_o = loc[y] - (shp[y] / 2)
+                bot_o = loc[y] + (shp[y] / 2)
+                fnt_o = loc[z] - (shp[z] / 2)
+                bck_o = loc[z] + (shp[z] / 2)
+                if not (rgt_n < lft_o or lft_n > rgt_o or
+                        top_n < bot_o or bot_n > top_o or
+                        fnt_n < bck_o or bck_n > fnt_o):
+                    collision_detected = True
+                    break
+        return collision_detected
+
     def generate_cluster(self,
                          p_new_universe: bool,
                          p_TU: dict,
@@ -338,14 +398,30 @@ class UniverseModel:
         :returns:
         - (bool, dict): (new cluster flag, GC dict)
         """
-        new_cluster, GC =\
-            self.generate_cluster_name(p_new_universe, p_cluster_name)
-        if new_cluster:
+        def compute_loc_and_size():
             lx, ly, lz = self.set_cluster_location(p_TU)
             px, py, pz, a, b, c = self.set_cluster_size()
+            return ((lx, ly, lz), (px, py, pz, a, b, c))
+
+        new_cluster, GC =\
+            self.generate_cluster_name(p_new_universe, p_cluster_name)
+        univ_nm = p_TU[SM.M.TU][0]
+        if new_cluster:
+            collision_detected = True
+            while collision_detected:
+                loc, sz = compute_loc_and_size()
+                collision_detected = self.detect_collision(univ_nm, loc, sz)
+
+                if collision_detected:
+                    print("collision detected. Re-computing cluster loc, sz")
+                else:
+                    print("No collision detected. Proceeding w/cluster gen")
+
+            lx, ly, lz = loc
+            px, py, pz, a, b, c = sz
             gc_vol, gc_de, gc_dm, gc_bm =\
                 self.set_cluster_vol_and_mass(a, b, c, p_TU)
-            GC[SM.M.TU] = (p_TU[SM.M.TU][0], SM.M.CON)   # Container
+            GC[SM.M.TU] = (univ_nm, SM.M.CON)   # Container
             GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"] =\
                 ((lx, ly, lz), SM.M.GPC)                 # Location
             GC[f"{SM.M.EL} {SM.M.SHA}"] =\
@@ -357,10 +433,9 @@ class UniverseModel:
             GC[SM.M.DM] = (gc_dm, SM.M.KG)               # Dark Matter kg
             GC[SM.M.BM] = (gc_bm, SM.M.KG)               # Baryonic Matter kg
             GC = self.generate_timing_pulsar(GC, p_pulsar_name)
-            print(f"New cluster added: {GC[SM.M.GC][0]}")
             DB.execute_insert(
                 'INSERT_CLUSTER_PROC',
-                (GC[SM.M.GC][0], p_TU[SM.M.TU][0], pickle.dumps(GC)))
+                (GC[SM.M.GC][0], univ_nm, pickle.dumps(GC)))
         return(new_cluster, GC)
 
     def set_xu_name(self,
