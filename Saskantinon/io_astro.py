@@ -49,6 +49,8 @@ SI = ShellIO()
 SM = SaskanMath()
 
 
+# ==================== UniverseModel =================================
+
 class UniverseModel:
     """Class for modeling a universe.
     - TU = Total Universe
@@ -328,7 +330,7 @@ class UniverseModel:
         GC[f"{SM.M.TP} {SM.M.LOC} {SM.M.VE}"] = (pulsar_vector, SM.M.GPC)
         return GC
 
-    def detect_collision(self,
+    def detect_c_collision(self,
                          p_u_nm: str,
                          p_loc: tuple,
                          p_sz: tuple) -> bool:
@@ -410,7 +412,7 @@ class UniverseModel:
             collision_detected = True
             while collision_detected:
                 loc, sz = compute_loc_and_size()
-                collision_detected = self.detect_collision(univ_nm, loc, sz)
+                collision_detected = self.detect_c_collision(univ_nm, loc, sz)
 
                 if collision_detected:
                     print("collision detected. Re-computing cluster loc, sz")
@@ -421,7 +423,8 @@ class UniverseModel:
             px, py, pz, a, b, c = sz
             gc_vol, gc_de, gc_dm, gc_bm =\
                 self.set_cluster_vol_and_mass(a, b, c, p_TU)
-            GC[SM.M.TU] = (univ_nm, SM.M.CON)   # Container
+            # Consider adding bounding rectangle to data object
+            GC[SM.M.TU] = (univ_nm, SM.M.CON)            # Container
             GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"] =\
                 ((lx, ly, lz), SM.M.GPC)                 # Location
             GC[f"{SM.M.EL} {SM.M.SHA}"] =\
@@ -514,6 +517,7 @@ class UniverseModel:
             print(f"No changes made to XU: {xu_nm}")
         return XU
 
+# ==================== GalaxyModel =================================
 
 class GalaxyModel:
     """Class for modeling the Game Galaxy (GG).
@@ -602,15 +606,37 @@ class GalaxyModel:
 
     def set_galaxy_dims(self,
                         p_gg_sz: str) -> tuple:
-        """Set basic dimensions for galaxy: diameter of star cluster,
+        """Set basic dimensions for galaxy: location, diameter of stars,
           total mass, black hole mass, halo radius, and thickness of stars.
+          Compute location relative to center of GC.
+          No restrictions (yet) on how close or how far from GC center.
+          No attempt to modify angle of the galaxy (roll, yaw, etc.). For now,
+          all galaxies are assumed to be "flat" with respect to the galactic
+          cluster; and all clusters lie on parallel planes.
         :args:
         - p_gg_sz (str): 'S', 'M' or 'L'
         :returns:
-        - (float X 5): (diameter of star structure, total mass of galaxy,
-                        mass of central black hole, radius of galactic halo,
-                        thickness (z-dim) of star structure)
+        - (xyz vector; float X 5): (location relative to center of galactic
+                cluster;  x-dim of stars structure, total mass of galaxy,
+                mass of central black hole, radius of galactic halo,
+                thickness (z-dim ?) of star structure)
         """
+        x = 0
+        y = 1
+        z = 2
+        loc = self.GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"][0]
+        shp = self.GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0]
+        min_x = round(loc[x] - (shp[x] / 2))
+        max_x = round(loc[x] + (shp[x] / 2))
+        min_y = round(loc[y] - (shp[y] / 2))
+        max_y = round(loc[y] + (shp[y] / 2))
+        min_z = round(loc[z] - (shp[z] / 2))
+        max_z = round(loc[z] + (shp[z] / 2))
+        lx = random.randrange(min_x, max_x)
+        ly = random.randrange(min_y, max_y)
+        lz = random.randrange(min_z, max_z)
+        gg_loc = (lx, ly, lz)
+        # compute diameter (x dim), total mass, black hole pct
         dims = {'S': {'diam': random.randrange(100, 501),
                       'mass': random.randrange(50_000, 800_000_001),
                       'bh_pct': random.randrange(50, 71) / 10000},
@@ -621,13 +647,74 @@ class GalaxyModel:
                       'mass': random.randrange(1_000_000_000_000,
                                                10_000_000_000_001),
                       'bh_pct': random.randrange(18, 27) / 1000}}
+        # compute black hole mass, halo radius, depth (z dim)
         bhole_mass = dims[p_gg_sz]['mass'] * dims[p_gg_sz]['bh_pct']
         halo_r = (dims[p_gg_sz]['diam'] / 2) +\
                  (dims[p_gg_sz]['diam'] * (random.randrange(1, 3) / 100))
+        # review this. think about it. I think this is actually the Y dim?
+        # I suppose it all a matter of perspective. When looked at from
+        # "above", then yes this is the z-dimension.
         stars_z = dims[p_gg_sz]['diam'] * (random.randrange(8, 12) / 100)
-
-        return (halo_r, dims[p_gg_sz]['diam'], stars_z,
+        return (gg_loc, halo_r, dims[p_gg_sz]['diam'], stars_z,
                 dims[p_gg_sz]['mass'], bhole_mass)
+
+    def detect_g_collision(self,
+                           p_cluster_name: str,
+                           p_gg_loc: tuple,
+                           p_halo_r: float) -> bool:
+        """Determine if new Galaxy will collide with any existing Galaxies
+        within the current Galactic Cluster. Compute roughly using a bounding
+        rectangle around the galaxy halo.
+        :args:
+        - p_cluster_name (str): Name of current Galactic Cluster
+        - p_gg_loc (tuple): (x, y, z) location of galaxy center relative to
+                            center of Galactic Cluster
+        - p_halo_r (float): Radius of Galaxy
+        :returns:
+        - (bool) True if collision detected, else False
+        """
+        collision_detected = False
+        x = 0
+        y = 1
+        z = 2
+        gc_loc = self.GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"][0]
+
+        # Define bounding rectangle for new galaxy
+        min_x = round(p_gg_loc[x] - p_halo_r)
+        max_x = round(p_gg_loc[x] + p_halo_r)
+        min_y = round(p_gg_loc[y] - p_halo_r)
+        max_y = round(p_gg_loc[y] + p_halo_r)
+        min_z = round(p_gg_loc[z] - p_halo_r)
+        max_z = round(p_gg_loc[z] + p_halo_r)
+        # Find other galaxies in cluster and compare
+        db_gg = DB.execute_select('SELECT_ALL_GALAXIES')
+        galaxy_bunch = dict()
+        for ix, db_c_nm in enumerate(db_gg['cluster_name_fk']):
+            if p_cluster_name == db_c_nm:
+                g_nm = db_gg['galaxy_name'][ix]
+                g = pickle.loads(db_gg['galaxy_object'][ix])
+                # Define bounding rect for existing galaxy
+                # TODO --
+                # Haha! So in this case, EVERYTHING was a collision...
+                #  exactly the opposite of what happened with the clusters.
+                # Need to review logic in both cases. Go slow. Look at one
+                #  case at a time. Examine the location vectors, the sizes,
+                #  and the bounding rectangles. It may be helpful to try to
+                #  do some simple visualizations, even if only at a 2D level.
+                r = g[f"{SM.M.GH} {SM.M.RD}"][0]
+                loc = g[f"{SM.M.GG} {SM.M.LOC}"][0]
+                g_min_x = round(loc[x] - r)
+                g_max_x = round(loc[x] + r)
+                g_min_y = round(loc[y] - r)
+                g_max_y = round(loc[y] + r)
+                g_min_z = round(loc[z] - r)
+                g_max_z = round(loc[z] + r)
+                if not (max_x < g_min_x or min_x > g_max_x or
+                        max_y < g_min_y or min_y > g_max_y or
+                        max_z < g_min_z or min_z > g_max_z):
+                    collision_detected = True
+                    break
+        return collision_detected
 
     def set_galactic_bulge(self,
                            p_sz: str,
@@ -727,15 +814,23 @@ class GalaxyModel:
         GG = self.GG
         g_sz = p_galaxy_sz.upper() if p_galaxy_sz in ('S', 'M', 'L') else 'M'
 
-        halo_r, stars_x, stars_z, total_m, bhole_m =\
-            self.set_galaxy_dims(g_sz)
+        galaxy_collision = True
+        while galaxy_collision:
+            g_loc, halo_r, stars_x, stars_z, total_m, bhole_m =\
+                self.set_galaxy_dims(g_sz)
+            galaxy_collision = self.detect_g_collision(p_cluster_name,
+                                                       g_loc, halo_r)
+            if galaxy_collision:
+                print("Collision detected. Recomputing galaxy...")
+            else:
+                print("No collision detected. Proceeding with new galaxy...")
 
         bulge_shape, bulge_m, b_x, b_y, b_z =\
             self.set_galactic_bulge(g_sz, total_m, bhole_m, stars_x, stars_z)
 
         stars_shape, stars_y, stars_m, globs_m, g_vol, g_mass =\
             self.set_galactic_matter_and_shape(total_m, bhole_m, bulge_m,
-                                               stars_x, halo_r)
+                                            stars_x, halo_r)
 
         self.GG[SM.M.GC] = (p_cluster_name, SM.M.CON)
         self.GG[f"{SM.M.GG} {SM.M.REL} {SM.M.SZ}"] = (g_sz, SM.M.REL)
@@ -745,6 +840,7 @@ class GalaxyModel:
         self.GG[f"{SM.M.BH} {SM.M.MS}"] = (bhole_m, SM.M.SMS)
         self.GG[f"{SM.M.GB} {SM.M.SHP}"] = (bulge_shape, SM.M.SHP)
         self.GG[f"{SM.M.GB} {SM.M.MS}"] = (bulge_m, SM.M.SMS)
+        self.GG[f"{SM.M.GG} {SM.M.LOC}"] = (g_loc, SM.M.DIM)
         self.GG[f"{SM.M.GB} {SM.M.DIM}"] =\
             ((b_x, SM.M.LY), (b_y, SM.M.LY), (b_z, SM.M.LY),
              SM.M.DIM)
@@ -759,6 +855,7 @@ class GalaxyModel:
                                    pickle.dumps(GG)))
         return self.GG
 
+# ==================== OLD CODE, DESIGN NOTES =================================
 
 class AstroIO(object):
     """Class for astronomical data and methods.
