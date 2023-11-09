@@ -12,7 +12,7 @@
 :configs:
 - configs/d_dirs.json
 """
-import json
+# import json
 import sqlite3 as sq3
 from copy import copy
 from os import path, remove
@@ -57,8 +57,8 @@ class DataBase(object):
         """Open DB connection to SASKAN_DB.
         Indicate that the DB should help to maintain referential
         integrity for foreign keys.
-
-        Create a SASKAN_DB file if one does not already exist.
+        This will create a SASKAN_DB file at the specified location
+        if one does not already exist.
         :sets:
         - db_conn: the database connection
         - cur: cursor for the connection
@@ -131,8 +131,9 @@ class DataBase(object):
 
     def execute_dml(self,
                     p_sql_nm: str):
-        """Run a static SQL CREATE, DELETE, INSERT or MODIFY file, that is,
-           a 'hard-coded' one which does not use any dynamic parameters.
+        """Run a static SQL DROP, CREATE, DELETE, INSERT or MODIFY file,
+        that is, a 'hard-coded' one which does not use any dynamic
+        parameters.
         :args:
         - p_sql_nm (str): Name of external SQL file
         """

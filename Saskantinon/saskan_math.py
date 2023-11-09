@@ -183,9 +183,10 @@ class SaskanMath(object):
         pass
 
     @dataclass
-    class M():
+    class GEOM():
         """Types of measurements or objects assigned to a
-        meaningful abbreviation and name in English.
+        meaningful abbreviations and names in English,
+        relating generically to geometry and physics.
         """
         # math, general geometry
         AR = "area"
@@ -212,22 +213,28 @@ class SaskanMath(object):
         SH = "sphere"
         SHA = "shape"
         SP = "spiral"
-        # weight
+        # weight. mass
         GM = "grams"
         KG = "kilograms"
         LB = "pounds"
+        MS = "mass"
         OZ = "ounces"
         # energy
         AMP = "amperes (A)"
         OH = "ohms (Ω)"
         V = "volts (V)"
         WA = "watts (W)"
-        # mass, matter
-        DE = "dark energy"
-        DM = "dark matter"
-        BM = "baryonic matter"
-        MS = "mass"
-        SMS = "solar mass"
+        # names, labels, qualities
+        NM = "name"
+        REL = "relative"
+        SHP = "shape"
+
+    @dataclass
+    class GEOG():
+        """Values used to do various computations using
+        a variety of units and formulae for measures of
+        distance at a human/planetary geographical scale.
+        """
         # distance
         CM = "centimeters"
         FT = "feet"
@@ -261,59 +268,7 @@ class SaskanMath(object):
         NW = "northwest"
         NS = "north-south"
         EW = "east-west"
-        # distance, astronomical
-        AU = "astronomical unit"     # distance from Fatune to Gavor
-        GLY = "gigalight year"
-        GPC = "gigaparsec"
-        KPC = "kiloparsec"
-        LM = "light minute"
-        LS = "light second"
-        LY = "light year"
-        MPC = "megaparsec"
-        PC = "parsec"
-        # area, astronomical
-        GLY2 = "square gigalight year"
-        GLY3 = "cubic gigalight year"
-        GPC2 = "square gigaparsec"
-        GPC3 = "cubic gigaparsec"
-        LY2 = "square light year"
-        LY3 = "cubic light year"
-        # objects, astronomical
-        BH = "black hole"
-        GG = "galaxy"
-        GB = "galactic bulge"
-        GC = "galactic cluster"
-        GH = "galactic halo"
-        IG = "interstellar matter"
-        SC = "star cluster"
-        TP = "timing pulsar"            # saskan
-        TU = "total universe"           # saskan
-        XU = "external universe"        # saskan
-        # time-related, real world and saskan
-        GS = "galactic second"          # 'galactic' second; saskan
-        GMS = "galactic millisecond"    # 'galactic' millisecond; saskan
-        PMS = "pulses per millisecond"  # 'galactic' second as # of pulses
-        ET = "elapsed time"             # age, duration, time passed
-        GY = "gavoran year"             # saskan
-        # rates, speeds, velocities
-        ER = "expansion rate"           # of a volume
-        UE = "universal expansion"      # km/s per Mpc
-        PRO = "period of rotation"
-        PRV = "period of revolution"
-        PR = "pulse rate"
-        # names, labels, qualities
-        NM = "name"
-        REL = "relative"
-        SHP = "shape"
-
-    @dataclass
-    class C():
-        """Values used to do various computations using
-        a variety of units and formulae.
-        """
-        # math, geometry, currency
-        # Fill in using real and game currenncies
-        # distance - metric/imperial
+        # conversions - metric/imperial
         CM_TO_IN = 0.3937007874      # centimeters -> inches
         CM_TO_M = 0.01               # centimeters -> meters
         CM_TO_MM = 10.0              # centimeters -> millimeters
@@ -335,7 +290,7 @@ class SaskanMath(object):
         MM_TO_IN = 0.03937007874     # millimeters -> inches
         NM_TO_KM = 1.852             # nautical miles -> kilometers
         NM_TO_MI = 1.150779448       # nautical miles -> miles
-        # distance - saskan/metric
+        # conversions - saskan/metric
         CM_TO_NOB = 0.64             # centimeters -> nobs
         GABO_TO_MI = 0.636           # gabos -> miles
         GAWO_TO_KATA = 4.0           # gawos -> kata
@@ -362,12 +317,64 @@ class SaskanMath(object):
         YUZA_TO_KM = 4.096           # yuzas -> kilometers
         YUZA_TO_M = 4096.0           # yuzas -> meters
         YUZA_TO_MI = 2.545           # yuzas -> miles
-        # distance, geographical to metric
+        # conversions, geographical to metric
         DGLAT_TO_KM = 111.2           # degree of latitutde -> kilometers
         DGLONG_TO_KM = 111.32         # degree of longitude -> kilometers
         KM_TO_DGLAT = 0.00898315284   # kilometers -> degree of latitude
         KM_TO_DGLONG = 0.00898311175  # kilometers -> degree of longitude
-        # astronomical units
+
+    @dataclass
+    class ASTRO():
+        """ Astronomical and physics units and conversions.
+        """
+        # mass, matter
+        DE = "dark energy"
+        DM = "dark matter"
+        BM = "baryonic matter"
+        SMS = "solar mass"
+        # objects, astronomical
+        BH = "black hole"
+        GG = "galaxy"
+        GB = "galactic bulge"
+        GC = "galactic cluster"
+        GH = "galactic halo"
+        IG = "interstellar matter"
+        SC = "star cluster"
+        TP = "timing pulsar"            # saskan
+        TU = "total universe"           # saskan
+        XU = "external universe"        # saskan
+        # time-related, real world and saskan
+        GS = "galactic second"          # 'galactic' second; saskan
+        GMS = "galactic millisecond"    # 'galactic' millisecond; saskan
+        PMS = "pulses per millisecond"  # 'galactic' second as # of pulses
+        ET = "elapsed time"             # age, duration, time passed
+        GY = "gavoran year"             # saskan
+        # rates, speeds, velocities
+        ER = "expansion rate"           # of a volume
+        UE = "universal expansion"      # km/s per Mpc
+        PRO = "period of rotation"
+        PRV = "period of revolution"
+        PR = "pulse rate"
+        # distance
+        AU = "astronomical unit"     # distance from Fatune to Gavor
+        GLY = "gigalight year"
+        GPC = "gigaparsec"
+        KPC = "kiloparsec"
+        LM = "light minute"
+        LS = "light second"
+        LY = "light year"
+        MPC = "megaparsec"
+        PC = "parsec"
+        # area, volume
+        GLY2 = "square gigalight year"
+        GLY3 = "cubic gigalight year"
+        GPC2 = "square gigaparsec"
+        GPC3 = "cubic gigaparsec"
+        LY2 = "square light year"
+        LY3 = "cubic light year"
+        # conversions
+        GPC_TO_GLY = 3.09             # gigaparsecs -> gigalight years
+
         AU_TO_KM = 1.495979e+8        # astronomical units -> km
         AU_TO_LM = 5.2596e+16         # astro units -> light minutes
         AU_TO_LS = 0.002004004004     # astro units -> light seconds

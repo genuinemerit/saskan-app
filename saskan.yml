@@ -1,7 +1,8 @@
-name: saskan channels:
+name: saskan
+channels:
   - conda-forge
-  - defaults dependencies:
-#  - python=3.10.12 -- native base is already 3.11
+  - defaults
+dependencies:
   - pip
   - mypy
   - flake8
@@ -20,25 +21,47 @@ name: saskan channels:
   - music21
   - sympy
   - matplotlib
-  - networkx
-  - tabulate
-  - numbers-parser
-  - beautifulsoup4
-  - selenium
-  - odfpy
   - pendulum
-  - PyPDF2
-
-# Required at OS level: sudo apt-get -y install --upgrade net-tools (use netstat
-# from this toolset to monitor services)
+  - networkx
+  # - tabulate
+  # - numbers-parser
+  # - beautifulsoup4
+  # - selenium
+  # - odfpy
+  # - scrapy
+  # - PyPDF2
 
 # Libraries not available in the conda-forge channel or not recommended to use
 # from conda-forge: conda activate saskan, then... pip install --upgrade pygame
+# Really, pygame is the only one I need from the list below.
+
 # pip install --upgrade tabula-py (the project owners recommend not using conda
 # forge for this package) pip install --upgrade pdfquery
 
-# conda env list conda env remove -n saskan conda env create -f ./saskan.yml
-# conda activate saskan conda deactivate
+# Required at OS level: sudo apt-get -y install --upgrade net-tools (e.g. to use
+# netstat from this toolset to monitor services)
+
+# mamba env list
+# mamba env create -f ./saskan.yml
+# mamba create -n nameofmyenv <list of packages>
+# mamba activate nameofmyenv
+
+# Started having problems with conda freezing up, so removed it and
+# installed mamba instead. Seems to be faster, more robust. Can use either
+# conda or mamba commands.
+
+# conda config --set channel_priority flexible
+# conda config --remove channels conda-forge
+# conda config --add channels conda-forge
+
+# conda env list
+# conda env remove -n saskan
+# conda env create -f ./saskan.yml
+# conda activate saskan
+# conda deactivate
+
+# conda update -n base -c defaults conda
+# conda update --all
 
 # Note that sqlite3 is part of the standard package both in Ubutu and in
 # python3. No need for install.

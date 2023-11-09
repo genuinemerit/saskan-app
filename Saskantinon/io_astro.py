@@ -28,12 +28,12 @@ SQL:
 import math
 import matplotlib.pyplot as plt
 import numpy as np
-import pendulum
+# import pendulum
 import pickle
 import random
 import time
 
-from os import path
+# from os import path
 from matplotlib.animation import FuncAnimation
 from pprint import pformat as pf        # noqa: F401
 from pprint import pprint as pp         # noqa: F401
@@ -53,148 +53,194 @@ SM = SaskanMath()
 
 class UniverseModel:
     """Class for modeling a universe.
+
     - TU = Total Universe
-    - GC = Galactic Cluster. Generally speaking, only one is needed to
-      manage a game, but from a purely algorithmic perspective, we can have
-      1 to many GC within a TU. This might even be handy in macro scale
-      gaming.
+    - GC = Galactic Cluster. Only one is needed to manage a game.
+        But we can have 1 to many GC within a TU.
+        See the GalaxyModel() for creating galaxies within a GC.
     - TP = Timing Pulsar (neutron star) in the GC which
-           regulates time measurements within the GC.
-    - XU = External Universe, outside of the GC
+        regulates time measurements within the GC.
+    - XU = External Universe is everything outside of the GC.
     """
 
     def __init__(self,
-                 p_univ_name: str = None,
-                 p_cluster_name: str = None,
-                 p_pulsar_name: str = None):
-        """Load or create Total Universe, External Universe,
-           Galactic Cluster and Timing Pulsar.
-
-        If p_univ_name already in use, load univ from store, but
-            proceed with Cluster, Pulsar creation and XU computation.
-        If p_cluster_name already in use, then stop if universe already
-            exists; if it is a new universe, then tweak name of cluster so
-            that it will be unique.
-        Any new data is saved to SASKAN_DB. There are distinct tables for the
+                 p_boot_db: bool = False,
+                 p_TU_nm: str = None,
+                 p_GC_nm: str = None,
+                 p_TP_nm: str = None):
+        """Load or create TU, GC and TP. Create or modify XU.
+            All data is saved to SASKAN_DB. There are distinct tables for the
             total universe (TU) and galactic cluster (GC) objects.
             The GC  includes info about the TP (Timing Pulsar).
             The XU (External Universe) is also stored on a separate table and
             it must be updated whenever a GC is added to a TU.
-        - 1:n TU-->GC
-        - 1:1 TU---XU
+        :args:
+        - p_boot_db (bool) Optional. If True, destroy DB, make new one.
+        - p_TU_nm (str) Optional. Name of Total Universe.
+            If p_TU_nm already in use, load univ from DB but
+            proceed with Cluster, Pulsar creation and XU computation.
+        - p_GC_nm (str) Optional. Name of Galactic Cluster.
+            If p_GC_nm already in use, then stop if universe already
+            exists. If new universe, tweak name of cluster to be unique,
+        - p_TP_nm (str) Optional. Name of Timing Pulsar.
         """
-        new_univ, TU = self.generate_universe(p_univ_name)
-        new_cluster, GC = self.generate_cluster(new_univ, TU,
-                                                p_cluster_name, p_pulsar_name)
-        XU = self.compute_external_universe(new_univ, new_cluster, TU)
-        # pp(("TU: ", TU, "GC: ", GC, "XU: ", XU))
+        self.TU = None
+        self.GC = None
+        self.TP = None
+        self.XU = None
+        if p_boot_db:
+            self.reboot_database()
+        is_new_TU = self.set_universe_name(p_TU_nm)
+        if is_new_TU:
+            self.generate_universe()
+        pp(('self.TU: ', self.TU))
+        is_new_GC = self.generate_cluster_name(is_new_TU, p_GC_nm)
+        print(f"is_new_GC: {is_new_GC}")
+        pp(('self.GC: ', self.GC))
+        """
+        >>> Pick up here <<<<
+        Be sure to validate collision detection for multiple clusters.
+        Continue with nice code clean up!
+        if is_new_GC:
+            self.generate_cluster(p_TP_nm)
+        self.XU = self.compute_external_universe(is_new_TU, is_new_GC)
+        """
+
+    def reboot_database(self):
+        """Delete all data. Create a fresh SASKAN_DB database.
+        """
+        DB.execute_dml('DROP_GALAXIES')
+        DB.execute_dml('DROP_CLUSTERS')
+        DB.execute_dml('DROP_XUS')
+        DB.execute_dml('DROP_UNIVS')
+        DB.execute_dml('CREATE_UNIVS')
+        DB.execute_dml('CREATE_GALAXIES')
+        DB.execute_dml('CREATE_CLUSTERS')
+        DB.execute_dml('CREATE_XUS')
+
+    @classmethod
+    def get_new_TU_nm(cls):
+        a1 = random.choice(["Cosmic", "Mysterious", "Eternal",
+                            "Radiant", "Infinite", "Celestial"])
+        a2 = random.choice(["Endless", "Magical", "Spectacular",
+                            "Mystical", "Enchanting"])
+        n = random.choice(["Universe", "Cosmos", "Realm", "Dimension",
+                           "Oblivion", "Infinity"])
+        tu_nm = f"{a1} {a2} {n}"
+        return tu_nm
+
+    @classmethod
+    def get_new_GC_nm(cls):
+        a1 = random.choice(["Runic", "Starry", "Brilliant",
+                            "Blessed", "Eternal", "Celestial"])
+        a2 = random.choice(["Oceanic", "Wonderful", "Waving",
+                            "Milky", "Turning"])
+        n = random.choice(["Way", "Home", "Heavens", "Lights",
+                           "Path", "Cluster"])
+        gc_nm = f"{a1} {a2} {n}"
+        return gc_nm
 
     def set_universe_name(self,
-                          p_univ_name: str = None) -> tuple:
-        """Use provided name or generate one.
-        If p_univ_name already in use, then load data and only generate a new
-            Galactic Cluster within  existing Universe.
-        Else generate both new universe and a new Galactic Cluster.
+                          p_TU_nm: str = None) -> bool:
+        """If p_TU_nm already in use, then load data from DB;
+        Otherwise use name provided or generate one at random.
         :args: (str) Optional. Universe name or none.
-        :returns: (bool, dict) (new universe flag, total univ dict)
+        :sets (dict): Initializes self.TU
+        :returns: (bool) new universe flag
         """
-        if p_univ_name is not None:
-            tu_nm = p_univ_name
-        else:
-            a1 = random.choice(["Cosmic", "Mysterious", "Eternal",
-                   "Radiant", "Infinite", "Celestial"])
-            a2 = random.choice(["Endless", "Magical", "Spectacular",
-                   "Mystical", "Enchanting"])
-            n = random.choice(["Universe", "Cosmos", "Realm", "Dimension",
-                    "Oblivion", "Infinity"])
-            tu_nm = f"{a1} {a2} {n}"
+        is_new_TU = True
         db_tu = DB.execute_select('SELECT_ALL_UNIVS')
-        new_universe = True
-        for tx, u_nm in enumerate(db_tu['univ_name']):
-            if tu_nm == u_nm:
-                new_universe = False
-                TU = pickle.loads(db_tu['univ_object'][tx])
-                break
-        if new_universe:
-            TU = {SM.M.TU: (tu_nm, SM.M.NM)}
-        return(new_universe, TU)
+        if p_TU_nm is not None:
+            tu_nm = p_TU_nm
+            for x, u_nm in enumerate(db_tu['univ_name']):
+                if tu_nm == u_nm:
+                    self.TU = pickle.loads(db_tu['univ_object'][x])
+                    is_new_TU = False
+                    break
+        else:
+            tu_nm = self.get_new_TU_nm()
+            while tu_nm in db_tu['univ_name']:
+                tu_nm = self.get_new_TU_nm()
+        if is_new_TU:
+            self.TU = {SM.ASTRO.TU: (tu_nm, SM.GEOM.NM)}
+        return is_new_TU
 
-    def generate_universe(self,
-                          p_univ_name: str = None) -> tuple:
+    def generate_universe(self) -> tuple:
         """Define data for a new Total Universe.
-        If a new Univ, use standard estimates for known universe,
-           with small tweaks for variety.
-        We pretend the Universe is a sphere, but sometimes treat it as a
-           cube for convenience, i.e. for gross-level collision detection.
-        Later we'll use PyGame and maybe other tools for more sophisticated
-           physics.
-        :args:
-        - p_univ_name (optional). If provided, name of Total Universe.
-        :returns: (bool, dict) (new universe flag, total univ dict)
+        Use standard estimates for known universe,  with tweaks for variety.
+        Pretend the Universe is a sphere, or a cartesian grid.
+        N.B.: random.uniform() alway returns a float.
+        Set radius in gigaparsecs
+        Calculate volume in cubic gigaparsecs -> cubic gigalight years
+        The estimated volume of the known universe is roughly 415000 GLY3.
+        So if I come up with a vol number somewhere in that ballpark, good.
+        The estimated total mass in kg is roughly 1.5e53 (1.5 × 10^53) kg
+        To come up with a mass in kg proportional to the volume, I'll find
+        the difference between my randomized volume and the 'standard' volume
+        and then apply that percentage to the 'standard' mass.
+        Standard pcts are then applied to get dark energy, dark matter and
+        baryonic matter.
+        See SaskanMath() class C for astronomical unit conversions.
+            SM.ASTRO.GPC_TO_GLY = gigaparsecs to gigalight years = 3.26156
+        :sets: (dict): self.TU
         """
-        new_universe, TU = self.set_universe_name(p_univ_name)
-        if new_universe:
-            # random.uniform() alway returns a float
-            r = random.uniform(14.0e9, 14.5e9)
-            variance = r / 14.25e9
-            TU[SM.M.RD] = (r, SM.M.GPC)                      # Radius
-            TU[SM.M.VL] = (415065 * variance, SM.M.GLY3)     # Volume
-            TU[SM.M.ET] = (13.787e9, SM.M.GY)                # Age
-            TU[SM.M.ER] = (73.3, SM.M.UE)                    # Expansion rate
-            TU[SM.M.MS] = (1.5e53 * variance, SM.M.KG)       # Total matter
-            TU[SM.M.DE] = (TU[SM.M.MS][0] * 0.683, SM.M.KG)  # Dark energy
-            TU[SM.M.DM] = (TU[SM.M.MS][0] * 0.274, SM.M.KG)  # Dark matter
-            TU[SM.M.BM] = (TU[SM.M.MS][0] * 0.043, SM.M.KG)  # Baryonic matter
-            print(f"New Universe added: {TU[SM.M.TU][0]}")
-            DB.execute_insert('INSERT_UNIV_PROC',
-                              (TU[SM.M.TU][0], pickle.dumps(TU)))
-        return(new_universe, TU)
+        radius_gly = random.uniform(45.824, 47.557)
+        self.TU[SM.GEOM.RD] = (radius_gly, SM.ASTRO.GLY)      # Radius GPC
+        volume_gly3 = (4/3) * math.pi * (radius_gly ** 3)
+        self.TU[SM.GEOM.VL] = (volume_gly3, SM.ASTRO.GLY3)    # Volume GLY3
+        self.TU[SM.ASTRO.ET] = (13.787e9, SM.ASTRO.GY)        # Age
+        self.TU[SM.ASTRO.ER] = (73.3, SM.ASTRO.UE)            # Expansion rate
+        standard_mass_kg = 1.5e53
+        standard_vol_gly3 = 415000
+        var_pct = (volume_gly3 - standard_vol_gly3) / standard_vol_gly3
+        mass_kg = (standard_mass_kg * var_pct) + standard_mass_kg
+        self.TU[SM.GEOM.MS] = (mass_kg, SM.GEOM.KG)           # Total matter
+        self.TU[SM.ASTRO.DE] = (mass_kg * 0.683, SM.GEOM.KG)  # Dark energy
+        self.TU[SM.ASTRO.DM] = (mass_kg * 0.274, SM.GEOM.KG)  # Dark matter
+        self.TU[SM.ASTRO.BM] = (mass_kg * 0.043, SM.GEOM.KG)  # Baryonic matter
+        DB.execute_insert('INSERT_UNIV_PROC',
+                          (self.TU[SM.ASTRO.TU][0], pickle.dumps(self.TU)))
 
     def generate_cluster_name(self,
-                              p_new_universe: bool,
-                              p_cluster_name: str = None) -> tuple:
+                              p_is_new_TU: bool,
+                              p_GC_nm: str = None) -> bool:
         """Generate a name for the Galactic Cluster.
-        If a name was provided, determine if it is already in use.
-        If it is already in use and this is NOT a new universe, then we're done.
-          Cluster already exists in this univ.
-        If it is already in use and this IS a new universe, then modify the
-          name so that it will be a unique PK (not already in use).
         :args:
-        - (bool) p_new_universe  determines if new univ was generated
-        - (str) Optional. Cluster name or none.
+        - (bool) p_is_new_TU  determines if new univ was generated
+        - (str) Optional. Galactic Cluster name or none.
+            If a name was provided, determine if it is already in use.
+            If it is already in use and this is NOT a new universe, we're done,
+               just pull in the data from DB.
+            Otherwise generate a new GC.
+            If name already in use and this IS a new universe, then modify the
+               name so that it will be a unique within this universe.
+        :sets:
+        - (dict) self.GC
         :returns:
-        - (bool, dict) (new cluster flag, cluster object)
+        - (bool) is-new-galactic-cluster flag
         """
-        if p_cluster_name is not None:
-            gc_nm = p_cluster_name
-        else:
-            a1 = random.choice(["Runic", "Starry", "Brilliant",
-                   "Blessed", "Eternal", "Celestial"])
-            a2 = random.choice(["Oceanic", "Wonderful", "Waving",
-                   "Milky", "Turning"])
-            n = random.choice(["Way", "Home", "Heavens", "Lights",
-                    "Path", "Cluster"])
-            gc_nm = f"{a1} {a2} {n}"
-
+        is_new_GC = True
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
-        cluster_nm_found = False
-        for gx, g_nm in enumerate(db_gc['cluster_name']):
-            if g_nm == gc_nm:
-                cluster_nm_found = True
-                if p_new_universe:
-                    gc_nm_tweak = gc_nm
-                    while gc_nm_tweak in db_gc['cluster_name']:
-                        gc_nm_tweak = gc_nm + " " +\
-                            str(round(random.uniform(1, 100)))
-                    new_cluster = True
-                    GC = {SM.M.GC: (gc_nm_tweak, SM.M.NM)}
-                else:
-                    new_cluster = False
-                    GC = pickle.loads(db_gc['cluster_object'][gx])
-        if not cluster_nm_found:
-            new_cluster = True
-            GC = {SM.M.GC: (gc_nm, SM.M.NM)}
-        return(new_cluster, GC)
+        if p_GC_nm is not None:
+            gc_nm = p_GC_nm
+        else:
+            gc_nm = self.get_new_GC_nm()
+        if gc_nm in db_gc['cluster_name']:
+            if not p_is_new_TU:
+                # Cluster name already exists in this universe.
+                # Load the Cluster data from DB.
+                for x, db_gc_nm in enumerate(db_gc['cluster_name']):
+                    if db_gc_nm == gc_nm:
+                        self.GC = pickle.loads(db_gc['cluster_object'][x])
+                        is_new_GC = False
+                        break
+            else:
+                # Cluster name already exists in another universe.
+                # Modify the name to make it unique on the database
+                while gc_nm in db_gc['cluster_name']:
+                    gc_nm += " " + str(round(random.uniform(1, 100)))
+        self.GC = {SM.ASTRO.GC: (gc_nm, SM.GEOM.NM)}
+        return is_new_GC
 
     def set_cluster_location(self,
                              p_TU: dict) -> tuple:
@@ -265,13 +311,13 @@ class UniverseModel:
         return(gc_vol, gc_de, gc_dm, gc_bm)
 
     def set_pulsar_name(self,
-                        p_pulsar_name: str = None) -> str:
+                        p_TP_nm: str = None) -> str:
         """Assign or generate name for timing pulsar.
         It is contained within the Galactic Cluster object, so does not
         have to be unique.
         """
-        if p_pulsar_name is not None:
-            p_nm = p_pulsar_name
+        if p_TP_nm is not None:
+            p_nm = p_TP_nm
         else:
             a1 = random.choice(["Timer", "Chrono", "Clockwork",
                    "Lighthouse", "Beacon", "Pendumlum"])
@@ -312,7 +358,7 @@ class UniverseModel:
 
     def generate_timing_pulsar(self,
                                p_GC: dict,
-                               p_pulsar_name: str = None) -> dict:
+                               p_TP_nm: str = None) -> dict:
         """Define the timing pulsar within the GC.
         :args:
         - p_GC (dict) Data about the Galactic Cluster
@@ -321,7 +367,7 @@ class UniverseModel:
         - (dict) Updated version of GC object with Pulsar data
         """
         GC = p_GC
-        p_nm = self.set_pulsar_name(p_pulsar_name)
+        p_nm = self.set_pulsar_name(p_TP_nm)
         GC[SM.M.TP] = (p_nm, SM.M.NM)
         # pulses (rotational frequency) per 'galactic second' in milliseconds
         pulse_rate = (1 / random.uniform(700, 732)) * 1000
@@ -386,17 +432,17 @@ class UniverseModel:
         return collision_detected
 
     def generate_cluster(self,
-                         p_new_universe: bool,
+                         p_is_new_TU: bool,
                          p_TU: dict,
-                         p_cluster_name: str = None,
-                         p_pulsar_name: str = None) -> tuple:
+                         p_GC_nm: str = None,
+                         p_TP_nm: str = None) -> tuple:
         """If new cluster is needed, generate data for galatic cluster
         and for timing pulsar.
         :args:
-        - p_new_universe (bool):  whether new univ was created
+        - p_is_new_TU (bool):  whether new univ was created
         - p_TU (dict): data about the total universe
-        - p_cluster_name (str): Optional
-        - p_pulsar_name (str): Optional
+        - p_GC_nm (str): Optional
+        - p_TP_nm (str): Optional
         :returns:
         - (bool, dict): (new cluster flag, GC dict)
         """
@@ -405,10 +451,10 @@ class UniverseModel:
             px, py, pz, a, b, c = self.set_cluster_size()
             return ((lx, ly, lz), (px, py, pz, a, b, c))
 
-        new_cluster, GC =\
-            self.generate_cluster_name(p_new_universe, p_cluster_name)
+        is_new_GC, GC =\
+            self.generate_cluster_name(p_is_new_TU, p_GC_nm)
         univ_nm = p_TU[SM.M.TU][0]
-        if new_cluster:
+        if is_new_GC:
             collision_detected = True
             while collision_detected:
                 loc, sz = compute_loc_and_size()
@@ -435,45 +481,45 @@ class UniverseModel:
             GC[SM.M.DE] = (gc_de, SM.M.KG)               # Dark Energy kg
             GC[SM.M.DM] = (gc_dm, SM.M.KG)               # Dark Matter kg
             GC[SM.M.BM] = (gc_bm, SM.M.KG)               # Baryonic Matter kg
-            GC = self.generate_timing_pulsar(GC, p_pulsar_name)
+            GC = self.generate_timing_pulsar(GC, p_TP_nm)
             DB.execute_insert(
                 'INSERT_CLUSTER_PROC',
                 (GC[SM.M.GC][0], univ_nm, pickle.dumps(GC)))
-        return(new_cluster, GC)
+        return(is_new_GC, GC)
 
     def set_xu_name(self,
-                    new_univ: bool,
-                    p_univ_name: str) -> str:
+                    is_new_TU: bool,
+                    p_TU_nm: str) -> str:
         """Assign name for a new External Universe object.
         It is the PK on a table, so it has to be unique in INSERT.
         It has a 1:1 relationship with a TU, which it derives from.
         :args:
-        - new_univ (bool): Flag indicating if it is a new universe
-        - p_univ_name (str): Name of the current Total Universe
+        - is_new_TU (bool): Flag indicating if it is a new universe
+        - p_TU_nm (str): Name of the current Total Universe
         :returns:
         - (str): Either new XU name or name of XU related to p_TU
         """
         def compute_new_xu_nm():
-            xu_nm = p_univ_name.split(" ")[:2]
+            xu_nm = p_TU_nm.split(" ")[:2]
             xu_nm = " ".join(xu_nm) + " XU"
             xu_nm += "_" + str(round(random.uniform(10, 1000)))
             return xu_nm
 
         db_xu = DB.execute_select('SELECT_ALL_XUS')
-        if new_univ:
+        if is_new_TU:
             xu_nm = compute_new_xu_nm()
             while xu_nm in db_xu['xu_name']:
                 xu_nm = compute_new_xu_nm
         else:
             for rx, u_nm in enumerate(db_xu['univ_name_fk']):
-                if u_nm == p_univ_name:
+                if u_nm == p_TU_nm:
                     xu_nm = db_xu['xu_name'][rx]
                     break
         return xu_nm
 
     def compute_external_universe(self,
-                                  new_univ: bool,
-                                  new_cluster: bool,
+                                  is_new_TU: bool,
+                                  is_new_GC: bool,
                                   p_TU: dict) -> dict:
         """Define the External Universe (XU) within the TU.
         XU contains all the mass that is not in the GC.
@@ -481,8 +527,8 @@ class UniverseModel:
         Add new XU record if it is a new universe, otherwise, update
           existing XU record associated with the current TU.
         :args:
-        - new_univ (bool):    Flag indicating if it is a new universe
-        - new_cluster (bool): Flag indicating if it is a new cluster
+        - is_new_TU (bool):    Flag indicating if it is a new universe
+        - is_new_GC (bool): Flag indicating if it is a new cluster
         - TU (dict) Data about the Total Universe.
         :returns:
         - XU (dict) Data about the External Universe (new or modified)
@@ -491,7 +537,7 @@ class UniverseModel:
         de = 0.0
         dm = 0.0
         bm = 0.0
-        xu_nm = self.set_xu_name(new_univ, p_TU[SM.M.TU][0])
+        xu_nm = self.set_xu_name(is_new_TU, p_TU[SM.M.TU][0])
         tu_nm = p_TU[SM.M.TU][0]
         XU[SM.M.XU] = (xu_nm, SM.M.NM)
         XU[SM.M.CON]: (tu_nm, SM.M.TU)
@@ -505,11 +551,11 @@ class UniverseModel:
         XU[SM.M.DE] = (((p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0]) - de), SM.M.KG),
         XU[SM.M.DM] = (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) - dm), SM.M.KG),
         XU[SM.M.BM] = (((p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0]) - bm), SM.M.KG)
-        if new_univ:
+        if is_new_TU:
             print(f"New XU created: {xu_nm}")
             DB.execute_insert(
                 'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(XU)))
-        elif new_cluster:
+        elif is_new_GC:
             print(f"Updated existing XU: {xu_nm}")
             DB.execute_insert(
                 'UPDATE_XU_PROC', (pickle.dumps(XU), xu_nm))
@@ -524,35 +570,35 @@ class GalaxyModel:
     """
 
     def __init__(self,
-                 p_univ_name: str,
-                 p_cluster_name: str,
+                 p_TU_nm: str,
+                 p_GC_nm: str,
                  p_galaxy_name: str = None,
                  p_galaxy_sz: str = "M"):
         """Initialize class for a Game Galaxy.
         If univ name or cluster name are not found on DB, stop.
         :args:
-        - p_univ_name (str): Name of universe to put GC in
-        - p_cluster_name (str): Name of cluster to put GC in
+        - p_TU_nm (str): Name of universe to put GC in
+        - p_GC_nm (str): Name of cluster to put GC in
         - p_galaxy_name (str) Optional.  If provided, load existing galaxy.
             Otherwise, generate new gamaing galaxy.
         - p_galazy_size (str) Default = 'M'. Must be S, M or L.
         """
         TU_found, self.GC =\
-            self.get_univ_and_galaxy(p_univ_name, p_cluster_name)
+            self.get_univ_and_galaxy(p_TU_nm, p_GC_nm)
         if TU_found and self.GC is not None:
             new_galaxy, self.GG =\
-                self.get_galaxy_name(p_cluster_name, p_galaxy_name)
+                self.get_galaxy_name(p_GC_nm, p_galaxy_name)
         if new_galaxy:
-            self.GG = self.generate_new_galaxy(p_cluster_name, p_galaxy_sz)
+            self.GG = self.generate_new_galaxy(p_GC_nm, p_galaxy_sz)
         pp((self.GG))
 
     def get_univ_and_galaxy(self,
-                            p_univ_name: str,
-                            p_cluster_name: str) -> tuple:
+                            p_TU_nm: str,
+                            p_GC_nm: str) -> tuple:
         """Retrieve galaxy, cluster and external universe objects from DB.
         :args:
-        - p_univ_name (str): Name of universe to put GC in
-        - p_cluster_name (str): Name of cluster to put GC in
+        - p_TU_nm (str): Name of universe to put GC in
+        - p_GC_nm (str): Name of cluster to put GC in
         :returns:
         - (bool, dict): (flag indicating TU found or not, GC data)
         """
@@ -560,18 +606,18 @@ class GalaxyModel:
         GC = None
         db = DB.execute_select('SELECT_ALL_UNIVS')
         for x, nm in enumerate(db['univ_name']):
-            if nm == p_univ_name:
+            if nm == p_TU_nm:
                 tu_found = True
                 break
         db = DB.execute_select('SELECT_ALL_CLUSTERS')
         for x, nm in enumerate(db['cluster_name']):
-            if nm == p_cluster_name:
+            if nm == p_GC_nm:
                 GC = pickle.loads(db['cluster_object'][x])
                 break
         return(tu_found, GC)
 
     def get_galaxy_name(self,
-                        p_cluster_name: str,
+                        p_GC_nm: str,
                         p_galaxy_name: str = None) -> tuple:
         """Either retrieve existing Game Galaxy object for specified name
         and cluster, or assign a name to a new Galaxy object.
@@ -588,7 +634,7 @@ class GalaxyModel:
             db = DB.execute_select('SELECT_ALL_GALAXIES')
             for x, nm in enumerate(db['galaxy_name']):
                 if nm == p_galaxy_name\
-                and db['cluster_name'][x] == p_cluster_name:
+                and db['cluster_name'][x] == p_GC_nm:
                     new_galaxy = False
                     GG = db['galaxy_object'][x]
                     break
@@ -659,14 +705,14 @@ class GalaxyModel:
                 dims[p_gg_sz]['mass'], bhole_mass)
 
     def detect_g_collision(self,
-                           p_cluster_name: str,
+                           p_GC_nm: str,
                            p_gg_loc: tuple,
                            p_halo_r: float) -> bool:
         """Determine if new Galaxy will collide with any existing Galaxies
         within the current Galactic Cluster. Compute roughly using a bounding
         rectangle around the galaxy halo.
         :args:
-        - p_cluster_name (str): Name of current Galactic Cluster
+        - p_GC_nm (str): Name of current Galactic Cluster
         - p_gg_loc (tuple): (x, y, z) location of galaxy center relative to
                             center of Galactic Cluster
         - p_halo_r (float): Radius of Galaxy
@@ -690,7 +736,7 @@ class GalaxyModel:
         db_gg = DB.execute_select('SELECT_ALL_GALAXIES')
         galaxy_bunch = dict()
         for ix, db_c_nm in enumerate(db_gg['cluster_name_fk']):
-            if p_cluster_name == db_c_nm:
+            if p_GC_nm == db_c_nm:
                 g_nm = db_gg['galaxy_name'][ix]
                 g = pickle.loads(db_gg['galaxy_object'][ix])
                 # Define bounding rect for existing galaxy
@@ -790,7 +836,7 @@ class GalaxyModel:
                 globular_m, g_vol_gpc3, g_mass_kg)
 
     def generate_new_galaxy(self,
-                            p_cluster_name: str,
+                            p_GC_nm: str,
                             p_galaxy_sz: str = "M"):
         """
         Populate a new Game Galaxy (GG) object. Parts include:
@@ -799,7 +845,7 @@ class GalaxyModel:
         - the overall halo of the galaxy
         - the concentrated bulge of of stars around the black hole
         :args:
-        - p_cluster_name (str): Name of enclosing cluster.
+        - p_GC_nm (str): Name of enclosing cluster.
         - p_galaxy_sz (str) Optional. Size of Game Galaxy.
                             Must be in ('S', 'M', 'L').
                             Defaults to 'M'.
@@ -818,7 +864,7 @@ class GalaxyModel:
         while galaxy_collision:
             g_loc, halo_r, stars_x, stars_z, total_m, bhole_m =\
                 self.set_galaxy_dims(g_sz)
-            galaxy_collision = self.detect_g_collision(p_cluster_name,
+            galaxy_collision = self.detect_g_collision(p_GC_nm,
                                                        g_loc, halo_r)
             if galaxy_collision:
                 print("Collision detected. Recomputing galaxy...")
@@ -832,7 +878,7 @@ class GalaxyModel:
             self.set_galactic_matter_and_shape(total_m, bhole_m, bulge_m,
                                             stars_x, halo_r)
 
-        self.GG[SM.M.GC] = (p_cluster_name, SM.M.CON)
+        self.GG[SM.M.GC] = (p_GC_nm, SM.M.CON)
         self.GG[f"{SM.M.GG} {SM.M.REL} {SM.M.SZ}"] = (g_sz, SM.M.REL)
         self.GG[f"{SM.M.GG} {SM.M.VL}"] = (g_vol, SM.M.GPC3)
         self.GG[f"{SM.M.GG} {SM.M.BM}"] = (g_mass, SM.M.KG)
@@ -851,7 +897,7 @@ class GalaxyModel:
         self.GG[f"{SM.M.SC} {SM.M.MS}"] = (stars_m, SM.M.SMS)
         self.GG[f"{SM.M.IG} {SM.M.MS}"] = (globs_m, SM.M.SMS)
         DB.execute_insert(
-            'INSERT_GALAXY_PROC', (GG[SM.M.GG][0], p_cluster_name,
+            'INSERT_GALAXY_PROC', (GG[SM.M.GG][0], p_GC_nm,
                                    pickle.dumps(GG)))
         return self.GG
 

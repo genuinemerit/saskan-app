@@ -1,7 +1,6 @@
 /*
 clusters 1-->n galaxies
 */
-DROP TABLE IF EXISTS galaxies;
 CREATE TABLE IF NOT EXISTS galaxies (
     galaxy_name TEXT PRIMARY KEY,
     cluster_name_fk TEXT NOT NULL,
