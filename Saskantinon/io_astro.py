@@ -96,8 +96,9 @@ class UniverseModel:
         is_new_GC = self.generate_cluster_name(is_new_TU, p_GC_nm)
         if is_new_GC:
             self.generate_cluster(p_TP_nm)
-        print(f"is_new_GC: {is_new_GC}")
+        print(f"is_new_TU: {is_new_TU}")
         pp(('self.TU: ', self.TU))
+        print(f"is_new_GC: {is_new_GC}")
         pp(('self.GC: ', self.GC))
         # self.XU = self.compute_external_universe(is_new_TU, is_new_GC)
 
@@ -134,6 +135,16 @@ class UniverseModel:
                            "Path", "Cluster"])
         gc_nm = f"{a1} {a2} {n}"
         return gc_nm
+
+    @classmethod
+    def get_new_TP_nm(cls):
+        a1 = random.choice(["Timer", "Chrono", "Clockwork",
+                            "Lighthouse", "Beacon", "Pendumlum"])
+        a2 = random.choice(["Pulsar", "Star", "Nova",
+                            "Sentry", "Stupa"])
+        n = str(round(random.uniform(100, 10000)))
+        tp_nm = f"{a1} {a2} {n}"
+        return tp_nm
 
     def set_universe_name(self,
                           p_TU_nm: str = None) -> bool:
@@ -204,21 +215,20 @@ class UniverseModel:
             gc_nm = p_GC_nm
         else:
             gc_nm = self.get_new_GC_nm()
+        self.GC = {SM.ASTRO.GC: (gc_nm, SM.GEOM.NM)}
         if gc_nm in db_gc['cluster_name']:
-            if not p_is_new_TU:
+            if p_is_new_TU:
+                # Cluster name already exists in another universe.
+                while gc_nm in db_gc['cluster_name']:
+                    gc_nm += " " + str(round(random.uniform(1, 100)))
+                    self.GC[SM.ASTRO.GC] = (gc_nm, SM.GEOM.NM)
+            else:
                 # Cluster name already exists in this universe.
-                # Load the Cluster data from DB.
                 for x, db_gc_nm in enumerate(db_gc['cluster_name']):
                     if db_gc_nm == gc_nm:
                         self.GC = pickle.loads(db_gc['cluster_object'][x])
                         is_new_GC = False
                         break
-            else:
-                # Cluster name already exists in another universe.
-                # Modify the name to make it unique on the database
-                while gc_nm in db_gc['cluster_name']:
-                    gc_nm += " " + str(round(random.uniform(1, 100)))
-        self.GC = {SM.ASTRO.GC: (gc_nm, SM.GEOM.NM)}
         return is_new_GC
 
     def detect_cluster_collision(self,
@@ -252,17 +262,25 @@ class UniverseModel:
         # Try using seeding the randomizer with a fixed value
         #  to force creation of collisions. If that doesn't work,
         #  override randomization with fixed values.
-        # pp(("New cluster center location GLY: ", p_loc))
-        # pp(("New cluster width GLY: ", w))
-        # pp(("New cluster bounding rect: ", bnd))
+        # Looking reasonable so far. Since the locs are expressed
+        #  in relatively reasonable units, like 1 or 2 digits to left of
+        #  decimal point, might be able to do a visual check just using
+        #  the locations. The bounding rects are expressed in the same
+        #  terms, but the lengths of the edges can be very small... still
+        #  they are usually in the first two signigicant digits. So maybe
+        #  if everything is multiplied by 100 and rounded to nearest int,
+        #  we could get a useful visual check.
+        pp(("New cluster center location GLY: ", p_loc))
+        pp(("New cluster bounding rect: ", bnd))
 
         collision = False
         for gc_nm, c in gc_in_tu.items():
+            c_loc = c[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
             c_bnd = c[f"{SM.GEOM.EL} {SM.GEOM.BND}"][0]
 
-            # print(f"Comparing to cluster {gc_nm}...")
-            # pp(("Old cluster width GLY: ", c_w))
-            # pp(("Old cluster bounding rect: ", c_bnd))
+            print(f"Comparing to cluster {gc_nm}...")
+            pp(("Old cluster center location GLY: ", c_loc))
+            pp(("Old cluster bounding rect: ", c_bnd))
 
             if not (bnd[0][1] < c_bnd[0][0] or
                     bnd[0][0] > c_bnd[0][1] or
@@ -347,71 +365,31 @@ class UniverseModel:
         gc_bm_kg = self.TU[SM.ASTRO.BM][0] * SM.ASTRO.BMP   # kg
         return (gc_vol, gc_mass_kg, gc_de_kg, gc_dm_kg, gc_bm_kg)
 
-    def set_pulsar_name(self,
-                        p_TP_nm: str = None) -> str:
-        """Assign or generate name for timing pulsar.
-        It is contained within the Galactic Cluster object, so does not
-        have to be unique.
-        """
-        if p_TP_nm is not None:
-            p_nm = p_TP_nm
-        else:
-            a1 = random.choice(["Timer", "Chrono", "Clockwork",
-                   "Lighthouse", "Beacon", "Pendumlum"])
-            a2 = random.choice(["Pulsar", "Star", "Nova",
-                   "Sentry", "Stupa"])
-            n = str(round(random.uniform(100, 10000)))
-            p_nm = f"{a1} {a2} {n}"
-        return p_nm
-
-    def set_pulsar_location(self,
-                            p_GC) -> tuple:
-        """Set pulsar location within inner third of the cluster space.
-        :args:
-        - p_GC (dict): data about the cluster
-        :returns:
-        - (float, float, float): (x, y, z in megaparsecs offset from center)
-        """
-        gc_x = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][0]
-        gc_y = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][1]
-        gc_z = p_GC[f"{SM.M.EL} {SM.M.SHA}"][0][0][0][2]
-        max_x = (gc_x / 2) * 0.33
-        max_y = (gc_y / 2) * 0.33
-        max_z = (gc_z / 2) * 0.33
-        while True:
-            lx = random.uniform(-gc_x, gc_x)
-            if lx <= max_x:
-                break
-        while True:
-            ly = random.uniform(-gc_y, gc_y)
-            if ly <= max_y:
-                break
-        while True:
-            lz = random.uniform(-gc_z, gc_z)
-            if lz <= max_z:
-                break
-        pulsar_vector = (lx, ly, lz)
-        return pulsar_vector
-
     def generate_timing_pulsar(self,
-                               p_GC: dict,
-                               p_TP_nm: str = None) -> dict:
+                               p_TP_nm: str = None):
         """Define the timing pulsar within the GC.
+        - Pulses (rotational frequency) per 'galactic second' in milliseconds.
+        - Set pulsar location within inner third of the cluster space.
+          Location is expressed in gigalight years, with reference to the
+          center of the cluster.
         :args:
-        - p_GC (dict) Data about the Galactic Cluster
-        - p_pulsar_nm (str) Optional. Name of neutron star / timing pulsar
-        :returns:
-        - (dict) Updated version of GC object with Pulsar data
+        - p_TP_nm (str) Optional. Name of neutron star / timing pulsar
+        :sets:
+        - (dict) Updated version of self.GC
         """
-        GC = p_GC
-        p_nm = self.set_pulsar_name(p_TP_nm)
-        GC[SM.M.TP] = (p_nm, SM.M.NM)
-        # pulses (rotational frequency) per 'galactic second' in milliseconds
-        pulse_rate = (1 / random.uniform(700, 732)) * 1000
-        GC[f"{SM.M.TP} {SM.M.PR}"] = (pulse_rate, SM.M.PMS)
-        pulsar_vector = self.set_pulsar_location(GC)
-        GC[f"{SM.M.TP} {SM.M.LOC} {SM.M.VE}"] = (pulsar_vector, SM.M.GPC)
-        return GC
+        tp_nm = p_TP_nm if p_TP_nm is not None else self.get_new_TP_nm()
+        tp_loc = list()
+        gc_loc = self.GC[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
+        gc_dim = self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"][0]
+        for d in range(0, 3):
+            delta = (gc_dim[d] / 2) * random.uniform(-0.33, 0.33)
+            tp_loc.append((gc_loc[d] + delta))
+
+        self.GC[SM.ASTRO.TP] = (tp_nm, SM.GEOM.NM)                  # Name
+        self.GC[f"{SM.ASTRO.TP} {SM.ASTRO.PR}"] =\
+            ((1 / random.uniform(700, 732)) * 1000, SM.ASTRO.PMS)   # Period
+        self.GC[f"{SM.ASTRO.TP} {SM.GEOG.LOC}"] =\
+            (tp_loc, f"{SM.GEOM.XYZ} {SM.ASTRO.GLY}")               # Location
 
     def generate_cluster(self,
                          p_TP_nm: str = None):
@@ -425,10 +403,6 @@ class UniverseModel:
             self.set_cluster_loc_and_size()
         gc_vol, gc_mass, gc_de, gc_dm, gc_bm =\
             self.set_cluster_vol_and_mass(gc_axes)
-
-        pp(("GC stats: ",
-            gc_loc, gc_dim, gc_axes, gc_rot, gc_bnd,
-            gc_vol, gc_mass, gc_de, gc_dm, gc_bm))
 
         self.GC[SM.ASTRO.TU] =\
             (self.TU[SM.ASTRO.TU][0], SM.GEOM.CON)       # Container
@@ -449,12 +423,12 @@ class UniverseModel:
         self.GC[SM.ASTRO.DE] = (gc_de, SM.GEOM.KG)       # Dark Energy kg
         self.GC[SM.ASTRO.DM] = (gc_dm, SM.GEOM.KG)       # Dark Matter kg
         self.GC[SM.ASTRO.BM] = (gc_bm, SM.GEOM.KG)       # Baryonic Matter kg
-        """
-        GC = self.generate_timing_pulsar(GC, p_TP_nm)
-        DB.execute_insert(
-            'INSERT_CLUSTER_PROC',
-            (GC[SM.M.GC][0], univ_nm, pickle.dumps(GC)))
-        """
+
+        self.generate_timing_pulsar(p_TP_nm)
+        DB.execute_insert('INSERT_CLUSTER_PROC',
+                          (self.GC[SM.ASTRO.GC][0],
+                           self.TU[SM.ASTRO.TU][0],
+                           pickle.dumps(self.GC)))
 
     def set_xu_name(self,
                     is_new_TU: bool,
