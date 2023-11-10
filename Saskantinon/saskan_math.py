@@ -189,22 +189,31 @@ class SaskanMath(object):
         relating generically to geometry and physics.
         """
         # math, general geometry
+        ABC = "(a, b, c)"
+        ANG = "angle"
         AR = "area"
-        AX = "axes (a, b, c)"
+        BND = "bounding rectangle"
         CNT = "count"
         CON = "container"
         DC = "decimal"
         DI = "diameter"
-        DIM = "dimensions (x, y, z)"
+        DIM = "dimensions"
+        DIR = "direction"
         HT = "height"
         INT = "integer"
         LG = "length"
         PCT = "percent"
+        PYR = ("pitch, yaw, roll")
         RD = "radius"
+        ROT = "rotation"
+        SAX = "semi-axes"
         SZ = "size"
         VE = "vector"
         VL = "volume"
         WD = "width"
+        XY = "(x, y)"
+        XYZD = "((x,x), (y,y), (z,z))"
+        XYZ = "(x, y, z)"
         # geometry shapes
         BX = "box"
         CI = "circle"
@@ -350,8 +359,9 @@ class SaskanMath(object):
         ET = "elapsed time"             # age, duration, time passed
         GY = "gavoran year"             # saskan
         # rates, speeds, velocities
-        ER = "expansion rate"           # of a volume
-        UE = "universal expansion"      # km/s per Mpc
+        ER = "expansion rate"              # of a volume
+        UER = "universal expansion rate"
+        KSM = "km/s per Mpc"               # km/s per Mpc
         PRO = "period of rotation"
         PRV = "period of revolution"
         PR = "pulse rate"
@@ -370,15 +380,24 @@ class SaskanMath(object):
         GLY3 = "cubic gigalight year"
         GPC2 = "square gigaparsec"
         GPC3 = "cubic gigaparsec"
+        PC2 = "square parsec"
+        PC3 = "cubic parsec"
         LY2 = "square light year"
         LY3 = "cubic light year"
-        # conversions
-        GPC_TO_GLY = 3.09             # gigaparsecs -> gigalight years
-
+        # constants
+        DEP = 0.683                 # dark energy percentage
+        DMP = 0.274                 # dark matter percentage
+        BMP = 0.043                 # baryonic matter percentage
+        TUV = 415000             # total univ volume in cubic gigalight years
+        TUK = 1.5e53             # total universe mass in kg
+        # conversions -- all are multiplicative in the indicated direction
+        # AA_TO_BB, so AA -> BB as AA * AA_TO_BB = BB
         AU_TO_KM = 1.495979e+8        # astronomical units -> km
         AU_TO_LM = 5.2596e+16         # astro units -> light minutes
         AU_TO_LS = 0.002004004004     # astro units -> light seconds
         AU_TO_LY = 0.00001581250799   # astro units -> light years
+        GLY_TO_LY = 1e+9              # gigalight years -> light years
+        GPC_TO_GLY = 3.09             # gigaparsecs -> gigalight years
         GPC_TO_MPC = 1000.0           # gigaparsecs -> megaparsecs
         KM_TO_AU = 0.000006684587122  # kilometers -> astro units
         KPC_TO_MPC = 1000.0           # kiloparsecs -> megaparsecs
@@ -389,12 +408,12 @@ class SaskanMath(object):
         LS_TO_AU = 499.004783676      # light seconds -> astro units
         LS_TO_LM = 0.000000000000105  # light seconds -> light minutes
         LY_TO_AU = 63240.87           # light years -> astro units
+        LY_TO_GLY = 1e-9              # light years -> gigalight years
         LY_TO_LM = 52596000000000000  # light years -> light minutes
         LY_TO_PC = 0.30659817672196   # light years -> parsecs
-        LY_TO_GLY = 1e-9              # light years -> gigalight years
-        GLY_TO_LY = 1e+9              # gigalight years -> light years
         MPC_TO_GPC = 0.001            # megaparsecs -> gigaparsecs
         MPC_TO_KPC = 1000.0           # megaparsecs -> kiloparsecs
+        PC_TO_GLY = 3.065603923973023e-07       # parsecs -> gigalight years
         PC_TO_KPC = 0.001             # parsecs -> kiloparsecs
         PC_TO_LY = 3.261598           # parsecs -> light years
 

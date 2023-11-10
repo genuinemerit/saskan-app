@@ -94,11 +94,11 @@ class UniverseModel:
         if is_new_TU:
             self.generate_universe()
         is_new_GC = self.generate_cluster_name(is_new_TU, p_GC_nm)
+        if is_new_GC:
+            self.generate_cluster(p_TP_nm)
         print(f"is_new_GC: {is_new_GC}")
         pp(('self.TU: ', self.TU))
         pp(('self.GC: ', self.GC))
-        if is_new_GC:
-            self.generate_cluster(p_TP_nm)
         # self.XU = self.compute_external_universe(is_new_TU, is_new_GC)
 
     def reboot_database(self):
@@ -169,15 +169,14 @@ class UniverseModel:
         volume_gly3 = (4/3) * math.pi * (radius_gly ** 3)
         self.TU[SM.GEOM.VL] = (volume_gly3, SM.ASTRO.GLY3)    # Volume GLY3
         self.TU[SM.ASTRO.ET] = (13.787e9, SM.ASTRO.GY)        # Age
-        self.TU[SM.ASTRO.ER] = (73.3, SM.ASTRO.UE)            # Expansion rate
-        standard_mass_kg = 1.5e53
-        standard_vol_gly3 = 415000
-        var_pct = (volume_gly3 - standard_vol_gly3) / standard_vol_gly3
-        mass_kg = (standard_mass_kg * var_pct) + standard_mass_kg
-        self.TU[SM.GEOM.MS] = (mass_kg, SM.GEOM.KG)           # Total matter
-        self.TU[SM.ASTRO.DE] = (mass_kg * 0.683, SM.GEOM.KG)  # Dark energy
-        self.TU[SM.ASTRO.DM] = (mass_kg * 0.274, SM.GEOM.KG)  # Dark matter
-        self.TU[SM.ASTRO.BM] = (mass_kg * 0.043, SM.GEOM.KG)  # Baryonic matter
+        self.TU[SM.ASTRO.UER] = (73.3, SM.ASTRO.KSM)          # Expansion rate
+        variance_pct = (volume_gly3 - SM.ASTRO.TUV) / SM.ASTRO.TUV
+        mass_kg = (SM.ASTRO.TUK * variance_pct) + SM.ASTRO.TUK
+        self.TU[SM.GEOM.MS] = (mass_kg, SM.GEOM.KG)           # Total matter kg
+        # Apply dark energy, dark matter and baryonic matter percentages
+        self.TU[SM.ASTRO.DE] = (mass_kg * SM.ASTRO.DEP, SM.GEOM.KG)  # kg
+        self.TU[SM.ASTRO.DM] = (mass_kg * SM.ASTRO.DMP, SM.GEOM.KG)  # kg
+        self.TU[SM.ASTRO.BM] = (mass_kg * SM.ASTRO.BMP, SM.GEOM.KG)  # kg
         DB.execute_insert('INSERT_UNIV_PROC',
                           (self.TU[SM.ASTRO.TU][0], pickle.dumps(self.TU)))
 
@@ -243,7 +242,7 @@ class UniverseModel:
             if db_tu_nm == tu_nm:
                 gc_in_tu[db_gc['cluster_name'][x]] =\
                     pickle.loads(db_gc['cluster_object'][x])
-        w = (p_dim[0] / 3.086e19) / 2  # width in gigalightyears
+        w = (p_dim[0] * SM.ASTRO.PC_TO_GLY) / 2  # width in gigalightyears
         bnd = list()
         bnd.append((p_loc[0] - w, p_loc[0] + w))    # Left, Right
         bnd.append((p_loc[1] - w, p_loc[1] + w))    # Top, Bottom
@@ -252,23 +251,14 @@ class UniverseModel:
         # Once we're saving multiple cluster, re-open this for debugging
         # Try using seeding the randomizer with a fixed value
         #  to force creation of collisions. If that doesn't work,
-        #  override randomization wti fixed values.
+        #  override randomization with fixed values.
         # pp(("New cluster center location GLY: ", p_loc))
         # pp(("New cluster width GLY: ", w))
         # pp(("New cluster bounding rect: ", bnd))
 
         collision = False
         for gc_nm, c in gc_in_tu.items():
-            c_loc = c[f"{SM.ASTRO.GC} {SM.GEOM.LOC} {SM.GEOM.VE}"][0]
-            c_w = (c[f"{SM.M.EL} {SM.GEOM.SHA}"][0][0][0][0] / 3.086e19) / 2
-
-            # Once I am saving bounding rectangle data to DB,
-            # then just read it in instead of computing it.
-
-            c_bnd = list()
-            c_bnd.append((c_loc[0] - c_w, c_loc[0] + c_w))    # Left, Right
-            c_bnd.append((c_loc[1] - c_w, c_loc[1] + c_w))    # Top, Bottom
-            c_bnd.append((c_loc[2] - c_w, c_loc[2] + c_w))    # Front, Back
+            c_bnd = c[f"{SM.GEOM.EL} {SM.GEOM.BND}"][0]
 
             # print(f"Comparing to cluster {gc_nm}...")
             # pp(("Old cluster width GLY: ", c_w))
@@ -285,18 +275,23 @@ class UniverseModel:
         return (collision, bnd)
 
     def set_cluster_loc_and_size(self) -> tuple:
-        """Set cluster location, size. Verify no collision.
-        Then set rotation directions and angles.
-        Direction will be either + or - for each axis.
-        Limit the rotation angles to 0 to 90 degrees.
-        See notes in universe_html regarding pitch, yaw and roll
+        """Set cluster location, dimensions.
+        Verify no collision.
+        - If randomized cluster location and size collides with an existing
+        cluster in same universe, re-compute until no collision detected.
+        - Collsion detection also sets the GC bounding rectangle.
+        Then randomly set direction and angle of rotations.
+        - Direction will be either + or - for each dimensional axis.
+        - Limit the rotation angles to 0 to 90 degrees.
+        - See notes in universe.html regarding pitch, yaw and roll
             terminology and standards for defining rotation.
+        Finally, set the semi-axes of the ellipsoid.
 
         :returns:
         - ((float * 3): (x, y, z in gigalightyears from universe
                          center to center of cluster),
         - (float * 3): (x, y, z are width, depth, height in parsecs),
-        - (float * 3): (a, b, c axes which define ellipsoid shape),
+        - (float * 3): (a, b, c semi-axes which define ellipsoid shape),
         - (dict * 3):  (rotation direction and angle for each axis),
         - (list * 3):  (bounding rectangle of cluster in gigalihtyears))
         """
@@ -316,43 +311,41 @@ class UniverseModel:
             loc, dim = compute_cluster_loc_and_dim()
             collision, bnd = self.detect_cluster_collision(loc, dim)
         # Select rotation direction and angle for each axis.
-        rot = dict()
+        rot = list()
         for d in range(0, 3):
-            rot[d] = dict()
-            rot[d]['dir'] = random.choice(['+', '-'])
-            rot[d]['ang'] = round((random.uniform(0, 90)), 2)
-        # Define axes of ellipsoid
+            dir = random.choice(['+', '-'])
+            ang = round((random.uniform(0, 90)), 2)
+            rot.append((dir, ang))
+        # Axes of ellipsoid derived from dim, so unit is parsecs.
         axes = list()
         for d in dim:
             axes.append(d / 2)
         return (loc, dim, axes, rot, bnd)
 
     def set_cluster_vol_and_mass(self,
-                                 p_a: float,
-                                 p_b: float,
-                                 p_c: float,
-                                 p_TU: dict) -> tuple:
-        """Compute total volume of galactic cluster in cubic gigaparsecs.
-        Compute mass in kilograms of dark energy, dark matter and baryonic
-        matter for the cluster.
-        - Compute GC matter as a percent from 1% to 5% of TU matter.
-        - Apply that percentage to each of the 3 TU kg measures of matter.
+                                 p_axes: tuple) -> tuple:
+        """Compute total volume of galactic cluster in cubic parsecs.
+        Compute mass in kilograms for cluster's total allocation of:
+            dark energy, dark matter, baryonic matter
+        - Compute total GC matter as a percent from 1% to 5% of TU matter.
+        - Get a sense of the density of the cluster (vol/mass ratio)
+        - Apply constant percents for the 3 types of matter.
         :args:
         - p_a (float): relative x axis of ellipsoid
         - p_b (float): relative y axis of ellipsoid
         - p_c (float): relative z axis of ellipsoid
         - p_TU (dict): data about total universe
         :returns:
-        - (float * 4): (GC total volume in cubic gigaparsecs,
+        - (float * 5): (GC total volume in cubic parsecs,
+                        GC total mass in kilograms,
                         GC dark energy, dark matter, baryonic matter in kg)
         """
-        gc_vol = (4/3) * math.pi * p_a * p_b * p_c
-        mass_pct = random.uniform(0.01, 0.05)
-        univ_mass_kg = p_TU[SM.M.MS][0]
-        gc_de = mass_pct * p_TU[SM.M.DE][0] * univ_mass_kg
-        gc_dm = mass_pct * p_TU[SM.M.DM][0] * univ_mass_kg
-        gc_bm = mass_pct * p_TU[SM.M.BM][0] * univ_mass_kg
-        return (gc_vol, gc_de, gc_dm, gc_bm)
+        gc_vol = (4/3) * math.pi * p_axes[0] * p_axes[1] * p_axes[2]  # PC3
+        gc_mass_kg = self.TU[SM.GEOM.MS][0] * random.uniform(0.01, 0.05)
+        gc_de_kg = self.TU[SM.ASTRO.DE][0] * SM.ASTRO.DEP   # kg
+        gc_dm_kg = self.TU[SM.ASTRO.DM][0] * SM.ASTRO.DMP   # kg
+        gc_bm_kg = self.TU[SM.ASTRO.BM][0] * SM.ASTRO.BMP   # kg
+        return (gc_vol, gc_mass_kg, gc_de_kg, gc_dm_kg, gc_bm_kg)
 
     def set_pulsar_name(self,
                         p_TP_nm: str = None) -> str:
@@ -423,33 +416,40 @@ class UniverseModel:
     def generate_cluster(self,
                          p_TP_nm: str = None):
         """Generate data for galatic cluster and for timing pulsar.
-        - If randomized cluster location collides with an existing cluster
-          in the same universe, then re-compute until no collision detected.
         :args:
         - p_TP_nm (str): Optional
         :sets:
         - (dict): self.GC
         """
-        loc, dim, axes, rot, bnd = self.set_cluster_loc_and_size()
+        gc_loc, gc_dim, gc_axes, gc_rot, gc_bnd =\
+            self.set_cluster_loc_and_size()
+        gc_vol, gc_mass, gc_de, gc_dm, gc_bm =\
+            self.set_cluster_vol_and_mass(gc_axes)
 
-        pp(("loc, dim, axes, rot, bnd w/o collisions: ",
-            loc, dim, axes, rot, bnd))
+        pp(("GC stats: ",
+            gc_loc, gc_dim, gc_axes, gc_rot, gc_bnd,
+            gc_vol, gc_mass, gc_de, gc_dm, gc_bm))
 
+        self.GC[SM.ASTRO.TU] =\
+            (self.TU[SM.ASTRO.TU][0], SM.GEOM.CON)       # Container
+        self.GC[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"] =\
+            (gc_loc, f"{SM.GEOM.DIM} {SM.ASTRO.GLY}")    # Location
+        self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"] =\
+            (gc_dim, f"{SM.GEOM.XYZ} {SM.ASTRO.PC}")     # Shape dimensions
+        self.GC[f"{SM.GEOM.EL} {SM.GEOM.SAX}"] =\
+            (gc_axes, f"{SM.GEOM.ABC} {SM.ASTRO.PC}")    # Shape semi-axes
+        # Shape rotation
+        self.GC[f"{SM.GEOM.EL} {SM.GEOM.ROT}"] =\
+            (gc_rot, f"({SM.GEOM.DIR}, {SM.GEOM.ANG}), {SM.GEOM.PYR}")
+        self.GC[f"{SM.GEOM.EL} {SM.GEOM.BND}"] =\
+            (gc_bnd, f"{SM.GEOM.XYZD} {SM.ASTRO.GLY}")   # Shape bound rect
+        self.GC[f"{SM.ASTRO.GC} {SM.GEOM.VL}"] =\
+            (gc_vol, SM.ASTRO.PC3)                       # Volume
+        self.GC[SM.GEOM.MS] = (gc_mass, SM.GEOM.KG)      # Total Mass kg
+        self.GC[SM.ASTRO.DE] = (gc_de, SM.GEOM.KG)       # Dark Energy kg
+        self.GC[SM.ASTRO.DM] = (gc_dm, SM.GEOM.KG)       # Dark Matter kg
+        self.GC[SM.ASTRO.BM] = (gc_bm, SM.GEOM.KG)       # Baryonic Matter kg
         """
-        gc_vol, gc_de, gc_dm, gc_bm =\
-            self.set_cluster_vol_and_mass(a, b, c, p_TU)
-        # Add bounding rectangle to data object
-        GC[SM.M.TU] = (univ_nm, SM.M.CON)            # Container
-        GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"] =\
-            ((lx, ly, lz), SM.M.GPC)                 # Location
-        GC[f"{SM.M.EL} {SM.M.SHA}"] =\
-            ((((px, py, pz), SM.M.DIM),
-                ((a, b, c), SM.M.AX)), SM.M.PC)         # Shape/size
-        GC[f"{SM.M.GC} {SM.M.VL}"] =\
-            (gc_vol, SM.M.GPC3)                      # Volume
-        GC[SM.M.DE] = (gc_de, SM.M.KG)               # Dark Energy kg
-        GC[SM.M.DM] = (gc_dm, SM.M.KG)               # Dark Matter kg
-        GC[SM.M.BM] = (gc_bm, SM.M.KG)               # Baryonic Matter kg
         GC = self.generate_timing_pulsar(GC, p_TP_nm)
         DB.execute_insert(
             'INSERT_CLUSTER_PROC',
