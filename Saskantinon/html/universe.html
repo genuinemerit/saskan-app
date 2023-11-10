@@ -40,6 +40,25 @@
 
 <h1>UniverseModel</h1>
 
+<h2>Design Notes</h2>
+<ul>
+        <li>Use standard estimates for known universe,  with tweaks for variety.</li>
+        <li>Pretend the Universe is a sphere, or a cartesian grid.</li>
+        <li>N.B.: random.uniform() alway returns a float.</li>
+        <li>Set radius in gigaparsecs</li>
+        <li>Calculate volume in cubic gigaparsecs -> cubic gigalight years</li>
+        <li>The estimated volume of the known universe is roughly 415000 GLY3.</li>
+        So if I come up with a vol number somewhere in that ballpark, good.
+        <li>The estimated total mass in kg is roughly 1.5e53 (1.5 × 10^53) kg</li>
+        To come up with a mass in kg proportional to the volume, I'll find
+        the difference between my randomized volume and the 'standard' volume
+        and then apply that percentage to the 'standard' mass.
+        Standard pcts are then applied to get dark energy, dark matter and
+        baryonic matter.</li>
+        <li>See SaskanMath() class C for astronomical unit conversions.
+        SM.ASTRO.GPC_TO_GLY = gigaparsecs to gigalight years = 3.26156</li>
+</ul>
+
 <h2>Mass and Matter</h2>
     For the purposes of the game, we consider mass and matter to
     be the same thing. Antimatter equals matter at the big bang, but
@@ -62,6 +81,36 @@
     around this value.
 
 <h1>Galactic Cluster Model</h1>
+
+<h2>Design Notes</h2>
+- Set vector of galactic cluster center relative to TU center
+in gigalightyears. The cluster can be located anywhere in
+the universe, but should not reach beyond the 'edge' of
+the (known) universe. For the purpose of this measurement, we
+consider center of cluster as a Cartesian vector from center
+of TU. To prevent it from reaching beyond the edge, we, limit
+the vector to a length of 99% the radius of the universe. Since
+the "widest" cluster is 10 parsecs, that is still much less than
+1% of the radius of the universe.
+
+- Compute a 3D ellipsoid size and shape for the galactic cluster,
+centered around its location and measured in parsecs.
+- A parsec is 3.2616 light years.
+- A gigalightyear is 1 billion light years.
+- So, even though galactic clusters are quite large, varying from
+to 1 to 10 million parsecs, they are still tiny compared to the
+total size of the universe. As such, we should expect that collisions
+will be rare, but could still happen.
+- So far, we have assumed that the cluster "disk" (ellipsoid) is flat
+with respect to the universe's x/y grid. You could think of it like
+our view of the cluster is always from "top down".
+We have not yet considered pitch, yaw or roll, but we should.
+- However, before "angling" the cluster, we can do the collision
+detection at a very gross level, just by comparing the bounding
+rectangles of the clusters. If they don't overlap, then we can
+proceed. If they do overlap, then we can re-compute the location
+and size.
+- Verify that the cluster does not overlap with another cluster.
 
 
 <h2>Location of Cluster</h2>
@@ -90,6 +139,83 @@
         Specific values of a, b, and c will determine exact shape and degree
         of flattening of the ellipsoid.  A typical value is for a, b and c
         to be 1/2 the value of x, y, and z respectively.
+
+<h2>Collision Detection Between Clusters</h2>
+
+- Define the bounding rectangle as a cube using the x dim. This will
+give us the largest gross bounding rectangle. If the cluster is later
+rotated, we have still accounted for the space it might take up.
+- Convert parsecs to gigalightyears = parsecs / 3.086e19 before
+computing. Size of clusters will be tiny compared to size of universe
+but it is still theoretically possible to have a collision.
+- The variation from center of cluster to edge of cluster is very small
+delta compared to the center (x,y,z) coordinate. The significant
+digits are in the 14th and 15th decimal places. For example, where
+the x dim of the center is -39.1503867458995, the radius (delta)
+on the order of 8.009487794162859e-14; so the left, right edges of
+the bounding rectangle on x axis would be (-39.15038674589958,
+-39.150386745899425). The difference between the two is 1.53e-13.
+- For display purposes, might want to convert from GLY to MLY (x 1000)
+or even lightyears (x 1_000_000_000_000_000, that is, x 10e14)?
+Nah. That actually obscures the problem.
+
+
+<h2>Rotation of 3D objects</h2>
+
+Rolling, rotating, and reorienting a 3D ellipsoid (or any 3D object) involves a concept similar to the aviation terms of "pitch," "yaw," and "roll," but the terminology may vary in different contexts. Here's how you can express these rotations and what units are commonly used:
+
+1. **Pitch**: Pitch rotation typically refers to the rotation around the horizontal (X) axis. In aviation, this is commonly associated with tilting the nose of an aircraft up or down. The unit of measure can be degrees or radians. Both degrees and radians are widely used, and the choice often depends on the specific application or library you're using. In Python, libraries like NumPy and most 3D libraries support rotations in both degrees and radians.
+
+2. **Yaw**: Yaw rotation involves the rotation around the vertical (Y) axis. This is like turning left or right. Again, degrees or radians can be used for measurement.
+
+3. **Roll**: Roll rotation is around the depth (Z) axis. This is similar to tilting to the side. Degrees or radians can be used here as well.
+
+The choice of degrees or radians depends on the library or framework you're using and your personal preference. Radians are often preferred in mathematical and computational contexts due to their mathematical properties, but degrees are more commonly used in everyday discussions.
+
+In terms of expressing these rotations in 3D, you typically use rotation matrices or quaternions to represent the orientation of the ellipsoid after rotation. The specific mathematics and notation may vary depending on the libraries you're using. For example, in Python, libraries like NumPy provide functions for performing 3D rotations.
+
+Here's a general idea of how you might perform these rotations:
+
+- Pitch (X-axis rotation):
+  ```python
+  from scipy.spatial.transform import Rotation as R
+  r = R.from_euler('x', angle, degrees=True)  # Rotate by 'angle' degrees around X-axis
+  new_orientation = r.apply(original_orientation)
+  ```
+
+- Yaw (Y-axis rotation):
+  ```python
+  r = R.from_euler('y', angle, degrees=True)  # Rotate by 'angle' degrees around Y-axis
+  new_orientation = r.apply(original_orientation)
+  ```
+
+- Roll (Z-axis rotation):
+  ```python
+  r = R.from_euler('z', angle, degrees=True)  # Rotate by 'angle' degrees around Z-axis
+  new_orientation = r.apply(original_orientation)
+  ```
+
+The key is to use a library that provides these rotation functions and to be consistent with your choice of degrees or radians for the rotation angles.
+
+
+The direction of rotation, whether it's "up" or "down," "left" or "right," is expressed through the sign (positive or negative) of the rotation angle. The convention for specifying the direction of rotation around an axis, such as pitch, yaw, or roll, is as follows:
+
+1. Positive rotation: This corresponds to rotating in the "counter-clockwise" or "anticlockwise" direction when viewing the rotation axis from the positive end. For example, if you're looking along the positive X-axis and you want to pitch "up," you'd use a positive angle.
+
+2. Negative rotation: This corresponds to rotating in the "clockwise" direction when viewing the rotation axis from the positive end. If you want to pitch "down," you'd use a negative angle.
+
+The choice of the sign (positive or negative) depends on your coordinate system and the specific library or mathematical convention you're following. In many standard 3D libraries and systems, the positive direction for pitch, yaw, and roll follows the "right-hand rule," which is a widely accepted convention in mathematics and physics.
+
+- In the right-hand rule, when you point your right thumb in the positive direction of the rotation axis (e.g., the X-axis for pitch), the fingers of your right hand curl in the positive (counter-clockwise) direction of rotation.
+
+- For pitch, positive rotation tilts "up" when looking along the positive X-axis (right thumb points in the direction of positive X-axis).
+
+- For yaw, positive rotation turns to the "right" when looking along the positive Y-axis (right thumb points in the direction of positive Y-axis).
+
+- For roll, positive rotation tilts to the "right" when looking along the positive Z-axis (right thumb points in the direction of positive Z-axis).
+
+It's essential to maintain consistency in the sign of rotation angles to correctly specify the desired direction of rotation in your specific system or library.
+
 
 <h2>Volume of Cluster</h2>
         The volume of an ellipsoid is given by:
