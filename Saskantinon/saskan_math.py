@@ -343,10 +343,10 @@ class SaskanMath(object):
         SMS = "solar mass"
         # objects, astronomical
         BH = "black hole"
-        GG = "galaxy"
         GB = "galactic bulge"
         GC = "galactic cluster"
         GH = "galactic halo"
+        GX = "galaxy"
         IG = "interstellar matter"
         SC = "star cluster"
         TP = "timing pulsar"            # saskan

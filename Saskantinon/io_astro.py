@@ -263,9 +263,8 @@ class UniverseModel:
                     pickle.loads(db_gc['cluster_object'][x])
         w = (p_dim[0] * SM.ASTRO.PC_TO_GLY) / 2  # width in gigalightyears
         bnd = list()
-        bnd.append((p_loc[0] - w, p_loc[0] + w))    # Left, Right
-        bnd.append((p_loc[1] - w, p_loc[1] + w))    # Top, Bottom
-        bnd.append((p_loc[2] - w, p_loc[2] + w))    # Front, Back
+        for d in range(0, 3):
+            bnd.append((p_loc[d] - w, p_loc[d] + w))
         collision = False
         for gc_nm, c in gc_in_tu.items():
             # Location will be useful for visualization
@@ -482,41 +481,21 @@ class UniverseModel:
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
         for x, db_tu_nm in enumerate(db_gc['univ_name_fk']):
             if db_tu_nm == tu_nm:
-
-                print(f"Loading object for cluster {db_gc['cluster_name'][x]}")
-
                 c = pickle.loads(db_gc['cluster_object'][x])
                 gc_m['ms'] += c[SM.GEOM.MS][0]
                 gc_m['de'] += c[SM.ASTRO.DE][0]
                 gc_m['dm'] += c[SM.ASTRO.DM][0]
                 gc_m['bm'] += c[SM.ASTRO.BM][0]
-
-                pp((gc_m))
-
         self.XU = {SM.ASTRO.XU: (xu_nm, SM.GEOM.NM)}
         self.XU[SM.GEOM.CON] = (tu_nm, SM.ASTRO.TU)
         self.XU[SM.GEOM.MS] =\
             ((self.TU[SM.GEOM.MS][0] - gc_m['ms']), SM.GEOM.KG)
-
-        print(f"self.TU[SM.GEOM.MS][0]: {self.TU[SM.GEOM.MS][0]}")
-        print(f"gc_m['ms']: {gc_m['ms']}")
-        print(f"self.XU[SM.GEOM.MS]: {self.XU[SM.GEOM.MS][0]}")
-
         self.XU[SM.ASTRO.DE] =\
             ((self.TU[SM.ASTRO.DE][0] - gc_m['de']), SM.GEOM.KG)
-
-        print(f"self.XU[SM.ASTRO.DE]: {self.XU[SM.ASTRO.DE][0]}")
-
         self.XU[SM.ASTRO.DM] =\
             ((self.TU[SM.ASTRO.DM][0] - gc_m['dm']), SM.GEOM.KG)
-
-        print(f"self.XU[SM.ASTRO.DM]: {self.XU[SM.ASTRO.DM][0]}")
-
         self.XU[SM.ASTRO.BM] =\
             ((self.TU[SM.ASTRO.BM][0] - gc_m['bm']), SM.GEOM.KG)
-
-        print(f"self.XU[SM.ASTRO.BM]: {self.XU[SM.ASTRO.BM][0]}")
-
         if is_new_TU:
             DB.execute_insert(
                 'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(self.XU)))
@@ -540,95 +519,165 @@ class GalaxyModel:
     def __init__(self,
                  p_TU_nm: str,
                  p_GC_nm: str,
-                 p_galaxy_name: str = None,
-                 p_galaxy_sz: str = "M"):
-        """Initialize class for a Game Galaxy.
+                 p_GX_nm: str = None,
+                 p_GX_sz: str = "M"):
+        """Initialize class for a Game Galaxy (GX).
         If univ name or cluster name are not found on DB, stop.
         :args:
-        - p_TU_nm (str): Name of universe to put GC in
-        - p_GC_nm (str): Name of cluster to put GC in
-        - p_galaxy_name (str) Optional.  If provided, load existing galaxy.
-            Otherwise, generate new gamaing galaxy.
-        - p_galazy_size (str) Default = 'M'. Must be S, M or L.
+        - p_TU_nm (str): Name of universe to put GX in
+        - p_GC_nm (str): Name of cluster to put GX in
+        - p_GX_nm (str) Optional.  If provided, load existing galaxy.
+            Otherwise, generate new Galaxy.
+        - p_GX_sz (str) Default = 'M'. Must be S, M or L.
         """
-        TU_found, self.GC =\
-            self.get_univ_and_galaxy(p_TU_nm, p_GC_nm)
-        if TU_found and self.GC is not None:
-            new_galaxy, self.GG =\
-                self.get_galaxy_name(p_GC_nm, p_galaxy_name)
-        if new_galaxy:
-            self.GG = self.generate_new_galaxy(p_GC_nm, p_galaxy_sz)
-        pp((self.GG))
+        self.TU = None
+        self.GC = None
+        self.XU = None
+        self.GX = None
+        self.get_univ_and_cluster(p_TU_nm, p_GC_nm)
+        if self.TU is not None and self.GC is not None:
+            self.get_galaxy_name(p_GX_nm)
+            if len(self.GX) == 1:
+                self.generate_new_galaxy(p_GX_sz)
 
-    def get_univ_and_galaxy(self,
-                            p_TU_nm: str,
-                            p_GC_nm: str) -> tuple:
-        """Retrieve galaxy, cluster and external universe objects from DB.
+        pp(("self.GX", self.GX))
+
+    @classmethod
+    def get_new_GX_nm(cls):
+        a1 = random.choice(["Brilliant", "Lustrous", "Twinkling",
+                            "Silvery", "Argent", "Glistening"])
+        a2 = random.choice(["Way", "Trail", "Cloud",
+                            "Wave", "Skyway"])
+        a3 = random.choice(["Galaxy", "Cosmos", "Nebula",
+                            "Megacosm", "Space"])
+        gx_nm = f"{a1} {a2} {a3}"
+        return gx_nm
+
+    def get_univ_and_cluster(self,
+                             p_TU_nm: str,
+                             p_GC_nm: str):
+        """Retrieve galaxy, cluster and XU objects from DB.
         :args:
-        - p_TU_nm (str): Name of universe to put GC in
-        - p_GC_nm (str): Name of cluster to put GC in
-        :returns:
-        - (bool, dict): (flag indicating TU found or not, GC data)
+        - p_TU_nm (str): Name of universe to put GX in
+        - p_GC_nm (str): Name of cluster to put GX in
+        :sets:
+        - (dict): self.TU (if found)
+        - (dict): self.GC (if found)
+        - (dict): self.XU (if found)
         """
-        tu_found = False
-        GC = None
-        db = DB.execute_select('SELECT_ALL_UNIVS')
-        for x, nm in enumerate(db['univ_name']):
-            if nm == p_TU_nm:
-                tu_found = True
+        db_tu = DB.execute_select('SELECT_ALL_UNIVS')
+        for x, db_tu_nm in enumerate(db_tu['univ_name']):
+            if db_tu_nm == p_TU_nm:
+                self.TU = pickle.loads(db_tu['univ_object'][x])
+                db_xu = DB.execute_select('SELECT_ALL_XUS')
+                for x, db_tu_nm in enumerate(db_xu['univ_name_fk']):
+                    if db_tu_nm == p_TU_nm:
+                        self.XU = pickle.loads(db_xu['xu_object'][x])
+                        break
                 break
-        db = DB.execute_select('SELECT_ALL_CLUSTERS')
-        for x, nm in enumerate(db['cluster_name']):
-            if nm == p_GC_nm:
-                GC = pickle.loads(db['cluster_object'][x])
+        db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
+        for x, db_gc_nm in enumerate(db_gc['cluster_name']):
+            if db_gc_nm == p_GC_nm:
+                self.GC = pickle.loads(db_gc['cluster_object'][x])
                 break
-        return(tu_found, GC)
 
     def get_galaxy_name(self,
-                        p_GC_nm: str,
-                        p_galaxy_name: str = None) -> tuple:
+                        p_GX_nm: str = None):
         """Either retrieve existing Game Galaxy object for specified name
         and cluster, or assign a name to a new Galaxy object.
         :args:
-        - p_cluster_nm (str) Name of the containing Galactic Cluster.
         - p_galaxy_nm (str) Optional. Name of the Game Galaxy.
-        :returns:
-        - (bool, dict): (Flag indicating new galaxy or not,
-                         Data about the Game Galaxy)
+        :sets: (dict) self.GX
         """
-        GG = dict()
-        new_galaxy = True
-        if p_galaxy_name is not None:
-            db = DB.execute_select('SELECT_ALL_GALAXIES')
-            for x, nm in enumerate(db['galaxy_name']):
-                if nm == p_galaxy_name\
-                and db['cluster_name'][x] == p_GC_nm:
-                    new_galaxy = False
-                    GG = db['galaxy_object'][x]
-                    break
-            if new_galaxy:
-                GG[SM.M.GG] = (p_galaxy_name, SM.M.NM)
+        if p_GX_nm is None:
+            self.GX = {SM.ASTRO.GX: (self.get_new_GX_nm(), SM.GEOM.NM)}
         else:
-            a1 = random.choice(["Brilliant", "Lustrous", "Twinkling",
-                   "Silvery", "Argent", "Glistening"])
-            a2 = random.choice(["Way", "Trail", "Cloud",
-                   "Wave", "Skyway"])
-            n =  random.choice(["Galaxy", "Cosmos", "Nebula",
-                   "Megacosm", "Space"])
-            GG[SM.M.GG] = (f"{a1} {a2} {n}", SM.M.NM)
-        return new_galaxy, GG
+            db_gx = DB.execute_select('SELECT_ALL_GALAXIES')
+            for x, db_gx_nm in enumerate(db_gx['galaxy_name']):
+                if db_gx_nm == p_GX_nm and\
+                  db_gx['cluster_name_fk'][x] == self.GC[SM.ASTRO.GC][0]:
+                    self.GX = pickle.loads(db_gx['galaxy_object'][x])
+                    break
+            if self.GX is None:
+                self.GX = {SM.ASTRO.GX: (p_GX_nm, SM.GEOM.NM)}
 
-    def set_galaxy_dims(self,
-                        p_gg_sz: str) -> tuple:
-        """Set basic dimensions for galaxy: location, diameter of stars,
-          total mass, black hole mass, halo radius, and thickness of stars.
-          Compute location relative to center of GC.
-          No restrictions (yet) on how close or how far from GC center.
-          No attempt to modify angle of the galaxy (roll, yaw, etc.). For now,
-          all galaxies are assumed to be "flat" with respect to the galactic
-          cluster; and all clusters lie on parallel planes.
+    def set_galaxy_loc_and_halo(self,
+                                p_GX_sz) -> tuple:
+        """Set x, y, z loc as offset from center containing cluster in KPC.
+        - location (center of GX relative to center of GC). Keeping in mind
+            that the GC is an ellipsoid, we can't just use radius of GC
+            like we did when locating a GC within TU.
         :args:
-        - p_gg_sz (str): 'S', 'M' or 'L'
+        - p_GX_sz (str): Size of galaxy. Must be S, M or L.
+        :returns:
+        - (vector, float):  (location xyz relative to center of cluster in KPC,
+                             radius of galactic halo in PC)
+        """
+        gc_dims = self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"][0]         # parsecs
+        gx_loc = list()
+        for d in range(0, 3):
+            gx_loc.append(
+                random.uniform(-((gc_dims[d] * SM.ASTRO.PC_TO_KPC) / 2),
+                                (gc_dims[d] * SM.ASTRO.PC_TO_KPC) / 2))  # kpc
+        # Ranges for galaxy halo radius based on galaxy size:
+        h_range = {'S': random.uniform(200, 451),
+                   'M': random.uniform(450, 851),
+                   'L': random.uniform(850, 1000)}
+        gx_halo_r = h_range[p_GX_sz]                                # parsecs
+        return (gx_loc, gx_halo_r)
+
+    def detect_galaxy_collision(self,
+                                p_gx_loc: tuple,
+                                p_gx_halo_r: float) -> tuple:
+        """Determine if new Galaxy will collide with any existing Galaxies
+        in the selected Galactic Cluster. Compute roughly using a bounding
+        rectangle around the galaxy halo.
+        :args:
+        - p_gx_loc (tuple): (x, y, z) location of galaxy center relative to
+                            center of Galactic Cluster in kiloparsecs
+        - p_gx_halo_r (float): Radius of Galaxy Halo in parsecs
+        :returns:
+        - (bool, tuple) (True if collision detected, else False;
+                         (x, y, z) galaxy halo bounding rectangle in kpc)
+        """
+        gc_nm = self.GC[SM.ASTRO.GC][0]
+        gx_in_gc = dict()
+        db_gx = DB.execute_select('SELECT_ALL_GALAXIES')
+        for x, db_gc_nm in enumerate(db_gx['cluster_name_fk']):
+            if db_gc_nm == gc_nm:
+                gx_in_gc[db_gx['galaxy_name'][x]] =\
+                    pickle.loads(db_gx['galaxy_object'][x])
+        bnd = list()
+        r = p_gx_halo_r * SM.ASTRO.PC_TO_KPC
+        for d in range(0, 3):
+            bnd.append(((p_gx_loc[d] - r), (p_gx_loc[d] + r)))
+        collision = False
+        # Compare to other galaxies:
+        for ogx_nm, ogx in gx_in_gc.items():
+            # Location will be useful for visualization
+            # ogx_loc = ogx[f"{SM.ASTRO.GX} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
+            o_bnd = ogx[f"{SM.ASTRO.GH} {SM.GEOM.BND}"][0]
+            if not (bnd[0][1] < o_bnd[0][0] or
+                    bnd[0][0] > o_bnd[0][1] or
+                    bnd[1][1] < o_bnd[1][0] or
+                    bnd[1][0] > o_bnd[1][1] or
+                    bnd[2][1] < o_bnd[2][0] or
+                    bnd[2][0] > o_bnd[2][1]):
+                collision = True
+                break
+        return (collision, bnd)
+
+    def set_galaxy_dims(self) -> tuple:
+        """Set dimensions for galaxy:
+        - location (center of GX relative to center of GC), keeping in mind
+            that the GC is an ellipsoid, so we can't just use radius of GC
+            like we did when locating a GC within TU.
+        - diameter (x dim) of star cluster within GX,
+        - total mass,
+        - black hole mass,
+        - halo radius,
+        - thickness (z dim) of star cluster.
+        - pitch, roll, yaw of galaxy relative to GC
         :returns:
         - (xyz vector; float X 5): (location relative to center of galactic
                 cluster;  x-dim of stars structure, total mass of galaxy,
@@ -671,64 +720,6 @@ class GalaxyModel:
         stars_z = dims[p_gg_sz]['diam'] * (random.randrange(8, 12) / 100)
         return (gg_loc, halo_r, dims[p_gg_sz]['diam'], stars_z,
                 dims[p_gg_sz]['mass'], bhole_mass)
-
-    def detect_g_collision(self,
-                           p_GC_nm: str,
-                           p_gg_loc: tuple,
-                           p_halo_r: float) -> bool:
-        """Determine if new Galaxy will collide with any existing Galaxies
-        within the current Galactic Cluster. Compute roughly using a bounding
-        rectangle around the galaxy halo.
-        :args:
-        - p_GC_nm (str): Name of current Galactic Cluster
-        - p_gg_loc (tuple): (x, y, z) location of galaxy center relative to
-                            center of Galactic Cluster
-        - p_halo_r (float): Radius of Galaxy
-        :returns:
-        - (bool) True if collision detected, else False
-        """
-        collision_detected = False
-        x = 0
-        y = 1
-        z = 2
-        gc_loc = self.GC[f"{SM.M.GC} {SM.M.LOC} {SM.M.VE}"][0]
-
-        # Define bounding rectangle for new galaxy
-        min_x = round(p_gg_loc[x] - p_halo_r)
-        max_x = round(p_gg_loc[x] + p_halo_r)
-        min_y = round(p_gg_loc[y] - p_halo_r)
-        max_y = round(p_gg_loc[y] + p_halo_r)
-        min_z = round(p_gg_loc[z] - p_halo_r)
-        max_z = round(p_gg_loc[z] + p_halo_r)
-        # Find other galaxies in cluster and compare
-        db_gg = DB.execute_select('SELECT_ALL_GALAXIES')
-        galaxy_bunch = dict()
-        for ix, db_c_nm in enumerate(db_gg['cluster_name_fk']):
-            if p_GC_nm == db_c_nm:
-                g_nm = db_gg['galaxy_name'][ix]
-                g = pickle.loads(db_gg['galaxy_object'][ix])
-                # Define bounding rect for existing galaxy
-                # TODO --
-                # Haha! So in this case, EVERYTHING was a collision...
-                #  exactly the opposite of what happened with the clusters.
-                # Need to review logic in both cases. Go slow. Look at one
-                #  case at a time. Examine the location vectors, the sizes,
-                #  and the bounding rectangles. It may be helpful to try to
-                #  do some simple visualizations, even if only at a 2D level.
-                r = g[f"{SM.M.GH} {SM.M.RD}"][0]
-                loc = g[f"{SM.M.GG} {SM.M.LOC}"][0]
-                g_min_x = round(loc[x] - r)
-                g_max_x = round(loc[x] + r)
-                g_min_y = round(loc[y] - r)
-                g_max_y = round(loc[y] + r)
-                g_min_z = round(loc[z] - r)
-                g_max_z = round(loc[z] + r)
-                if not (max_x < g_min_x or min_x > g_max_x or
-                        max_y < g_min_y or min_y > g_max_y or
-                        max_z < g_min_z or min_z > g_max_z):
-                    collision_detected = True
-                    break
-        return collision_detected
 
     def set_galactic_bulge(self,
                            p_sz: str,
@@ -804,72 +795,69 @@ class GalaxyModel:
                 globular_m, g_vol_gpc3, g_mass_kg)
 
     def generate_new_galaxy(self,
-                            p_GC_nm: str,
-                            p_galaxy_sz: str = "M"):
+                            p_GX_sz: str = "M"):
         """
-        Populate a new Game Galaxy (GG) object. Parts include:
+        Populate a new Game Galaxy (GX) object. Parts include:
         - the star cluster within the galaxy, spiral or disk
         - the black hole at center of galaxy
         - the overall halo of the galaxy
         - the concentrated bulge of of stars around the black hole
         :args:
-        - p_GC_nm (str): Name of enclosing cluster.
-        - p_galaxy_sz (str) Optional. Size of Game Galaxy.
-                            Must be in ('S', 'M', 'L').
-                            Defaults to 'M'.
-        :returns:
-        - (dict): Data about the new galaxy
-
-        @TODO:
-        - Avoid collisions between galaxies inside the galactic cluster
-        - (Maybe?) compute galactic rotation within the galactic cluster
-        - Simple visualizations
+        - p_GX_sz (str) Optional. Size of Game Galaxy.
+                            Must be in ('S', 'M', 'L'). Default: 'M'.
+        :writes:
+        - (DB) insert row on SASKAN_DB.galaxies table
+        :sets:
+        - (dict): self.GX
         """
-        GG = self.GG
-        g_sz = p_galaxy_sz.upper() if p_galaxy_sz in ('S', 'M', 'L') else 'M'
-
-        galaxy_collision = True
-        while galaxy_collision:
-            g_loc, halo_r, stars_x, stars_z, total_m, bhole_m =\
-                self.set_galaxy_dims(g_sz)
-            galaxy_collision = self.detect_g_collision(p_GC_nm,
-                                                       g_loc, halo_r)
-            if galaxy_collision:
-                print("Collision detected. Recomputing galaxy...")
-            else:
-                print("No collision detected. Proceeding with new galaxy...")
-
+        g_sz = p_GX_sz.upper() if p_GX_sz in ('S', 'M', 'L') else 'M'
+        collision = True
+        while collision:
+            gx_loc, gx_halo_r = self.set_galaxy_loc_and_halo(p_GX_sz)
+            collision, gx_bnd = self.detect_galaxy_collision(gx_loc, gx_halo_r)
+        """
         bulge_shape, bulge_m, b_x, b_y, b_z =\
             self.set_galactic_bulge(g_sz, total_m, bhole_m, stars_x, stars_z)
 
         stars_shape, stars_y, stars_m, globs_m, g_vol, g_mass =\
             self.set_galactic_matter_and_shape(total_m, bhole_m, bulge_m,
-                                            stars_x, halo_r)
+                                               stars_x, halo_r)
+        """
 
-        self.GG[SM.M.GC] = (p_GC_nm, SM.M.CON)
-        self.GG[f"{SM.M.GG} {SM.M.REL} {SM.M.SZ}"] = (g_sz, SM.M.REL)
-        self.GG[f"{SM.M.GG} {SM.M.VL}"] = (g_vol, SM.M.GPC3)
-        self.GG[f"{SM.M.GG} {SM.M.BM}"] = (g_mass, SM.M.KG)
-        self.GG[f"{SM.M.GH} {SM.M.RD}"] = (halo_r, SM.M.LY)
-        self.GG[f"{SM.M.BH} {SM.M.MS}"] = (bhole_m, SM.M.SMS)
-        self.GG[f"{SM.M.GB} {SM.M.SHP}"] = (bulge_shape, SM.M.SHP)
-        self.GG[f"{SM.M.GB} {SM.M.MS}"] = (bulge_m, SM.M.SMS)
-        self.GG[f"{SM.M.GG} {SM.M.LOC}"] = (g_loc, SM.M.DIM)
-        self.GG[f"{SM.M.GB} {SM.M.DIM}"] =\
+        self.GX[SM.ASTRO.GC] =\
+            (self.GC[SM.ASTRO.GC][0], SM.GEOM.CON)                 # container
+        self.GX[f"{SM.ASTRO.GX} {SM.GEOM.SZ}"] =\
+            (g_sz, SM.GEOM.REL)                        # relative size
+        self.GX[f"{SM.ASTRO.GX} {SM.GEOG.LOC} {SM.GEOM.VE}"] =\
+            (gx_loc, f"{SM.GEOM.DIM} {SM.GEOM.XYZ} {SM.ASTRO.KPC}")  # loc kpc
+        self.GX[f"{SM.ASTRO.GH} {SM.GEOM.RD}"] =\
+            (gx_halo_r, SM.ASTRO.PC)                          # halo radius pc
+        self.GX[f"{SM.ASTRO.GH} {SM.GEOM.BND}"] =\
+            (gx_bnd, f"{SM.GEOM.DIM} {SM.GEOM.XYZ} {SM.ASTRO.KPC}")  # bnds kpc
+
+        """
+        self.GX[f"{SM.M.GG} {SM.M.VL}"] = (g_vol, SM.M.GPC3)
+        self.GX[f"{SM.M.GG} {SM.M.BM}"] = (g_mass, SM.M.KG)
+        self.GX[f"{SM.M.BH} {SM.M.MS}"] = (bhole_m, SM.M.SMS)
+        self.GX[f"{SM.M.GB} {SM.M.SHP}"] = (bulge_shape, SM.M.SHP)
+        self.GX[f"{SM.M.GB} {SM.M.MS}"] = (bulge_m, SM.M.SMS)
+        self.GX[f"{SM.M.GG} {SM.M.LOC}"] = (g_loc, SM.M.DIM)
+        self.GX[f"{SM.M.GB} {SM.M.DIM}"] =\
             ((b_x, SM.M.LY), (b_y, SM.M.LY), (b_z, SM.M.LY),
              SM.M.DIM)
-        self.GG[f"{SM.M.SC} {SM.M.SHP}"] = (stars_shape, SM.M.SHP)
-        self.GG[f"{SM.M.SC} {SM.M.DIM}"] =\
+        self.GX[f"{SM.M.SC} {SM.M.SHP}"] = (stars_shape, SM.M.SHP)
+        self.GX[f"{SM.M.SC} {SM.M.DIM}"] =\
             ((stars_x, SM.M.LY), (stars_y, SM.M.LY), (stars_z, SM.M.LY),
              SM.M.DIM)
-        self.GG[f"{SM.M.SC} {SM.M.MS}"] = (stars_m, SM.M.SMS)
-        self.GG[f"{SM.M.IG} {SM.M.MS}"] = (globs_m, SM.M.SMS)
+        self.GX[f"{SM.M.SC} {SM.M.MS}"] = (stars_m, SM.M.SMS)
+        self.GX[f"{SM.M.IG} {SM.M.MS}"] = (globs_m, SM.M.SMS)
         DB.execute_insert(
             'INSERT_GALAXY_PROC', (GG[SM.M.GG][0], p_GC_nm,
                                    pickle.dumps(GG)))
-        return self.GG
+        """
 
 # ==================== OLD CODE, DESIGN NOTES =================================
+
 
 class AstroIO(object):
     """Class for astronomical data and methods.
