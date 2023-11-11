@@ -1,3 +1,3 @@
 UPDATE xus
-SET univ_name_fk = ?, xu_object = ?
+SET xu_object = ?
 WHERE xu_name = ?;

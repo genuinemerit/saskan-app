@@ -83,11 +83,13 @@ class UniverseModel:
             If p_GC_nm already in use, then stop if universe already
             exists. If new universe, tweak name of cluster to be unique,
         - p_TP_nm (str) Optional. Name of Timing Pulsar.
+
+        @TODO:
+        - Verify computation of mass amounts. I think it has a bug.
+        - When generating a 2nd GC, I am getting a negative value remaining
+          in XU for dark energy.
+        - Add tracking of total mass in XU.
         """
-        self.TU = None
-        self.GC = None
-        self.TP = None
-        self.XU = None
         if p_boot_db:
             self.reboot_database()
         is_new_TU = self.set_universe_name(p_TU_nm)
@@ -96,11 +98,12 @@ class UniverseModel:
         is_new_GC = self.generate_cluster_name(is_new_TU, p_GC_nm)
         if is_new_GC:
             self.generate_cluster(p_TP_nm)
+        self.compute_external_universe(is_new_TU, is_new_GC)
         print(f"is_new_TU: {is_new_TU}")
         pp(('self.TU: ', self.TU))
         print(f"is_new_GC: {is_new_GC}")
         pp(('self.GC: ', self.GC))
-        # self.XU = self.compute_external_universe(is_new_TU, is_new_GC)
+        pp(('self.XU: ', self.XU))
 
     def reboot_database(self):
         """Delete all data. Create a fresh SASKAN_DB database.
@@ -174,6 +177,8 @@ class UniverseModel:
     def generate_universe(self):
         """Define data for a new Total Universe.
         :sets: (dict): self.TU
+        :writes:
+        - (DB) insert row on SASKAN_DB.univs table
         """
         radius_gly = random.uniform(45.824, 47.557)
         self.TU[SM.GEOM.RD] = (radius_gly, SM.ASTRO.GLY)      # Radius GPC
@@ -257,31 +262,11 @@ class UniverseModel:
         bnd.append((p_loc[0] - w, p_loc[0] + w))    # Left, Right
         bnd.append((p_loc[1] - w, p_loc[1] + w))    # Top, Bottom
         bnd.append((p_loc[2] - w, p_loc[2] + w))    # Front, Back
-
-        # Once we're saving multiple cluster, re-open this for debugging
-        # Try using seeding the randomizer with a fixed value
-        #  to force creation of collisions. If that doesn't work,
-        #  override randomization with fixed values.
-        # Looking reasonable so far. Since the locs are expressed
-        #  in relatively reasonable units, like 1 or 2 digits to left of
-        #  decimal point, might be able to do a visual check just using
-        #  the locations. The bounding rects are expressed in the same
-        #  terms, but the lengths of the edges can be very small... still
-        #  they are usually in the first two signigicant digits. So maybe
-        #  if everything is multiplied by 100 and rounded to nearest int,
-        #  we could get a useful visual check.
-        pp(("New cluster center location GLY: ", p_loc))
-        pp(("New cluster bounding rect: ", bnd))
-
         collision = False
         for gc_nm, c in gc_in_tu.items():
-            c_loc = c[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
+            # Location will be useful for visualization
+            # c_loc = c[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
             c_bnd = c[f"{SM.GEOM.EL} {SM.GEOM.BND}"][0]
-
-            print(f"Comparing to cluster {gc_nm}...")
-            pp(("Old cluster center location GLY: ", c_loc))
-            pp(("Old cluster bounding rect: ", c_bnd))
-
             if not (bnd[0][1] < c_bnd[0][0] or
                     bnd[0][0] > c_bnd[0][1] or
                     bnd[1][1] < c_bnd[1][0] or
@@ -398,6 +383,8 @@ class UniverseModel:
         - p_TP_nm (str): Optional
         :sets:
         - (dict): self.GC
+        :writes:
+        - (DB) insert row on SASKAN_DB.clusters table
         """
         gc_loc, gc_dim, gc_axes, gc_rot, gc_bnd =\
             self.set_cluster_loc_and_size()
@@ -462,51 +449,57 @@ class UniverseModel:
 
     def compute_external_universe(self,
                                   is_new_TU: bool,
-                                  is_new_GC: bool,
-                                  p_TU: dict) -> dict:
-        """Define the External Universe (XU) within the TU.
-        XU contains all the mass that is not in the GC.
+                                  is_new_GC: bool):
+        """Define the External Universe (XU) data within a TU.
+        XU contains all the mass that is not in the GC's.
         XU has to be recomputed whenever a new galactic cluster is added.
-        Add new XU record if it is a new universe, otherwise, update
+        Add a new XU record if it is a new universe, otherwise, update
           existing XU record associated with the current TU.
         :args:
-        - is_new_TU (bool):    Flag indicating if it is a new universe
+        - is_new_TU (bool): Flag indicating if it is a new universe
         - is_new_GC (bool): Flag indicating if it is a new cluster
-        - TU (dict) Data about the Total Universe.
-        :returns:
-        - XU (dict) Data about the External Universe (new or modified)
+        :sets:
+        - (dict) self.XU object
+        :writes:
+        - (DB) insert or update row on SASKAN_DB.xus table
         """
-        XU = dict()
-        de = 0.0
-        dm = 0.0
-        bm = 0.0
-        xu_nm = self.set_xu_name(is_new_TU, p_TU[SM.M.TU][0])
-        tu_nm = p_TU[SM.M.TU][0]
-        XU[SM.M.XU] = (xu_nm, SM.M.NM)
-        XU[SM.M.CON]: (tu_nm, SM.M.TU)
+        tu_nm = self.TU[SM.ASTRO.TU][0]
+        xu_nm = self.set_xu_name(is_new_TU, tu_nm)
+        gc_m = {"de": 0.0, "dm": 0.0, "bm": 0.0}
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
-        for gx, u_nm in enumerate(db_gc['univ_name_fk']):
-            if u_nm == tu_nm:
-                GC = pickle.loads(db_gc['cluster_object'][gx])
-                de += GC[SM.M.DE][0]
-                dm += GC[SM.M.DM][0]
-                bm += GC[SM.M.BM][0]
-        XU[SM.M.DE] = (((p_TU[SM.M.DE][0] * p_TU[SM.M.MS][0]) - de), SM.M.KG),
-        XU[SM.M.DM] = (((p_TU[SM.M.DM][0] * p_TU[SM.M.MS][0]) - dm), SM.M.KG),
-        XU[SM.M.BM] = (((p_TU[SM.M.BM][0] * p_TU[SM.M.MS][0]) - bm), SM.M.KG)
+        for x, db_tu_nm in enumerate(db_gc['univ_name_fk']):
+            if db_tu_nm == tu_nm:
+                c = pickle.loads(db_gc['cluster_object'][x])
+                gc_m['ms'] += c[SM.GEOM.MS][0]
+                gc_m['de'] += c[SM.ASTRO.DE][0]
+                gc_m['dm'] += c[SM.ASTRO.DM][0]
+                gc_m['bm'] += c[SM.ASTRO.BM][0]
+
+        self.XU = {SM.ASTRO.XU: (xu_nm, SM.GEOM.NM)}
+        self.XU[SM.GEOM.CON] = (tu_nm, SM.ASTRO.TU)
+        self.XU[SM.GEOM.MS] =\
+            ((self.TU[SM.GEOM.MS][0] - gc_m['ms']), SM.GEOM.KG)
+        self.XU[SM.ASTRO.DE] =\
+            ((self.TU[SM.ASTRO.DE][0] - gc_m['de']), SM.GEOM.KG)
+        self.XU[SM.ASTRO.DM] =\
+            ((self.TU[SM.ASTRO.DM][0] - gc_m['dm']), SM.GEOM.KG)
+        self.XU[SM.ASTRO.BM] =\
+            ((self.TU[SM.ASTRO.BM][0] - gc_m['bm']), SM.GEOM.KG)
         if is_new_TU:
-            print(f"New XU created: {xu_nm}")
             DB.execute_insert(
-                'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(XU)))
+                'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(self.XU)))
         elif is_new_GC:
-            print(f"Updated existing XU: {xu_nm}")
             DB.execute_insert(
-                'UPDATE_XU_PROC', (pickle.dumps(XU), xu_nm))
+                'UPDATE_XU_PROC', (pickle.dumps(self.XU), xu_nm))
         else:
-            print(f"No changes made to XU: {xu_nm}")
-        return XU
+            db_xu = DB.execute_select('SELECT_ALL_XUS')
+            for x, db_xu_nm in enumerate(db_xu['xu_name']):
+                if db_xu_nm == xu_nm:
+                    self.XU = pickle.loads(db_xu['xu_object'][x])
+                    break
 
 # ==================== GalaxyModel =================================
+
 
 class GalaxyModel:
     """Class for modeling the Game Galaxy (GG).
