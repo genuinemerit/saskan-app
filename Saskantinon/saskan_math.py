@@ -390,6 +390,8 @@ class SaskanMath(object):
         BMP = 0.043                 # baryonic matter percentage
         TUV = 415000             # total univ volume in cubic gigalight years
         TUK = 1.5e53             # total universe mass in kg
+        UNA = 13.787e9           # age of universe in Gavoran years (turns)
+        TUE = 73.3               # expansion rate of universe in km/s per Mpc
         # conversions -- all are multiplicative in the indicated direction
         # AA_TO_BB, so AA -> BB as AA * AA_TO_BB = BB
         AU_TO_KM = 1.495979e+8        # astronomical units -> km
@@ -413,6 +415,7 @@ class SaskanMath(object):
         LY_TO_PC = 0.30659817672196   # light years -> parsecs
         MPC_TO_GPC = 0.001            # megaparsecs -> gigaparsecs
         MPC_TO_KPC = 1000.0           # megaparsecs -> kiloparsecs
+        GLY_TO_PC = 3.262e6           # gigalight years -> parsecs
         PC_TO_GLY = 3.065603923973023e-07       # parsecs -> gigalight years
         PC_TO_KPC = 0.001             # parsecs -> kiloparsecs
         PC_TO_LY = 3.261598           # parsecs -> light years

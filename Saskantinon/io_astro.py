@@ -181,11 +181,15 @@ class UniverseModel:
         - (DB) insert row on SASKAN_DB.univs table
         """
         radius_gly = random.uniform(45.824, 47.557)
-        self.TU[SM.GEOM.RD] = (radius_gly, SM.ASTRO.GLY)      # Radius GPC
+        self.TU[SM.GEOM.RD] = (radius_gly, SM.ASTRO.GLY)       # Radius GPC
         volume_gly3 = (4/3) * math.pi * (radius_gly ** 3)
-        self.TU[SM.GEOM.VL] = (volume_gly3, SM.ASTRO.GLY3)    # Volume GLY3
-        self.TU[SM.ASTRO.ET] = (13.787e9, SM.ASTRO.GY)        # Age
-        self.TU[SM.ASTRO.UER] = (73.3, SM.ASTRO.KSM)          # Expansion rate
+        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.GLY3}"] =\
+            (volume_gly3, SM.ASTRO.GLY3)                       # Volume GLY3
+        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"] =\
+            (((volume_gly3 * SM.ASTRO.GLY_TO_PC) ** 3),
+             SM.ASTRO.PC3)                                     # Volume PC3
+        self.TU[SM.ASTRO.ET] = (SM.ASTRO.UNA, SM.ASTRO.GY)     # Age
+        self.TU[SM.ASTRO.UER] = (SM.ASTRO.TUE, SM.ASTRO.KSM)   # Expansion rate
         variance_pct = (volume_gly3 - SM.ASTRO.TUV) / SM.ASTRO.TUV
         mass_kg = (SM.ASTRO.TUK * variance_pct) + SM.ASTRO.TUK
         self.TU[SM.GEOM.MS] = (mass_kg, SM.GEOM.KG)           # Total matter kg
@@ -344,10 +348,11 @@ class UniverseModel:
                         GC dark energy, dark matter, baryonic matter in kg)
         """
         gc_vol = (4/3) * math.pi * p_axes[0] * p_axes[1] * p_axes[2]  # PC3
-        gc_mass_kg = self.TU[SM.GEOM.MS][0] * random.uniform(0.01, 0.05)
-        gc_de_kg = self.TU[SM.ASTRO.DE][0] * SM.ASTRO.DEP   # kg
-        gc_dm_kg = self.TU[SM.ASTRO.DM][0] * SM.ASTRO.DMP   # kg
-        gc_bm_kg = self.TU[SM.ASTRO.BM][0] * SM.ASTRO.BMP   # kg
+        gc_vol_pct = gc_vol / self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"][0]
+        gc_mass_kg = self.TU[SM.GEOM.MS][0] * gc_vol_pct
+        gc_de_kg = gc_mass_kg * SM.ASTRO.DEP   # kg
+        gc_dm_kg = gc_mass_kg * SM.ASTRO.DMP   # kg
+        gc_bm_kg = gc_mass_kg * SM.ASTRO.BMP   # kg
         return (gc_vol, gc_mass_kg, gc_de_kg, gc_dm_kg, gc_bm_kg)
 
     def generate_timing_pulsar(self,
@@ -455,6 +460,14 @@ class UniverseModel:
         XU has to be recomputed whenever a new galactic cluster is added.
         Add a new XU record if it is a new universe, otherwise, update
           existing XU record associated with the current TU.
+        The percentage of mass in any given Cluster is so miniscule as
+          compared to the total Universe, that it does not even register
+          up to 20 decimal places or so. It won't hurt to keep track of
+          the cumuluative mass of all the GC's in the TU, and the math
+          looks correct so far, but it may not have any meaning, or even
+          be detectable, unless there are a very large number of GC's.
+        May want to consider just dropping the XU object if it does not
+          serve any purpose in the game play.
         :args:
         - is_new_TU (bool): Flag indicating if it is a new universe
         - is_new_GC (bool): Flag indicating if it is a new cluster
@@ -465,26 +478,45 @@ class UniverseModel:
         """
         tu_nm = self.TU[SM.ASTRO.TU][0]
         xu_nm = self.set_xu_name(is_new_TU, tu_nm)
-        gc_m = {"de": 0.0, "dm": 0.0, "bm": 0.0}
+        gc_m = {"ms": 0.0, "de": 0.0, "dm": 0.0, "bm": 0.0}
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
         for x, db_tu_nm in enumerate(db_gc['univ_name_fk']):
             if db_tu_nm == tu_nm:
+
+                print(f"Loading object for cluster {db_gc['cluster_name'][x]}")
+
                 c = pickle.loads(db_gc['cluster_object'][x])
                 gc_m['ms'] += c[SM.GEOM.MS][0]
                 gc_m['de'] += c[SM.ASTRO.DE][0]
                 gc_m['dm'] += c[SM.ASTRO.DM][0]
                 gc_m['bm'] += c[SM.ASTRO.BM][0]
 
+                pp((gc_m))
+
         self.XU = {SM.ASTRO.XU: (xu_nm, SM.GEOM.NM)}
         self.XU[SM.GEOM.CON] = (tu_nm, SM.ASTRO.TU)
         self.XU[SM.GEOM.MS] =\
             ((self.TU[SM.GEOM.MS][0] - gc_m['ms']), SM.GEOM.KG)
+
+        print(f"self.TU[SM.GEOM.MS][0]: {self.TU[SM.GEOM.MS][0]}")
+        print(f"gc_m['ms']: {gc_m['ms']}")
+        print(f"self.XU[SM.GEOM.MS]: {self.XU[SM.GEOM.MS][0]}")
+
         self.XU[SM.ASTRO.DE] =\
             ((self.TU[SM.ASTRO.DE][0] - gc_m['de']), SM.GEOM.KG)
+
+        print(f"self.XU[SM.ASTRO.DE]: {self.XU[SM.ASTRO.DE][0]}")
+
         self.XU[SM.ASTRO.DM] =\
             ((self.TU[SM.ASTRO.DM][0] - gc_m['dm']), SM.GEOM.KG)
+
+        print(f"self.XU[SM.ASTRO.DM]: {self.XU[SM.ASTRO.DM][0]}")
+
         self.XU[SM.ASTRO.BM] =\
             ((self.TU[SM.ASTRO.BM][0] - gc_m['bm']), SM.GEOM.KG)
+
+        print(f"self.XU[SM.ASTRO.BM]: {self.XU[SM.ASTRO.BM][0]}")
+
         if is_new_TU:
             DB.execute_insert(
                 'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(self.XU)))
