@@ -183,7 +183,8 @@ class DataBase(object):
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-        self.cur.execute(SQL, p_values + (p_key_val,))
+        values = (p_values) + (p_key_val,)
+        self.cur.execute(SQL, values)
         self.db_conn.commit()
         self.disconnect_db()
 

@@ -65,9 +65,9 @@ class UniverseModel:
 
     def __init__(self,
                  p_boot_db: bool = False,
-                 p_TU_nm: str = None,  # type: ignore
-                 p_GC_nm: str = None,  # type: ignore
-                 p_TP_nm: str = None): # type: ignore
+                 p_TU_nm: str = '',
+                 p_GC_nm: str = '',
+                 p_TP_nm: str = ''):
         """Load or create TU, GC and TP. Create or modify XU.
             All data is saved to SASKAN_DB. There are distinct tables for the
             total universe (TU) and galactic cluster (GC) objects.
@@ -84,18 +84,7 @@ class UniverseModel:
             exists. If new universe, tweak name of cluster to be unique,
         - p_TP_nm (str) Optional. Name of Timing Pulsar.
         """
-        self.TU = {
-            SM.ASTRO.TU: [str(), SM.GEOM.NM],
-            SM.GEOM.RD:  [float(), SM.ASTRO.GLY],
-            f"{SM.GEOM.VL} {SM.ASTRO.GLY3}": [float(), SM.ASTRO.GLY3],
-            f"{SM.GEOM.VL} {SM.ASTRO.PC3}":  [float(), SM.ASTRO.PC3],
-            SM.ASTRO.ET: [float(), SM.ASTRO.GY],
-            SM.ASTRO.UER: [float(), SM.ASTRO.KSM],
-            SM.GEOM.MS: [float(), SM.GEOM.KG],
-            SM.ASTRO.DE: [float(), SM.GEOM.KG],
-            SM.ASTRO.DM: [float(), SM.GEOM.KG],
-            SM.ASTRO.BM: [float(), SM.GEOM.KG]
-        }
+        self.init_model_objects()
         if p_boot_db:
             self.reboot_database()
         is_new_TU = self.set_universe_name(p_TU_nm)
@@ -111,17 +100,43 @@ class UniverseModel:
         pp(('self.GC: ', self.GC))
         pp(('self.XU: ', self.XU))
 
-    def reboot_database(self):
-        """Delete all data. Create a fresh SASKAN_DB database.
-        """
-        DB.execute_dml('DROP_GALAXIES')
-        DB.execute_dml('DROP_CLUSTERS')
-        DB.execute_dml('DROP_XUS')
-        DB.execute_dml('DROP_UNIVS')
-        DB.execute_dml('CREATE_UNIVS')
-        DB.execute_dml('CREATE_GALAXIES')
-        DB.execute_dml('CREATE_CLUSTERS')
-        DB.execute_dml('CREATE_XUS')
+    def init_model_objects(self):
+        self.TU = {
+            SM.ASTRO.TU: [str(), SM.GEOM.NM],
+            SM.GEOM.RD:  [float(), SM.ASTRO.GLY],
+            f"{SM.GEOM.VL} {SM.ASTRO.GLY3}": [float(), SM.ASTRO.GLY3],
+            f"{SM.GEOM.VL} {SM.ASTRO.PC3}":  [float(), SM.ASTRO.PC3],
+            SM.ASTRO.ET: [float(), SM.ASTRO.GY],
+            SM.ASTRO.UER: [float(), SM.ASTRO.KSM],
+            SM.GEOM.MS: [float(), SM.GEOM.KG],
+            SM.ASTRO.DE: [float(), SM.GEOM.KG],
+            SM.ASTRO.DM: [float(), SM.GEOM.KG],
+            SM.ASTRO.BM: [float(), SM.GEOM.KG]
+        }
+        self.GC = {
+            SM.ASTRO.GC: [str(), SM.GEOM.NM],
+            SM.ASTRO.TP: [str(), SM.GEOM.NM],
+            f"{SM.ASTRO.TP} {SM.ASTRO.PR}": [float(), SM.ASTRO.PMS],
+            f"{SM.ASTRO.TP} {SM.GEOG.LOC}":
+                [list(), f"{SM.GEOM.XYZ} {SM.ASTRO.GLY}"],
+            SM.ASTRO.TU: [str(), SM.GEOM.CON],
+            f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}":
+                [list(), f"{SM.GEOM.DIM} {SM.ASTRO.GLY}"],
+            f"{SM.GEOM.EL} {SM.GEOM.DIM}":
+                [list(), f"{SM.GEOM.XYZ} {SM.ASTRO.PC}"],
+            f"{SM.GEOM.EL} {SM.GEOM.SAX}":
+                [list(), f"{SM.GEOM.ABC} {SM.ASTRO.PC}"],
+            f"{SM.GEOM.EL} {SM.GEOM.ROT}":
+                [list(), f"({SM.GEOM.DIR}, {SM.GEOM.ANG}), {SM.GEOM.PYR}"],
+            f"{SM.GEOM.EL} {SM.GEOM.BND}":
+                [list(), f"{SM.GEOM.XYZD} {SM.ASTRO.GLY}"],
+            f"{SM.ASTRO.GC} {SM.GEOM.VL}":
+                [float(), SM.ASTRO.PC3],
+            SM.GEOM.MS: [float(), SM.GEOM.KG],
+            SM.ASTRO.DE: [float(), SM.GEOM.KG],
+            SM.ASTRO.DM: [float(), SM.GEOM.KG],
+            SM.ASTRO.BM: [float(), SM.GEOM.KG]
+        }
 
     @classmethod
     def get_new_TU_nm(cls):
@@ -155,17 +170,29 @@ class UniverseModel:
         tp_nm = f"{a1} {a2} {n}"
         return tp_nm
 
+    def reboot_database(self):
+        """Delete all data. Create a fresh SASKAN_DB database.
+        """
+        DB.execute_dml('DROP_GALAXIES')
+        DB.execute_dml('DROP_CLUSTERS')
+        DB.execute_dml('DROP_XUS')
+        DB.execute_dml('DROP_UNIVS')
+        DB.execute_dml('CREATE_UNIVS')
+        DB.execute_dml('CREATE_GALAXIES')
+        DB.execute_dml('CREATE_CLUSTERS')
+        DB.execute_dml('CREATE_XUS')
+
     def set_universe_name(self,
-                          p_TU_nm: str = None) -> bool: # type: ignore
+                          p_TU_nm: str = '') -> bool:
         """If p_TU_nm already in use, then load data from DB;
         Otherwise use name provided or generate one at random.
-        :args: (str) Optional. Universe name or none.
+        :args: (str) Optional. Universe name or '' or None.
         :sets (dict): Initializes self.TU
-        :returns: (bool) new universe flag
+        :returns: (bool) is_new_universe flag
         """
         is_new_TU = True
         db_tu = DB.execute_select('SELECT_ALL_UNIVS')
-        if p_TU_nm is not None:
+        if p_TU_nm not in ('', None):
             tu_nm = p_TU_nm
             for x, u_nm in enumerate(db_tu['univ_name']):
                 if tu_nm == u_nm:
@@ -208,11 +235,11 @@ class UniverseModel:
 
     def generate_cluster_name(self,
                               p_is_new_TU: bool,
-                              p_GC_nm: str = None) -> bool: # type: ignore
+                              p_GC_nm: str = '') -> bool:
         """Generate a name for the Galactic Cluster.
         :args:
         - (bool) p_is_new_TU  determines if new univ was generated
-        - (str) Optional. Galactic Cluster name or none.
+        - (str) Optional. Galactic Cluster name or '' or None.
             If a name was provided, determine if it is already in use.
             If it is already in use and this is NOT a new universe, we're done,
                just pull in the data from DB.
@@ -226,17 +253,17 @@ class UniverseModel:
         """
         is_new_GC = True
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
-        if p_GC_nm is not None:
+        if p_GC_nm in ('', None):
             gc_nm = p_GC_nm
         else:
             gc_nm = self.get_new_GC_nm()
-        self.GC = {SM.ASTRO.GC: (gc_nm, SM.GEOM.NM)}
+        self.GC[SM.ASTRO.GC][0] = gc_nm
         if gc_nm in db_gc['cluster_name']:
             if p_is_new_TU:
                 # Cluster name already exists in another universe.
                 while gc_nm in db_gc['cluster_name']:
                     gc_nm += " " + str(round(random.uniform(1, 100)))
-                    self.GC[SM.ASTRO.GC] = (gc_nm, SM.GEOM.NM)
+                    self.GC[SM.ASTRO.GC][0] = gc_nm
             else:
                 # Cluster name already exists in this universe.
                 for x, db_gc_nm in enumerate(db_gc['cluster_name']):
@@ -247,16 +274,15 @@ class UniverseModel:
         return is_new_GC
 
     def detect_cluster_collision(self,
-                                 p_loc: tuple,
-                                 p_dim: tuple) -> tuple:
-        """Determine if newly defined cluster loc collides with an existing
-        cluster loc in same universe. Just draw a bounding rectangle and
-        compare edges.
+                                 p_loc: list,
+                                 p_dim: list) -> tuple:
+        """Determine if newly defined cluster loc collides with existing
+        cluster loc in same universe. Draw bounding rect and compare edges.
         :args:
-        - p_loc (tuple): (x, y, z) of new cluster center location  (gly)
-        - p_dim (tuple): (x, y, z) for new cluster ellipsoid shape (parsec)
+        - p_loc (list): [x, y, z] of new cluster center location  (gly)
+        - p_dim (list): [x, y, z] for new cluster ellipsoid shape (parsec)
         :returns:
-        - (bool, list) (True if collision detected, else False, and
+        - (bool, list) (True if collision detected, else False;
                         bounding rectangle of new cluster =
                         [(l, r), (t, b), (f, b)])
         """
@@ -292,12 +318,13 @@ class UniverseModel:
         - If randomized cluster location and size collides with an existing
         cluster in same universe, re-compute until no collision detected.
         - Collsion detection also sets the GC bounding rectangle.
-        Then randomly set direction and angle of rotations.
+        Randomly select rotation direction and angle for each axis.
         - Direction will be either + or - for each dimensional axis.
         - Limit the rotation angles to 0 to 90 degrees.
         - See notes in universe.html regarding pitch, yaw and roll
             terminology and standards for defining rotation.
         Finally, set the semi-axes of the ellipsoid.
+        - Axes of ellipsoid derived from dim, so unit is parsecs.
 
         :returns:
         - ((float * 3): (x, y, z in gigalightyears from universe
@@ -309,48 +336,50 @@ class UniverseModel:
         """
         def compute_cluster_loc_and_dim():
             loc = list()
+            dim = list()
             for d in range(0, 3):
                 loc.append(random.uniform(-univ_r_gly, univ_r_gly))
-            dim = list()
             dim.append(random.uniform(1e6, 1e7))    # x = 1 to 10 M parsecs
             dim.append(dim[0] * random.uniform(0.5, 0.8))  # y = 50% to 80% x
             dim.append(dim[1] * random.uniform(0.1, 0.2))  # z = 10% to 20% y
             return (loc, dim)
 
+        loc = []
+        dim = []
+        bnd = []
         univ_r_gly = self.TU[SM.GEOM.RD][0] * 0.99
         collision = True
         while collision:
             loc, dim = compute_cluster_loc_and_dim()
             collision, bnd = self.detect_cluster_collision(loc, dim)
-        # Select rotation direction and angle for each axis.
         rot = list()
         for d in range(0, 3):
             dir = random.choice(['+', '-'])
             ang = round((random.uniform(0, 90)), 2)
             rot.append((dir, ang))
-        # Axes of ellipsoid derived from dim, so unit is parsecs.
-        axes = list()
-        for d in dim:
-            axes.append(d / 2)
+        axes = [d / 2 for d in dim]
         return (loc, dim, axes, rot, bnd)
 
     def set_cluster_vol_and_mass(self,
-                                 p_axes: tuple) -> tuple:
+                                 p_axes: list) -> tuple:
         """Compute total volume of galactic cluster in cubic parsecs.
         Compute mass in kilograms for cluster's total allocation of:
             dark energy, dark matter, baryonic matter
-        - Compute total GC matter as a percent from 1% to 5% of TU matter.
-        - Get a sense of the density of the cluster (vol/mass ratio)
+        - Compute total GC matter as proportional to its volume of 
+            TU volume. This is a very rough approximation and probably
+            a bit silly, since it would imply that most of the matter in
+            the universe, inlcuding bayronic matter, lies outside of the,
+            galactic clusters which certainly does not appear to be the case.
+            That can be tweaked later... it's just a game. :-)
         - Apply constant percents for the 3 types of matter.
         :args:
-        - p_a (float): relative x axis of ellipsoid
-        - p_b (float): relative y axis of ellipsoid
-        - p_c (float): relative z axis of ellipsoid
-        - p_TU (dict): data about total universe
+        - p_axes (list): [a, b, c] semi-axes (float) of ellipsoid in parsecs
         :returns:
         - (float * 5): (GC total volume in cubic parsecs,
                         GC total mass in kilograms,
                         GC dark energy, dark matter, baryonic matter in kg)
+        @TODO:
+        - Get a sense of the density of the cluster (vol/mass ratio)
         """
         gc_vol = (4/3) * math.pi * p_axes[0] * p_axes[1] * p_axes[2]  # PC3
         gc_vol_pct = gc_vol / self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"][0]
@@ -377,20 +406,19 @@ class UniverseModel:
         gc_loc = self.GC[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
         gc_dim = self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"][0]
         for d in range(0, 3):
-            delta = (gc_dim[d] / 2) * random.uniform(-0.33, 0.33)
-            tp_loc.append((gc_loc[d] + delta))
+            delta = (float(gc_dim[d]) / 2) * random.uniform(-0.33, 0.33)
+            tp_loc.append((float(gc_loc[d]) + delta))
 
-        self.GC[SM.ASTRO.TP] = (tp_nm, SM.GEOM.NM)                  # Name
-        self.GC[f"{SM.ASTRO.TP} {SM.ASTRO.PR}"] =\
-            ((1 / random.uniform(700, 732)) * 1000, SM.ASTRO.PMS)   # Period
-        self.GC[f"{SM.ASTRO.TP} {SM.GEOG.LOC}"] =\
-            (tp_loc, f"{SM.GEOM.XYZ} {SM.ASTRO.GLY}")               # Location
+        self.GC[SM.ASTRO.TP][0] = tp_nm                 # Timing Pulsar Name
+        self.GC[f"{SM.ASTRO.TP} {SM.ASTRO.PR}"][0] =\
+            (1 / random.uniform(700, 732)) * 1000               # Period
+        self.GC[f"{SM.ASTRO.TP} {SM.GEOG.LOC}"][0] = tp_loc     # Location
 
     def generate_cluster(self,
-                         p_TP_nm: str = None):
+                         p_TP_nm: str = ''):
         """Generate data for galatic cluster and for timing pulsar.
         :args:
-        - p_TP_nm (str): Optional
+        - p_TP_nm (str): Optional or '' or None. Name of timing pulsar.
         :sets:
         - (dict): self.GC
         :writes:
@@ -428,33 +456,31 @@ class UniverseModel:
                            pickle.dumps(self.GC)))
 
     def set_xu_name(self,
-                    is_new_TU: bool,
                     p_TU_nm: str) -> str:
         """Assign name for a new External Universe object.
         It is the PK on a table, so it has to be unique in INSERT.
         It has a 1:1 relationship with a TU, which it derives from.
         :args:
-        - is_new_TU (bool): Flag indicating if it is a new universe
         - p_TU_nm (str): Name of the current Total Universe
         :returns:
         - (str): Either new XU name or name of XU related to p_TU
         """
-        def compute_new_xu_nm():
+        def compute_new_xu_nm() -> str:
             xu_nm = p_TU_nm.split(" ")[:2]
             xu_nm = " ".join(xu_nm) + " XU"
             xu_nm += "_" + str(round(random.uniform(10, 1000)))
             return xu_nm
 
+        xu_nm = ''
         db_xu = DB.execute_select('SELECT_ALL_XUS')
-        if is_new_TU:
+        for rx, u_nm in enumerate(db_xu['univ_name_fk']):
+            if u_nm == p_TU_nm:
+                xu_nm = db_xu['xu_name'][rx]
+                break
+        if xu_nm == '':
             xu_nm = compute_new_xu_nm()
             while xu_nm in db_xu['xu_name']:
                 xu_nm = compute_new_xu_nm
-        else:
-            for rx, u_nm in enumerate(db_xu['univ_name_fk']):
-                if u_nm == p_TU_nm:
-                    xu_nm = db_xu['xu_name'][rx]
-                    break
         return xu_nm
 
     def compute_external_universe(self,
@@ -482,7 +508,7 @@ class UniverseModel:
         - (DB) insert or update row on SASKAN_DB.xus table
         """
         tu_nm = self.TU[SM.ASTRO.TU][0]
-        xu_nm = self.set_xu_name(is_new_TU, tu_nm)
+        xu_nm = self.set_xu_name(tu_nm)
         gc_m = {"ms": 0.0, "de": 0.0, "dm": 0.0, "bm": 0.0}
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
         for x, db_tu_nm in enumerate(db_gc['univ_name_fk']):
@@ -506,8 +532,8 @@ class UniverseModel:
             DB.execute_insert(
                 'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(self.XU)))
         elif is_new_GC:
-            DB.execute_insert(
-                'UPDATE_XU_PROC', (pickle.dumps(self.XU), xu_nm))
+            DB.execute_update(
+                'UPDATE_XU_PROC', xu_nm, (pickle.dumps(self.XU)))
         else:
             db_xu = DB.execute_select('SELECT_ALL_XUS')
             for x, db_xu_nm in enumerate(db_xu['xu_name']):
@@ -675,6 +701,9 @@ class GalaxyModel:
 
     def set_galaxy_dims(self) -> tuple:
         """Set dimensions for galaxy:
+        
+        >>> PICK UP REFACTORING HERE >>>
+        
         - location (center of GX relative to center of GC), keeping in mind
             that the GC is an ellipsoid, so we can't just use radius of GC
             like we did when locating a GC within TU.
