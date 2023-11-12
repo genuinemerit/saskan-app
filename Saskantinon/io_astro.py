@@ -65,9 +65,9 @@ class UniverseModel:
 
     def __init__(self,
                  p_boot_db: bool = False,
-                 p_TU_nm: str = None,
-                 p_GC_nm: str = None,
-                 p_TP_nm: str = None):
+                 p_TU_nm: str = None,  # type: ignore
+                 p_GC_nm: str = None,  # type: ignore
+                 p_TP_nm: str = None): # type: ignore
         """Load or create TU, GC and TP. Create or modify XU.
             All data is saved to SASKAN_DB. There are distinct tables for the
             total universe (TU) and galactic cluster (GC) objects.
@@ -83,13 +83,19 @@ class UniverseModel:
             If p_GC_nm already in use, then stop if universe already
             exists. If new universe, tweak name of cluster to be unique,
         - p_TP_nm (str) Optional. Name of Timing Pulsar.
-
-        @TODO:
-        - Verify computation of mass amounts. I think it has a bug.
-        - When generating a 2nd GC, I am getting a negative value remaining
-          in XU for dark energy.
-        - Add tracking of total mass in XU.
         """
+        self.TU = {
+            SM.ASTRO.TU: [str(), SM.GEOM.NM],
+            SM.GEOM.RD:  [float(), SM.ASTRO.GLY],
+            f"{SM.GEOM.VL} {SM.ASTRO.GLY3}": [float(), SM.ASTRO.GLY3],
+            f"{SM.GEOM.VL} {SM.ASTRO.PC3}":  [float(), SM.ASTRO.PC3],
+            SM.ASTRO.ET: [float(), SM.ASTRO.GY],
+            SM.ASTRO.UER: [float(), SM.ASTRO.KSM],
+            SM.GEOM.MS: [float(), SM.GEOM.KG],
+            SM.ASTRO.DE: [float(), SM.GEOM.KG],
+            SM.ASTRO.DM: [float(), SM.GEOM.KG],
+            SM.ASTRO.BM: [float(), SM.GEOM.KG]
+        }
         if p_boot_db:
             self.reboot_database()
         is_new_TU = self.set_universe_name(p_TU_nm)
@@ -150,7 +156,7 @@ class UniverseModel:
         return tp_nm
 
     def set_universe_name(self,
-                          p_TU_nm: str = None) -> bool:
+                          p_TU_nm: str = None) -> bool: # type: ignore
         """If p_TU_nm already in use, then load data from DB;
         Otherwise use name provided or generate one at random.
         :args: (str) Optional. Universe name or none.
@@ -171,7 +177,7 @@ class UniverseModel:
             while tu_nm in db_tu['univ_name']:
                 tu_nm = self.get_new_TU_nm()
         if is_new_TU:
-            self.TU = {SM.ASTRO.TU: (tu_nm, SM.GEOM.NM)}
+            self.TU[SM.ASTRO.TU][0] = tu_nm
         return is_new_TU
 
     def generate_universe(self):
@@ -181,28 +187,28 @@ class UniverseModel:
         - (DB) insert row on SASKAN_DB.univs table
         """
         radius_gly = random.uniform(45.824, 47.557)
-        self.TU[SM.GEOM.RD] = (radius_gly, SM.ASTRO.GLY)       # Radius GPC
         volume_gly3 = (4/3) * math.pi * (radius_gly ** 3)
-        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.GLY3}"] =\
-            (volume_gly3, SM.ASTRO.GLY3)                       # Volume GLY3
-        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"] =\
-            (((volume_gly3 * SM.ASTRO.GLY_TO_PC) ** 3),
-             SM.ASTRO.PC3)                                     # Volume PC3
-        self.TU[SM.ASTRO.ET] = (SM.ASTRO.UNA, SM.ASTRO.GY)     # Age
-        self.TU[SM.ASTRO.UER] = (SM.ASTRO.TUE, SM.ASTRO.KSM)   # Expansion rate
         variance_pct = (volume_gly3 - SM.ASTRO.TUV) / SM.ASTRO.TUV
         mass_kg = (SM.ASTRO.TUK * variance_pct) + SM.ASTRO.TUK
-        self.TU[SM.GEOM.MS] = (mass_kg, SM.GEOM.KG)           # Total matter kg
-        # Apply dark energy, dark matter and baryonic matter percentages
-        self.TU[SM.ASTRO.DE] = (mass_kg * SM.ASTRO.DEP, SM.GEOM.KG)  # kg
-        self.TU[SM.ASTRO.DM] = (mass_kg * SM.ASTRO.DMP, SM.GEOM.KG)  # kg
-        self.TU[SM.ASTRO.BM] = (mass_kg * SM.ASTRO.BMP, SM.GEOM.KG)  # kg
+
+        self.TU[SM.GEOM.RD][0] = radius_gly                 # Radius GPC
+        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.GLY3}"][0] =\
+            volume_gly3                                     # Volume GLY3
+        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"][0] =\
+            (volume_gly3 * SM.ASTRO.GLY_TO_PC) ** 3         # Volume PC3
+        self.TU[SM.ASTRO.ET][0] = SM.ASTRO.UNA              # Age
+        self.TU[SM.ASTRO.UER][0] = SM.ASTRO.TUE             # Expansion rate
+        self.TU[SM.GEOM.MS][0] = mass_kg, SM.GEOM.KG        # Total matter kg
+        self.TU[SM.ASTRO.DE][0] = mass_kg * SM.ASTRO.DEP    # DE kg
+        self.TU[SM.ASTRO.DM][0] = mass_kg * SM.ASTRO.DMP    # DM kg
+        self.TU[SM.ASTRO.BM][0] = mass_kg * SM.ASTRO.BMP    # BM kg
+
         DB.execute_insert('INSERT_UNIV_PROC',
                           (self.TU[SM.ASTRO.TU][0], pickle.dumps(self.TU)))
 
     def generate_cluster_name(self,
                               p_is_new_TU: bool,
-                              p_GC_nm: str = None) -> bool:
+                              p_GC_nm: str = None) -> bool: # type: ignore
         """Generate a name for the Galactic Cluster.
         :args:
         - (bool) p_is_new_TU  determines if new univ was generated
