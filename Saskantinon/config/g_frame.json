@@ -21,20 +21,6 @@
     "game_frame": {
         "ttl": "Saskanantinon",
         "dsc": "Saskantinon 0.0.1",
-        "nm": "saskan_game_frame",
-        "sz": {
-            "w": 2400,
-            "h": 1600},
-        "ibar": {
-            "x": 60,
-            "y": 1570
-        },
-        "pg_hdr": {
-            "x": 20,
-            "y": 10,
-            "w": 2200,
-            "h": 20,
-            "default_text": "Saskanantinon"
-        }
+        "nm": "saskan_game_frame"
     }
 }

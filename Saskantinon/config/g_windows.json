@@ -8,19 +8,9 @@
             "margin": 6}
     },
     "game_windows": {
-        "game": {
-            "x": 20,
-            "y": 100,
-            "w": 1800,
-            "h": 1400,
-            "margin": 6,
+        "gamemap": {
             "ttl": "Map"},
-        "info": {
-            "x": 1840,
-            "y": 100,
-            "w": 540,
-            "h": 1400,
-            "margin": 6,
+        "console": {
             "ttl": "Console"}
     }
 }

@@ -1,4 +1,3 @@
-#!python
 """
 :module:    saskan_game.py
 :author:    GM (genuinemerit @ pm.me)
@@ -102,15 +101,12 @@ import webbrowser
 
 from copy import copy
 from dataclasses import dataclass
-# from os import path
-# from pathlib import Path
 from pprint import pformat as pf    # noqa: F401, format like pp for files
 from pprint import pprint as pp     # noqa: F401
 from pygame.locals import *         # noqa: F401, F403
 
 from io_file import FileIO          # type: ignore
 from io_shell import ShellIO        # type: ignore
-# from io_wiretap import WireTap      # type: ignore
 from saskan_math import SaskanRect  # type: ignore
 
 FI = FileIO()
@@ -133,7 +129,7 @@ pg.init()
 
 @dataclass(frozen=True)
 class PG:
-    """PyGame constants."""
+    """PyGame and Platform constants."""
     # CLI Colors and accents
     CL_BLUE = '\033[94m'
     CL_BOLD = '\033[1m'
@@ -168,34 +164,60 @@ class PG:
     CUR_HAND = pg.cursors.Cursor(pg.SYSTEM_CURSOR_HAND)
     CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
-    # Overall frame = WIN object
-    # Caption is the title of the window/frame.
-    pg.display.set_caption(FI.F[FRAME]["ttl"])
-    WIN_W = FI.F[FRAME]["sz"]["w"]
-    WIN_H = FI.F[FRAME]["sz"]["h"]
-    WIN_MID = (WIN_W / 2, WIN_H / 2)
+    # Platform info
     
-    WIN = pg.display.set_mode((WIN_W, WIN_H))
-    # Menu Bar
-    # Sizing of top-menu bar items is done in AppMenu class,
-    #    based on text width and height.
-    # This is top, left of the entire menu, or could think
-    #   of it as the top, left of the FIRST menu bar.
+    info = pg.display.Info()
+    PLATFORM = (
+        FI.F[FRAME]["dsc"] +
+        " | " + platform.platform() +
+        " | " + platform.architecture()[0] +
+        f" | monitor (w, h): {info.current_w}, {info.current_h}" +
+        " | Python " + platform.python_version() +
+        " | Pygame " + pg.version.ver)
 
-    MBAR_X = FI.M[MENUS]["bar"]["x"]
-    MBAR_Y = FI.M[MENUS]["bar"]["y"]
-    # This is w, h, margin of __each__ vertical menu bar menu
-    MBAR_W = FI.M[MENUS]["bar"]["w"]
-    MBAR_H = FI.M[MENUS]["bar"]["h"]
-    MBAR_MARGIN = FI.M[MENUS]["bar"]["margin"]
-    MBAR_LOC = (MBAR_X, MBAR_Y)
-    # In-game "windows" = CONSOLE*, GAMEMAP*, IBAR*, PHELP*
-    CONSOLE = FI.W["game_windows"]["info"]
-    GAMEMAP = FI.W["game_windows"]["game"]
-    IBAR_X = FI.F[FRAME]["ibar"]["x"]
-    IBAR_Y = FI.F[FRAME]["ibar"]["y"]
-    IBAR_LOC = (IBAR_X, IBAR_Y)
-    PHELP = FI.U["uri"]["help"]  # links to web pages
+    # Overall frame = WIN object
+    # Set sizes and positions based on monitor size
+    # For scaling images, see: https://www.pygame.org/docs/ref/transform.html
+    # Example: scaled_image = 
+    #   pygame.transform.scale(original_image, (new_width, new_height))
+    WIN_W = round(info.current_w * 0.9)
+    WIN_H = round(info.current_h * 0.9)
+    WIN_MID = (WIN_W / 2, WIN_H / 2)
+    WIN = pg.display.set_mode((WIN_W, WIN_H))
+    pg.display.set_caption(FI.F[FRAME]["ttl"])
+
+    # Menu Bar
+    MENU_CNT = len(FI.M[MENUS]["menu"])
+    # top, left of the FIRST menu bar member.
+    MBAR_X = WIN_W * 0.01
+    MBAR_Y = WIN_H * 0.005
+    # w, h, margin of __each__ menu bar member.
+    MBAR_W = (WIN_W - (MBAR_X * 2)) / MENU_CNT
+    MBAR_W = 240 if MBAR_W > 240 else MBAR_W
+    MBAR_H = WIN_H * 0.04
+    MBAR_MARGIN = 6
+
+    # Game Map
+    GAMEMAP_X = int(round(WIN_W * 0.05))
+    GAMEMAP_Y = int(round(WIN_H * 0.05))
+    GAMEMAP_W = int(round(WIN_W * 0.6))
+    GAMEMAP_H = int(round(WIN_H * 0.6))
+    GAMEMAP_TTL = FI.W["game_windows"]["gamemap"]["ttl"]
+
+    # Console
+    CONSOLE = FI.W["game_windows"]["console"]
+    CONSOLE_X = int(round(GAMEMAP_X + GAMEMAP_W + 20))
+    CONSOLE_Y = GAMEMAP_Y
+    CONSOLE_W = int(round(WIN_W * 0.3))
+    CONSOLE_H = GAMEMAP_H
+    CONSOLE_TTL = FI.W["game_windows"]["console"]["ttl"]
+
+    # Info Bar
+    IBAR_LOC = (GAMEMAP_X, int(round(WIN_H * 0.95)))
+
+    # Help Pages (web pages)
+    WHTM = FI.U["uri"]["help"]  # links to web pages / help pages
+
     # In-window helper settings, may be useful in info/console windows
     HDR_LOC = (60, 40)   # LOC = Top-Left x, y
     PAGE_X = 60
@@ -275,8 +297,8 @@ class GameData(object):
         """
         self.grid["D"] = {
             "is_visible": False,
-            "grid_rect": SR.make_rect(PG.GAMEMAP["y"], PG.GAMEMAP["x"],
-                                      PG.GAMEMAP["w"], PG.GAMEMAP["h"])}
+            "grid_rect": SR.make_rect(PG.GAMEMAP_Y, PG.GAMEMAP_X,
+                                      PG.GAMEMAP_W, PG.GAMEMAP_H)}
         self.grid["D"]["grid_box"] = self.grid["D"]["grid_rect"]["box"]
         # TopLeft offset from GAMEMAP to grid:
         self.grid["D"]["offset"] = {"x": 17, "y": 18}
@@ -492,32 +514,44 @@ class GameData(object):
             self.console["title"]["text"], True, PG.CP_BLUEPOWDER, PG.CP_BLACK)
         self.console["title"]["box"] = self.console["title"]["img"].get_rect()   # type: ignore
         self.console["title"]["box"].topleft =\
-            (PG.CONSOLE["x"] + 5, PG.CONSOLE["y"] + 5)
+            (PG.CONSOLE_X + 5, PG.CONSOLE_Y + 5)
 
     def set_console_text(self):
         """Format a list of strings to render as text for display in console.
         Store list of strings in the .console["T"] structure.
         .post["catg"] identifies source of config data to format.
         .post["item"] identifies type of data to format.
+        
+        @TODO:
+        - Move the geo data into a database.
+        - Read from database instead of config/schema files in most cases.
+        - Only use config files for install-level customizations, overrides.
         """
         self.console["is_visible"] = True
-        self.console["con_rect"] = SR.make_rect(PG.CONSOLE["y"], PG.CONSOLE["x"], PG.CONSOLE["w"], PG.CONSOLE["h"])
+        self.console["con_rect"] =\
+            SR.make_rect(PG.CONSOLE_Y, PG.CONSOLE_X,
+                         PG.CONSOLE_W, PG.CONSOLE_H)
         self.console["con_box"] = self.console["con_rect"]["box"]
         self.console["T"] = list()
         self.set_console_header(PG.CONSOLE["ttl"])
+        
+        pp(('self.post["catg"]', self.post["catg"],
+            'self.post["item"]', self.post["item"]))
+        
         # Contents
-        con_data = FI.S[self.post["catg"]][self.post["item"]]
-        if "type" in con_data.keys():
-            self.set_t_lbl_nm(con_data["type"])
-        if "contained_by" in con_data.keys():
-            self.set_t_lbl_nm_typ(con_data["contained_by"])
-        if "name" in con_data.keys():
-            self.set_t_proper_names(con_data["name"])
-        if "map" in con_data.keys():
-            self.set_t_map(con_data["map"])
-        if "contains" in con_data.keys():
-            self.set_t_contains(con_data["contains"])
-        self.render_text_lines()
+        if self.post["catg"] == "geo":
+            con_data = FI.G[self.post["catg"]][self.post["item"]]
+            if "type" in con_data.keys():
+                self.set_t_lbl_nm(con_data["type"])
+            if "contained_by" in con_data.keys():
+                self.set_t_lbl_nm_typ(con_data["contained_by"])
+            if "name" in con_data.keys():
+                self.set_t_proper_names(con_data["name"])
+            if "map" in con_data.keys():
+                self.set_t_map(con_data["map"])
+            if "contains" in con_data.keys():
+                self.set_t_contains(con_data["contains"])
+            self.render_text_lines()
 
     # set map dimensions and content
     # ================================
@@ -602,7 +636,7 @@ class GameData(object):
            map_km['w'] < grid_l["km"]["w"]:
                 self.grid["D"]["map"] = {
                     "item_ky": self.post["item"],
-                    "item_nm": FI.S[self.post["catg"]][self.post["item"]]["name"],
+                    "item_nm": FI.G[self.post["catg"]][self.post["item"]]["name"],
                     "m_rect": SR.make_rect(map_top, map_left, map_px['w'], map_px['h'])}
                 self.grid["D"]["map"]["m_box"] = self.grid["D"]["map"]["m_rect"]["box"]
         # Do a collision check between the map box and each grid box
@@ -625,11 +659,13 @@ class GameData(object):
         - Next, start defining map content into the grid ("G").
         - Before trying to apply detailed drawings, start with simple
           representations -- circles, squares, lines, etc.
+        - Move geo data to database
         """
         self.grid["D"]["is_visible"] = True
-        data = FI.S[self.post["catg"]][self.post["item"]]
-        if "map" in data.keys():
-            self.set_map_dim(data["map"])
+        if self.post["catg"] == "geo":
+            data = FI.G[self.post["catg"]][self.post["item"]]
+            if "map" in data.keys():
+                self.set_map_dim(data["map"])
 
 
 class GameMenu(object):
@@ -961,10 +997,14 @@ class InfoBar(object):
             "frame_cnt": 0,
             "mouse_loc": (0, 0),
             "grid_loc": ""}
-        self.set_ibar_system_text()
+        # self.set_ibar_system_text()
 
     def set_ibar_system_text(self):
-        """ Set Info Bar text to system info. """
+        """ Set Info Bar text to system info.
+        @TODO:
+            Get this info at initialization.
+            No point in retrieving it again every few milliseconds.
+        """
         self.system_text = (
             FI.F[FRAME]["dsc"] +
             " | " + platform.platform() +
@@ -983,8 +1023,8 @@ class InfoBar(object):
         Set and draw the Info Bar text.
         Draw the info bar text, optionally including status info.
         """
-        text = self.system_text + "   | " + self.status_text\
-            if self.info_status["on"] is True else self.system_text
+        text = PG.PLATFORM + "   | " + self.status_text\
+            if self.info_status["on"] is True else PG.PLATFORM
         self.itxt = PG.F_SANS_SM.render(text, True, PG.CP_BLUEPOWDER,
                                         PG.CP_BLACK)
         self.ibox = self.itxt.get_rect()
@@ -1317,11 +1357,11 @@ class SaskanGame(object):
             self.exit_appl()
         elif "help" in mi_k:
             if mi_k == "pg_help":
-                WHTM.draw(PG.PHELP["pygame"])
+                WHTM.draw(PG.WHTM["pygame"])
             elif mi_k == "app_help":
-                WHTM.draw(PG.PHELP["app"])
+                WHTM.draw(PG.WHTM["app"])
             elif mi_k == "game_help":
-                WHTM.draw(PG.PHELP["game"])
+                WHTM.draw(PG.WHTM["game"])
         elif mi_k == "start":
             GDAT.set_post({"catg": 'geo',
                            "item": 'Saskan Lands',
@@ -1406,8 +1446,8 @@ class SaskanGame(object):
         # Check, Draw info bar
         if IBAR.info_status["on"] is True:
             IBAR.set_ibar_status_text()
-        else:
-            IBAR.set_ibar_system_text()
+        # else:
+        #    IBAR.set_ibar_system_text()
         IBAR.draw()
         
         # Draw the game map

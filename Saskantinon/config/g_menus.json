@@ -76,13 +76,6 @@
     },
 
     "game_menus": {
-        "bar": {
-            "?": "Define vertical menu bar placement and dimensions",
-            "x": 20,
-            "y": 20,
-            "w": 240,
-            "h": 40,
-            "margin": 6},
         "menu": {
             "file": {
                 "name": "File",
