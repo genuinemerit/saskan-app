@@ -8,71 +8,71 @@
             "margin": 6},
         "menu": {
             "file": {
-                "nm": "Saskan Admin",
+                "name": "Saskan Admin",
                 "items": {
                     "exit": {
-                        "nm":"Quit (Q or ESC)"}}},
+                        "name":"Quit (Q or ESC)"}}},
             "view": {
-                "nm": "Windows",
+                "name": "Windows",
                 "items": {
                     "anim_stop": {
-                        "nm":"Freeze (F7)"},
+                        "name":"Freeze (F7)"},
                     "anim_start": {
-                        "nm":"Unfreeze (F8)"},
+                        "name":"Unfreeze (F8)"},
                     "services": {
-                        "nm":"Services"},
+                        "name":"Services"},
                     "editor": {
-                        "nm":"Editor"},
+                        "name":"Editor"},
                     "monitor": {
-                        "nm":"Monitor"},
+                        "name":"Monitor"},
                     "diagram": {
-                        "nm":"Diagram"},
+                        "name":"Diagram"},
                     "map": {
-                        "nm":"Map"}}},
+                        "name":"Map"}}},
             "services": {
-                "nm": "Services",
+                "name": "Services",
                 "items": {
                     "show": {
-                        "nm":"Show|Hide"},
+                        "name":"Show|Hide"},
                     "start": {
-                        "nm":"Start"},
+                        "name":"Start"},
                     "stop": {
-                        "nm":"Stop"},
+                        "name":"Stop"},
                     "status": {
-                        "nm":"Status"},
+                        "name":"Status"},
                     "test": {
-                        "nm":"Test"}}},
+                        "name":"Test"}}},
             "edit": {
-                "nm": "Edit",
+                "name": "Edit",
                 "items": {
                     "config": {
-                        "nm":"Settings"},
+                        "name":"Settings"},
                     "time": {
-                        "nm":"Time"},
+                        "name":"Time"},
                     "places": {
-                        "nm":"Places"},
+                        "name":"Places"},
                     "music": {
-                        "nm":"Music"},
+                        "name":"Music"},
                     "images": {
-                        "nm":"Images"}}},
+                        "name":"Images"}}},
             "monitor": {
-                "nm": "Reports",
+                "name": "Reports",
                 "items": {
                     "msg": {
-                        "nm":"Service Logs"},
+                        "name":"Service Logs"},
                     "debug": {
-                        "nm":"App Logs"},
+                        "name":"App Logs"},
                     "pressure": {
-                        "nm":"Pressure"}}},
+                        "name":"Pressure"}}},
             "help": {
-                "nm": "Help",
+                "name": "Help",
                 "items": {
                     "app_help": {
-                        "nm": "Saskan Admin"},
+                        "name": "Saskan Admin"},
                     "game_help": {
-                        "nm": "Saskantinon"},
+                        "name": "Saskantinon"},
                     "pg_help": {
-                        "nm": "PyGame"}}}}
+                        "name": "PyGame"}}}}
     },
 
     "game_menus": {
@@ -85,56 +85,49 @@
             "margin": 6},
         "menu": {
             "file": {
-                "nm": "File",
+                "name": "File",
                 "items": {
                     "exit": {
-                        "nm":"Quit (Q, ESC)"}}},
+                        "name":"Quit (Q, ESC)",
+                        "enabled": true}}},
             "game": {
-                "nm": "Game",
+                "name": "Game",
                 "items": {
                     "start": {
-                        "nm":"Start",
+                        "name":"Start",
                         "?":"Launch game and info windows.",
-                        "default": "enabled",
-                        "disable":["start", "restart"],
-                        "enable": ["pause_resume", "save", "status"]},
+                        "enabled": true},
                     "status": {
-                        "nm":"Status",
+                        "name":"Status",
                         "?":"Report on game state",
-                        "default": "disabled",
-                        "disable":[],
-                        "enable": []},
+                        "enabled": false},
                     "pause_resume": {
-                        "nm":"Pause/Resume",
+                        "name":"Pause/Resume",
                         "?":"Pause and resume game events",
-                        "default": "disabled",
-                        "enable": ["restart"]},
+                        "enabled": false},
                     "restart": {
-                        "nm":"Restart",
+                        "name":"Restart",
                         "?":"Start a new series of game events",
-                        "default": "disabled",
-                        "disable":["start", "restart"],
-                        "enable": ["pause_resume", "save", "status"]},
+                        "enabled": false},
                     "save": {
-                        "nm":"Save",
+                        "name":"Save",
                         "?":"Save game state",
-                        "default": "disabled",
-                        "disable":[],
-                        "enable": []},
+                        "enabled": false},
                     "test": {
-                        "nm":"Test",
+                        "name":"Test",
                         "?":"Run tests of game functions",
-                        "default": "enabled",
-                        "disable":[],
-                        "enable": []}}},
+                        "enabled": false}}},
             "help": {
-                "nm": "Help",
+                "name": "Help",
                 "items": {
                     "game_help": {
-                        "nm": "Game"},
+                        "name": "Game",
+                        "enabled": true},
                     "app_help": {
-                        "nm": "Admin"},
+                        "name": "Admin",
+                        "enabled": true},
                     "pg_help": {
-                        "nm": "PyGame"}}}}
+                        "name": "PyGame",
+                        "enabled": true}}}}
     }
 }

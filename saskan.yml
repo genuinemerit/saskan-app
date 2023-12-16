@@ -12,6 +12,9 @@ dependencies:
   - requests
   - tzlocal
   - sqlite
+  - numbers-parser
+  - beautifulsoup4
+  - tabulate
   - numpy
   - pandas
   - twisted

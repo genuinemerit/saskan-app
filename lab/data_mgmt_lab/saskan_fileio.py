@@ -32,6 +32,7 @@ class FileIOUtils(object):
             cmd_rc = False
         else:
             # shell=True means cmd param contains a regular cmd string
+            # trunk-ignore(bandit/B602)
             shell = shl.Popen(cmd, shell=True,
                               stdin=shl.PIPE, stdout=shl.PIPE,
                               stderr=shl.STDOUT)
@@ -199,3 +200,75 @@ class FileIO(object):
             return(ok, None)
         else:
             return(ok, msg)
+
+    # Special-purpose methods (maybe move to an io_data class?)
+    # ==============================================================
+    def pickle_saskan(self, p_app_dir):
+        """Set up shared memory directories for saskan app.
+        Pickle saskan files to shared memory.
+        Don't worry about pickling or optimizing in memory for now.
+
+        :Args:
+        - p_app (path): Path to Saskan app directory
+        """
+
+        def create_sub_dir(sub_dir):
+            """Create shared memory directories for saskan app.
+            - shared mem app sub dirs
+            - shared mem data sub dirs
+            """
+            self.make_dir(sub_dir)
+            self.make_writable(sub_dir)
+
+        def create_mem_dirs():
+            """Wipe out shared memory data dirs if they exist.
+            Create shared memory directories for saskan app.
+            - shared mem parent dir
+            - shared mem app sub dirs
+            - shared mem data sub dirs
+            """
+            app_d = path.join(self.D["MEM"], self.D["APP"])
+            files = self.get_dir(app_d)
+            if files is not None:
+                app_files = app_d + "/*"
+                ok, result = SI.run_cmd([f"rm -rf {app_files}"])
+                if ok:
+                    ok, result = SI.run_cmd([f"rmdir {app_d}"])
+                else:
+                    raise Exception(f"{self.T['err_process']} {result}")
+            self.make_dir(app_d)
+            self.make_writable(app_d)
+            for _, sd in self.D["ADIRS"].items():
+                create_sub_dir(path.join(app_d, sd))
+            for _, dd in self.D["NSDIRS"].items():
+                create_sub_dir(path.join(app_d, self.D["ADIRS"]["SAV"], dd))
+
+        def pickle_config_and_schema_objects(p_app_dir):
+            """Pickle dict versions of config and schema json files.
+
+            @DEV:
+            - Pickle or copy any other files to shared memory? images?
+            - Is it really necessary to pickle ontology/schema files?
+            """
+            for j_dir in (self.D["ADIRS"]["CFG"], self.D["ADIRS"]["ONT"]):
+                the_dir = path.join(p_app_dir, j_dir)
+                files = self.get_dir(the_dir)
+                for f in files:
+                    if Path(f).is_file():
+                        file_nm = str(f).split("/")[-1]
+                        if file_nm.endswith(".json"):
+                            the_dir = path.join(
+                                self.D["MEM"],
+                                self.D["APP"],
+                                j_dir,
+                                file_nm.replace(".json", ".pickle"),
+                            )
+                            j_data = self.get_file(f)
+                            self.pickle_object(
+                                the_dir, json.loads(j_data)
+                            )
+
+        # pickle_saskan() main
+        # ====================
+        create_mem_dirs()
+        pickle_config_and_schema_objects(p_app_dir)

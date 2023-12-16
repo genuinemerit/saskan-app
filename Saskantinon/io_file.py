@@ -5,14 +5,14 @@
 module:    io_file.py
 class:     FileIO/0
 author:    GM <genuinemerit @ pm.me>
-
-@DEV:
-- Use services instead of direct calls, as doable.
 """
 import json
+import pandas as pd
+# trunk-ignore(bandit/B403)
 import pickle
 import shutil
 
+from numbers_parser import Document as NumbersDoc
 from os import path, remove, symlink, system
 from pathlib import Path
 from pprint import pprint as pp  # noqa: F401
@@ -26,18 +26,19 @@ class FileIO(object):
     """File IO utilities."""
 
     def __init__(self):
-        """Initialize FileIO object."""
-        self.D = self.get_config("d_dirs")
-        self.C = self.get_config("c_context")
-        self.T = self.get_config(f"t_texts_{self.C['lang']}")
-        self.G = self.get_config("g_frame")
-        self.G = self.G | self.get_config("g_menus")
-        self.G = self.G | self.get_config("g_windows")
-        self.G = self.G | self.get_config("g_uri")
-        self.S = self.get_schema("svc_schema")
-        self.S = self.S | self.get_schema("saskan_geo")
-        self.S = self.S | self.get_schema("saskan_astro")
-        self.S = self.S | self.get_schema("saskan_time")
+        """Initialize FileIO object.
+        Eventually move 'schema' data to DB.
+        """
+        self.D: dict = self.get_config("saskan/config", "d_dirs")
+        self.T: dict = self.get_config("saskan/config", "t_texts_en")
+        self.F: dict = self.get_config("saskan/config", "g_frame")
+        self.M: dict = self.get_config("saskan/config", "g_menus")
+        self.W: dict = self.get_config("saskan/config", "g_windows")
+        self.U: dict = self.get_config("saskan/config", "g_uri")
+        self.S: dict = self.get_config("saskan/schema", "svc_schema")
+        self.G: dict = self.get_config("saskan/schema", "saskan_geo")
+        self.A: dict = self.get_config("saskan/schema", "saskan_astro")
+        self.T: dict = self.get_config("saskan/schema", "saskan_time")
 
     # Read methods
     # ==============================================================
@@ -59,15 +60,17 @@ class FileIO(object):
             raise(err)
 
     @classmethod
-    def get_file(self, p_path: str):
+    def get_file(cls,
+                 p_path: str) -> str:
         """Read in an entire file and return its contents.
+        We assume that this file type is text (string or bytes).
 
         Args:
-            p_path: Legit path to file location.
-        Return:
-            File content (Text, Bytes or None))
+            p_path (str): Legit path to file location.
+        Return
+            File content (Text))
         """
-        content = None
+        content: str = ''
         try:
             if Path(p_path).exists():
                 with open(p_path, "r") as f:
@@ -76,6 +79,75 @@ class FileIO(object):
             return content
         except Exception as err:
             raise (err)
+
+    @classmethod
+    def get_numbers_data(cls,
+                         p_file_path: str,
+                         p_sheet_x: int = 0) -> pd.DataFrame:
+        """Read data from Numbers (MacOS) spreadsheet tab
+        and return as a DataFrame.
+
+        Move to io_file.py
+
+        :args:
+        - p_file_path (str): Path to the workbook.
+        - p_sheet_x (int): Index of sheet to load.
+        :return:
+        - (DataFrame): DataFrame of the sheet.
+        """
+        dataf = None
+        doc = NumbersDoc(p_file_path)
+        sheets = doc.sheets
+        tables = sheets[p_sheet_x].tables
+        data = tables[0].rows(values_only=True)
+        dataf = pd.DataFrame(data[1:], columns=data[0])
+        return dataf
+
+    def get_spreadsheet_data(self,
+                             p_file_path: str,
+                             p_sheet: str = '') -> pd.DataFrame:
+        """Get data from Excel, ODF, CSV (tab), or MacOS Numbers spreadsheet.
+        Preference is for CSV files.
+
+        :args:
+        - p_file_path (str): Path to the workbook.
+        - p_sheet (str): Name or Index of sheet to load. Optional.
+            If it is a Numbers file, this needs to be an integer (index)
+        :return:
+        - (DataFrame): DataFrame of the sheet.
+        """
+        dataf = pd.DataFrame()
+        ss_type = p_file_path.split('.')[-1].lower()
+        sheet_nm = None if p_sheet == '' else p_sheet
+        if ss_type.lower() in ('xlsx', 'xls'):
+            data = pd.read_excel(p_file_path,
+                                 sheet_name=sheet_nm)
+        elif ss_type.lower() in ('ods'):
+            data = pd.read_excel(p_file_path, engine='odf',
+                                 sheet_name=sheet_nm)
+        elif ss_type.lower() in ('csv'):
+            data = pd.read_csv(p_file_path)
+        elif ss_type.lower() in ('numbers'):
+            data = self.get_numbers_data(p_file_path, int(p_sheet))
+        else:
+            raise ValueError(f"{self.A['M']['file']}: {p_file_path}")
+        if isinstance(data, pd.DataFrame):
+            dataf = data
+        return dataf
+
+    @classmethod
+    def is_file_or_dir(cls,
+                       p_path: str) -> bool:
+        """Check if file or directory exists.
+        Args:
+            p_path (str): Legit path to file or dir location.
+        Return
+            True or False
+        """
+        if Path(p_path).exists():
+            return True
+        else:
+            return False
 
     @classmethod
     def get_json_file(cls,
@@ -95,8 +167,8 @@ class FileIO(object):
             raise (err)
 
     @classmethod
-    def get_pickle(cls,
-                   p_path: str):
+    def unpickle_object(cls,
+                        p_path: str):
         """Unpickle an object.
         Args:
             p_path: Legit path to pickled object location.
@@ -106,72 +178,31 @@ class FileIO(object):
         obj = None
         try:
             with open(p_path, "rb") as f:
+                # trunk-ignore(bandit/B301)
                 obj = pickle.load(f)
         except Exception as err:
             raise (err)
         return obj
 
-    def get_config(self, p_cfg_nm: str):
-        """Read configuration data...
-        - from shared memory pickle if it exists (full path)
-        - else from app space if it exists (path relative to app PY)
-        - else from git project JSON file  (path relative to git project)
-
-        Returns: (dict) Config file values or None.
+    def get_config(self,
+                   p_file_dir: str,
+                   p_cfg_nm: str) -> dict:
+        """Read configuration data from APP config dir.
+        :args:
+        - p_app_path (str): local app path for file
+        - p_cfg_nm (str): name of config file to read
+        :returns:
+        - (dict) Config file values as python dict, or None.
         """
-        cfg = None
+        cfg = dict()
+        p_cfg_nm = p_cfg_nm.lower().replace(".json", "") + ".json"
         try:
-            self.D
-            self.C
-            self.T
-            self.G["frame"]
-            self.G["windows"]
-            self.G["menus"]
-            self.G["uri"]
-            pk_file = path.join(
-                f"{self.D['MEM']}",
-                f"{self.D['APP']}",
-                f"{self.D['ADIRS']['NS']}",
-                f"{self.D['NSDIRS']['CFG']}",
-                f"{p_cfg_nm}.pickle",
-            )
-            cfg = self.unpickle_object(pk_file)
-        except (AttributeError, KeyError):
-            cfg_file_nm = f"{p_cfg_nm}.json"
-            cfg_j = self.get_file(path.join("../config", cfg_file_nm))
-            if cfg_j is None:
-                cfg_j = self.get_file(path.join("config", cfg_file_nm))
-            if cfg_j is not None:
-                cfg = json.loads(cfg_j)
-        return cfg
-
-    def get_schema(self, p_sch_nm: str):
-        """Read schema JSON data...
-        - from shared memory pickle if it exists (full path)
-        - else from app space if it exists (path relative to app PY)
-        - else from git project JSON file  (path relative to git project)
-
-        Returns: (dict) Schema file values or None.
-        """
-        sch = None
-        try:
-            self.S
-            pk_file = path.join(
-                f"{self.D['MEM']}",
-                f"{self.D['APP']}",
-                f"{self.D['ADIRS']['NS']}",
-                f"{self.D['NSDIRS']['ONT']}",
-                f"{p_sch_nm}.pickle",
-            )
-            sch = self.unpickle_object(pk_file)
-        except (AttributeError, KeyError):
-            sch_file_nm = f"{p_sch_nm}.json"
-            sch_j = self.get_file(path.join("../schema", sch_file_nm))
-            if sch_j is None:
-                sch_j = self.get_file(path.join("schema", sch_file_nm))
-            if sch_j is not None:
-                sch = json.loads(sch_j)
-        return sch
+            cfg_j= self.get_file(path.join(
+                SI.get_cwd_home(), p_file_dir, p_cfg_nm))
+            cfg = json.loads(cfg_j)
+            return cfg
+        except Exception as err:
+            raise (err)
 
     # Write methods
     # ==============================================================
@@ -186,6 +217,7 @@ class FileIO(object):
         """
         if not Path(p_path).exists():
             try:
+                # trunk-ignore(bandit/B605)
                 system(f"mkdir {p_path}")
             except Exception as err:
                 raise(err)
@@ -282,8 +314,8 @@ class FileIO(object):
         Create file if it does not already exist.
 
         Args:
-            p_path: Legit path to a file location.
-            p_data: Text to append to the file.
+            p_path (str): Legit path to a file location.
+            p_data (str): Text to append to the file.
             p_file_type (str): default = "w+"
         """
         try:
@@ -291,22 +323,34 @@ class FileIO(object):
             f.write(p_data)
             f.close()
         except Exception as err:
-            raise(err)
+            raise (err)
 
     @classmethod
-    def write_pickle(cls,
-                     p_path: str,
-                     p_obj):
+    def write_df_to_csv(cls,
+                        p_df: pd.DataFrame,
+                        p_csv_path: str):
+        """Save dataframe as CSV.
+
+        :args:
+        - p_df (DataFrame): Dataframe to save as CSV.
+        - p_csv_path (str): Path to the CSV file to create.
+        """
+        p_df.to_csv(p_csv_path, index=False)
+
+    @classmethod
+    def pickle_object(cls,
+                      p_path: str,
+                      p_obj):
         """Pickle an object.
 
         Args:
-            p_path: Legit path to pickled object/file location.
-            p_obj (obj): Object to be pickled."""
+            p_path: Legit path to target object/file location.
+            p_obj (obj): Object to be pickled (source)."""
         try:
             with open(p_path, "wb") as obj_file:
                 pickle.dump(p_obj, obj_file)
         except Exception as err:
-            raise(err)
+            raise (err)
 
     # CHMOD methods
     # ==============================================================
@@ -355,8 +399,60 @@ class FileIO(object):
         except Exception as err:
             raise(err)
 
-    # Analysis methods
+    # Shaping and analysis methods
     # ==============================================================
+
+    @classmethod
+    def get_df_col_names(cls,
+                         p_df: pd.DataFrame) -> list:
+        """Get list of column names from a dataframe.
+        :args:
+        - p_df (DataFrame): pandas dataframe to analyze
+        """
+        return list(p_df.columns.values)
+
+    @classmethod
+    def get_df_col_unique_vals(cls,
+                               p_col: str,
+                               p_df: pd.DataFrame) -> list:
+        """For a dataframe column, return list of unique values.
+        :args:
+        - col_nm (str): Column name to get unique values for
+        - s_df (DataFrame): Dataframe to process
+        :returns:
+        - (list): Unique values in column
+        """
+        u_vals = pd.DataFrame()
+        u_vals = p_df.dropna(subset=[p_col])
+        u_vals = u_vals.drop_duplicates(subset=[p_col], keep='first')
+        vals: list = []
+        if len(u_vals) > 1:
+            vals = u_vals[p_col].values.tolist()
+        vals.sort()
+        return vals
+
+    @classmethod
+    def get_df_metadata(cls,
+                        p_df: pd.DataFrame) -> dict:
+        """Get metadata from a dataframe:
+        - Count of rows in dataframe.
+        - Column names.
+        - Unique values for each column.
+        Assumes that column headers are on line 1 (index 0) of df.
+        :args:
+        - s_df (DataFrame): Dataframe being processed
+        :returns:
+        - (list): Unique values in column(s) or None
+        """
+        df = p_df.copy()
+        df_meta = {'row_cnt': 0,
+                   'columns': {}}
+        df_meta['row_count'] = len(df.index)
+        cols = cls.get_df_col_names(df)
+        for col_nm in cols:
+            df_meta['columns'][col_nm] = cls.get_df_col_unique_vals(col_nm, df)
+        return df_meta
+
     @classmethod
     def diff_files(cls,
                    p_file_a: str,
@@ -374,74 +470,3 @@ class FileIO(object):
             return msg
         except Exception as err:
             raise (err)
-
-    # Special-purpose methods (maybe move to an io_data class?)
-    # ==============================================================
-    def pickle_saskan(self, p_app_dir):
-        """Set up shared memory directories for saskan app.
-        Pickle saskan files to shared memory.
-
-        :Args:
-        - p_app (path): Path to Saskan app directory
-        """
-
-        def create_sub_dir(sub_dir):
-            """Create shared memory directories for saskan app.
-            - shared mem app sub dirs
-            - shared mem data sub dirs
-            """
-            self.make_dir(sub_dir)
-            self.make_writable(sub_dir)
-
-        def create_mem_dirs():
-            """Wipe out shared memory data dirs if they exist.
-            Create shared memory directories for saskan app.
-            - shared mem parent dir
-            - shared mem app sub dirs
-            - shared mem data sub dirs
-            """
-            app_d = path.join(self.D["MEM"], self.D["APP"])
-            files = self.get_dir(app_d)
-            if files is not None:
-                app_files = app_d + "/*"
-                ok, result = SI.run_cmd([f"rm -rf {app_files}"])
-                if ok:
-                    ok, result = SI.run_cmd([f"rmdir {app_d}"])
-                else:
-                    raise Exception(f"{self.T['err_process']} {result}")
-            self.make_dir(app_d)
-            self.make_writable(app_d)
-            for _, sd in self.D["ADIRS"].items():
-                create_sub_dir(path.join(app_d, sd))
-            for _, dd in self.D["NSDIRS"].items():
-                create_sub_dir(path.join(app_d, self.D["ADIRS"]["SAV"], dd))
-
-        def pickle_config_and_schema_objects(p_app_dir):
-            """Pickle dict versions of config and schema json files.
-
-            @DEV:
-            - Pickle or copy any other files to shared memory? images?
-            - Is it really necessary to pickle ontology/schema files?
-            """
-            for j_dir in (self.D["ADIRS"]["CFG"], self.D["ADIRS"]["ONT"]):
-                the_dir = path.join(p_app_dir, j_dir)
-                files = self.get_dir(the_dir)
-                for f in files:
-                    if Path(f).is_file():
-                        file_nm = str(f).split("/")[-1]
-                        if file_nm.endswith(".json"):
-                            the_dir = path.join(
-                                self.D["MEM"],
-                                self.D["APP"],
-                                j_dir,
-                                file_nm.replace(".json", ".pickle"),
-                            )
-                            j_data = self.get_file(f)
-                            self.pickle_object(
-                                the_dir, json.loads(j_data)
-                            )
-
-        # pickle_saskan() main
-        # ====================
-        create_mem_dirs()
-        pickle_config_and_schema_objects(p_app_dir)
