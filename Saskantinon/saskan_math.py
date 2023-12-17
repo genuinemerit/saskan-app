@@ -75,7 +75,7 @@ class SaskanRect(object):
             "fill_color": None,
             "line_width": 0.0,
             "line_color": None,
-            "box": None     # Pygame Rect
+            "pg_rect": None     # Pygame Rect
         }
 
     def make_rect(self,
@@ -101,7 +101,7 @@ class SaskanRect(object):
         - fill_color: (matplotlib.colors) color to fill rectangle
         - line_color: (matplotlib.colors) color of rectangle border
         :return: (dict) proprietary rectangle data structure, with pygame
-          Rect object referenced by "box" key
+          Rect object referenced by "pg_rect" key
 
         N.B.:
         - Order of arguments is y, x, w, h, not x, y, w, h.
@@ -139,7 +139,7 @@ class SaskanRect(object):
         self.rect["center_h"] = self.rect["center_y"] = p_height / 2.0
         self.rect["center"] = (self.rect["center_x"], self.rect["center_y"])
         # This is the pygame rectangle:
-        self.rect["box"] = Rect((p_left, p_top), (p_width, p_height))
+        self.rect["pg_rect"] = Rect((p_left, p_top), (p_width, p_height))
         return self.rect
 
     def rect_contains(self,
@@ -215,7 +215,7 @@ class SaskanMath(object):
         XYZD = "((x,x), (y,y), (z,z))"
         XYZ = "(x, y, z)"
         # geometry shapes
-        BX = "box"
+        BX = "pg_rect"
         CI = "circle"
         EL = "ellipsoid"
         RC = "rectangle"

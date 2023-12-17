@@ -87,11 +87,11 @@ Saskan App GUI.  pygame version.
         - Start to design some typical encounters.
         - Start to design some typical scenarios, following the script / beat sheet.
 
-
-- See if I can adjust the resolution of the game window based on environment.
-  - For example, on the high-res Dell Linux laptop, the game is too small.
-  - But on the low-res old Lenovo Linux laptop, the game is too big.
-  - ^ lower priority
+    # N.B. -- For scaling images,
+    #   see: https://www.pygame.org/docs/ref/transform.html
+    # Example: scaled_image =
+    #   pygame.transform.scale(
+    #       original_image, (new_width, new_height))
 """
 
 import platform
@@ -128,9 +128,12 @@ pg.init()
 
 
 @dataclass(frozen=True)
-class PG:
-    """PyGame and Platform constants."""
+class PG():
+    """PyGame and platform constants.
+       Static characteristics of the game widgets.
+    """
     # CLI Colors and accents
+    # Remove these if they are not used...
     CL_BLUE = '\033[94m'
     CL_BOLD = '\033[1m'
     CL_CYAN = '\033[96m'
@@ -141,6 +144,9 @@ class PG:
     CL_RED = '\033[91m'
     CL_YELLOW = '\033[93m'
     CL_UNDERLINE = '\033[4m'
+
+    # PyGame constants
+    # =====================================================
     # PyGame Colors
     CP_BLACK = pg.Color(0, 0, 0)
     CP_BLUE = pg.Color(0, 0, 255)
@@ -152,20 +158,23 @@ class PG:
     CP_RED = pg.Color(255, 0, 0)
     CP_SILVER = pg.Color(192, 192, 192)
     CP_WHITE = pg.Color(255, 255, 255)
+
     # PyGame Fonts
     F_SANS_TINY = pg.font.SysFont(FONT_SANS, FONT_TINY_SZ)
     F_SANS_SM = pg.font.SysFont(FONT_SANS, FONT_SM_SZ)
     F_SANS_MED = pg.font.SysFont(FONT_SANS, FONT_MED_SZ)
     F_SANS_LG = pg.font.SysFont(FONT_SANS, LG_FONT_SZ)
     F_FIXED_LG = pg.font.SysFont(FONT_FXD, LG_FONT_SZ)
+
     # PyGame Cursors
     CUR_ARROW = pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW)
     CUR_CROSS = pg.cursors.Cursor(pg.SYSTEM_CURSOR_CROSSHAIR)
     CUR_HAND = pg.cursors.Cursor(pg.SYSTEM_CURSOR_HAND)
     CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
     CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
-    # Platform info
     
+    # Platform
+    # =====================================================
     info = pg.display.Info()
     PLATFORM = (
         FI.F[FRAME]["dsc"] +
@@ -175,11 +184,9 @@ class PG:
         " | Python " + platform.python_version() +
         " | Pygame " + pg.version.ver)
 
-    # Overall frame = WIN object
-    # Set sizes and positions based on monitor size
-    # For scaling images, see: https://www.pygame.org/docs/ref/transform.html
-    # Example: scaled_image = 
-    #   pygame.transform.scale(original_image, (new_width, new_height))
+    # Game widgets
+    # =====================================================
+    # Overall game window frame
     WIN_W = round(info.current_w * 0.9)
     WIN_H = round(info.current_h * 0.9)
     WIN_MID = (WIN_W / 2, WIN_H / 2)
@@ -187,57 +194,137 @@ class PG:
     pg.display.set_caption(FI.F[FRAME]["ttl"])
 
     # Menu Bar
-    MENU_CNT = len(FI.M[MENUS]["menu"])
-    # top, left of the FIRST menu bar member.
+    # ----
+    # top, left of first, left-most menu bar member.
     MBAR_X = WIN_W * 0.01
     MBAR_Y = WIN_H * 0.005
     # w, h, margin of __each__ menu bar member.
-    MBAR_W = (WIN_W - (MBAR_X * 2)) / MENU_CNT
+    MBAR_W = (WIN_W - (MBAR_X * 2)) / len(FI.M[MENUS]["menu"])
     MBAR_W = 240 if MBAR_W > 240 else MBAR_W
     MBAR_H = WIN_H * 0.04
     MBAR_MARGIN = 6
 
-    # Game Map
-    GAMEMAP_X = int(round(WIN_W * 0.05))
-    GAMEMAP_Y = int(round(WIN_H * 0.05))
-    GAMEMAP_W = int(round(WIN_W * 0.6))
-    GAMEMAP_H = int(round(WIN_H * 0.6))
+    # Game Map window
+    # --------
+    GAMEMAP_X = int(round(WIN_W * 0.01))
+    GAMEMAP_Y = int(round(WIN_H * 0.06))
+    GAMEMAP_W = int(round(WIN_W * 0.8))
+    GAMEMAP_H = int(round(WIN_H * 0.9))
     GAMEMAP_TTL = FI.W["game_windows"]["gamemap"]["ttl"]
 
-    # Console
+    # Console window
+    # -------
+    # Location and size
     CONSOLE = FI.W["game_windows"]["console"]
     CONSOLE_X = int(round(GAMEMAP_X + GAMEMAP_W + 20))
     CONSOLE_Y = GAMEMAP_Y
-    CONSOLE_W = int(round(WIN_W * 0.3))
+    CONSOLE_W = int(round(WIN_W * 0.15))
     CONSOLE_H = GAMEMAP_H
-    CONSOLE_TTL = FI.W["game_windows"]["console"]["ttl"]
+    CONSOLE_BOX = pg.Rect(CONSOLE_X, CONSOLE_Y, CONSOLE_W, CONSOLE_H)
+    # Content
+    CONSOLE_TTL_TXT = FI.W["game_windows"]["console"]["ttl"]
+    CONSOLE_TTL_IMG = F_SANS_LG.render(CONSOLE_TTL_TXT,
+                                       True, CP_BLUEPOWDER, CP_BLACK)
+    CONSOLE_TTL_BOX = CONSOLE_TTL_IMG.get_rect()
+    CONSOLE_TTL_BOX.topleft = (CONSOLE_X + 5, CONSOLE_Y + 5)
+    CONSOLE_DIVIDER = "-" * 16
 
     # Info Bar
-    IBAR_LOC = (GAMEMAP_X, int(round(WIN_H * 0.95)))
+    # ---
+    # Located at bottom of main window frame.
+    IBAR_LOC = (GAMEMAP_X, int(round(WIN_H * 0.97)))
 
-    # Help Pages (web pages)
+    # Help Pages -- external web pages, displayed in a browser
+    # ----
     WHTM = FI.U["uri"]["help"]  # links to web pages / help pages
 
-    # In-window helper settings, may be useful in info/console windows
-    HDR_LOC = (60, 40)   # LOC = Top-Left x, y
-    PAGE_X = 60
-    PAGE_Y = 60
-    PAGE_MAX_LNS = 38    # max lines to display per column
-    PAGE_V_OFF = 22      # vertical offset for each line of text
-    PAGE_COLS = [(PAGE_X, PAGE_Y),
-                 (WIN_W * 0.33, PAGE_Y),
-                 (WIN_W * 0.67, PAGE_Y)]
+    # Game Map Grid
+    #          ----
+    # The GAMEMAP 'window' contains a "grid", which consists of
+    #   a matrix of grid-cells, each with its own data record.
+    # MAP (post) data (from config, or DB sources) gets mapped over grids.
+    #   Each grid-cell can be recalibrated to allow for
+    #   zooming in and out, use of different measures, etc.
+    # The "grid" has 3 layers of data structures:
+    # - GRID = data applied to all grids, to grid as a whole
+    # - G_LNS = horz and vert lines of the grid.
+    #   Makes drawing the grid faster, easier on the screen.
+    # - G_CELL = grid data matrix, a data record for each grid-cell
+
+    # GRID = data applied to all grids, to grid as a whole
+    # ----
+    # Saskan math rectangle object:
+    GRID_S_RECT = SR.make_rect(GAMEMAP_Y, GAMEMAP_X,
+                               GAMEMAP_W, GAMEMAP_H)
+    # Pygame rectangle object:
+    GRID_BOX = GRID_S_RECT["pg_rect"]
+    # top-left, from GAMEMAP to grid
+    GRID_OFFSET_X = GAMEMAP_W * 0.01
+    GRID_OFFSET_Y = GAMEMAP_H * 0.01
+    GRID_ROWS = 32
+    GRID_COLS = 46
+    GRID_VISIBLE = False
+    GRID_CELL_W =\
+        int(round(GAMEMAP_W - GRID_OFFSET_X) / GRID_COLS)
+    GRID_CELL_H =\
+        int(round(GAMEMAP_H - GRID_OFFSET_Y) / GRID_ROWS)
+    # default virtual measurement units (kilometers)
+    GRID_CELL_KM_W = 33
+    GRID_CELL_KM_H =\
+        int(round(GRID_CELL_KM_W * (GRID_CELL_H / GRID_CELL_W)))
+
+    # G_LNS = horz and vert lines of the grid, for faster drawing.
+    # -----
+    G_LNS_V = GRID_COLS + 1
+    G_LNS_H = GRID_ROWS + 1
+    G_LNS_PX_W = GRID_CELL_W * GRID_COLS
+    G_LNS_PX_H = GRID_CELL_H * GRID_ROWS
+    G_LNS_KM_W = GRID_CELL_KM_W * GRID_COLS
+    G_LNS_KM_H = GRID_CELL_KM_H * GRID_ROWS
+    # line segment specifications
+    # x,y each horiz or vert line segment
+    G_LNS_X_LEFT = GRID_OFFSET_X + GRID_BOX.x
+    G_LNS_X_RGHT = G_LNS_X_LEFT + G_LNS_PX_W
+    G_LNS_Y_TOP = GRID_OFFSET_Y + GRID_BOX.y
+    G_LNS_Y_BOT = G_LNS_Y_TOP + G_LNS_PX_H
+    G_LNS_HZ: list = list()
+    G_LNS_VT: list = list()
+    for hz in range(G_LNS_H):
+        y = G_LNS_Y_TOP + (hz * GRID_CELL_H)
+        G_LNS_HZ.append([(G_LNS_X_LEFT, y), (G_LNS_X_RGHT, y)])
+    for vt in range(G_LNS_V):
+        x = G_LNS_X_LEFT + (vt * GRID_CELL_W)
+        G_LNS_VT.append([(x, G_LNS_Y_TOP), (x, G_LNS_Y_BOT)])
+
+    # G_CELL = grid data-cell matrix, a record for each grid-cell
+    # ------
+    # The static data for each grid-cell consists of:
+    # - KEY: unique string in "0n_0n" format
+    # - DATA:
+    #   - SaskanMath rectangle object for grid-cell
+    #   - PyGame rectangle object for grid-cell
+    # Then can be overloaded as needed based on MAPs.
+    G_CELL: dict = dict()
+    for c in range(0, GRID_COLS):
+        for r in range(0, GRID_ROWS):
+            ky = f"{str(c).zfill(2)}_{str(r).zfill(2)}"
+            x = G_LNS_VT[c][0][0] # x of vert line
+            y = G_LNS_HZ[r][0][1] # y of horz line
+            G_CELL[ky] = {
+                "s_rect": SR.make_rect(
+                    y, x, GRID_CELL_W, GRID_CELL_H)}
+            G_CELL[ky]["box"] = G_CELL[ky]["s_rect"]["pg_rect"]
+
     # Other
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
 
 class GameData(object):
-    """Get and set static and dynamic resources used inside the app.
+    """Get and set static and dynamic resources used inside app.
     This class is instantiated as GDAT, a global object.
     
     Includes:
     - Status flags
-    - Grid defintions
 
     @DEV:
     - Handle layers of data, zoom-in, zoom-out, other views
@@ -247,35 +334,22 @@ class GameData(object):
     """
     def __init__(self):
         """Status flags:
-        - currently loaded map data
-        - currently loaded console
-        - currently loaded grid:     
-            - "D" = data outside a specific grid
-            - "G" = grids matrix, with data record for each grid-square
-            - "L" = lines
-        - set up default D, G, L
+        - currently loaded grid data
+        - currently loaded console data
+        - currently loaded map (post) data
         """
-        self.divider = "-" * 16
-        self.post = {"active": False,
-                     "catg": None,
-                     "item": None}
+        self.MAPDATA = {"active": False,
+                        "catg": None,
+                        "item": None}
         
-        self.console = {"is_visible": False,
-                        "con_box": pg.Rect,
-                        "T": list(),
-                        "t_img": list(),
-                        "t_box": list(),
-                        "title": {"text": '',
-                                  "img": pg.Surface,
-                                  "box": pg.Rect}}
-        self.grid = {"D": dict(),
-                     "L": dict(),
-                     "G": dict()}
-        self.init_grid_d()
-        self.init_grid_l()
-        self.init_grid_g()
+        self.CONSOLE_TEXT_REC = {"text": "",
+                                 "img": None,
+                                 "box": None}
+        self.CONSOLE_TEXT: list = list()
 
     # Init methods for GAMEMAP (game map window)
+    # Should be able to get rid of these.
+    # These are now initialized in the PG class.
     # ==========================================
     def init_grid_d(self):
         """
@@ -287,7 +361,7 @@ class GameData(object):
             - Set border box for GAMEMAP.
             - Set grid offset from GAMEMAP.
             - Set number of grid rows, cols.
-            - Set px and km per grid-square.
+            - Set px and km per grid-cell.
         - For conversions to other units, use SaskanMath class.
         Note: px refers to the pygame drawing units.
 
@@ -302,7 +376,7 @@ class GameData(object):
         self.grid["D"]["grid_box"] = self.grid["D"]["grid_rect"]["box"]
         # TopLeft offset from GAMEMAP to grid:
         self.grid["D"]["offset"] = {"x": 17, "y": 18}
-        # Sizing of matrix and of individual grid-squares:
+        # Sizing of matrix and of individual grid-cells:
         self.grid["D"]["dim"] = {
             "rows": 34,
             "cols": 44,
@@ -343,8 +417,8 @@ class GameData(object):
 
     def init_grid_g(self):
         """ 
-        - Define "G" (grid-square-specific) data records.
-        - Define a rect and box for each grid-square.
+        - Define "G" (grid-cell-specific) data records.
+        - Define a rect and box for each grid-cell.
         """
         for c in range(0, self.grid["D"]["dim"]["cols"]):
             for r in range(0, self.grid["D"]["dim"]["rows"]):
@@ -358,8 +432,6 @@ class GameData(object):
                 self.grid["G"][g_ky]["g_box"] =\
                     self.grid["G"][g_ky]["g_rect"]["box"]
 
-    # Game Data Helper methods
-    # ==============================
     def make_grid_key(self,
                       p_col : int,
                       p_row: int) -> str:
@@ -369,7 +441,7 @@ class GameData(object):
         - p_col: int, column number
         - p_row: int, row number
         :returns:
-        - str, key for specific grid-square record, in "0n_0n" format
+        - str, key for specific grid-cell record, in "0n_0n" format
         """
         return f"{str(p_col).zfill(2)}_{str(p_row).zfill(2)}"
 
@@ -377,18 +449,21 @@ class GameData(object):
                  p_post: dict):
         """Capture status settings, "posted" game data, in the sense
            of data "posted" to a bulletin board, or a HTTP POST.
-        Example: key values pointing to data in JSON files (later: from DB)
-        :args:
-        - p_post (dict): name-value pairs for class .post structure.
+        Data is posted to the .MAPDATA structure from sources outside
+           the app, like files or services or database.
+        Example: key values pointing to geo-data in JSON files or DB
+        Self.MAPDATA is initialized in the __init__ method of this class:
           Defaults:
-            - "active": boolean indicating whether gamewin is active
-            - "catg": name of category to load
-            - "item": name of item to load
+            - "active": boolean indicating whether gamemap is active (false)
+            - "catg": name of category to load (None)
+            - "item": name of item to load (None)
+        :args:
+        - p_post (dict): name-value pairs for class .MAPDATA structure.
         :sets:
-        - self.post (dict): name-value pairs for class .post structure.
+        - self.MAPDATA (dict): name-value pairs for class .MAPDATA structure.
         """
         for k, v in p_post.items():
-            self.post[k] = v
+            self.MAPDATA[k] = v
 
     # Game Data console methods
     # =============================
@@ -401,7 +476,7 @@ class GameData(object):
         :sets:
         - self.console["T"] (list): list of strings to render as text
         """
-        self.console["T"].append(self.divider)
+        self.console["T"].append(PG.CONSOLE_DIVIDER)
         self.console["T"].append(f"{p_attr['label']}:")
         self.console["T"].append(f"  {p_attr['name']}")
 
@@ -415,7 +490,7 @@ class GameData(object):
         :sets:
         - self.console["T"] (list): list of strings to render as text
         """
-        self.console["T"].append(self.divider)
+        self.console["T"].append(PG.CONSOLE_DIVIDER)
         self.console["T"].append(f"{p_attr['label']}:")
         self.console["T"].append(f"  {p_attr['name']} " +
                                  f"({p_attr['type']})")
@@ -431,10 +506,10 @@ class GameData(object):
         :sets:
         - self.console["T"] (list): list of strings to render as text
         """
-        self.console["T"].append(self.divider)
+        self.console["T"].append(PG.CONSOLE_DIVIDER)
         self.console["T"].append(f"{p_names['label']}:")
         self.console["T"].append(f"  {p_names['common']}")
-        self.set_console_header(p_names['common'])
+        # self.set_console_header(p_names['common'])
         if "other" in p_names.keys():
             for k, v in p_names["other"].items():
                 self.console["T"].append(f"    {k}: {v}")
@@ -447,7 +522,7 @@ class GameData(object):
         :sets:
         - self.console["T"] (list): list of strings to render as text
         """
-        self.console["T"].append(self.divider)
+        self.console["T"].append(PG.CONSOLE_DIVIDER)
         if "distance" in p_map.keys():
             distance = p_map["distance"]
             self.console["T"].append(f"{distance['label']}:")
@@ -472,7 +547,7 @@ class GameData(object):
         :sets:
         - self.console["T"] (list): list of strings to render as text
         """
-        self.console["T"].append(self.divider)
+        self.console["T"].append(PG.CONSOLE_DIVIDER)
         self.console["T"].append(f"{p_contains['label']}:")
         if "sub-region" in p_contains.keys():
             self.console["T"].append(
@@ -519,8 +594,8 @@ class GameData(object):
     def set_console_text(self):
         """Format a list of strings to render as text for display in console.
         Store list of strings in the .console["T"] structure.
-        .post["catg"] identifies source of config data to format.
-        .post["item"] identifies type of data to format.
+        .MAPDATA["catg"] identifies source of config data to format.
+        .MAPDATA["item"] identifies type of data to format.
         
         @TODO:
         - Move the geo data into a database.
@@ -533,14 +608,14 @@ class GameData(object):
                          PG.CONSOLE_W, PG.CONSOLE_H)
         self.console["con_box"] = self.console["con_rect"]["box"]
         self.console["T"] = list()
-        self.set_console_header(PG.CONSOLE["ttl"])
+        # self.set_console_header(PG.CONSOLE["ttl"])
         
-        pp(('self.post["catg"]', self.post["catg"],
-            'self.post["item"]', self.post["item"]))
+        pp(('self.MAPDATA["catg"]', self.MAPDATA["catg"],
+            'self.MAPDATA["item"]', self.MAPDATA["item"]))
         
         # Contents
-        if self.post["catg"] == "geo":
-            con_data = FI.G[self.post["catg"]][self.post["item"]]
+        if self.MAPDATA["catg"] == "geo":
+            con_data = FI.G[self.MAPDATA["catg"]][self.MAPDATA["item"]]
             if "type" in con_data.keys():
                 self.set_t_lbl_nm(con_data["type"])
             if "contained_by" in con_data.keys():
@@ -558,12 +633,12 @@ class GameData(object):
     def set_map_dim(self,
                     p_map: dict):
         """Set dimensions of current map within the grid.
-        - Scale .post["item"] type data to grid default dims.
+        - Scale .MAPDATA["item"] type data to grid default dims.
         For example:
         - Center the selected map within the grid N-S and E-W.
         - Draw boundaries of the map on top of the grid and store
           as .grid["D"] data.
-        - Indicate if each grid-square is inside, outside or crossing
+        - Indicate if each grid-cell is inside, outside or crossing
           the map boundaries. Store as .grid["G"] data.
         N.B.
         - Topleft of grid (not GAMEMAP) is origin for map.
@@ -635,8 +710,8 @@ class GameData(object):
         if map_km['h'] < grid_l["km"]["h"] and\
            map_km['w'] < grid_l["km"]["w"]:
                 self.grid["D"]["map"] = {
-                    "item_ky": self.post["item"],
-                    "item_nm": FI.G[self.post["catg"]][self.post["item"]]["name"],
+                    "item_ky": self.MAPDATA["item"],
+                    "item_nm": FI.G[self.MAPDATA["catg"]][self.MAPDATA["item"]]["name"],
                     "m_rect": SR.make_rect(map_top, map_left, map_px['w'], map_px['h'])}
                 self.grid["D"]["map"]["m_box"] = self.grid["D"]["map"]["m_rect"]["box"]
         # Do a collision check between the map box and each grid box
@@ -649,7 +724,7 @@ class GameData(object):
                 self.grid["G"][gk]["overlaps"] = True
 
     def set_map_data(self):
-        """Based on currently selected .post["catg"] and .post["item"],
+        """Based on currently selected .MAPDATA["catg"] and .MAPDATA["item"],
             assign values to the .grid["D"] or ["G"] attributes.
             .grid["D"] is for data not confined to a specific grid
             .grid["G"][col_row] is a matrix of data for each grid
@@ -662,8 +737,8 @@ class GameData(object):
         - Move geo data to database
         """
         self.grid["D"]["is_visible"] = True
-        if self.post["catg"] == "geo":
-            data = FI.G[self.post["catg"]][self.post["item"]]
+        if self.MAPDATA["catg"] == "geo":
+            data = FI.G[self.MAPDATA["catg"]][self.MAPDATA["item"]]
             if "map" in data.keys():
                 self.set_map_dim(data["map"])
 
@@ -1055,40 +1130,6 @@ class HtmlDisplay(object):
         webbrowser.open(p_help_uri)
 
 
-class PageHeader(object):
-    """Create an object to hold text for header.
-    This class instantiates a widget drawn at top of a window.
-    For example, on a console or report window.
-    It is not a global object.
-
-    Should probably be instantiated as a global object: PHDR.
-    Its location is fixed and set in the PG dataclass.
-    """
-
-    def __init__(self,
-                 p_hdr_txt: str = ""):
-        """ Initialize PageHeader.
-        :args:
-        - p_hdr_txt: (str) Text to display in header.
-        """
-        self.set_text(p_hdr_txt)
-
-    def set_text(self,
-                 p_hdr_txt: str = ""):
-        """ Set text for PageHeader.
-        :args:
-        - p_hdr_txt: (str) Text to display in header.
-        """
-        self.img = PG.F_SANS_LG.render(p_hdr_txt, True,
-                                       PG.CP_BLUEPOWDER, PG.CP_BLACK)
-        self.box = self.img.get_rect()
-        self.box.topleft = PG.HDR_LOC
-
-    def draw(self):
-        """ Draw PageHeader. """
-        PG.WIN.blit(self.img, self.box)
-
-
 class GameConsole(object):
     """Draw the Game Consoled (info) window (rect).
     Display game data like score, map descriptions, etc.
@@ -1176,7 +1217,7 @@ class GameMap(object):
         pg.draw.rect(PG.WIN, PG.CP_PALEPINK, GDAT.grid["D"]["map"]["m_box"], 5)
 
     def draw_grid(self, grid_loc: str):
-        """For now, just highlight/colorize a grid-square.
+        """For now, just highlight/colorize a grid-cell.
         The INFOBAR object stores a "grid_loc" value indicating
         what grid the cursor is presently hovering over. When this
         method is called from refesh_screen(), it passes that key
@@ -1412,7 +1453,7 @@ class SaskanGame(object):
         - frame_cnt: increment if tracking status and not in a freeze mode
         - cursor: if no text input box is activated, set to default
         """
-        if GDAT.post["active"]:
+        if GDAT.MAPDATA["active"]:
             IBAR.info_status["on"] = True
         if IBAR.info_status["on"] is True and\
             IBAR.info_status["frozen"] is False:
