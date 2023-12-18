@@ -6,19 +6,22 @@
 Saskan App GUI.  pygame version.
 
 :classes:
-    - PG: Frozen constants, using PyGame and config constructs
-    - GameMenu: Manage applications menu bars, items, draw and click events
+    - PG: Frozen constants and static game values
+    - GameData: Dynamic game values and data structures
+    - GameMenu: Manage menu bars, menu items, draw and click events
     - HtmlDisplay: Manage display of HTML pages in a browser
     - TextInput: Handle text input events in a single input box
     - TextInputGroup: Handle groups of text input boxes, like a form
-    - GameData: Load, scrub, organize, and manage game-related data
-    - GameConsole: Manage display of data (text) in game console window
-    - GameMap: Manage display of map & related widgets in game map window
     - InfoBar: Manage display of info bar/dock at bottom of main frame
-    - SaskanGame: Main game class, includes event loop, event handlers,
-        state management, and rendering of all game windows and widgets
+    - GameConsole: Manage display of widgets (text, for now) in CONSOLE
+    - GameMap: Manage display of map & related widgets in GAMEMAP
+    - SaskanGame: Main class, event loop, state mgmt, event handlers
     - __main__: Entry point for this module, instantitates all classes
 
+    Note:
+    For scaling images, see: https://www.pygame.org/docs/ref/transform.html
+    Example: scaled_image =\
+        pygame.transform.scale(original_image, (new_width, new_height))
 
 @DEV:
 - Prototype basic game activities like:
@@ -28,68 +31,54 @@ Saskan App GUI.  pygame version.
     - sound and music
 - Use pygame for graphics, sound, everything else.
 - Go for more features, better performance than earler prototypes,
-    but don't worry too much about interactiviity or complete game
-    yet. Focus most on prototyping the WINSas.
-- Set up menus. Use what works from Admin GUI, budget GUI, etc.
-- Use JSON config files to define sizes, shapes of static things.
+    but don't worry about interactiviity or complete game yet.
+    Focus most on prototyping the windows and widgets.
+- Convert from JSON to DB for most values.
+- Only use JSON for install-level customizations, overrides.
 - Use io_time, io_graph, io_music modules for dynamic things.
-- Use wiretap and logger, but don't get side-tracked.
+- Reimplement wiretap and logger modules later on.
     - Print statements and debugger are OK for now.
 - Sketch out what I want to do before stating to do much code.
-    - OK to start simpler. Experiment, be agile.
+    - Start simple. Experiment, be agile. Use CoPilot and ChatGPT.
     - See pygame_lab/app4 ("turtles") for some ideas.
-
-@NEXT:
-
-+ Manage status of menu items using metadata. Enable/disable based on state,
-  not only on start/default, but following any given menu-item click.
-+ Extend regions metadata (JSON) and code to support drawing high-level box (map) borders.
-+ Load schema data for Saskan Lands.
-+ Colorize grids based on political boundaries.
-- Show key/legend for political boundaries.
-- Add region names to map, using different fonts for different types of regions.
-- Map degrees and km to default map size and grids.
-- Add directional arrows, some measures (text, like degrees N, S, E, W) to the map.
-
-- Get a basic more or less complete (skeletal) game up and running.
-- On start:
+- Work on loading, displaying more complex maps/settings data.
+    - Show key/legend for political boundaries.
+    - Work on some geographical data.
+    - Work on some temporal data.
+    - Work on some weather data.
+    - Work on some demographic (population, language, religion) data.
+    - Show region names, using different fonts for stuff.
+    - Show degrees and km data.
+    - Add arrows, some measures (text, degrees N, S, E, W) to the map.
+    - Elaborate borders, textures at more detail.
+    - Zoomi in/out to different levels of detail.
+    - Show terrain and other factors into account for movement.
+    - Track time, season, date, etc.
+- Work on skeletal game events and interactions.
     - Identify a single AI player.
         - See code in ontology lab.
-            - Pick just a few things to start with.
-            - Parameterize the data using JSON.
-            - Eventually, parameterize all the ontology structures and static data.
-            - For now:
-                - Just input a name, don't use the generators.
-                - Roll the basic attributes, age, home region, DNA, guild affiliation.
-                - Pick a starting location.
-        - Then do a rough sketch of player actions and events.
+            - Pick a few things to start with.
+            - Parameterize the data.
+            - Set or get a name.
+            - Roll basic attributes, age, home region, DNA, guild affiliation.
+            - Pick starting location.
+        - Sketch of player actions and events, starting w/movement.
             - Highlight what grid player is in.
             - Display data for grid that player is in.
             - Accept input for what grid to travel to.
             - Compute time to walk, to ride to target grid.
             - Animate movement, show time passing, highlight grids passed thru.
-    - Add more types of regions, terrain, etc. to map.
         - Start to develop inventory of image widgets, textures, sounds, etc.
-        - Sound effects for movement.
-        - Theme music for different regions.
-        - Play a new theme when entering a different region, town, etc.
-    - Add simple sets, scenes, to GameData.
-    - Learn! Use what I learn to improve the game.
-        - Before adding more players, work on:
-            - Elaborating borders, textures at more detail.
-            - Zooming in/out to different levels of detail.
-            - Taking terrain and other factors into account for movement.
-            - Tracking time, season, date, etc.
-            - Player functions like:
-                - Energy, market, inventory, food/eating, etc.
+            - Start simple and stupid, then improve.
+            - Sound effects for movement.
+            - Theme music for different regions.
+            - Play a new theme when entering a different region, town, etc.
+        - Add simple sets, scenes.
+        - Work on player functions like:
+            - Energy, market, inventory, food/eating, etc.
     - Add more AI players.
         - Start to design some typical encounters.
         - Start to design some typical scenarios, following the script / beat sheet.
-
-    Note:
-    For scaling images, see: https://www.pygame.org/docs/ref/transform.html
-    Example: scaled_image =\
-        pygame.transform.scale(original_image, (new_width, new_height))
 """
 
 import platform
@@ -100,7 +89,6 @@ import webbrowser
 from copy import copy
 from dataclasses import dataclass
 from pprint import pformat as pf    # noqa: F401, format like pp for files
-from pprint import pprint as pp     # noqa: F401
 from pygame.locals import *         # noqa: F401, F403
 
 from io_file import FileIO          # type: ignore
@@ -184,8 +172,8 @@ class PG():
     info = pg.display.Info()
     PLATFORM = (
         FI.F[FRAME]["dsc"] +
-        " | " + platform.platform() +
-        " | " + platform.architecture()[0] +
+        #  " | " + platform.platform() +
+        #  " | " + platform.architecture()[0] +
         f" | monitor (w, h): {info.current_w}, {info.current_h}" +
         " | Python " + platform.python_version() +
         " | Pygame " + pg.version.ver)
@@ -266,8 +254,8 @@ class PG():
     # Pygame rectangle object:
     GRID_BOX = GRID_S_RECT["pg_rect"]
     # top-left, from GAMEMAP to grid
-    GRID_OFFSET_X = GAMEMAP_W * 0.01
-    GRID_OFFSET_Y = GAMEMAP_H * 0.01
+    GRID_OFFSET_X = int(round(GAMEMAP_W * 0.01))
+    GRID_OFFSET_Y = int(round(GAMEMAP_H * 0.02))
     GRID_ROWS = 32
     GRID_COLS = 46
     GRID_VISIBLE = False
@@ -288,10 +276,10 @@ class PG():
     G_LNS_KM_H = GRID_CELL_KM_H * GRID_ROWS
     # line segment specifications
     # x,y each horiz or vert line segment
-    G_LNS_X_LEFT = GRID_OFFSET_X + GRID_BOX.x
-    G_LNS_X_RGHT = G_LNS_X_LEFT + G_LNS_PX_W
-    G_LNS_Y_TOP = GRID_OFFSET_Y + GRID_BOX.y
-    G_LNS_Y_BOT = G_LNS_Y_TOP + G_LNS_PX_H
+    G_LNS_X_LEFT = int(round(GRID_OFFSET_X + GRID_BOX.x))
+    G_LNS_X_RGHT = int(round(G_LNS_X_LEFT + G_LNS_PX_W))
+    G_LNS_Y_TOP = int(round(GRID_OFFSET_Y + GRID_BOX.y))
+    G_LNS_Y_BOT = int(round(G_LNS_Y_TOP + G_LNS_PX_H))
     G_LNS_HZ = list()     # (x1, y1), (x2, y2)
     G_LNS_VT = list()     # (x1, y1), (x2, y2)
     for hz in range(GRID_ROWS + 1):
@@ -558,9 +546,9 @@ class GameData(object):
                 self.set_contains_attr(ci["contains"])
             self.render_text_lines()
 
-    def compute_km_scale(self,
-                         p_attr: dict):
-        """Compute km scaling for the map and grid.
+    def compute_map_scale(self,
+                          p_attr: dict):
+        """Compute scaling, position for the map and grid.
         :attr:
         - p_attr (dict): 'map' data for the "Saskan Lands" region from
             the saskan_geo.json file.
@@ -576,25 +564,44 @@ class GameData(object):
         - Center 'map' in the 'grid'; by grid count, by px
         """
         err = ""
-        m_km = {'w': p_attr["distance"]["width"]["amt"],
-                'h': p_attr["distance"]["height"]["amt"]}
-        if m_km['w'] > PG.G_LNS_KM_W:
-            err = f"Map km w {m_km['w']} > grid km w {PG.G_LNS_KM_W}"
-        if m_km['h'] > PG.G_LNS_KM_H:
-            err = f"Map km h {m_km['h']} > grid km h {PG.G_LNS_KM_H}"
+        map = {'ln': dict(),
+               'cl': dict()}
+        # Evaluate map line lengths in kilometers
+        map['ln']['km'] =\
+            {'w': round(int(p_attr["distance"]["width"]["amt"])),
+             'h': round(int(p_attr["distance"]["height"]["amt"]))}
+        if map['ln']['km']['w'] > PG.G_LNS_KM_W:
+            err = f"Map km w {map['w']} > grid km w {PG.G_LNS_KM_W}"
+        if map['ln']['km']['h'] > PG.G_LNS_KM_H:
+            err = f"Map km h {map['h']} > grid km h {PG.G_LNS_KM_H}"
         if err != "":
             raise ValueError(err)
-        m_km['cells'] = {'w': PG.G_LNS_KM_W / m_km['w'],
-                         'h': PG.G_LNS_KM_H / m_km['h']}
-        g_off_w = (PG.GRID_COLS - m_km['cells']['w']) / 2
-        g_off_h = (PG.GRID_ROWS - m_km['cells']['h']) / 2
-        m_km['px'] = {'w': m_km['cells']['w'] * PG.G_LNS_PX_W,
-                      'h': m_km['cells']['h'] * PG.G_LNS_PX_H,
-                      'left': PG.GRID_OFFSET_X +\
-                              round((g_off_w * PG.GRID_CELL_PX_W), 2),
-                      'top': PG.GRID_OFFSET_Y +\
-                             round((g_off_h * PG.GRID_CELL_PX_H), 2)}
-        self.G_CELLS["map"] = m_km
+        # Verified that the map rect is smaller than the grid rect.
+        # Compute a ratio of map to grid.
+        # Divide map km w, h by grid km w, h
+        map['ln']['ratio'] =\
+            {'w': round((map['ln']['km']['w'] / PG.G_LNS_KM_W), 4),
+             'h': round((map['ln']['km']['h'] / PG.G_LNS_KM_H), 4)}
+        # Compute map line dimensions in px
+        # Multiply grid line px w, h by map ratio w, h
+        map['ln']['px'] =\
+            {'w': int(round(PG.G_LNS_PX_W * map['ln']['ratio']['w'])),
+            'h': int(round(PG.G_LNS_PX_H * map['ln']['ratio']['h']))}
+        # The map rect needs to be centered in the grid rect.
+        #  Compute the offset of the map rect from the grid rect.
+        #  Compute topleft of the map in relation to topleft of the grid.
+        #  The map top is offset from grid top by half the px difference
+        #  between grid height and map height.
+        #  The map left is offset from grid left by half the px difference
+        #  between grid width and map width.
+        # And then adjusted once more for the offset of the grid from the window.
+        map['ln']['px']['left'] =\
+            int(round((PG.G_LNS_PX_W - map['ln']['px']['w']) / 2) +
+                      PG.GRID_OFFSET_X)
+        map['ln']['px']['top'] =\
+            int(round((PG.G_LNS_PX_H - map['ln']['px']['h']) / 2) +
+                      (PG.GRID_OFFSET_Y * 4))  #  not sure why, but I need this
+        self.G_CELLS["map"] = map
 
     def set_map_grid_collisions(self):
         """ Store collisions between G_CELLS and 'map' box.
@@ -621,53 +628,26 @@ class GameData(object):
             For example, 'map' data for the "Saskan Lands" region from
             the saskan_geo.json file.
 
-        - Set dimensions of selected "map" within the "grid".
-        - At present, this means two sets of game-play measures:
-            - "distance" in kilometers
-            - "location" in degrees
-        - Scale map measures (m_) to grid (g_) dimensions.
-        - Center selected map within the grid N-S and E-W.
-        - Draw boundaries of map over grid; store as G_CELL data
-        - Indicate if a grid-cell is inside, outside or crosses
-          a map boundary. Store as G_CELL data.
-
-        Notes:
-        - Topleft offsets of GRID_BOX are origin for "map".
-        - Scale, not just fit the map into the grid.
-            - We have default km per grid-cell.
-            - Eventually that will scale too, but for now, it's fixed.
-            - Scale the map to fit the grid, not other way around.
-            - At this juncture, km w/h of 'map' must be < km w/h of grid.
-
-        @DEV:
-        Next..
-        - make km setting of grid variable, not fixed
-        - handle more complex shapes
-        - shapes with holes
-        - shapes with holes and islands
-        - shapes with holes and islands and tunnels
-        Probably want to use a library for more complex shapes.
-          Butget a feel for math & logic first
+        - Compute ratio, offsets of map to g_ width & height.
+        - Define saskan rect and pygame box for the map
+        - Do collision checks between the map box and grid cells
         """
-        # Compute ratio, offsets of m_km to g_ width & height.
-        self.compute_km_scale(p_attr)
-        # Define rect and box for the map
-        self.G_CELLS["map"]["s_rect"] =\
-            SR.make_rect(self.G_CELLS["map"]["km"]["px"]["top"],
-                         self.G_CELLS["map"]["km"]["px"]["left"],
-                         self.G_CELLS["map"]["km"]["px"]["w"],
-                         self.G_CELLS["map"]["km"]["px"]["h"])
+        self.compute_map_scale(p_attr)
+        map_px = self.G_CELLS["map"]["ln"]["px"]
+        self.G_CELLS["map"]["s_rect"] =  SR.make_rect(map_px["top"],
+                                                      map_px["left"],
+                                                      map_px["w"],
+                                                      map_px["h"])
         self.G_CELLS["map"]["box"] =\
             self.G_CELLS["map"]["s_rect"]["pg_rect"]
-        # Do a collision check between the map box and each grid box
         self.set_map_grid_collisions()
 
-    def set_map_grid_cells(self):
+    def set_map_grid(self):
         """
         Based on currently selected .DATASRC["catg"] and .DATASRC["item"]:
-        - assign values to G_CELLS.
+        - assign values to G_CELLS for "map".
         Note:
-        - For now, only "geo" data is being handled (saskan_geo.json)
+        - For now, only "geo" data (saskan_geo.json) is handled
         """
         if self.DATASRC["catg"] == "geo":
             data = FI.G[self.DATASRC["catg"]][self.DATASRC["item"]]
@@ -999,7 +979,6 @@ class InfoBar(object):
     def __init__(self):
         """ Initialize Info Bar. """
         self.info_status = {
-            "on": False,
             "frozen": True,
             "frame_cnt": 0,
             "mouse_loc": (0, 0),
@@ -1008,7 +987,7 @@ class InfoBar(object):
     def set_ibar_status_text(self):
         """ Set Info Bar status text. """
         self.status_text = (
-            "Generation: " + str(self.info_status["frame_cnt"]) +
+            "Frame: " + str(self.info_status["frame_cnt"]) +
             "    | Mouse: " + str(self.info_status["mouse_loc"]) +
             "    | Grid: " + str(self.info_status["grid_loc"]))
 
@@ -1017,8 +996,7 @@ class InfoBar(object):
         Set and draw the Info Bar text.
         Draw the info bar text, optionally including status info.
         """
-        text = PG.PLATFORM + "   | " + self.status_text\
-            if self.info_status["on"] is True else PG.PLATFORM
+        text = PG.PLATFORM + "   | " + self.status_text
         self.itxt = PG.F_SANS_SM.render(text, True, PG.CP_BLUEPOWDER,
                                         PG.CP_BLACK)
         self.ibox = self.itxt.get_rect()
@@ -1291,9 +1269,9 @@ class SaskanGame(object):
                               "item": 'Saskan Lands',
                               "active": True})
             GDAT.set_console_text()
-            GDAT.set_map_grid_cells()
-        elif mi_k == "status":
-            IBAR.info_status["on"] = not IBAR.info_status["on"]
+            GDAT.set_map_grid()
+        # elif mi_k == "status":
+        #     IBAR.info_status["on"] = not IBAR.info_status["on"]
         elif mi_k == "pause_resume":
             IBAR.info_status["frozen"] = not IBAR.info_status["frozen"]
 
@@ -1336,10 +1314,9 @@ class SaskanGame(object):
         - frame_cnt: increment if tracking status and not in a freeze mode
         - cursor: if no text input box is activated, set to default
         """
-        if IBAR.info_status["on"] is True and\
-            IBAR.info_status["frozen"] is False:
-                IBAR.info_status["frame_cnt"] += 1
         IBAR.info_status["mouse_loc"] = pg.mouse.get_pos()
+        if IBAR.info_status["frozen"] is False:
+            IBAR.info_status["frame_cnt"] += 1
         self.track_grid()
 
         # For managing text input boxes:
@@ -1364,8 +1341,7 @@ class SaskanGame(object):
         CONSOLE.draw()
 
         # Check, Draw info bar
-        if IBAR.info_status["on"] is True:
-            IBAR.set_ibar_status_text()
+        IBAR.set_ibar_status_text()
         IBAR.draw()
         
         # Draw the game map
