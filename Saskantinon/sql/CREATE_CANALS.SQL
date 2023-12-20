@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS canals (
     canal_name TEXT PRIMARY KEY,
     canal_desc TEXT NOT NULL,
-    canal_type TEXT NOT NULL,
+    canal_type TEXT NOT NULL CHECK (canal_type IN ('irrigation', 'waterway', 'drainage', 'power generation', 'water supply', 'fishing wier', 'flood control', 'other')),
+    navigation_type TEXT CHECK (navigation_type IN ('small craft', 'large craft')),
     origin_sea_name_fk TEXT,
     origin_lake_name_fk TEXT,
     origin_river_name_fk TEXT,
@@ -13,10 +14,10 @@ CREATE TABLE IF NOT EXISTS canals (
     width_m NUMERIC NOT NULL,
     depth_m NUMERIC NOT NULL,
     length_km NUMERIC NOT NULL,
-    origin_latd_dg: number,
-    origin_longd_dg: number,
-    dest_latd_dg: number,
-    dest_longd_dg: number,
+    origin_latd_dg NUMERIC,
+    origin_longd_dg NUMERIC,
+    dest_latd_dg NUMERIC,
+    dest_longd_dg NUMERIC,
 	canal_object BLOB NOT NULL,
 	FOREIGN KEY (origin_sea_name_fk) REFERENCES seas(sea_name),
 	FOREIGN KEY (origin_lake_name_fk) REFERENCES lakes(lake_name),
@@ -36,8 +37,7 @@ Object structure:
       "path_origin_lond_dg": <path_dest>}, ...},
       "path_dest_latd_dg": <path_dest>}, ...},
       "path_dest_long_dg": <path_dest>}, ...},
-      "is_navigable": <is_navigable>}, ...},
-      "navigation_type": <navigation_type>}
+      "is_navigable": <is_navigable>}, ...}
      }, ...]
 }
 */

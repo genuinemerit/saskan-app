@@ -1,4 +1,15 @@
 CREATE TABLE IF NOT EXISTS maps (
+    /* A map is always a rectangle.
+       It will be overlaid with more detailed information
+       relating to things like:
+         - geography (mountains, hills, rivers, lakes, seas, oceans, etc.)
+         - political boundaries (countries, provinces, states, counties, etc.)
+         - roads, paths, trails, etc.
+         - cities, towns, villages, etc.
+         - other points of interest (ruins, temples, etc.)
+         - natural resources (mines, quarries, etc.)
+         - demographics (population density, etc.)
+    */
     map_name TEXT PRIMARY KEY,
     demographic_ty TEXT NOT NULL,
 	contained_by_fk TEXT NOT NULL,
@@ -14,7 +25,7 @@ CREATE TABLE IF NOT EXISTS maps (
     E_dg_lond NUMERIC NOT NULL,
     W_dg_lond NUMERIC NOT NULL,
     map_object BLOB NOT NULL,
-	FOREIGN KEY (contained_by_fk) REFERENCES maps(map_name)
+	FOREIGN KEY (contained_by_fk) REFERENCES maps(map_name) ON DELETE CASCADE
 );
 /*
 map_object structure:
