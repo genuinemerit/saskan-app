@@ -82,12 +82,14 @@ Saskan App GUI.  pygame version.
 """
 
 import platform
+from numpy import append
 import pygame as pg
 import sys
 import webbrowser
 
 from copy import copy
 from dataclasses import dataclass
+from pprint import pprint as pp    # noqa: F401, format like pp for files
 from pprint import pformat as pf    # noqa: F401, format like pp for files
 from pygame.locals import *         # noqa: F401, F403
 
@@ -218,7 +220,7 @@ class PG():
     # Content
     # For now, the header/title on CONSOLE is static
     CONSOLE_TTL_TXT = FI.W["game_windows"]["console"]["ttl"]
-    CONSOLE_TTL_IMG = F_SANS_LG.render(CONSOLE_TTL_TXT,
+    CONSOLE_TTL_IMG = F_SANS_MED.render(CONSOLE_TTL_TXT,
                                        True, CP_BLUEPOWDER, CP_BLACK)
     CONSOLE_TTL_BOX = CONSOLE_TTL_IMG.get_rect()
     CONSOLE_TTL_BOX.topleft = (CONSOLE_X + 5, CONSOLE_Y + 5)
@@ -312,9 +314,19 @@ class PG():
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
 
+class GameDataNew(object):
+    """Get resources for display in GAMEMAP and CONSOLE.
+    Read mainly from the DB. May be a few config files too.
+    Notes:
+    - "txt" refers to a string of text.
+    - "img" refers to a PyGame image object rendered from the txt.
+    - "box" refers to a PyGame rectangle object around the img.
+    """
+    pass
+
+
 class GameData(object):
-    """Get and set static and dynamic resources displayed in GAMEMAP
-       and CONSOLE.
+    """Get and set resources displayed in GAMEMAP and CONSOLE.
     This class is instantiated as GDAT, a global object.
     Notes:
     - "txt" refers to a string of text.
@@ -325,6 +337,11 @@ class GameData(object):
     - Ee.g.: a region, a town and environs, a village, a scene, star map
     - GUI controls for scroll, zoom, pan, select-move, etc
     - Event trigger conditions / business rules
+
+    - This class is quite large. Let's think about 3 classes:
+        - GameData: load data for use in GAMEMAP and CONSOLE
+        - SetConsole: prep data, incl. widget definitions, for CONSOLE
+        - SetGameMap: align data to grid for scaling, zooming
     """
     def __init__(self):
         """Dynamically loaded data for GAMEMAP and CONSOLE.
@@ -372,19 +389,9 @@ class GameData(object):
         for k, v in p_datasrc.items():
             self.DATASRC[k] = v
 
-    def extend_console(self) -> int:
-        """Append a data record to CONSOLE_TEXT list.
-        :sets:
-        - self.CONSOLE_TEXT (list): list of text items
-        :returns:
-        - int: index of new record
-        """
-        self.CONSOLE_TEXT.append(self.CONSOLE_REC)
-        return len(self.CONSOLE_TEXT) - 1
-
     def set_label_name(self,
                        p_attr: dict):
-        """Set text for a label (l) and name (n), but no type (t).
+        """Set text for a label (l) and name (n), but no type (t) value.
            Example: "type" attribute
         :attr:
         - p_attr (dict): name-value pairs to format
@@ -394,8 +401,9 @@ class GameData(object):
         for t in [PG.CONSOLE_DIVIDER,
                   f"{p_attr['label']}:",
                   f"  {p_attr['name']}"]:
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] = t
+            rec = copy(self.CONSOLE_REC)
+            rec['txt'] = t
+            self.CONSOLE_TEXT.append(rec)
 
     def set_label_name_type(self,
                             p_attr: dict):
@@ -410,8 +418,9 @@ class GameData(object):
                   f"{p_attr['label']}:",
                   f"  {p_attr['name']}",
                   f"  {p_attr['type']}"]:
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] = t
+            rec = copy(self.CONSOLE_REC)
+            rec['txt'] = t
+            self.CONSOLE_TEXT.append(rec)
 
     def set_proper_names(self,
                          p_attr: dict):
@@ -427,12 +436,14 @@ class GameData(object):
         for t in [PG.CONSOLE_DIVIDER,
                   f"{p_attr['label']}:",
                   f"  {p_attr['common']}"]:
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] = t
+            rec = copy(self.CONSOLE_REC)
+            rec['txt'] = t
+            self.CONSOLE_TEXT.append(rec)
         if "other" in p_attr.keys():
             for k, v in p_attr["other"].items():
-                ix = self.extend_console()
-                self.CONSOLE_TEXT[ix]["txt"] = f"    {k}: {v}"
+                rec = copy(self.CONSOLE_REC)
+                rec['txt'] = f"    {k}: {v}"
+                self.CONSOLE_TEXT.append(rec)
 
     def set_map_attr(self,
                      p_attr: dict):
@@ -449,17 +460,20 @@ class GameData(object):
         if ky is not None:
             sub_k = ["height", "width"] if ky == "distance" else\
                 ["top", "bottom", "left", "right"]
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] = PG.CONSOLE_DIVIDER
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] =\
+            rec = copy(self.CONSOLE_REC)
+            rec['txt'] = PG.CONSOLE_DIVIDER
+            self.CONSOLE_TEXT.append(rec)
+            rec = copy(self.CONSOLE_REC)
+            rec["txt"] =\
                 f"{p_attr[ky]['label']}:"
+            self.CONSOLE_TEXT.append(rec)
             for s in sub_k:
-                ix = self.extend_console()
-                self.CONSOLE_TEXT[ix]["txt"] =\
+                rec = copy(self.CONSOLE_REC)
+                rec["txt"] =\
                     f"  {p_attr[ky][s]['label']}:  " +\
                     f"{p_attr[ky][s]['amt']} " +\
                     f"{p_attr[ky]['unit']}"
+                self.CONSOLE_TEXT.append(rec)
 
     def set_contains_attr(self,
                           p_attr: dict):
@@ -471,32 +485,38 @@ class GameData(object):
         :sets:
         - self.CONSOLE[n]["txt"] (list): strings to render as text
         """
-        ix = self.extend_console()
-        self.CONSOLE_TEXT[ix]["txt"] = PG.CONSOLE_DIVIDER
-        ix = self.extend_console()
-        self.CONSOLE_TEXT[ix]["txt"] = f"{p_attr['label']}:"
+        rec = copy(self.CONSOLE_REC)
+        rec["txt"] = PG.CONSOLE_DIVIDER
+        self.CONSOLE_TEXT.append(rec)
+        rec = copy(self.CONSOLE_REC)
+        rec["txt"] = f"{p_attr['label']}:"
+        self.CONSOLE_TEXT.append(rec)
 
         if "sub-region" in p_attr.keys():
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] =\
+            rec = copy(self.CONSOLE_REC)
+            rec["txt"] =\
                 f"  {p_attr['sub-region']['label']}:"
+            self.CONSOLE_TEXT.append(rec)
             for n in p_attr["sub-region"]["names"]:
-                ix = self.extend_console()
-                self.CONSOLE_TEXT[ix]["txt"] = f"    {n}"
+                rec = copy(self.CONSOLE_REC)
+                rec["txt"] = f"    {n}"
+                self.CONSOLE_TEXT.append(rec)
 
         if "movement" in p_attr.keys():
             # roads, waterways, rivers and lakes
-            ix = self.extend_console()
-            self.CONSOLE_TEXT[ix]["txt"] =\
-                f"  {p_attr['movement']['label']}:"
+            rec = copy(self.CONSOLE_REC)
+            rec["txt"] = f"  {p_attr['movement']['label']}:"
+            self.CONSOLE_TEXT.append(rec)
             attr = {k:v for k, v in p_attr["movement"].items()
                     if k != "label"}
             for _, v in attr.items():
-                ix = self.extend_console()
-                self.CONSOLE_TEXT[ix]["txt"] = f"    {v['label']}:"
+                rec = copy(self.CONSOLE_REC)
+                rec["txt"] = f"    {v['label']}:"
+                self.CONSOLE_TEXT.append(rec)
                 for n in v["names"]:
-                    ix = self.extend_console()
-                    self.CONSOLE_TEXT[ix]["txt"] = f"      {n}"
+                    rec = copy(self.CONSOLE_REC)
+                    rec["txt"] = f"      {n}"
+                    self.CONSOLE_TEXT.append(rec)
 
     # Data rendering methods for CONSOLE
     # ==================================
@@ -506,17 +526,24 @@ class GameData(object):
         After rendering the img from txt, set the box for the img.
         Then adjust topleft of the box according to line number.
         """
+        print('render_text_lines()...')
+
         x = PG.CONSOLE_TTL_BOX.x
         y = PG.CONSOLE_TTL_BOX.y + FONT_MED_SZ
+
+        pp(("self.CONSOLE_TEXT: ", self.CONSOLE_TEXT))
+
         for ix, val in enumerate(self.CONSOLE_TEXT):
             txt = val["txt"]
             self.CONSOLE_TEXT[ix]["img"] =\
-                PG.F_SANS_SM.render(txt, True, PG.CP_BLUEPOWDER,
-                                    PG.CP_BLACK)
+                PG.F_SANS_TINY.render(txt, True, PG.CP_BLUEPOWDER,
+                                      PG.CP_BLACK)
             self.CONSOLE_TEXT[ix]["box"] =\
                 self.CONSOLE_TEXT[ix]["img"].get_rect()
             self.CONSOLE_TEXT[ix]["box"].topleft =\
-                (x, y + ((FONT_SM_SZ + 2) * (ix + 1)))
+                (x, y + ((FONT_TINY_SZ + 2) * (ix + 1)))
+
+            pp(("ix: ", ix, "self.CONSOLE_TEXT[ix]: ", self.CONSOLE_TEXT[ix]))
 
     def set_console_text(self):
         """Format text lines for display in CONSOLE.
@@ -527,13 +554,21 @@ class GameData(object):
         - Move the geo data, etc. into a database.
         - May want to revisit, optimize the methods for formatting
           different types of data. Maybe even store img and box
-          objects in the DB, rather than rendering them here.
-        - Use config files for install-level customizations, overrides.
+          objects in the DB, rather than rendering them here?
+            - Nah. This only gets called once per data source, when
+              the user clicks on a menu item. No point in persisting to DB.
+        - Use config files only for install-level customizations, overrides.
         """
         self.CONSOLE_TEXT.clear()
         # Contents
+
+        pp((self.DATASRC["catg"], self.DATASRC["item"]))
+
         if self.DATASRC["catg"] == "geo":
             ci = FI.G[self.DATASRC["catg"]][self.DATASRC["item"]]
+
+            pp((ci))
+
             if "type" in ci.keys():
                 self.set_label_name(ci["type"])
             if "contained_by" in ci.keys():

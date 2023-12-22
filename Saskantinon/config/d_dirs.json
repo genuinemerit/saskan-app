@@ -1,17 +1,21 @@
 {
-    "APP": "/home/dave/saskan",
-    "BIN": "/usr/local/bin",
-    "MEM": "/dev/shm",
-    "ADIRS": {"CFG": "config",
-              "IMG": "images",
-              "ONT": "schema",
-              "PY": "python",
-              "SAV": "cache"},
-    "NSDIRS": {"SVC": "harvest",
-               "LOG": "log",
-               "MON": "mon"},
-    "LOGFILE": "saskan_log",
-    "MONFILE": "saskan_mon",
-    "DBNAME": "SASKAN_DB",
-    "LOGCFG": "DEBUG"
+    "APP": {"root": "/home/dave/saskan",
+            "bin": "/usr/local/bin",
+            "mem": "/dev/shm",
+            "dirs": {"cfg": "config",
+                     "dat": "data",
+                     "img": "images",
+                     "py": "python",
+                     "db": "sql",
+                     "sch": "schema"
+            },
+            "saskan": {
+                "log": "saskan_log",
+                "mon": "saskan_mon",
+                "dbg": "saskan_dbg"
+            }
+    },
+    "DB": {"main": "SASKAN.db",
+           "bkup": "SASKAN.bak"
+    }
 }
