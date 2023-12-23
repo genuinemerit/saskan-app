@@ -1,3 +1,20 @@
-SELECT CONCAT('DROP TABLE IF EXISTS ', LOWER(table_name), ';')
-FROM information_schema.tables
-WHERE table_name LIKE '%_map_x';
+DROP TABLE IF EXISTS canal_map_x;
+DROP TABLE IF EXISTS lake_map_x;
+DROP TABLE IF EXISTS river_map_x;
+DROP TABLE IF EXISTS road_map_x;
+DROP TABLE IF EXISTS forest_map_x;
+DROP TABLE IF EXISTS mountain_map_x;
+DROP TABLE IF EXISTS island_map_x;
+DROP TABLE IF EXISTS hills_map_x;
+DROP TABLE IF EXISTS sea_map_x;
+DROP TABLE IF EXISTS world_map_x;
+DROP TABLE IF EXISTS continent_map_x;
+DROP TABLE IF EXISTS zone_map_x;
+DROP TABLE IF EXISTS region_map_x;
+DROP TABLE IF EXISTS federation_map_x;
+DROP TABLE IF EXISTS province_map_x;
+DROP TABLE IF EXISTS canton_map_x;
+DROP TABLE IF EXISTS town_map_x;
+DROP TABLE IF EXISTS village_map_x;
+DROP TABLE IF EXISTS precinct_map_x;
+DROP TABLE IF EXISTS scene_map_x;

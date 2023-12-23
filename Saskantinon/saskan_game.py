@@ -79,8 +79,18 @@ Saskan App GUI.  pygame version.
     - Add more AI players.
         - Start to design some typical encounters.
         - Start to design some typical scenarios, following the script / beat sheet.
+
+    The security concern with pickling is the possiblity of executing code
+    from a remote source which is malicious. The use of internally is unlikely
+    to cause problems. The use of pickle to store data is not a security risk.
+    To be safer, create a hash or a signature of the data and store that with the
+    pickled data. When you unpickle the data, you can check the hash/signature to
+    make sure the data has not been tampered with. This is not a guarantee, but
+    it is better than nothing. In my use cases, it may not serve much purpose to
+    be pickling data; it can just as easily be stored in a database as JSON.
 """
 
+import pickle
 import platform
 from numpy import append
 import pygame as pg
@@ -93,10 +103,12 @@ from pprint import pprint as pp    # noqa: F401, format like pp for files
 from pprint import pformat as pf    # noqa: F401, format like pp for files
 from pygame.locals import *         # noqa: F401, F403
 
+from io_db import DataBase          # type: ignore
 from io_file import FileIO          # type: ignore
 from io_shell import ShellIO        # type: ignore
 from saskan_math import SaskanRect  # type: ignore
 
+DB = DataBase()
 FI = FileIO()
 SI = ShellIO()
 SR = SaskanRect()
@@ -313,6 +325,44 @@ class PG():
     # Other
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
+
+class SetGameData(object):
+    """Methods for inserting and updating values on SASKAN.db.
+    Initially, just use these from the command line. Eventually,
+    intergrate them into the GUI when it is useful.  Try to avoid
+    going down a rat-hole of GUI features and functionality, like
+    a "magical" editor that generates forms based on DB table
+    definitions.  Keep it simple, stupid.  If the command line is
+    too tiresome, then use a CSV file or JSON file to load data.
+
+    Simple version:
+    Basically just a wrapper for calls to the DataBase() class.
+    - pull in a list of values, assume they are in correct order.
+    - pull in a dict object, pickle it, and store it in a blob.
+
+    Hmmm...
+    Problem here is that this is a PyGame module. There is no CLI
+    access as long as the game loop is running. So, I need to
+    either define a separate module for data management (yes), or
+    create a CLI-like interface in the GUI. The former is easier.
+    I have done the latter previously and should be able to find
+    some code to support that. But it makes for a more complex
+    GUI and not one that most users would be familiar with.
+    """
+    def __init__(self):
+        """Initialize the SetGameData object.
+        It will be instantiated as SGDT, a global object.
+        """
+        pass
+
+    @classmethod
+    def insert_record(cls,
+                      p_sql_nm: str,
+                      p_values: list,
+                      p_object: dict):
+        """Insert a record to SASKAN.db.
+        """
+        DB.execute_insert(p_sql_nm, (p_values, pickle.dumps(p_object)))
 
 class GameDataNew(object):
     """Get resources for display in GAMEMAP and CONSOLE.

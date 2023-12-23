@@ -42,22 +42,32 @@ class FileIO(object):
 
     # Read methods
     # ==============================================================
+
     @classmethod
-    def get_dir(cls, p_path: str):
-        """Read a directory and return its contents.
+    def scan_dir(cls,
+                 p_dir_path: str,
+                 p_file_pattern: str = '') -> list:
+        """Scan a directory for files matching a specific pattern.
 
         Args:
-            p_path: Legit path to directory location.
-        Return:
-            Directory content (List or None))
+            p_dir_path (str): Path to the directory.
+            p_file_pattern (str): Pattern to match the file names.
+                Not regex. Allow for * as wildcard, that's it.
+                Optional. If not provided, return all items in dir.
+
+        Returns:
+            list: List of file paths matching the pattern.
         """
-        files = None
+        srch = p_file_pattern.split('*')
+        files: list = []
         try:
-            if Path(p_path).exists() and Path(p_path).is_dir():
-                files = [f for f in Path(p_path).iterdir()]
-            return files
+            if Path(p_dir_path).exists() and Path(p_dir_path).is_dir():
+                files = [f for f in Path(p_dir_path).iterdir()]
+                if p_file_pattern != '':
+                    files = [f for f in files if all(s in f.name for s in srch)]
         except Exception as err:
             raise(err)
+        return files
 
     @classmethod
     def get_file(cls,

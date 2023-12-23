@@ -35,8 +35,7 @@ class DataBase(object):
         """Initialize Dbase object.
         """
         self.DB_PATH = path.join(FI.D['APP']['root'],
-                            FI.D['APP']['dirs']['db'],
-                            FI.D['DB']['main'])
+                                 FI.D['APP']['dirs']['db'])
         self.DB = path.join(self.DB_PATH, FI.D['DB']['main'])
         self.DB_BKUP = path.join(self.DB_PATH, FI.D['DB']['bkup'])
         self.db_conn = None
@@ -56,7 +55,7 @@ class DataBase(object):
     def archive_db(self):
         """Copy main DB file to archive location."""
         bkup_dttm = pendulum.now().format('YYYYMMDD_HHmmss')
-        file_nm = 'HOFIN_' + bkup_dttm + '.arcv'
+        file_nm = 'SASKAN_' + bkup_dttm + '.arcv'
         bkup_nm = path.join(self.DB_PATH, file_nm)
         self.execute_insert(
             'INSERT_BKUPS', (bkup_dttm, bkup_nm, 'archive',
@@ -75,7 +74,7 @@ class DataBase(object):
     # ===========================================
 
     def disconnect_db(self):
-        """Drop DB connection to SASKAN_DB."""
+        """Drop DB connection to SASKAN_self."""
         if hasattr(self, "db_conn") and self.db_conn is not None:
             try:
                 self.cur.close()
@@ -86,11 +85,11 @@ class DataBase(object):
 
     def connect_db(self,
                    p_db_nm: str = 'main'):
-        """Open DB connection to SASKAN_DB.
+        """Open DB connection to SASKAN_self.
         :args:
         - p_db_nm (str) Optional. Default is 'main'.
-          If set to 'bkup' then use the backup DB.
-          If neither, then connect to main DB.
+          If set to 'bkup' then use the backup self.
+          If neither, then connect to main self.
         Indicate that the DB should help to maintain referential
         integrity for foreign keys.
         This will create a DB file at the specified location
@@ -110,6 +109,19 @@ class DataBase(object):
     # SQL Helpers
     # ===========================================
 
+    def has_tables(self) -> bool:
+        """Check if the database has any tables.
+        N.B. This method assumes that a connection and
+           a cursor have already been established for
+           the database file.
+        :returns:
+        - (bool) True if there are tables, False if not
+        """
+        self.cur.execute("SELECT name FROM sqlite_master\
+                          WHERE type='table'")
+        tables = self.cur.fetchall()
+        return True if len(tables) > 0 else False
+
     def get_sql_file(self,
                      p_sql_nm: str) -> str:
         """Read SQL from named file.
@@ -118,9 +130,9 @@ class DataBase(object):
         :returns:
         - (str) Content of the SQL file
         """
-        sql_nm = p_sql_nm.upper() + '.SQL'\
-            if '.SQL' not in p_sql_nm\
-            else p_sql_nm
+        sql_nm = str(p_sql_nm).upper()
+        if '.SQL' not in sql_nm :
+            sql_nm += '.SQL'
         sql_path = path.join(FI.D['APP']['root'],
                              FI.D['APP']['dirs']['db'],
                              sql_nm)
@@ -188,9 +200,18 @@ class DataBase(object):
         :args:
         - p_sql_nm (str): Name of external SQL file
         """
+
+        print(f"In execute_dml, p_sql_nm = {p_sql_nm}")
+
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-        self.cur.execute(SQL)
+
+        print(f"In execute_dml, SQL = {SQL}\n")
+
+        if SQL.count(';') > 1:
+            self.cur.executescript(SQL)
+        else:
+            self.cur.execute(SQL)
         if self.db_conn is not None:
             self.db_conn.commit()
         self.disconnect_db()
@@ -203,6 +224,8 @@ class DataBase(object):
            For now I will assume that:
             - INSERTs will always expect full list of values
             - caller knows what values to provide and in what order
+            - Any object values have already been pickled
+              (though why not just store them as text?)
         :args:
         - p_sql_nm (str): Name of external SQL file
         - p_values (tuple): n-tuple of values to insert
@@ -233,4 +256,29 @@ class DataBase(object):
         self.cur.execute(SQL, p_values + (p_key_val,))
         if self.db_conn is not None:
             self.db_conn.commit()   # type: ignore
+        self.disconnect_db()
+
+    # =====================================================================
+    # Saskan Database Management -- Backup, archive, restart
+    # =====================================================================
+
+    def boot_saskan_db(self):
+        """Create SASKAN.db database, if it does not already exist.
+        - If it already exists and has tables, back it up and then boot it.
+        - Do not wipe out any existing archives.
+        - Scan self.DB_PATH for DROP and CREATE SQL files.
+        """
+        db_file_path = Path(self.DB)
+        if db_file_path.exists():
+            self.connect_db()
+            if self.has_tables():
+                self.backup_db()
+
+        sql_files = FI.scan_dir(self.DB_PATH, 'DROP*.SQL')
+        for sql in sql_files:
+            self.execute_dml(sql.name)
+        sql_files = FI.scan_dir(self.DB_PATH, 'CREATE*.SQL')
+        for sql in sql_files:
+            self.execute_dml(sql.name)
+
         self.disconnect_db()

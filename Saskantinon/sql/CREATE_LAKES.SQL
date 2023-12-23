@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS lakes (
     lake_name TEXT PRIMARY KEY,
-    lake_size TEXT NOT NULL CHECK(lake_size_m2('small', 'medium', 'large')),
-    water_type TEXT NOT NULL CHECK(water_type('freshwater', 'saline', 'partially_salinated')),
+    lake_size TEXT NOT NULL CHECK(lake_size IN ('small', 'medium', 'large')),
+    water_type TEXT NOT NULL CHECK(water_type IN ('freshwater', 'saline', 'partially_salinated')),
     tidal_influence BOOLEAN NOT NULL,
     lake_size_m2 NUMERIC,
     max_depth_m NUMERIC,
