@@ -33,15 +33,15 @@ import pickle
 import random
 import time
 
-# from os import path
 from matplotlib.animation import FuncAnimation
-from pprint import pformat as pf        # noqa: F401
-from pprint import pprint as pp         # noqa: F401
-
-from io_db import DataBase              # type: ignore
-from io_file import FileIO              # type: ignore
-from io_shell import ShellIO            # type: ignore
-from saskan_math import SaskanMath      # type: ignore
+from pprint import pformat as pf  # noqa: F401
+from pprint import pprint as pp  # noqa: F401
+from io_data import Astro, Geog, Geom
+from io_db import DataBase
+from io_file import FileIO
+from io_shell import ShellIO
+# from os import path
+from saskan_math import SaskanMath  # type: ignore
 
 DB = DataBase()
 FI = FileIO()
@@ -102,40 +102,40 @@ class UniverseModel:
 
     def init_model_objects(self):
         self.TU = {
-            SM.ASTRO.TU: [str(), SM.GEOM.NM],
-            SM.GEOM.RD:  [float(), SM.ASTRO.GLY],
-            f"{SM.GEOM.VL} {SM.ASTRO.GLY3}": [float(), SM.ASTRO.GLY3],
-            f"{SM.GEOM.VL} {SM.ASTRO.PC3}":  [float(), SM.ASTRO.PC3],
-            SM.ASTRO.ET: [float(), SM.ASTRO.GY],
-            SM.ASTRO.UER: [float(), SM.ASTRO.KSM],
-            SM.GEOM.MS: [float(), SM.GEOM.KG],
-            SM.ASTRO.DE: [float(), SM.GEOM.KG],
-            SM.ASTRO.DM: [float(), SM.GEOM.KG],
-            SM.ASTRO.BM: [float(), SM.GEOM.KG]
+            Astro.TU: [str(), Geom.NM],
+            Geom.RD:  [float(), Astro.GLY],
+            f"{Geom.VL} {Astro.GLY3}": [float(), Astro.GLY3],
+            f"{Geom.VL} {Astro.PC3}":  [float(), Astro.PC3],
+            Astro.ET: [float(), Astro.GY],
+            Astro.UER: [float(), Astro.KSM],
+            Geom.MS: [float(), Geom.KG],
+            Astro.DE: [float(), Geom.KG],
+            Astro.DM: [float(), Geom.KG],
+            Astro.BM: [float(), Geom.KG]
         }
         self.GC = {
-            SM.ASTRO.GC: [str(), SM.GEOM.NM],
-            SM.ASTRO.TP: [str(), SM.GEOM.NM],
-            f"{SM.ASTRO.TP} {SM.ASTRO.PR}": [float(), SM.ASTRO.PMS],
-            f"{SM.ASTRO.TP} {SM.GEOG.LOC}":
-                [list(), f"{SM.GEOM.XYZ} {SM.ASTRO.GLY}"],
-            SM.ASTRO.TU: [str(), SM.GEOM.CON],
-            f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}":
-                [list(), f"{SM.GEOM.DIM} {SM.ASTRO.GLY}"],
-            f"{SM.GEOM.EL} {SM.GEOM.DIM}":
-                [list(), f"{SM.GEOM.XYZ} {SM.ASTRO.PC}"],
-            f"{SM.GEOM.EL} {SM.GEOM.SAX}":
-                [list(), f"{SM.GEOM.ABC} {SM.ASTRO.PC}"],
-            f"{SM.GEOM.EL} {SM.GEOM.ROT}":
-                [list(), f"({SM.GEOM.DIR}, {SM.GEOM.ANG}), {SM.GEOM.PYR}"],
-            f"{SM.GEOM.EL} {SM.GEOM.BND}":
-                [list(), f"{SM.GEOM.XYZD} {SM.ASTRO.GLY}"],
-            f"{SM.ASTRO.GC} {SM.GEOM.VL}":
-                [float(), SM.ASTRO.PC3],
-            SM.GEOM.MS: [float(), SM.GEOM.KG],
-            SM.ASTRO.DE: [float(), SM.GEOM.KG],
-            SM.ASTRO.DM: [float(), SM.GEOM.KG],
-            SM.ASTRO.BM: [float(), SM.GEOM.KG]
+            Astro.GC: [str(), Geom.NM],
+            Astro.TP: [str(), Geom.NM],
+            f"{Astro.TP} {Astro.PR}": [float(), Astro.PMS],
+            f"{Astro.TP} {Geog.LOC}":
+                [list(), f"{Geom.XYZ} {Astro.GLY}"],
+            Astro.TU: [str(), Geom.CON],
+            f"{Astro.GC} {Geog.LOC} {Geom.VE}":
+                [list(), f"{Geom.DIM} {Astro.GLY}"],
+            f"{Geom.EL} {Geom.DIM}":
+                [list(), f"{Geom.XYZ} {Astro.PC}"],
+            f"{Geom.EL} {Geom.SAX}":
+                [list(), f"{Geom.ABC} {Astro.PC}"],
+            f"{Geom.EL} {Geom.ROT}":
+                [list(), f"({Geom.DIR}, {Geom.ANG}), {Geom.PYR}"],
+            f"{Geom.EL} {Geom.BND}":
+                [list(), f"{Geom.XYZD} {Astro.GLY}"],
+            f"{Astro.GC} {Geom.VL}":
+                [float(), Astro.PC3],
+            Geom.MS: [float(), Geom.KG],
+            Astro.DE: [float(), Geom.KG],
+            Astro.DM: [float(), Geom.KG],
+            Astro.BM: [float(), Geom.KG]
         }
 
     @classmethod
@@ -204,7 +204,7 @@ class UniverseModel:
             while tu_nm in db_tu['univ_name']:
                 tu_nm = self.get_new_TU_nm()
         if is_new_TU:
-            self.TU[SM.ASTRO.TU][0] = tu_nm
+            self.TU[Astro.TU][0] = tu_nm
         return is_new_TU
 
     def generate_universe(self):
@@ -215,23 +215,23 @@ class UniverseModel:
         """
         radius_gly = random.uniform(45.824, 47.557)
         volume_gly3 = (4/3) * math.pi * (radius_gly ** 3)
-        variance_pct = (volume_gly3 - SM.ASTRO.TUV) / SM.ASTRO.TUV
-        mass_kg = (SM.ASTRO.TUK * variance_pct) + SM.ASTRO.TUK
+        variance_pct = (volume_gly3 - Astro.TUV) / Astro.TUV
+        mass_kg = (Astro.TUK * variance_pct) + Astro.TUK
 
-        self.TU[SM.GEOM.RD][0] = radius_gly                 # Radius GPC
-        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.GLY3}"][0] =\
+        self.TU[Geom.RD][0] = radius_gly                 # Radius GPC
+        self.TU[f"{Geom.VL} {Astro.GLY3}"][0] =\
             volume_gly3                                     # Volume GLY3
-        self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"][0] =\
-            (volume_gly3 * SM.ASTRO.GLY_TO_PC) ** 3         # Volume PC3
-        self.TU[SM.ASTRO.ET][0] = SM.ASTRO.UNA              # Age
-        self.TU[SM.ASTRO.UER][0] = SM.ASTRO.TUE             # Expansion rate
-        self.TU[SM.GEOM.MS][0] = mass_kg, SM.GEOM.KG        # Total matter kg
-        self.TU[SM.ASTRO.DE][0] = mass_kg * SM.ASTRO.DEP    # DE kg
-        self.TU[SM.ASTRO.DM][0] = mass_kg * SM.ASTRO.DMP    # DM kg
-        self.TU[SM.ASTRO.BM][0] = mass_kg * SM.ASTRO.BMP    # BM kg
+        self.TU[f"{Geom.VL} {Astro.PC3}"][0] =\
+            (volume_gly3 * Astro.GLY_TO_PC) ** 3         # Volume PC3
+        self.TU[Astro.ET][0] = Astro.UNA              # Age
+        self.TU[Astro.UER][0] = Astro.TUE             # Expansion rate
+        self.TU[Geom.MS][0] = mass_kg, Geom.KG        # Total matter kg
+        self.TU[Astro.DE][0] = mass_kg * Astro.DEP    # DE kg
+        self.TU[Astro.DM][0] = mass_kg * Astro.DMP    # DM kg
+        self.TU[Astro.BM][0] = mass_kg * Astro.BMP    # BM kg
 
         DB.execute_insert('INSERT_UNIV_PROC',
-                          (self.TU[SM.ASTRO.TU][0], pickle.dumps(self.TU)))
+                          (self.TU[Astro.TU][0], pickle.dumps(self.TU)))
 
     def generate_cluster_name(self,
                               p_is_new_TU: bool,
@@ -257,13 +257,13 @@ class UniverseModel:
             gc_nm = p_GC_nm
         else:
             gc_nm = self.get_new_GC_nm()
-        self.GC[SM.ASTRO.GC][0] = gc_nm
+        self.GC[Astro.GC][0] = gc_nm
         if gc_nm in db_gc['cluster_name']:
             if p_is_new_TU:
                 # Cluster name already exists in another universe.
                 while gc_nm in db_gc['cluster_name']:
                     gc_nm += " " + str(round(random.uniform(1, 100)))
-                    self.GC[SM.ASTRO.GC][0] = gc_nm
+                    self.GC[Astro.GC][0] = gc_nm
             else:
                 # Cluster name already exists in this universe.
                 for x, db_gc_nm in enumerate(db_gc['cluster_name']):
@@ -286,22 +286,22 @@ class UniverseModel:
                         bounding rectangle of new cluster =
                         [(l, r), (t, b), (f, b)])
         """
-        tu_nm = self.TU[SM.ASTRO.TU][0]
+        tu_nm = self.TU[Astro.TU][0]
         gc_in_tu = dict()
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
         for x, db_tu_nm in enumerate(db_gc['univ_name_fk']):
             if db_tu_nm == tu_nm:
                 gc_in_tu[db_gc['cluster_name'][x]] =\
                     pickle.loads(db_gc['cluster_object'][x])
-        w = (p_dim[0] * SM.ASTRO.PC_TO_GLY) / 2  # width in gigalightyears
+        w = (p_dim[0] * Astro.PC_TO_GLY) / 2  # width in gigalightyears
         bnd = list()
         for d in range(0, 3):
             bnd.append((p_loc[d] - w, p_loc[d] + w))
         collision = False
         for gc_nm, c in gc_in_tu.items():
             # Location will be useful for visualization
-            # c_loc = c[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
-            c_bnd = c[f"{SM.GEOM.EL} {SM.GEOM.BND}"][0]
+            # c_loc = c[f"{Astro.GC} {Geog.LOC} {Geom.VE}"][0]
+            c_bnd = c[f"{Geom.EL} {Geom.BND}"][0]
             if not (bnd[0][1] < c_bnd[0][0] or
                     bnd[0][0] > c_bnd[0][1] or
                     bnd[1][1] < c_bnd[1][0] or
@@ -347,7 +347,7 @@ class UniverseModel:
         loc = []
         dim = []
         bnd = []
-        univ_r_gly = self.TU[SM.GEOM.RD][0] * 0.99
+        univ_r_gly = self.TU[Geom.RD][0] * 0.99
         collision = True
         while collision:
             loc, dim = compute_cluster_loc_and_dim()
@@ -382,11 +382,11 @@ class UniverseModel:
         - Get a sense of the density of the cluster (vol/mass ratio)
         """
         gc_vol = (4/3) * math.pi * p_axes[0] * p_axes[1] * p_axes[2]  # PC3
-        gc_vol_pct = gc_vol / self.TU[f"{SM.GEOM.VL} {SM.ASTRO.PC3}"][0]
-        gc_mass_kg = self.TU[SM.GEOM.MS][0] * gc_vol_pct
-        gc_de_kg = gc_mass_kg * SM.ASTRO.DEP   # kg
-        gc_dm_kg = gc_mass_kg * SM.ASTRO.DMP   # kg
-        gc_bm_kg = gc_mass_kg * SM.ASTRO.BMP   # kg
+        gc_vol_pct = gc_vol / self.TU[f"{Geom.VL} {Astro.PC3}"][0]
+        gc_mass_kg = self.TU[Geom.MS][0] * gc_vol_pct
+        gc_de_kg = gc_mass_kg * Astro.DEP   # kg
+        gc_dm_kg = gc_mass_kg * Astro.DMP   # kg
+        gc_bm_kg = gc_mass_kg * Astro.BMP   # kg
         return (gc_vol, gc_mass_kg, gc_de_kg, gc_dm_kg, gc_bm_kg)
 
     def generate_timing_pulsar(self,
@@ -403,16 +403,16 @@ class UniverseModel:
         """
         tp_nm = p_TP_nm if p_TP_nm is not None else self.get_new_TP_nm()
         tp_loc = list()
-        gc_loc = self.GC[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
-        gc_dim = self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"][0]
+        gc_loc = self.GC[f"{Astro.GC} {Geog.LOC} {Geom.VE}"][0]
+        gc_dim = self.GC[f"{Geom.EL} {Geom.DIM}"][0]
         for d in range(0, 3):
             delta = (float(gc_dim[d]) / 2) * random.uniform(-0.33, 0.33)
             tp_loc.append((float(gc_loc[d]) + delta))
 
-        self.GC[SM.ASTRO.TP][0] = tp_nm                 # Timing Pulsar Name
-        self.GC[f"{SM.ASTRO.TP} {SM.ASTRO.PR}"][0] =\
+        self.GC[Astro.TP][0] = tp_nm                 # Timing Pulsar Name
+        self.GC[f"{Astro.TP} {Astro.PR}"][0] =\
             (1 / random.uniform(700, 732)) * 1000               # Period
-        self.GC[f"{SM.ASTRO.TP} {SM.GEOG.LOC}"][0] = tp_loc     # Location
+        self.GC[f"{Astro.TP} {Geog.LOC}"][0] = tp_loc     # Location
 
     def generate_cluster(self,
                          p_TP_nm: str = ''):
@@ -429,30 +429,30 @@ class UniverseModel:
         gc_vol, gc_mass, gc_de, gc_dm, gc_bm =\
             self.set_cluster_vol_and_mass(gc_axes)
 
-        self.GC[SM.ASTRO.TU] =\
-            (self.TU[SM.ASTRO.TU][0], SM.GEOM.CON)       # Container
-        self.GC[f"{SM.ASTRO.GC} {SM.GEOG.LOC} {SM.GEOM.VE}"] =\
-            (gc_loc, f"{SM.GEOM.DIM} {SM.ASTRO.GLY}")    # Location
-        self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"] =\
-            (gc_dim, f"{SM.GEOM.XYZ} {SM.ASTRO.PC}")     # Shape dimensions
-        self.GC[f"{SM.GEOM.EL} {SM.GEOM.SAX}"] =\
-            (gc_axes, f"{SM.GEOM.ABC} {SM.ASTRO.PC}")    # Shape semi-axes
+        self.GC[Astro.TU] =\
+            (self.TU[Astro.TU][0], Geom.CON)       # Container
+        self.GC[f"{Astro.GC} {Geog.LOC} {Geom.VE}"] =\
+            (gc_loc, f"{Geom.DIM} {Astro.GLY}")    # Location
+        self.GC[f"{Geom.EL} {Geom.DIM}"] =\
+            (gc_dim, f"{Geom.XYZ} {Astro.PC}")     # Shape dimensions
+        self.GC[f"{Geom.EL} {Geom.SAX}"] =\
+            (gc_axes, f"{Geom.ABC} {Astro.PC}")    # Shape semi-axes
         # Shape rotation
-        self.GC[f"{SM.GEOM.EL} {SM.GEOM.ROT}"] =\
-            (gc_rot, f"({SM.GEOM.DIR}, {SM.GEOM.ANG}), {SM.GEOM.PYR}")
-        self.GC[f"{SM.GEOM.EL} {SM.GEOM.BND}"] =\
-            (gc_bnd, f"{SM.GEOM.XYZD} {SM.ASTRO.GLY}")   # Shape bound rect
-        self.GC[f"{SM.ASTRO.GC} {SM.GEOM.VL}"] =\
-            (gc_vol, SM.ASTRO.PC3)                       # Volume
-        self.GC[SM.GEOM.MS] = (gc_mass, SM.GEOM.KG)      # Total Mass kg
-        self.GC[SM.ASTRO.DE] = (gc_de, SM.GEOM.KG)       # Dark Energy kg
-        self.GC[SM.ASTRO.DM] = (gc_dm, SM.GEOM.KG)       # Dark Matter kg
-        self.GC[SM.ASTRO.BM] = (gc_bm, SM.GEOM.KG)       # Baryonic Matter kg
+        self.GC[f"{Geom.EL} {Geom.ROT}"] =\
+            (gc_rot, f"({Geom.DIR}, {Geom.ANG}), {Geom.PYR}")
+        self.GC[f"{Geom.EL} {Geom.BND}"] =\
+            (gc_bnd, f"{Geom.XYZD} {Astro.GLY}")   # Shape bound rect
+        self.GC[f"{Astro.GC} {Geom.VL}"] =\
+            (gc_vol, Astro.PC3)                       # Volume
+        self.GC[Geom.MS] = (gc_mass, Geom.KG)      # Total Mass kg
+        self.GC[Astro.DE] = (gc_de, Geom.KG)       # Dark Energy kg
+        self.GC[Astro.DM] = (gc_dm, Geom.KG)       # Dark Matter kg
+        self.GC[Astro.BM] = (gc_bm, Geom.KG)       # Baryonic Matter kg
 
         self.generate_timing_pulsar(p_TP_nm)
         DB.execute_insert('INSERT_CLUSTER_PROC',
-                          (self.GC[SM.ASTRO.GC][0],
-                           self.TU[SM.ASTRO.TU][0],
+                          (self.GC[Astro.GC][0],
+                           self.TU[Astro.TU][0],
                            pickle.dumps(self.GC)))
 
     def set_xu_name(self,
@@ -507,27 +507,27 @@ class UniverseModel:
         :writes:
         - (DB) insert or update row on SASKAN_DB.xus table
         """
-        tu_nm = self.TU[SM.ASTRO.TU][0]
+        tu_nm = self.TU[Astro.TU][0]
         xu_nm = self.set_xu_name(tu_nm)
         gc_m = {"ms": 0.0, "de": 0.0, "dm": 0.0, "bm": 0.0}
         db_gc = DB.execute_select('SELECT_ALL_CLUSTERS')
         for x, db_tu_nm in enumerate(db_gc['univ_name_fk']):
             if db_tu_nm == tu_nm:
                 c = pickle.loads(db_gc['cluster_object'][x])
-                gc_m['ms'] += c[SM.GEOM.MS][0]
-                gc_m['de'] += c[SM.ASTRO.DE][0]
-                gc_m['dm'] += c[SM.ASTRO.DM][0]
-                gc_m['bm'] += c[SM.ASTRO.BM][0]
-        self.XU = {SM.ASTRO.XU: (xu_nm, SM.GEOM.NM)}
-        self.XU[SM.GEOM.CON] = (tu_nm, SM.ASTRO.TU)
-        self.XU[SM.GEOM.MS] =\
-            ((self.TU[SM.GEOM.MS][0] - gc_m['ms']), SM.GEOM.KG)
-        self.XU[SM.ASTRO.DE] =\
-            ((self.TU[SM.ASTRO.DE][0] - gc_m['de']), SM.GEOM.KG)
-        self.XU[SM.ASTRO.DM] =\
-            ((self.TU[SM.ASTRO.DM][0] - gc_m['dm']), SM.GEOM.KG)
-        self.XU[SM.ASTRO.BM] =\
-            ((self.TU[SM.ASTRO.BM][0] - gc_m['bm']), SM.GEOM.KG)
+                gc_m['ms'] += c[Geom.MS][0]
+                gc_m['de'] += c[Astro.DE][0]
+                gc_m['dm'] += c[Astro.DM][0]
+                gc_m['bm'] += c[Astro.BM][0]
+        self.XU = {Astro.XU: (xu_nm, Geom.NM)}
+        self.XU[Geom.CON] = (tu_nm, Astro.TU)
+        self.XU[Geom.MS] =\
+            ((self.TU[Geom.MS][0] - gc_m['ms']), Geom.KG)
+        self.XU[Astro.DE] =\
+            ((self.TU[Astro.DE][0] - gc_m['de']), Geom.KG)
+        self.XU[Astro.DM] =\
+            ((self.TU[Astro.DM][0] - gc_m['dm']), Geom.KG)
+        self.XU[Astro.BM] =\
+            ((self.TU[Astro.BM][0] - gc_m['bm']), Geom.KG)
         if is_new_TU:
             DB.execute_insert(
                 'INSERT_XU_PROC', (xu_nm, tu_nm, pickle.dumps(self.XU)))
@@ -622,16 +622,16 @@ class GalaxyModel:
         :sets: (dict) self.GX
         """
         if p_GX_nm is None:
-            self.GX = {SM.ASTRO.GX: (self.get_new_GX_nm(), SM.GEOM.NM)}
+            self.GX = {Astro.GX: (self.get_new_GX_nm(), Geom.NM)}
         else:
             db_gx = DB.execute_select('SELECT_ALL_GALAXIES')
             for x, db_gx_nm in enumerate(db_gx['galaxy_name']):
                 if db_gx_nm == p_GX_nm and\
-                  db_gx['cluster_name_fk'][x] == self.GC[SM.ASTRO.GC][0]:
+                  db_gx['cluster_name_fk'][x] == self.GC[Astro.GC][0]:
                     self.GX = pickle.loads(db_gx['galaxy_object'][x])
                     break
             if self.GX is None:
-                self.GX = {SM.ASTRO.GX: (p_GX_nm, SM.GEOM.NM)}
+                self.GX = {Astro.GX: (p_GX_nm, Geom.NM)}
 
     def set_galaxy_loc_and_halo(self,
                                 p_GX_sz) -> tuple:
@@ -645,12 +645,12 @@ class GalaxyModel:
         - (vector, float):  (location xyz relative to center of cluster in KPC,
                              radius of galactic halo in PC)
         """
-        gc_dims = self.GC[f"{SM.GEOM.EL} {SM.GEOM.DIM}"][0]         # parsecs
+        gc_dims = self.GC[f"{Geom.EL} {Geom.DIM}"][0]         # parsecs
         gx_loc = list()
         for d in range(0, 3):
             gx_loc.append(
-                random.uniform(-((gc_dims[d] * SM.ASTRO.PC_TO_KPC) / 2),
-                                (gc_dims[d] * SM.ASTRO.PC_TO_KPC) / 2))  # kpc
+                random.uniform(-((gc_dims[d] * Astro.PC_TO_KPC) / 2),
+                                (gc_dims[d] * Astro.PC_TO_KPC) / 2))  # kpc
         # Ranges for galaxy halo radius based on galaxy size:
         h_range = {'S': random.uniform(200, 451),
                    'M': random.uniform(450, 851),
@@ -672,7 +672,7 @@ class GalaxyModel:
         - (bool, tuple) (True if collision detected, else False;
                          (x, y, z) galaxy halo bounding rectangle in kpc)
         """
-        gc_nm = self.GC[SM.ASTRO.GC][0]
+        gc_nm = self.GC[Astro.GC][0]
         gx_in_gc = dict()
         db_gx = DB.execute_select('SELECT_ALL_GALAXIES')
         for x, db_gc_nm in enumerate(db_gx['cluster_name_fk']):
@@ -680,15 +680,15 @@ class GalaxyModel:
                 gx_in_gc[db_gx['galaxy_name'][x]] =\
                     pickle.loads(db_gx['galaxy_object'][x])
         bnd = list()
-        r = p_gx_halo_r * SM.ASTRO.PC_TO_KPC
+        r = p_gx_halo_r * Astro.PC_TO_KPC
         for d in range(0, 3):
             bnd.append(((p_gx_loc[d] - r), (p_gx_loc[d] + r)))
         collision = False
         # Compare to other galaxies:
         for ogx_nm, ogx in gx_in_gc.items():
             # Location will be useful for visualization
-            # ogx_loc = ogx[f"{SM.ASTRO.GX} {SM.GEOG.LOC} {SM.GEOM.VE}"][0]
-            o_bnd = ogx[f"{SM.ASTRO.GH} {SM.GEOM.BND}"][0]
+            # ogx_loc = ogx[f"{Astro.GX} {Geog.LOC} {Geom.VE}"][0]
+            o_bnd = ogx[f"{Astro.GH} {Geom.BND}"][0]
             if not (bnd[0][1] < o_bnd[0][0] or
                     bnd[0][0] > o_bnd[0][1] or
                     bnd[1][1] < o_bnd[1][0] or
@@ -859,16 +859,16 @@ class GalaxyModel:
                                                stars_x, halo_r)
         """
 
-        self.GX[SM.ASTRO.GC] =\
-            (self.GC[SM.ASTRO.GC][0], SM.GEOM.CON)                 # container
-        self.GX[f"{SM.ASTRO.GX} {SM.GEOM.SZ}"] =\
-            (g_sz, SM.GEOM.REL)                        # relative size
-        self.GX[f"{SM.ASTRO.GX} {SM.GEOG.LOC} {SM.GEOM.VE}"] =\
-            (gx_loc, f"{SM.GEOM.DIM} {SM.GEOM.XYZ} {SM.ASTRO.KPC}")  # loc kpc
-        self.GX[f"{SM.ASTRO.GH} {SM.GEOM.RD}"] =\
-            (gx_halo_r, SM.ASTRO.PC)                          # halo radius pc
-        self.GX[f"{SM.ASTRO.GH} {SM.GEOM.BND}"] =\
-            (gx_bnd, f"{SM.GEOM.DIM} {SM.GEOM.XYZ} {SM.ASTRO.KPC}")  # bnds kpc
+        self.GX[Astro.GC] =\
+            (self.GC[Astro.GC][0], Geom.CON)                 # container
+        self.GX[f"{Astro.GX} {Geom.SZ}"] =\
+            (g_sz, Geom.REL)                        # relative size
+        self.GX[f"{Astro.GX} {Geog.LOC} {Geom.VE}"] =\
+            (gx_loc, f"{Geom.DIM} {Geom.XYZ} {Astro.KPC}")  # loc kpc
+        self.GX[f"{Astro.GH} {Geom.RD}"] =\
+            (gx_halo_r, Astro.PC)                          # halo radius pc
+        self.GX[f"{Astro.GH} {Geom.BND}"] =\
+            (gx_bnd, f"{Geom.DIM} {Geom.XYZ} {Astro.KPC}")  # bnds kpc
 
         """
         self.GX[f"{SM.M.GG} {SM.M.VL}"] = (g_vol, SM.M.GPC3)

@@ -90,6 +90,7 @@ Saskan App GUI.  pygame version.
     be pickling data; it can just as easily be stored in a database as JSON.
 """
 
+# trunk-ignore(bandit/B403)
 import pickle
 import platform
 from numpy import append

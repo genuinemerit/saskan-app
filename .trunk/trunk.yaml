@@ -19,7 +19,7 @@ runtimes:
 lint:
   disabled:
     - black
-    - ruff
+#    - ruff
   enabled:
     - bandit@1.7.5
     - checkov@3.0.32

@@ -7,8 +7,6 @@ Saskan Admin Report Generator
 @DEV:
 - Consider whether it makes sense to move Analysis
   reporting functions to this module.
-- For some reason it was using networkx OK then it
-  started saying it could not be imported. WTF??
 """
 
 import matplotlib.pyplot as plt         # type: ignore

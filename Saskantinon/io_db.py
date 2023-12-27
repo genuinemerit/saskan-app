@@ -11,6 +11,7 @@
 :configs:
 - configs/d_dirs.json
 """
+# trunk-ignore(bandit/B403)
 import pickle
 import pendulum
 import shutil

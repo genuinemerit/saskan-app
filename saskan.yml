@@ -6,33 +6,40 @@ dependencies:
   - pip
   - mypy
   - flake8
-  - pytest
   - isort
   - pathlib
   - requests
   - tzlocal
-  - sqlite
-  - numbers-parser
-  - beautifulsoup4
-  - tabulate
   - numpy
   - pandas
   - twisted
   - tornado
+  - music21
+  - pendulum
+  - pydantic
+  - pytest
+  - numbers-parser
+  - beautifulsoup4
+  - tabulate
   - nltk
   - Levenshtein
-  - music21
-  - sympy
   - matplotlib
-  - pendulum
   - networkx
-  # - tabulate
-  # - numbers-parser
-  # - beautifulsoup4
+  - tabulate
+  - numbers-parser
+  - beautifulsoup4
   # - selenium
   # - odfpy
   # - scrapy
   # - PyPDF2
+
+# mamba env list
+# mamba env remove -n saskan
+# mamba env create -f ./saskan.yml
+# mamba activate saskan
+# mamba deactivate
+# mamba update -n base -c defaults mamba
+# mamba update --all
 
 # Libraries not available in the conda-forge channel or not recommended to use
 # from conda-forge: conda activate saskan, then... pip install --upgrade pygame
@@ -44,29 +51,13 @@ dependencies:
 # Required at OS level: sudo apt-get -y install --upgrade net-tools (e.g. to use
 # netstat from this toolset to monitor services)
 
-# mamba env list
-# mamba env create -f ./saskan.yml
-# mamba create -n nameofmyenv <list of packages>
-# mamba activate nameofmyenv
-
-# Started having problems with conda freezing up, so removed it and
-# installed mamba instead. Seems to be faster, more robust. Can use either
-# conda or mamba commands.
-
-# conda config --set channel_priority flexible
-# conda config --remove channels conda-forge
-# conda config --add channels conda-forge
-
-# conda env list
-# conda env remove -n saskan
-# conda env create -f ./saskan.yml
-# conda activate saskan
-# conda deactivate
-
-# conda update -n base -c defaults conda
-# conda update --all
-
 # Note that sqlite3 is part of the standard package both in Ubutu and in
 # python3. No need for install.
 # For sqlite command line commands, see: 
 #   https://www.sqlitetutorial.net/sqlite-commands/
+
+#  this stuff doesn't seem needed with mamba..
+# mamba config --set channel_priority flexible
+# mamba config --remove channels conda-forge
+# mamba config --add channels conda-forge
+
