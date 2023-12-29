@@ -28,6 +28,7 @@ dependencies:
   - tabulate
   - numbers-parser
   - beautifulsoup4
+  - sqlalchemy
   # - selenium
   # - odfpy
   # - scrapy

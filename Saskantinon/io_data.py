@@ -20,6 +20,11 @@ set up records and types. It might even make sense to merge
 the three modules into one, but want to avoid creating huge
 monster modules.
 
+# Reminder that drawing canvas is 2D and not intending to
+#  represent a 3D space. So, the "z" coordinate is not really
+#  used for drawing. But keep it in the data model
+#  to help with modeling and calculations.
+
 :related:
 - io_db.py - database access layer
 - io_file.py - file system access layer
@@ -32,82 +37,40 @@ monster modules.
 - GetGameData - methods for getting values from SASKAN.db
 """
 
-# import pendulum
-# trunk-ignore(bandit/B403)
-import pickle
 import pygame as pg
-# import sys
-
 from copy import copy
-from dataclasses import dataclass
 from pprint import pprint as pp     # noqa: F401, format like pp for files
 from pprint import pformat as pf    # noqa: F401, format like pp for files
-from pydantic import BaseModel
-from typing import Tuple, TypeAlias
+from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic.dataclasses import dataclass
+from typing import List, Tuple
+from typing_extensions import Annotated
 
 from io_db import DataBase
 from io_file import FileIO
 from io_shell import ShellIO
-from saskan_math import SaskanRect
 
 DB = DataBase()
 FI = FileIO()
 SI = ShellIO()
-SR = SaskanRect()
 
+pg.init()                   # Initialize PyGame for use in this module
 
-# Potentially useful type definitions
-# ===================================
-Cell_xy_ix: TypeAlias = Tuple[int, int]
-Cell_wh_px: TypeAlias = Tuple[float, float]
-# Pygame_Rect: TypeAlias = pg.Rect
+pydantic_config = ConfigDict(arbitrary_types_allowed = True,
+                             from_attributes = True,
+                             populate_by_name = True,
+                             str_strip_whitespace = True,
+                             use_enum_values = True,
+                             validate_assignment = True,
+                             validate_default = True)
 
-
-# Data-structure definitions
-# ============================
-class GameRect(BaseModel):
-    bottom: float = 0.0
-    right: float = 0.0
-    h: float = 0.0
-    w: float = 0.0
-    t: float = 0.0
-    y: float = 0.0
-    l: float = 0.0
-    x: float = 0.0
-    b: float = 0.0
-    r: float = 0.0
-    top_left: Tuple[float, float] = (0.0, 0.0)      # (x, y)
-    top_right: Tuple[float, float] = (0.0, 0.0)     # (x, y)
-    bottom_left: Tuple[float, float] = (0.0, 0.0)   # (x, y)
-    bottom_right: Tuple[float, float] = (0.0, 0.0)  # (x, y)
-    center: Tuple[float, float] = (0.0, 0.0)        # (x, y)
-    center_w: float = 0.0                           # (x)
-    center_x: float = 0.0                           # (x)
-    center_h: float = 0.0                           # (y)
-    center_y: float = 0.0                           # (y)
-    fill: bool = False
-    fill_color: None
-    line_width: float = 0.0
-    line_color: None
-    box: None
-    # box: pg.Rect      # Pydantic has a melt-down with this type.
-    # box: Pygame_Rect  # This too. Hates the type alias.
-
-class Cell(BaseModel):
-    xy: Cell_xy_ix
-    wh: Cell_wh_px
-    rect: GameRect
-    
-class Grid(BaseModel):
-    cols: int
-    rows: int
-    cells: dict[str, Cell]
-
-
-@dataclass(order=True, frozen=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class Astro():
     """ Astronomical and physics units and conversions.
     """
+    # names
+    ADJ = ["Brilliant", "Lustrous", "Twinkling",
+           "Silvery", "Argent", "Glistening"]
     # mass, matter
     DE = "dark energy"
     DM = "dark matter"
@@ -157,15 +120,16 @@ class Astro():
     LY2 = "square light year"
     LY3 = "cubic light year"
     # constants
-    DEP = 0.683                 # dark energy percentage
-    DMP = 0.274                 # dark matter percentage
-    BMP = 0.043                 # baryonic matter percentage
+    DEP = 0.683              # dark energy percentage
+    DMP = 0.274              # dark matter percentage
+    BMP = 0.043              # baryonic matter percentage
     TUV = 415000             # total univ volume in cubic gigalight years
     TUK = 1.5e53             # total universe mass in kg
     UNA = 13.787e9           # age of universe in Gavoran years (turns)
     TUE = 73.3               # expansion rate of universe in km/s per Mpc
     # conversions -- all are multiplicative in the indicated direction
-    # AA_TO_BB, so AA -> BB as AA * AA_TO_BB = BB
+    # For `AA_TO_BB`, BB = AA * value
+    # Example: `AU_TO_KM` means `KM = AU * 1.495979e+8`
     AU_TO_KM = 1.495979e+8        # astronomical units -> km
     AU_TO_LM = 5.2596e+16         # astro units -> light minutes
     AU_TO_LS = 0.002004004004     # astro units -> light seconds
@@ -193,7 +157,7 @@ class Astro():
     PC_TO_LY = 3.261598           # parsecs -> light years
 
 
-@dataclass(order=True, frozen=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class Colors():
     """Define immutable constants.
     """
@@ -222,7 +186,7 @@ class Colors():
     CP_WHITE = pg.Color(255, 255, 255)
 
 
-@dataclass(order=True, frozen=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class Geog():
     """Values used to do various computations using
     a variety of units and formulae for measures of
@@ -317,7 +281,7 @@ class Geog():
     KM_TO_DGLONG = 0.00898311175  # kilometers -> degree of longitude
 
 
-@dataclass(order=True, frozen=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class Geom:
     """Types of measurements or objects assigned to a
     meaningful abbreviations and names in English,
@@ -374,13 +338,14 @@ class Geom:
     SHP = "shape"
 
 
-@dataclass(order=True, frozen=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class TS():
     """'Typesetting' helpers
     Also, some fixed values that will eventually move to DB tables
     or be handled as parameters.
     """
     dash16: str = "----------------"
+    # This won't work without initializing pygame.
     info = pg.display.Info()
     WIN_W = round(info.current_w * 0.9)
     WIN_H = round(info.current_h * 0.9)
@@ -404,6 +369,166 @@ class TS():
     G_LNS_PX_H = GRID_CELL_PX_H * GRID_ROWS
     G_LNS_KM_W = GRID_CELL_KM_W * GRID_COLS
     G_LNS_KM_H = GRID_CELL_KM_H * GRID_ROWS
+
+
+# Pydantic models to define complex attributes or records.
+# ========================================================
+class ColRowIx(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    r: int = 0
+    c: int = 0
+
+
+class WidthHeightPx(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    w: float = 0.0
+    h: float = 0.0
+
+
+class CoordXYZ(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+
+
+class CoordXY(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    x: float = 0.0
+    y: float = 0.0
+
+
+class CoordRect(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    top_left: CoordXY
+    top_right: CoordXY
+    bottom_left: CoordXY
+    bottom_right: CoordXY
+
+
+class CoordABC(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    a: float = 0.0
+    b: float = 0.0
+    c: float = 0.0
+
+
+class PitchYawRollAngle(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    pitch: float = 0.0
+    yaw: float = 0.0
+    roll: float = 0.0
+
+
+class GameRect(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    height_width: WidthHeightPx
+    coord_rect: CoordRect
+    center: CoordXY
+    fill: bool = False
+    fill_color: pg.Color = Colors.CP_GREEN
+    line_color: pg.Color = Colors.CP_BLACK
+    box: pg.Rect = pg.Rect(0, 0, 0, 0)
+
+
+class Cell(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    rc: ColRowIx
+    wh: WidthHeightPx
+    rect: GameRect
+
+
+class Grid(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    RowsCols: ColRowIx
+    cells: dict[str, Cell]
+
+
+# The following models are designed to help create SQLITE
+# tables. A classmethod identifies SQLITE constraints.
+# =======================================================
+class TotalUniv(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "TOTAL_UNIV"
+    total_univ_uid_pk: str
+    total_univ_nm_ix: str
+    radius_giga_ly: float = 0.0
+    volume_giga_ly3: float = 0.0
+    volume_parsec3: float = 0.0
+    elapsed_time_gavoran_yr: float = 0.0
+    expansion_rate_km_per_sec_per_mpc: float = 0.0
+    mass_kg: float = 0.0
+    dark_energy_kg: float = 0.0
+    dark_matter_kg: float = 0.0
+    baryonic_matter_kg: float = 0.0
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["total_univ_uid_pk"],
+            "UQ": ["total_univ_nm_ix"],
+            "IX": ["total_univ_nm_ix"]
+        }
+
+# pp(("TotalUniv.model_fields: ", TotalUniv.model_fields)) # type: ignore
+# pp(("TotalUniv constraints: ", TotalUniv.constraints()))
+
+class GalacticCluster(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "GALACTIC_CLUSTER"
+    galactic_cluster_uid_pk: str
+    galactic_cluster_nm_ix: str
+    total_univ_nm_fk: str = ''
+    distance_from_univ_center_giga_ly: float = 0.0
+    volume_parsec3: float = 0.0
+    mass_kg: float = 0.0
+    dark_energy_kg: float = 0.0
+    dark_matter_kg: float = 0.0
+    baryonic_matter_kg: float = 0.0
+    timing_pulsar_type: str = ''
+    timing_pulsar_pulse_per_ms: float = 0.0
+    timing_pulsar_loc_giga_ly: CoordXYZ
+    ellipsoid_shape_parsecs: CoordXYZ
+    ellipsoid_shape_semi_axes_parsecs: CoordABC
+    ellilpsoid_shape_rotation: PitchYawRollAngle
+    ellipsoid_bounding_rect_giga_ly: GameRect
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["galactic_cluster_uid_pk"],
+            "UQ": ["galactic_cluster_nm_ix"],
+            "IX": ["galactic_cluster_nm_ix"],
+            "FK": [{"total_univ_uid_fk": ("TOTAL_UNIV", "total_univ_uid_pk")}]
+        }
+
+pp(("GalacticCluster.model_fields: ", GalacticCluster.model_fields))
+pp((GalacticCluster.model_fields['tablename']))
+pp((dir(GalacticCluster.model_fields['tablename'])))
+pp(('annotation -> data type:', GalacticCluster.model_fields['tablename'].annotation.__name__))
+pp(('default:', GalacticCluster.model_fields['tablename'].get_default()))
+pp(('required:', GalacticCluster.model_fields['tablename'].is_required()))
+pp(("GalacticCluster constraints: ", GalacticCluster.constraints()))
+
+class ExternalUniverse(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "EXTERNAL_UNIVERSE"
+    external_univ_uid_pk: str
+    external_univ_nm_ix: str
+    total_univ_uid_fk: str
+    mass_kg: float
+    dark_energy_kg: float
+    dark_matter_kg: float
+    baryonic_matter_kg: float
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["external_univ_uid_pk"],
+            "UQ": ["external_univ_nm_ix"],
+            "IX": ["external_univ_nm_ix"],
+            "FK": [{"total_univ_uid_fk": ("TOTAL_UNIV", "total_univ_uid_pk")}]
+        }
 
 
 class SetGameData(object):
@@ -432,7 +557,8 @@ class SetGameData(object):
         This will also make it easier to do analysis and so on 
         using a DBMS tool like Beekeeper Studio.
         """
-        DB.execute_insert(p_sql_nm, (p_values, pickle.dumps(p_object)))
+        # DB.execute_insert(p_sql_nm, (p_values, pickle.dumps(p_object)))
+        pass
 
 
 class GetGameData(object):

@@ -61,6 +61,12 @@ class UniverseModel:
     - TP = Timing Pulsar (neutron star) in the GC which
         regulates time measurements within the GC.
     - XU = External Universe is everything outside of the GC.
+
+    @DEV:
+    - Go ahead and define tables to hold the "object"
+      data, at least in some cases. I think that will
+      be more effective in the long run than trying to
+      manage JSON blobs that can change shape.
     """
 
     def __init__(self,

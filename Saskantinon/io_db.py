@@ -19,18 +19,23 @@ import sqlite3 as sq3
 
 from os import path, remove
 from pprint import pprint as pp    # noqa: F401
+from pydantic import BaseModel
+from typing import TypeAlias
 from io_file import FileIO
 
 from copy import copy
 from pathlib import Path
 
-from io_file import FileIO
-
 FI = FileIO()
 
 
 class DataBase(object):
-    """Support Sqlite3 database setup, usage, maintenance."""
+    """Support Sqlite3 database setup, usage, maintenance.
+
+    @DEV:
+    - Add methods to generate SQL for CREATE, DROP, INSERT, UPDATE, DELETE
+      from Pydantic models in io_data.py module.
+    """
 
     def __init__(self):
         """Initialize Dbase object.
@@ -40,6 +45,43 @@ class DataBase(object):
         self.DB = path.join(self.DB_PATH, FI.D['DB']['main'])
         self.DB_BKUP = path.join(self.DB_PATH, FI.D['DB']['bkup'])
         self.db_conn = None
+
+    # Generate SQL files from Pydantic models
+    # Prototype -- not tested.
+    # ===========================================
+
+    def create_table(self,
+                     class_: BaseModel) -> str:
+        """
+        Prototype code to generate SQL CREATE TABLE from a Pydantic model.
+        :args:
+        - class_ (BaseModel) Pydantic model
+        """
+        fields = copy(class_.model_fields)
+        table_name = fields['tablename'].get_default()
+        is_required = fields['tablename'].is_required()
+        data_type = fields['tablename'].annotation.__name__
+        columns = []
+
+        for field_name, field in class_.__annotations__.items():
+            # Extract type and constraints
+            field_type = field.__name__ if isinstance(field, TypeAlias) else field
+            constraints = []
+
+            if field_name.endswith("_pk"):
+                constraints.append("PRIMARY KEY")
+
+            if field_name.endswith("_fk"):
+                referenced_table = field_type.replace("_fk", "")
+                constraints.append(f"FOREIGN KEY ({field_name}) REFERENCES {referenced_table}({referenced_table}_pk)")
+
+            if not field.default:
+                constraints.append("NOT NULL")
+
+            columns.append(f"{field_name} {field_type} {' '.join(constraints)}")
+
+        return f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)});"
+
 
     # Backup, Archive and Restore
     # ===========================================
