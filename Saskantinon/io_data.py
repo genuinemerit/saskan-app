@@ -41,10 +41,8 @@ import pygame as pg
 from copy import copy
 from pprint import pprint as pp     # noqa: F401, format like pp for files
 from pprint import pformat as pf    # noqa: F401, format like pp for files
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, ConfigDict
 from pydantic.dataclasses import dataclass
-from typing import List, Tuple
-from typing_extensions import Annotated
 
 from io_db import DataBase
 from io_file import FileIO
@@ -68,9 +66,13 @@ pydantic_config = ConfigDict(arbitrary_types_allowed = True,
 class Astro():
     """ Astronomical and physics units and conversions.
     """
-    # names
-    ADJ = ["Brilliant", "Lustrous", "Twinkling",
+    # galaxy names
+    GADJ = ["Brilliant", "Lustrous", "Twinkling",
            "Silvery", "Argent", "Glistening"]
+    GITM = ["Way", "Trail", "Cloud", "Wave", "Skyway"]
+    GNAM = ["Galaxy", "Cluster", "Nebula", "Spiral",
+            "Starfield",  "Cosmos", "Nebula",
+            "Megacosm", "Space"]
     # mass, matter
     DE = "dark energy"
     DM = "dark matter"
@@ -444,14 +446,14 @@ class Grid(BaseModel):
     cells: dict[str, Cell]
 
 
-# The following models are designed to help create SQLITE
-# tables. A classmethod identifies SQLITE constraints.
+# The following models are used to create SQLITE tables.
+# A classmethod identifies SQLITE constraints, datatypes
+# like BLOB and JSON, and sort order.
 # =======================================================
-class TotalUniv(BaseModel):
+class Universe(BaseModel):
     model_config = ConfigDict(pydantic_config)
-    tablename: str = "TOTAL_UNIV"
-    total_univ_uid_pk: str
-    total_univ_nm_ix: str
+    tablename: str = "UNIVERSE"
+    univ_nm_pk: str
     radius_giga_ly: float = 0.0
     volume_giga_ly3: float = 0.0
     volume_parsec3: float = 0.0
@@ -465,27 +467,43 @@ class TotalUniv(BaseModel):
     @classmethod
     def constraints(cls):
         return {
-            "PK": ["total_univ_uid_pk"],
-            "UQ": ["total_univ_nm_ix"],
-            "IX": ["total_univ_nm_ix"]
+            "PK": ["univ_nm_pk"],
+            "ORDER": ["univ_nm_ix ASC"]
         }
 
-# pp(("TotalUniv.model_fields: ", TotalUniv.model_fields)) # type: ignore
-# pp(("TotalUniv constraints: ", TotalUniv.constraints()))
+
+
+class ExternalUniv(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "EXTERNAL_UNIVERSE"
+    external_univ_nm_pk: str
+    univ_nm_fk: str
+    mass_kg: float
+    dark_energy_kg: float
+    dark_matter_kg: float
+    baryonic_matter_kg: float
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["external_univ_nm_pk"],
+            "FK": {"univ_nm_fk": ("UNIVERSE", "univ_uid_pk")},
+            "ORDER": ["univ_nm_fk ASC",
+                      "external_univ_nm_pk ASC"]
+        }
+
 
 class GalacticCluster(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "GALACTIC_CLUSTER"
-    galactic_cluster_uid_pk: str
-    galactic_cluster_nm_ix: str
-    total_univ_nm_fk: str = ''
+    galactic_cluster_nm_pk: str
+    univ_nm_fk: str = ''
     distance_from_univ_center_giga_ly: float = 0.0
     volume_parsec3: float = 0.0
     mass_kg: float = 0.0
     dark_energy_kg: float = 0.0
     dark_matter_kg: float = 0.0
     baryonic_matter_kg: float = 0.0
-    timing_pulsar_type: str = ''
     timing_pulsar_pulse_per_ms: float = 0.0
     timing_pulsar_loc_giga_ly: CoordXYZ
     ellipsoid_shape_parsecs: CoordXYZ
@@ -496,39 +514,107 @@ class GalacticCluster(BaseModel):
     @classmethod
     def constraints(cls):
         return {
-            "PK": ["galactic_cluster_uid_pk"],
-            "UQ": ["galactic_cluster_nm_ix"],
-            "IX": ["galactic_cluster_nm_ix"],
-            "FK": [{"total_univ_uid_fk": ("TOTAL_UNIV", "total_univ_uid_pk")}]
+            "PK": ["galactic_cluster_nm_pk"],
+            "FK": {"univ_uid_fk": ("UNIVERSE", "univ_uid_pk")},
+            "CK": {},
+            "DT": {},
+            "ORDER": ["univ_nm_fk ASC",
+                      "galactic_cluster_nm_pk ASC"]
         }
 
-pp(("GalacticCluster.model_fields: ", GalacticCluster.model_fields))
-pp((GalacticCluster.model_fields['tablename']))
-pp((dir(GalacticCluster.model_fields['tablename'])))
-pp(('annotation -> data type:', GalacticCluster.model_fields['tablename'].annotation.__name__))
-pp(('default:', GalacticCluster.model_fields['tablename'].get_default()))
-pp(('required:', GalacticCluster.model_fields['tablename'].is_required()))
-pp(("GalacticCluster constraints: ", GalacticCluster.constraints()))
-
-class ExternalUniverse(BaseModel):
+class Galaxy(BaseModel):
     model_config = ConfigDict(pydantic_config)
-    tablename: str = "EXTERNAL_UNIVERSE"
-    external_univ_uid_pk: str
-    external_univ_nm_ix: str
-    total_univ_uid_fk: str
-    mass_kg: float
-    dark_energy_kg: float
-    dark_matter_kg: float
-    baryonic_matter_kg: float
+    tablename: str = "GALAXY"
+    galaxy_nm_pk: str
+    galactic_cluster_nm_fk: str = ''
+    galaxy_relative_size: str = 'medium'
+    galaxy_center_from_galaxy_center_kpc: CoordXYZ
+    galaxy_halo_radius_pc: float = 0.0
+    galaxy_boundary_from_galaxy_center_pc: CoordXYZ
+    galaxy_vol_gpc3: float = 0.0
+    galaxy_mass_kg: float = 0.0
+    bulge_shape: str = 'ellipsoid'
+    bulge_dim_xyz_from_galaxy_center_ly: CoordXYZ
+    bulge_dim_abc: CoordABC
+    bulge_black_hole_mass_kg: float = 0.0
+    bulge_vol_gpc3: float = 0.0
+    bulge_total_mass_kg: float = 0.0
+    star_field_shape: str = 'ellipsoid'
+    star_field_dim_xyz_from_galaxy_center_ly: CoordXYZ
+    star_field_dim_abc: CoordABC
+    star_field_vol_gpc3: float = 0.0
+    star_field_mass_kg: float = 0.0
+    interstellar_mass_kg: float = 0.0
 
     @classmethod
     def constraints(cls):
         return {
-            "PK": ["external_univ_uid_pk"],
-            "UQ": ["external_univ_nm_ix"],
-            "IX": ["external_univ_nm_ix"],
-            "FK": [{"total_univ_uid_fk": ("TOTAL_UNIV", "total_univ_uid_pk")}]
+            "PK": ["galaxy_nm_pk"],
+            "FK": {"galactic_cluster_nm_fk": ("GALACTIC_CLUSTER", "galactic_cluster_nm_pk")},
+            "CK": {"relative_size": ['small', 'medium', 'large'],
+                   "bulge_shape": ['ellipsoid', 'spherical'],
+                   "star_field_shape": ['ellipsoid', 'spherical']},
+            "JSON": {"galaxy_center_from_galaxy_center_kpc": CoordXYZ,
+                     "bulge_dim_abc": CoordABC,
+                     "star_field_dim_xyz_from_galaxy_center_ly": CoordXYZ,
+                     "star_field_dim_abc": CoordABC},
+            "ORDER": ["galactic_cluster_nm_pk ASC",
+                      "galaxy_nm_pk ASC"]
         }
+
+
+class World(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "WORLD"
+    world_nm_pk: str
+    star_system_name_fk: str
+    world_type: str = 'Earth-like'
+    obliquity_dg: float = 0.0
+    distance_from_star_au: float = 0.0
+    distance_from_star_km: float = 0.0
+    diameter_km: float = 0.0
+    mass_kg: float = 0.0
+    gravity_m_per_s_per_s: float = 0.0
+    orbit_days: float = 0.0
+    orbit__turns: float = 0.0
+    rotation_days: float = 0.0
+    world_desc: str
+    atmosphere: str
+    biosphere: str
+    sentients: str
+    climate: str
+    tech_level: str
+    terrain: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["world_nm_pk"],
+            "FK": {"star_system_nm_fk": ("STAR_SYSTEM", "star_system_nm_Pk")},
+            "CK": {"world_type": ['Earth-like', 'gas giant', 'rocky', 'desert', 'oceanic', 'ice planet', 'molten','other']},
+            "ORDER": ["star_system_nm_fk ASC",
+                      "world_nm_pk ASC"]
+        }
+
+class InitGameDatabase(object):
+    """Methods to:
+    - Create set of SQL files to manage the game database (saskan.db).
+    - Boot the database by running the SQL files.
+    """
+    pass
+
+    def __init__(self):
+        """Initialize the InitGameDatabase object.
+        """
+        pass
+
+    def create_sql_files(self):
+        """Pass pydantic data object to create SQL files.
+        """
+        # for model in [Universe, ExternalUniv,
+        # GalacticCluster, Galaxy, World]:
+        for model in [Galaxy]:
+            DB.generate_sql(model)
 
 
 class SetGameData(object):

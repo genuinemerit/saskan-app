@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS worlds (
     */
     world_name TEXT PRIMARY KEY,
     star_system_name_fk TEXT NOT NULL,
-    world_type TEXT NOT NULL  CHECK(world_type IN ('Earth-like', 'gas giant', 'rocky', 'desert', 'oceanic', 'ice planet', 'molten','other')),
+    world_type TEXT NOT NULL CHECK(world_type IN ('Earth-like', 'gas giant', 'rocky', 'desert', 'oceanic', 'ice planet', 'molten','other')),
     obliquity_dg NUMERIC NOT NULL,
     distance_from_star_au NUMERIC NOT NULL,
     distance_from_star_km NUMERIC NOT NULL,

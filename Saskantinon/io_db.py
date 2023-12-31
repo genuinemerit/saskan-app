@@ -13,14 +13,14 @@
 """
 # trunk-ignore(bandit/B403)
 import pickle
+from re import S
 import pendulum
 import shutil
 import sqlite3 as sq3
 
-from os import path, remove
+from os import path
 from pprint import pprint as pp    # noqa: F401
-from pydantic import BaseModel
-from typing import TypeAlias
+# from pydantic
 from io_file import FileIO
 
 from copy import copy
@@ -50,38 +50,192 @@ class DataBase(object):
     # Prototype -- not tested.
     # ===========================================
 
-    def create_table(self,
-                     class_: BaseModel) -> str:
+    def generate_create_sql(self,
+                            p_table_name: str,
+                            p_constraints: dict,
+                            p_col_fields: dict):
         """
-        Prototype code to generate SQL CREATE TABLE from a Pydantic model.
+        Generate SQL CREATE TABLE code from a Pydantic data model.
         :args:
-        - class_ (BaseModel) Pydantic model
+        - p_table_name (str) Name of table to create SQL for
+        - p_constraints (dict) Dict of constraints for the table
+        - p_col_fields (dict) Dict of column fields for the table
+        :writes:
+        - SQL file to [APP]/sql/CREATE_[p_table_name].sql
         """
-        fields = copy(class_.model_fields)
-        table_name = fields['tablename'].get_default()
-        is_required = fields['tablename'].is_required()
-        data_type = fields['tablename'].annotation.__name__
-        columns = []
+        def set_data_type(col_nm, pyd_value, p_constraints):
+            sql = col_nm
+            # 'DT' constraint is used for BLOB, JSON and customize data types
+            # BLOB and JSON are supported by SQLITE
+            # customize data types are not supported by SQLITE, will be
+            # converted to JSON with annotations. For example:
+            # CoordXYZ --> vector: dict{'x': 0.0, 'y': 0.0, 'z': 0.0}
+            # (or maybe I should get more specific... hmmmm.. they will all
+            #  be converted to JSON, so use 'JSON' instead of DT. The
+            #  annotations will be tied to Pydantic data models created in
+            #  io_data.py... may be able to derive JSON directly from them.)
+            if 'JSON' in p_constraints.keys() \
+            and col_nm in p_constraints['JSON']:
+                model_fields = copy(p_constraints['JSON'][col_nm].model_fields)
 
-        for field_name, field in class_.__annotations__.items():
-            # Extract type and constraints
-            field_type = field.__name__ if isinstance(field, TypeAlias) else field
-            constraints = []
+                pp(("JSON data type fields: ", model_fields))
+                # Break out the sub-types of Pydantic model into separate
+                # columns, or maybe just store them as JSON in a single column
+                # @DEV -- pick up here
+                # things to try:
+                # -- recursive call to set_data_type to create sub-columns
+                # -- convert to JSON and store in a single column (still need to
+                # pull out the datatype and default values if any)
+                # -- and think about how this might be handled in select, update,
+                # insert actions
 
-            if field_name.endswith("_pk"):
-                constraints.append("PRIMARY KEY")
+                sql += f' {p_constraints['JSON'][col_nm]}'
+            else:
+                # otherwise, convert Pydantic data type to SQLITE data type
+                col_datatype = pyd_value.annotation.__name__
+                for pyd_type in (('str', 'TEXT'),
+                                 ('int', 'INTEGER'),
+                                 ('float', 'NUMERIC')):
+                    if col_datatype == pyd_type[0]:
+                        sql += f" {pyd_type[1]}"
+                        break
+            return sql
 
-            if field_name.endswith("_fk"):
-                referenced_table = field_type.replace("_fk", "")
-                constraints.append(f"FOREIGN KEY ({field_name}) REFERENCES {referenced_table}({referenced_table}_pk)")
+        def set_data_rule(sql, col_nm, pyd_value, p_constraints):
+            for pyd_rule in (('PK', 'PRIMARY KEY'),
+                             ('UQ', 'UNIQUE'),
+                             ('IX', 'INDEXED')):
+                if pyd_rule[0] in p_constraints.keys() \
+                and col_nm in p_constraints[pyd_rule[0]]:
+                    sql += f' {pyd_rule[1]}'
+            if pyd_value.is_required():
+                sql+= ' NOT NULL'
+            return sql
 
-            if not field.default:
-                constraints.append("NOT NULL")
+        def set_default(sql, pyd_value):
+            col_default = str(pyd_value.get_default()).strip()
+            if col_default not in (None, 'PydanticUndefined'):
+                if pyd_value.annotation.__name__ == 'str':
+                    sql += f" DEFAULT '{col_default}'"
+                else:
+                    sql += f" DEFAULT {col_default}"
+            return sql
 
-            columns.append(f"{field_name} {field_type} {' '.join(constraints)}")
+        def set_check_constraints(sql, col_nm, p_constraints):
+            if 'CK' in p_constraints.keys() \
+            and col_nm in p_constraints['CK']:
+                sql += f' CHECK({col_nm} IN ('
+                for ck_val in p_constraints['CK'][col_nm]:
+                    sql += f"'{ck_val}', "
+                sql = sql[:-2] + '))'
+            return sql
 
-        return f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)});"
+        def set_foreign_key(sqlns, p_constraints):
+            if 'FK' in p_constraints.keys():
+                for col, ref in p_constraints['FK'].items():
+                    sqlns.append(f"FOREIGN KEY ({col}) REFERENCES" +
+                                f" ({ref[0]}){ref[1]} " +
+                                "ON DELETE CASCADE")
+            return sqlns
 
+        # generate_create_sql main
+        # ============================
+        sqlns = []
+        for col_nm, pyd_value in p_col_fields.items():
+            sql = set_data_type(col_nm, pyd_value, p_constraints)
+            sql = set_data_rule(sql, col_nm, pyd_value, p_constraints)
+            sql = set_default(sql, pyd_value)
+            sql = set_check_constraints(sql, col_nm, p_constraints)
+            sqlns.append(sql)
+        sqlns = set_foreign_key(sqlns, p_constraints)
+        sql = f"CREATE TABLE IF NOT EXISTS {p_table_name} (\n" +\
+              f"{',\n'.join(sqlns)});\n"
+        FI.write_file(
+            path.join(self.DB_PATH, f"CREATE_{p_table_name}.sql"), sql)
+
+    def generate_drop_sql(self,
+                          p_table_name: str):
+        """Generate SQL DROP TABLE code.
+        :args:
+        - p_table_name (str) Name of table to drop
+        :writes:
+        - SQL file to [APP]/sql/DROP_[p_table_name].sql
+        """
+        sql = f"DROP TABLE IF EXISTS {p_table_name};\n"
+        FI.write_file(
+            path.join(self.DB_PATH, f"DROP_{p_table_name}.sql"), sql)
+
+    def generate_insert_sql(self,
+                            p_table_name: str,
+                            p_col_fields: dict):
+        """Generate SQL INSERT code.
+        :args:
+        - p_table_name (str) Name of table to insert into
+        - p_col_fields (dict) Dict of column fields for the table
+        :writes:
+        - SQL file to [APP]/sql/INSERT_[p_table_name].sql
+        """
+        sql = f"INSERT INTO {p_table_name} " +\
+              f"(\n{',\n'.join(p_col_fields.keys())})" +\
+              " VALUES (" +\
+              f"{', '.join(['?' for i in range(len(p_col_fields))])});\n"
+        FI.write_file(
+            path.join(self.DB_PATH, f"INSERT_{p_table_name}.sql"), sql)
+
+    def generate_select_all_sql(self,
+                                p_table_name: str,
+                                p_constraints: dict,
+                                p_col_fields: dict):
+        """Generate SQL SELECT code.
+        :args:
+        - p_table_name (str) Name of table to select from
+        - p_constraints (dict) Dict of constraints for the table
+        - p_col_fields (dict) Dict of column fields for the table
+        :writes:
+        - SQL file to [APP]/sql/SELECT_ALL_[p_table_name].sql
+        """
+        sql = f"SELECT {',\n'.join(p_col_fields.keys())}\nFROM {p_table_name}"
+        if "ORDER" in p_constraints.keys():
+            sql += f"\nORDER BY {', '.join(p_constraints['ORDER'])}"
+        sql += ';\n'
+        FI.write_file(
+            path.join(self.DB_PATH, f"SELECT_ALL_{p_table_name}.sql"), sql)
+
+    def generate_update_sql(self,
+                            p_table_name,
+                            p_constraints,
+                            p_col_fields):
+        """Generate SQL UPDATE code.
+        :args:
+        - p_table_name (str) Name of table to update
+        - p_constraints (dict) Dict of constraints for the table
+        - p_col_fields (dict) Dict of column fields for the table
+        :writes:
+        - SQL file to [APP]/sql/UPDATE_[p_table_name].sql
+        """
+        sql = f"UPDATE {p_table_name} SET\n" +\
+                f"{',\n'.join([f'{col}=?' for col in p_col_fields.keys()])}" +\
+                f"\nWHERE {p_constraints['PK'][0]}=?;\n"
+        FI.write_file(
+            path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql"), sql)
+
+    def generate_sql(self,
+                     p_data_model: object):
+        """
+        Generate full set of SQL code from a Pydantic data model.
+        :args:
+        - p_data_model (inherited from BaseModel) Pydantic data model class
+        """
+        model_fields = copy(p_data_model.model_fields) # type: ignore
+        table_name = model_fields['tablename'].get_default()
+        constraints = p_data_model.constraints() # type: ignore
+        col_fields = {nm: val for nm, val in model_fields.items()
+                      if nm != 'tablename'}
+        self.generate_create_sql(table_name, constraints, col_fields)
+        self.generate_drop_sql(table_name)
+        self.generate_insert_sql(table_name, col_fields)
+        self.generate_select_all_sql(table_name, constraints, col_fields)
+        self.generate_update_sql(table_name, constraints, col_fields)
 
     # Backup, Archive and Restore
     # ===========================================
@@ -325,3 +479,4 @@ class DataBase(object):
             self.execute_dml(sql.name)
 
         self.disconnect_db()
+        
