@@ -454,11 +454,11 @@ class Universe(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "UNIVERSE"
     univ_nm_pk: str
-    radius_giga_ly: float = 0.0
-    volume_giga_ly3: float = 0.0
-    volume_parsec3: float = 0.0
-    elapsed_time_gavoran_yr: float = 0.0
-    expansion_rate_km_per_sec_per_mpc: float = 0.0
+    radius_gly: float = 0.0
+    volume_gly3: float = 0.0
+    volume_pc3: float = 0.0
+    elapsed_time_gavyr: float = 0.0
+    expansion_rate_kmpsec_per_mpc: float = 0.0
     mass_kg: float = 0.0
     dark_energy_kg: float = 0.0
     dark_matter_kg: float = 0.0
@@ -498,26 +498,33 @@ class GalacticCluster(BaseModel):
     tablename: str = "GALACTIC_CLUSTER"
     galactic_cluster_nm_pk: str
     univ_nm_fk: str = ''
-    distance_from_univ_center_giga_ly: float = 0.0
-    volume_parsec3: float = 0.0
+    center_from_univ_center_gly: CoordXYZ
+    cluster_shape: str = 'ellipsoid'
+    volume_pc3: float = 0.0
     mass_kg: float = 0.0
     dark_energy_kg: float = 0.0
     dark_matter_kg: float = 0.0
     baryonic_matter_kg: float = 0.0
     timing_pulsar_pulse_per_ms: float = 0.0
-    timing_pulsar_loc_giga_ly: CoordXYZ
-    ellipsoid_shape_parsecs: CoordXYZ
-    ellipsoid_shape_semi_axes_parsecs: CoordABC
-    ellilpsoid_shape_rotation: PitchYawRollAngle
-    ellipsoid_bounding_rect_giga_ly: GameRect
+    timing_pulsar_loc_gly: CoordXYZ
+    shape_pc: CoordXYZ
+    shape_axes: CoordABC
+    shape_rot: PitchYawRollAngle
+    boundary_gly: GameRect
 
     @classmethod
     def constraints(cls):
         return {
             "PK": ["galactic_cluster_nm_pk"],
             "FK": {"univ_uid_fk": ("UNIVERSE", "univ_uid_pk")},
-            "CK": {},
+            "CK": {"cluster_shape": ['ellipsoid', 'spherical']},
             "DT": {},
+            "GROUP": {"center_from_univ_center_gly": CoordXYZ,
+                      "timing_pulsar_loc_gly": CoordXYZ,
+                      "shape_pc": CoordXYZ,
+                      "shape_axes": CoordABC,
+                      "shape_rot": PitchYawRollAngle,
+                      "boundary_gly": GameRect},
             "ORDER": ["univ_nm_fk ASC",
                       "galactic_cluster_nm_pk ASC"]
         }
@@ -527,21 +534,21 @@ class Galaxy(BaseModel):
     tablename: str = "GALAXY"
     galaxy_nm_pk: str
     galactic_cluster_nm_fk: str = ''
-    galaxy_relative_size: str = 'medium'
-    galaxy_center_from_galaxy_center_kpc: CoordXYZ
-    galaxy_halo_radius_pc: float = 0.0
-    galaxy_boundary_from_galaxy_center_pc: CoordXYZ
-    galaxy_vol_gpc3: float = 0.0
-    galaxy_mass_kg: float = 0.0
+    relative_size: str = 'medium'
+    center_from_univ_center_kpc: CoordXYZ
+    halo_radius_pc: float = 0.0
+    boundary_pc: GameRect
+    volume_gpc3: float = 0.0
+    mass_kg: float = 0.0
     bulge_shape: str = 'ellipsoid'
-    bulge_dim_xyz_from_galaxy_center_ly: CoordXYZ
-    bulge_dim_abc: CoordABC
+    bulge_dim_from_center_ly: CoordXYZ
+    bulge_dim_axes: CoordABC
     bulge_black_hole_mass_kg: float = 0.0
-    bulge_vol_gpc3: float = 0.0
+    bulge_volume_gpc3: float = 0.0
     bulge_total_mass_kg: float = 0.0
     star_field_shape: str = 'ellipsoid'
-    star_field_dim_xyz_from_galaxy_center_ly: CoordXYZ
-    star_field_dim_abc: CoordABC
+    star_field_dim_from_center_ly: CoordXYZ
+    star_field_dim_axes: CoordABC
     star_field_vol_gpc3: float = 0.0
     star_field_mass_kg: float = 0.0
     interstellar_mass_kg: float = 0.0
@@ -554,10 +561,12 @@ class Galaxy(BaseModel):
             "CK": {"relative_size": ['small', 'medium', 'large'],
                    "bulge_shape": ['ellipsoid', 'spherical'],
                    "star_field_shape": ['ellipsoid', 'spherical']},
-            "JSON": {"galaxy_center_from_galaxy_center_kpc": CoordXYZ,
-                     "bulge_dim_abc": CoordABC,
-                     "star_field_dim_xyz_from_galaxy_center_ly": CoordXYZ,
-                     "star_field_dim_abc": CoordABC},
+            "GROUP": {"center_from_univ_center_kpc": CoordXYZ,
+                      "boundary_pc": GameRect,
+                      "bulge_dim_from_center_ly": CoordXYZ,
+                      "bulge_dim_axes": CoordABC,
+                      "star_field_dim_from_center_ly": CoordXYZ,
+                      "star_field_dim_axes": CoordABC},
             "ORDER": ["galactic_cluster_nm_pk ASC",
                       "galaxy_nm_pk ASC"]
         }
@@ -576,7 +585,7 @@ class World(BaseModel):
     mass_kg: float = 0.0
     gravity_m_per_s_per_s: float = 0.0
     orbit_days: float = 0.0
-    orbit__turns: float = 0.0
+    orbit_turns: float = 0.0
     rotation_days: float = 0.0
     world_desc: str
     atmosphere: str
@@ -590,7 +599,7 @@ class World(BaseModel):
     def constraints(cls):
         return {
             "PK": ["world_nm_pk"],
-            "FK": {"star_system_nm_fk": ("STAR_SYSTEM", "star_system_nm_Pk")},
+            "FK": {"star_system_nm_fk": ("STAR_SYSTEM", "star_system_nm_pk")},
             "CK": {"world_type": ['Earth-like', 'gas giant', 'rocky', 'desert', 'oceanic', 'ice planet', 'molten','other']},
             "ORDER": ["star_system_nm_fk ASC",
                       "world_nm_pk ASC"]
@@ -611,9 +620,9 @@ class InitGameDatabase(object):
     def create_sql_files(self):
         """Pass pydantic data object to create SQL files.
         """
-        # for model in [Universe, ExternalUniv,
-        # GalacticCluster, Galaxy, World]:
-        for model in [Galaxy]:
+        for model in [Universe, ExternalUniv,
+                      GalacticCluster, Galaxy, World]:
+        # for model in [GalacticCluster]:
             DB.generate_sql(model)
 
 
