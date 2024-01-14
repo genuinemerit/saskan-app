@@ -1309,7 +1309,7 @@ class AstroIO(object):
         # plants closer to Faton vs. those farther away? --> +/- 5 degrees.
 
         # 2) Assuming "counterclocwise" revolutions around Faton,
-        # from perfpective of Faton's north pole, and assuming
+        # from perspective of Faton's north pole, and assuming
         # that all planets were at "degree zero" (perfectly aligned)
         # on "Day Zero", what is the degree of each planet as they
         # proceed around Faton? The "days" list identifies their orbital

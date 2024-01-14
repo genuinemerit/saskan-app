@@ -37,6 +37,7 @@ monster modules.
 - GetGameData - methods for getting values from SASKAN.db
 """
 
+from networkx import max_flow_min_cost
 import pygame as pg
 from copy import copy
 from pprint import pprint as pp     # noqa: F401, format like pp for files
@@ -73,11 +74,13 @@ class Astro():
     GNAM = ["Galaxy", "Cluster", "Nebula", "Spiral",
             "Starfield",  "Cosmos", "Nebula",
             "Megacosm", "Space"]
-    # mass, matter
+    # mass, matter, energy
     DE = "dark energy"
     DM = "dark matter"
     BM = "baryonic matter"
+    LCLS = "luminosity class"
     SMS = "solar mass"
+    SL = "solar luminosity"
     # objects, astronomical
     BH = "black hole"
     GB = "galactic bulge"
@@ -86,6 +89,7 @@ class Astro():
     GX = "galaxy"
     IG = "interstellar matter"
     SC = "star cluster"
+    SCLS = "star class"
     TP = "timing pulsar"            # saskan
     TU = "total universe"           # saskan
     XU = "external universe"        # saskan
@@ -94,7 +98,8 @@ class Astro():
     GMS = "galactic millisecond"    # 'galactic' millisecond; saskan
     PMS = "pulses per millisecond"  # 'galactic' second as # of pulses
     ET = "elapsed time"             # age, duration, time passed
-    GY = "gavoran year"             # saskan
+    GYR = "gavoran year"            # saskan
+    GDY = "gavoran day"             # saskan
     # rates, speeds, velocities
     ER = "expansion rate"              # of a volume
     UER = "universal expansion rate"
@@ -344,7 +349,7 @@ class Geom:
 class TS():
     """'Typesetting' helpers
     Also, some fixed values that will eventually move to DB tables
-    or be handled as parameters.
+    or be handled as configs or parameters.
     """
     dash16: str = "----------------"
     # This won't work without initializing pygame.
@@ -422,6 +427,37 @@ class PitchYawRollAngle(BaseModel):
     roll: float = 0.0
 
 
+class MapLocation(BaseModel):
+    """
+    All MapLocations are rectangular.
+
+    Latitudes and longitudes are in decimal degrees.
+    Lat north is positive, lat south is negative.
+    Lon east (between universal meridien and international date line)
+      is positive, lon west is negative. The idea is to use
+    degrees as the main specifier, and then compute km based on
+    scaling to the grid. It may or may not make sense to store
+    km on the database record. Think about it. Could be that the
+    scale of km to dg varies depending on size of the world or
+    moon, so it makes sense to keep that relation here and use
+    different grids to scale displays, that is, set km to px, or
+    km to cells.
+    """
+    latitude_north_dg: float = 0.0
+    latitude_south_dg: float = 0.0
+    longitude_east_dg: float = 0.0
+    longitude_west_dg: float = 0.0
+    width_east_west_km: float = 0.0
+    height_north_south_km: float = 0.0
+    center_latitude_dg: float = 0.0
+    center_longitude_dg: float = 0.0
+    center_east_west_km: float = 0.0
+    center_north_south_km: float = 0.0
+    avg_altitude_m: float = 0.0
+    max_altitude_m: float = 0.0
+    min_altitude_m: float = 0.0
+
+
 class GameRect(BaseModel):
     model_config = ConfigDict(pydantic_config)
     height_width: WidthHeightPx
@@ -434,6 +470,10 @@ class GameRect(BaseModel):
 
 
 class Cell(BaseModel):
+    """
+    See notes below. This will likely be replaced by a Grid template
+    on the DB.
+    """
     model_config = ConfigDict(pydantic_config)
     rc: ColRowIx
     wh: WidthHeightPx
@@ -441,14 +481,24 @@ class Cell(BaseModel):
 
 
 class Grid(BaseModel):
+    """
+    This is an in-game storage structure, not a drawing canvas.
+    It holds information for display in each grid cell.
+    There is also a set of Grid templates defined in a DB table.
+    They define the size of the grid (r, c), the size of the cells
+    (w, h) in px, and the size of each cell in km (w, h). That will
+    likely do away with the need for the 'Cell' class, but not the
+    'Grid' class.
+    """
     model_config = ConfigDict(pydantic_config)
     RowsCols: ColRowIx
     cells: dict[str, Cell]
 
 
 # The following models are used to create SQLITE tables.
-# A classmethod identifies SQLITE constraints, datatypes
-# like BLOB and JSON, and sort order.
+# A classmethod identifies SQLITE constraints, GROUPed types
+# derived from Pydantic data types or other classes, and
+# sort order.
 # =======================================================
 class Universe(BaseModel):
     model_config = ConfigDict(pydantic_config)
@@ -457,7 +507,7 @@ class Universe(BaseModel):
     radius_gly: float = 0.0
     volume_gly3: float = 0.0
     volume_pc3: float = 0.0
-    elapsed_time_gavyr: float = 0.0
+    elapsed_time_gyr: float = 0.0
     expansion_rate_kmpsec_per_mpc: float = 0.0
     mass_kg: float = 0.0
     dark_energy_kg: float = 0.0
@@ -470,7 +520,6 @@ class Universe(BaseModel):
             "PK": ["univ_nm_pk"],
             "ORDER": ["univ_nm_ix ASC"]
         }
-
 
 
 class ExternalUniv(BaseModel):
@@ -529,6 +578,7 @@ class GalacticCluster(BaseModel):
                       "galactic_cluster_nm_pk ASC"]
         }
 
+
 class Galaxy(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "GALAXY"
@@ -567,28 +617,176 @@ class Galaxy(BaseModel):
                       "bulge_dim_axes": CoordABC,
                       "star_field_dim_from_center_ly": CoordXYZ,
                       "star_field_dim_axes": CoordABC},
-            "ORDER": ["galactic_cluster_nm_pk ASC",
+            "ORDER": ["galactic_cluster_nm_fk ASC",
                       "galaxy_nm_pk ASC"]
         }
 
 
+"""
+Notes for generating star systems, planets, and other objects.
+
+For a simplified star system generation algorithm that balances storytelling and basic simulation, consider the following critical data elements:
+
+    Star Type:
+        Spectral Class: O, B, A, F, G, K, M (from hottest to coolest).
+        O - Blue
+        B - Blue-White
+        A - White
+        F - Yellow-White
+        G - Yellow (like the Sun)
+        K - Orange
+        M - Red
+        Luminosity: Brightness of the star.
+        I - Supergiant = 1000-10000Ls
+        II - Bright Giant = 100-1000Ls
+        III - Giant = 10-100Ls
+        IV - Subgiant = 1-10Ls
+        V - Main Sequence = ~1Ls (Ls = Luminosity of the Sun)
+
+    Planetary Orbits:
+        Habitable Zone: Distance range from the star where conditions could support liquid water.
+        Distribution of Planets: Inner rocky planets, outer gas giants.
+        Orbital Eccentricity: How elliptical or circular the orbits are.
+
+    Planetary Characteristics:
+        Size and Mass: Determines gravity and atmosphere retention.
+        Atmosphere Composition: Essential for life support.
+        Surface Conditions: Temperature, pressure, and climate.
+        Axial Tilt: Influences seasons and climate variations.
+        Natural Satellites: Presence of moons.
+
+    Asteroid Belts and Comets:
+        Distribution: Inner, outer, or multiple belts.
+        Density: Sparse or dense with potential impact events.
+
+    Star System Dynamics:
+        Binary/Multiple Star Systems: Presence of companion stars.
+        Stability: Long-term stability of planetary orbits.
+        Age of the Star: Influences the evolution of planets and potential for life.
+            Spectral types O, B, and A represent "young" stars.
+                years? 1-10 million years
+            Spectral types F, G, and K represent "middle-aged" stars.
+                years? 1-10 billion years
+            Spectral type M represents "old" stars.
+                years? 1-10 trillion years
+
+    Exotic Elements:
+        Presence of Anomalies: Unusual phenomena, e.g., pulsars, black holes.
+        Unstable Conditions: Solar flares, intense radiation.
+
+    Historical Events:
+        Past Catastrophes: Previous asteroid impacts, major events.
+        Evolutionary Factors: Historical conditions affecting life evolution.
+
+    Special Conditions:
+        Tidally Locked Planets: Planets with one side permanently facing the star.
+        Rogue Planets: Unbound to any star.
+
+    Metadata for Storytelling:
+        Dominant Species: If there is intelligent life, their characteristics.
+        Cultural Factors: Influences on civilizations.
+        Current State: Technological level, conflicts, alliances.
+
+    Visual Characteristics:
+        Sky Colors: Affected by atmospheric composition.
+        Day/Night Lengths: Influences daily life.
+"""
+
+
+class StarSystem(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "STAR_SYSTEM"
+    star_system_name_pk: str
+    galaxy_nm_fk: str
+    nearest_pulsar_name_fk: str = ''
+    nearest_black_hole_name_fk: str = ''
+    binary_star_system_name_fk: str = ''
+    is_black_hole: bool = False
+    is_pulsar: bool = False
+    center_from_galaxy_center_pc: CoordXYZ
+    boundary_pc: GameRect
+    volume_pc3: float = 0.0
+    mass_kg: float = 0.0
+    system_shape: str = 'ellipsoid'
+    relative_size: str = 'medium'
+    spectral_class: str = 'G'
+    aprox_age_gyr: float = 0.0
+    luminosity_class: str = 'V'
+    frequency_of_flares: str = 'rare'
+    intensity_of_flares: str = 'low'
+    frequency_of_comets: str = 'rare'
+    unbound_planets_cnt: int = 0
+    orbiting_planets_cnt: int = 0
+    inner_habitable_boundary_au: float = 0.0
+    outer_habitable_boundary_au: float = 0.0
+    planetary_orbits_shape: str = 'circular'
+    orbital_stability: str = 'stable'
+    asteroid_belt_density: str = 'sparse'
+    asteroid_belt_loc: str = 'inner'
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["star_system_nm_pk"],
+            "FK": {"galaxy_nm_fk": ("GALAXY", "galaxy_nm_pk"),
+                   "binary_star_system_name_fk": ("STAR_SYSTEM", "star_system_nm_pk"),
+                   "nearest_pulsar_name_fk": ("STAR_SYSTEM", "star_system_nm_pk"),
+                   "nearest_black_hole_name_fk": ("STAR_SYSTEM", "star_system_nm_pk")},
+            "CK": {"relative_size": ['small', 'medium', 'large'],
+                   "spectral_class": ['O', 'B', 'A', 'F', 'G', 'K', 'M'],
+                   'luminosity_class': ['I', 'II', 'III', 'IV', 'V'],
+                   "system_shape": ['ellipsoid', 'spherical'],
+                   "planetary_orbits_shape": ['circular', 'elliptical'],
+                   "orbital_stability": ['stable', 'unstable'],
+                   "asteroid_belt_density": ['sparse', 'dense'],
+                   'asteroid_belt_loc': ['inner', 'outer', 'multiple'],
+                   "frequency_of_flares": ['rare', 'occasional', 'frequent'],
+                   "intensity_of_flares": ['low', 'medium', 'high'],
+                   "frequency_of_comets": ['rare', 'occasional', 'frequent']},
+            "GROUP": {"center_from_galaxy_center_pc": CoordXYZ,
+                      "boundary_pc": GameRect,
+                      "bulge_dim_from_center_ly": CoordXYZ,
+                      "bulge_dim_axes": CoordABC,
+                      "star_field_dim_from_center_ly": CoordXYZ,
+                      "star_field_dim_axes": CoordABC},
+            "ORDER": ["galaxy_nm_fk ASC",
+                      "star_system_nm_pk ASC"]
+        }
+
+
+"""
+Planetary charts, indicating the path of 'wanderers' and their
+'congruences', and so on as seen from the perspective of a given
+world, will be tracked on a separate table or set of tables.
+Such charts would include the path of comets and rogue planets,
+unless I decide to track those on a separate table or set of tables.
+
+Tracking of seasons and accounting of calendars is also handled on
+separate tables.  The same is true for tracking of eclipses and
+other astronomical events.
+"""
 class World(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "WORLD"
     world_nm_pk: str
     star_system_name_fk: str
-    world_type: str = 'Earth-like'
-    obliquity_dg: float = 0.0
+    world_type: str = 'habitable'
+    obliquity_dg: float = 0.0    # a/k/a axial tilt
     distance_from_star_au: float = 0.0
     distance_from_star_km: float = 0.0
-    diameter_km: float = 0.0
+    radius_km: float = 0.0
     mass_kg: float = 0.0
     gravity_m_per_s_per_s: float = 0.0
-    orbit_days: float = 0.0
-    orbit_turns: float = 0.0
-    rotation_days: float = 0.0
+    orbit_gdy: float = 0.0
+    orbit_gyr: float = 0.0
+    tidally_locked: bool = False
+    rotation_gdy: float = 0.0
+    rotation_direction: str = 'prograde'
+    orbit_direction: str = 'prograde'
+    moons_cnt: int = 0
     world_desc: str
     atmosphere: str
+    sky_color: pg.Color = Colors.CP_BLUE
     biosphere: str
     sentients: str
     climate: str
@@ -600,10 +798,165 @@ class World(BaseModel):
         return {
             "PK": ["world_nm_pk"],
             "FK": {"star_system_nm_fk": ("STAR_SYSTEM", "star_system_nm_pk")},
-            "CK": {"world_type": ['Earth-like', 'gas giant', 'rocky', 'desert', 'oceanic', 'ice planet', 'molten','other']},
+            "CK": {"world_type": ['habitable', 'gas giant', 'rocky',
+                                  'desert', 'oceanic', 'ice planet',
+                                  'molten','other'],
+                   "rotation_direction": ['prograde', 'retrograde'],
+                   "orbit_direction": ['prograde', 'retrograde']},
             "ORDER": ["star_system_nm_fk ASC",
                       "world_nm_pk ASC"]
         }
+
+"""
+Lunar charts, indicating full moons, new moons, other phases,
+and so on will be tracked on a separate table or set of tables.
+"""
+class Moon(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "MOON"
+    moon_nm_pk: str
+    world_name_fk: str
+    center_from_world_center_km: CoordXYZ
+    mass_kg: float = 0.0
+    radius_km: float = 0.0
+    obliquity_dg: float = 0.0    # a/k/a axial tilt
+    tidally_locked: bool = True
+    rotation_direction: str = 'prograde'
+    orbit_direction: str = 'prograde'
+    orbit_world_days: float = 0.0
+    rotation_world_days: float = 0.0
+    initial_velocity: float = 0.0
+    angular_velocity: float = 0.0
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["moon_nm_pk"],
+            "FK": {"world_name_fk": ("WORLD", "world_name_fk")},
+            "CK": {"rotation_direction": ['prograde', 'retrograde'],
+                   "orbit_direction": ['prograde', 'retrograde']},
+            "GROUP": {"center_from_world_center_km": CoordXYZ},
+            "ORDER": ["world_name_fk ASC",
+                      "moon_nm_pk ASC"]
+        }
+
+
+class Map(BaseModel):
+    """
+    Foreign key --
+    - MAP (1) contains <-- MAPs (n)   and
+      MAPs (n) are contained by --> MAP (1).
+
+    /* A map is always a rectangle.
+       This structure is for defining 'templates' of maps
+         that lay over a grid. For example, there might be
+         a map_name that is associated with provinces and
+         a different one that is associated with regions.
+         There could also be multiple variations of, say,
+         county-level maps, depending on large or small, for
+         example.
+       It will be associated with table w/ more detailed info
+       relating to things like:
+         - geography (continents, regions, mountains, hills, rivers,
+              lakes, seas, oceans, etc.)
+         - political boundaries (countries, provinces, states, counties, etc.)
+         - roads, paths, trails, waterways, bodies of water, etc.
+         - cities, towns, villages, neighborhoods, etc.
+         - other points of interest (ruins, temples, etc.)
+         - natural resources (mines, quarries, etc.)
+         - demographics (population density, etc.)
+    */
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "MAP"
+    map_nm_pk: str
+    container_map_name_fk: str=''
+    map_location: MapLocation
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["map_nm_pk"],
+            "FK": {"container_map_name_fk": ("MAP", "map_name_pk")},
+            "GROUP": {"map_location": MapLocation},
+            "ORDER": ["map_nm_pk ASC"]
+        }
+
+
+class MapXMap(BaseModel):
+    """
+    Associative keys --
+    - MAPs (n) overlap <--> MAPs (n)
+    - MAPs (n) border <--> MAPs (n)
+    PK is a composite key of map_name_1_fk and map_name_2_fk
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "MAPxMAP"
+    map_name_1_fk: str
+    map_name_2_fk: str
+    touch_type: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["map_name_1_fk", "map_name_2_fk"],
+            "FK": {"map_name_1_fk": ("MAP", "map_name_pk"),
+                   "map_name_2_fk": ("MAP", "map_name_pk")},
+            "CK": {"touch_type": ['borders', 'overlaps']},
+            "ORDER": ["map_nm_pk ASC"]
+        }
+
+
+"""
+Next:
+- Define tables for:
+    - GridTemplate
+    - MapxGridTemplate
+    - Various demographic tables and associations to
+      each other and to Map tables, e.g.
+      - canals
+      - towns
+      - continents
+      - world sections
+      - regions
+      - countries
+      - federations
+      - provinces
+      - counties, cantons and departments
+      - towns
+      - villages
+      - estates and communes
+      - tribal lands
+      - neighborhoods and precincts
+      - lakes
+      - rivers
+      - roads
+      - paths
+      - trails
+      - ruins
+      - temples
+      - mountains
+      - hills
+      - mines
+      - quarries
+      - farms and fields
+      - forests
+      - islands
+      - sea lanes
+      - undersea domains
+      - scenes
+      - buildings
+      - caverns
+        - etc.
+    And before defining ALL of those tables, do a few, then
+    make sure the actual database generation works as well as the
+    SQL generation.  Review the astronomical algorithms in light
+    of these new structures. Generate calendars, lunar and planetary
+    charts, and so on; and store results in DB instead of files.
+    Then do some more work on generating displays in the GUI. After
+    a solid iteration, then come back and do more tables, more content-
+    generation alogrithms, and so on.
+"""
 
 class InitGameDatabase(object):
     """Methods to:
@@ -621,8 +974,8 @@ class InitGameDatabase(object):
         """Pass pydantic data object to create SQL files.
         """
         for model in [Universe, ExternalUniv,
-                      GalacticCluster, Galaxy, World]:
-        # for model in [GalacticCluster]:
+                      GalacticCluster, Galaxy, StarSystem,
+                      World, Moon, Map, MapXMap]:
             DB.generate_sql(model)
 
 

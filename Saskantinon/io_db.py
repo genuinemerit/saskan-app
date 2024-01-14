@@ -10,6 +10,7 @@
 Manage data for saskan_data app using sqlite3.
 """
 import pickle
+import re
 import pendulum
 import shutil
 import sqlite3 as sq3
@@ -66,10 +67,12 @@ class DataBase(object):
         - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data rule
+        @DEV:
+        - Move PRIMARY KEY set-up to end of CREATE TABLE code, so that
+          I can handle composite keys same way as non-compound keys.
         """
         sql = ''
-        for p_pyd_rule in (('PK', ' PRIMARY KEY'),
-                           ('UQ', ' UNIQUE'),
+        for p_pyd_rule in (('UQ', ' UNIQUE'),
                            ('IX', ' INDEXED')):
             if p_pyd_rule[0] in p_constraints.keys() \
             and p_col_nm in p_constraints[p_pyd_rule[0]]:
@@ -175,6 +178,20 @@ class DataBase(object):
                             "ON DELETE CASCADE,\n")
         return sql
 
+    def set_sql_primary_key(self,
+                            p_constraints: dict) -> str:
+        """
+        Generate SQL PRIMARY KEY code from a Pydantic data model.
+        :args:
+        - p_constraints (dict) Dict of constraints for the table
+        :returns:
+        - (str) One or more lines of SQL code
+        """
+        sql = ''
+        if 'PK' in p_constraints.keys():
+            sql = f"PRIMARY KEY ({', '.join(p_constraints['PK'])}),\n"
+        return sql
+
     def generate_create_sql(self,
                             p_table_nm: str,
                             p_constraints: dict,
@@ -209,6 +226,7 @@ class DataBase(object):
                 sql += ',\n'
             sqlns.append(sql)
         sqlns.append(self.set_sql_foreign_keys(p_constraints))
+        sqlns.append(self.set_sql_primary_key(p_constraints))
         sqlns[len(sqlns)-1] = sqlns[len(sqlns)-1][:-2]
         sql = f"CREATE TABLE IF NOT EXISTS {p_table_nm} (\n" +\
               f"{''.join(sqlns)});\n"
