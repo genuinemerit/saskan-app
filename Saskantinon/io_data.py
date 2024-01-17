@@ -37,11 +37,11 @@ monster modules.
 - GetGameData - methods for getting values from SASKAN.db
 """
 
-from networkx import max_flow_min_cost
+# from networkx import max_flow_min_cost
 import pygame as pg
 from copy import copy
-from pprint import pprint as pp     # noqa: F401, format like pp for files
-from pprint import pformat as pf    # noqa: F401, format like pp for files
+from pprint import pprint as pp     # noqa: F401
+from pprint import pformat as pf    # noqa: F401
 from pydantic import BaseModel, ConfigDict
 from pydantic.dataclasses import dataclass
 
@@ -179,7 +179,7 @@ class Colors():
     CL_RED = '\033[91m'
     CL_YELLOW = '\033[93m'
     CL_UNDERLINE = '\033[4m'
-    
+
     # PyGame Colors
     CP_BLACK = pg.Color(0, 0, 0)
     CP_BLUE = pg.Color(0, 0, 255)
@@ -347,12 +347,10 @@ class Geom:
 
 @dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class TS():
-    """'Typesetting' helpers
-    Also, some fixed values that will eventually move to DB tables
-    or be handled as configs or parameters.
+    """'Typesetting' helpers, plus some fixed values that will
+    eventually move to DB tables or be handled as configs.
     """
     dash16: str = "----------------"
-    # This won't work without initializing pygame.
     info = pg.display.Info()
     WIN_W = round(info.current_w * 0.9)
     WIN_H = round(info.current_h * 0.9)
@@ -377,16 +375,31 @@ class TS():
     G_LNS_KM_W = GRID_CELL_KM_W * GRID_COLS
     G_LNS_KM_H = GRID_CELL_KM_H * GRID_ROWS
 
-
-# Pydantic models to define complex attributes or records.
-# ========================================================
+# =============================================================
+# GROUP Attributes for DB or in-memoryuse
+#
+# Pydantic models to define complex/grouped attributes, records
+# These can be used to define DB attributes, but in terms of
+# auto-generated SQL tables, don't use multiple layers of them.
+# In other words, don't use one of these "grouped" attributes
+# inside of another "grouped" attribute. It IS OK to use a 'native'
+# object type inside on of these, such as a pg.Color or pg.Rect.
+# This is how I have it set up. I could add more layers of
+# metadata, for example, by picking out specific names of the
+# attributes within the "grouped" records and making sure they
+# get stored as BLOB, or it might be even be possible to break
+# out the Pydantic models into sub-groups, but that seems to be
+# getting pretty messy.
+# For structures used only in memory, I don't think it's as much
+# of a problem.
+# =============================================================
 class ColRowIx(BaseModel):
     model_config = ConfigDict(pydantic_config)
     r: int = 0
     c: int = 0
 
 
-class WidthHeightPx(BaseModel):
+class WidthHeight(BaseModel):
     model_config = ConfigDict(pydantic_config)
     w: float = 0.0
     h: float = 0.0
@@ -405,13 +418,6 @@ class CoordXY(BaseModel):
     y: float = 0.0
 
 
-class CoordRect(BaseModel):
-    model_config = ConfigDict(pydantic_config)
-    top_left: CoordXY
-    top_right: CoordXY
-    bottom_left: CoordXY
-    bottom_right: CoordXY
-
 
 class CoordABC(BaseModel):
     model_config = ConfigDict(pydantic_config)
@@ -427,9 +433,9 @@ class PitchYawRollAngle(BaseModel):
     roll: float = 0.0
 
 
-class MapLocation(BaseModel):
+class GeogLocation(BaseModel):
     """
-    All MapLocations are rectangular.
+    All GeogLocations are rectangular.
 
     Latitudes and longitudes are in decimal degrees.
     Lat north is positive, lat south is negative.
@@ -443,6 +449,7 @@ class MapLocation(BaseModel):
     different grids to scale displays, that is, set km to px, or
     km to cells.
     """
+    model_config = ConfigDict(pydantic_config)
     latitude_north_dg: float = 0.0
     latitude_south_dg: float = 0.0
     longitude_east_dg: float = 0.0
@@ -458,24 +465,16 @@ class MapLocation(BaseModel):
     min_altitude_m: float = 0.0
 
 
-class GameRect(BaseModel):
-    model_config = ConfigDict(pydantic_config)
-    height_width: WidthHeightPx
-    coord_rect: CoordRect
-    center: CoordXY
-    fill: bool = False
-    fill_color: pg.Color = Colors.CP_GREEN
-    line_color: pg.Color = Colors.CP_BLACK
-    box: pg.Rect = pg.Rect(0, 0, 0, 0)
 
-
-class GameGraphic(BaseModel):
+class Graphic(BaseModel):
     """
     The design thinking here is that:
-    - all graphics are contained in a rectangular box
+    - the placement of a graphic element is not stored in
+        this structure but its dimensions for display are
     - the graphics have been converted to a PyGame Surface
-      which will be stored in a database as a blob
-    - a raw version of the graphic is stored in a file (url)
+        which will be stored in a database as a blob
+    - a raw version of the graphic is stored in a file, whose
+        path is stored in the database
     There is not just a "graphics" table. There are tables
       which contain graphic elements. In some cases, these might
       be generated code, such as SVG, in others they might be
@@ -487,23 +486,51 @@ class GameGraphic(BaseModel):
     """
     model_config = ConfigDict(pydantic_config)
     img_surface: pg.Surface
-    img_rect: GameRect
+    img_rect: pg.Rect
     img_url: str = ''
     img_desc: str = ''
 
 
-class Cell(BaseModel):
+# =============================================================
+# RECORDS for in-memory use
+# =============================================================
+class CoordRect(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    top_left: CoordXY
+    top_right: CoordXY
+    bottom_left: CoordXY
+    bottom_right: CoordXY
+
+
+class GameRect(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    height_width: WidthHeight
+    coord_rect: CoordRect
+    center: CoordXY
+    fill: bool = False
+    fill_color: pg.Color = Colors.CP_GREEN
+    line_color: pg.Color = Colors.CP_BLACK
+    box: pg.Rect = pg.Rect(0, 0, 0, 0)
+
+
+class GameGraphic(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    image: Graphic
+    img_placement: GameRect
+
+
+class GameCell(BaseModel):
     """
     See notes below. This will likely be replaced by a Grid template
     on the DB.
     """
     model_config = ConfigDict(pydantic_config)
     rc: ColRowIx
-    wh: WidthHeightPx
+    wh: WidthHeight
     rect: GameRect
 
 
-class Grid(BaseModel):
+class GameGrid(BaseModel):
     """
     This is an in-game storage structure, not a drawing canvas.
     It holds information for display in each grid cell.
@@ -515,13 +542,18 @@ class Grid(BaseModel):
     """
     model_config = ConfigDict(pydantic_config)
     RowsCols: ColRowIx
-    cells: dict[str, Cell]
+    cells: dict[str, GameCell]
 
 
-# The following models are used to create SQLITE tables.
-# A classmethod identifies SQLITE constraints, GROUPed types
-# derived from Pydantic data types or other classes, and
-# sort order.
+# =============================================================
+# DB/ORM table definitions
+#
+# The following models are used to create SQLITE tables and
+#   standard/generic SQL commands (INSERT, UPDATE, SELECT).
+# A classmethod identifies:
+# - SQLITE constraints,
+# - GROUPed types derived from Pydantic data types defined above,
+# - sort order for SELECT queries.
 # =======================================================
 class Universe(BaseModel):
     model_config = ConfigDict(pydantic_config)
@@ -571,7 +603,11 @@ class GalacticCluster(BaseModel):
     galactic_cluster_nm_pk: str
     univ_nm_fk: str = ''
     center_from_univ_center_gly: CoordXYZ
+    boundary_gly: pg.Rect
     cluster_shape: str = 'ellipsoid'
+    shape_pc: CoordXYZ
+    shape_axes: CoordABC
+    shape_rot: PitchYawRollAngle
     volume_pc3: float = 0.0
     mass_kg: float = 0.0
     dark_energy_kg: float = 0.0
@@ -579,24 +615,19 @@ class GalacticCluster(BaseModel):
     baryonic_matter_kg: float = 0.0
     timing_pulsar_pulse_per_ms: float = 0.0
     timing_pulsar_loc_gly: CoordXYZ
-    shape_pc: CoordXYZ
-    shape_axes: CoordABC
-    shape_rot: PitchYawRollAngle
-    boundary_gly: GameRect
 
     @classmethod
     def constraints(cls):
         return {
             "PK": ["galactic_cluster_nm_pk"],
-            "FK": {"univ_uid_fk": ("UNIVERSE", "univ_uid_pk")},
+            "FK": {"univ_nm_fk": ("UNIVERSE", "univ_nm_pk")},
             "CK": {"cluster_shape": ['ellipsoid', 'spherical']},
             "DT": {},
             "GROUP": {"center_from_univ_center_gly": CoordXYZ,
                       "timing_pulsar_loc_gly": CoordXYZ,
                       "shape_pc": CoordXYZ,
                       "shape_axes": CoordABC,
-                      "shape_rot": PitchYawRollAngle,
-                      "boundary_gly": GameRect},
+                      "shape_rot": PitchYawRollAngle},
             "ORDER": ["univ_nm_fk ASC",
                       "galactic_cluster_nm_pk ASC"]
         }
@@ -610,11 +641,11 @@ class Galaxy(BaseModel):
     relative_size: str = 'medium'
     center_from_univ_center_kpc: CoordXYZ
     halo_radius_pc: float = 0.0
-    boundary_pc: GameRect
+    boundary_pc: pg.Rect
     volume_gpc3: float = 0.0
     mass_kg: float = 0.0
     bulge_shape: str = 'ellipsoid'
-    bulge_dim_from_center_ly: CoordXYZ
+    bulge_center_from_center_ly: CoordXYZ
     bulge_dim_axes: CoordABC
     bulge_black_hole_mass_kg: float = 0.0
     bulge_volume_gpc3: float = 0.0
@@ -635,8 +666,7 @@ class Galaxy(BaseModel):
                    "bulge_shape": ['ellipsoid', 'spherical'],
                    "star_field_shape": ['ellipsoid', 'spherical']},
             "GROUP": {"center_from_univ_center_kpc": CoordXYZ,
-                      "boundary_pc": GameRect,
-                      "bulge_dim_from_center_ly": CoordXYZ,
+                      "bulge_center_from_center_ly": CoordXYZ,
                       "bulge_dim_axes": CoordABC,
                       "star_field_dim_from_center_ly": CoordXYZ,
                       "star_field_dim_axes": CoordABC},
@@ -727,7 +757,7 @@ class StarSystem(BaseModel):
     is_black_hole: bool = False
     is_pulsar: bool = False
     center_from_galaxy_center_pc: CoordXYZ
-    boundary_pc: GameRect
+    boundary_pc: pg.Rect
     volume_pc3: float = 0.0
     mass_kg: float = 0.0
     system_shape: str = 'ellipsoid'
@@ -767,7 +797,6 @@ class StarSystem(BaseModel):
                    "intensity_of_flares": ['low', 'medium', 'high'],
                    "frequency_of_comets": ['rare', 'occasional', 'frequent']},
             "GROUP": {"center_from_galaxy_center_pc": CoordXYZ,
-                      "boundary_pc": GameRect,
                       "bulge_dim_from_center_ly": CoordXYZ,
                       "bulge_dim_axes": CoordABC,
                       "star_field_dim_from_center_ly": CoordXYZ,
@@ -789,6 +818,13 @@ separate tables.  The same is true for tracking of eclipses and
 other astronomical events.
 """
 class World(BaseModel):
+    """
+    @DEV:
+    It may not be possible to assign a default value to what
+    will become a BLOB. If so, then just leave off the default
+    assignment and make sure that the code assigns the
+    desired values.
+    """
     model_config = ConfigDict(pydantic_config)
     tablename: str = "WORLD"
     world_nm_pk: str
@@ -809,7 +845,7 @@ class World(BaseModel):
     moons_cnt: int = 0
     world_desc: str
     atmosphere: str
-    sky_color: pg.Color = Colors.CP_BLUE
+    sky_color: pg.Color = Colors.CP_BLUE  # ???
     biosphere: str
     sentients: str
     climate: str
@@ -894,14 +930,14 @@ class Map(BaseModel):
     tablename: str = "MAP"
     map_nm_pk: str
     container_map_name_fk: str=''
-    map_location: MapLocation
+    map_loc: GeogLocation
 
     @classmethod
     def constraints(cls):
         return {
             "PK": ["map_nm_pk"],
             "FK": {"container_map_name_fk": ("MAP", "map_name_pk")},
-            "GROUP": {"map_location": MapLocation},
+            "GROUP": {"map_loc": GeogLocation},
             "ORDER": ["map_nm_pk ASC"]
         }
 
@@ -931,7 +967,7 @@ class MapXMap(BaseModel):
 
 """
 The language elements may be an area where I might want to
-start investing the use of an integrated AI system.  The advantage
+start investigating the use of an integrated AI system.  Advantage
 could be that fairly complex rules can be expressed in natural
 language and the AI can take care of the details of generating
 the language elements, refining the rules.
@@ -945,6 +981,7 @@ class LangFamily(BaseModel):
     - phonetics: how the language sounds, e.g. guttural, nasal, etc.
     - cultural influences: e.g. from other languages, or from
       historical events, migration patterns, etc.
+    NB: 'baric' is an in-game construct, not a real-world one.
     """
     model_config = ConfigDict(pydantic_config)
     tablename: str = "LANG_FAMILY"
@@ -1105,7 +1142,7 @@ class CharMember(BaseModel):
     char_member_id_pk: int
     char_member_nm: str
     char_set_nm_fk: str
-    char_member_graph: GameGraphic
+    char_member: Graphic
     char_member_desc: str = ''
 
     @classmethod
@@ -1117,7 +1154,7 @@ class CharMember(BaseModel):
             "FK": {"char_set_nm_fk":
                     ("CHAR_SET", "char_set_nm_pk")},
             "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
-            "GROUP": {"char_member_graph": GameGraphic},
+            "GROUP": {"char_member": Graphic},
             "ORDER": ["char_set_nm_fk ASC", "char_member_nm ASC"]
         }
 
@@ -1437,7 +1474,6 @@ class GetGameData(object):
         """Format text lines for display in CONSOLE.
         - "catg" identifies source of config data to format.
         - "item" identifies type of data to format.
-        
         @TODO:
         - Move the geo data, etc. into a database.
         - May want to revisit, optimize the methods for formatting
@@ -1486,11 +1522,10 @@ class GetGameData(object):
         - Multiply # of grid-cells in the map box by px per grid-cell
           to get line height and width in px for the map box.
         - Center 'map' in the 'grid'; by grid count, by px
-        
         @DEV:
         - Assignment of km to grid dimensions should not be hard-coded.
         - We need to have a `grids` database table that provides
-          different dimensions for different scenarios, just like 
+          different dimensions for different scenarios, just like
           we have the `maps` table to define "location" of maps.
         - Once that is in place, then "mapping" between grid and map
           can be abstracted into a class like this one, or in the

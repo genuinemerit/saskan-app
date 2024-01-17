@@ -9,8 +9,9 @@
 
 Manage data for saskan_data app using sqlite3.
 """
+# import numbers
 import pickle
-import re
+# import re
 import pendulum
 import shutil
 import sqlite3 as sq3
@@ -46,23 +47,22 @@ class DataBase(object):
         - p_pyd_value (object) Pydantic value object
         :returns:
         - (str) SQLITE data type
-
-        @DEV:
-        - If it is useful to store other objects as BLOB,
-          e.g., Rect, Color, then I will need to add them here.
         """
+        sql = ''
         annote = p_pyd_value.annotation.__name__ # type: ignore
-
-        # pp(('annote', annote))
-
         for pyd_type in (('str', ' TEXT'),
                          ('int', ' INTEGER'),
                          ('bool', ' BOOLEAN'),
                          ('Surface', ' BLOB'),
+                         ('Rect', ' BLOB'),
+                         ('Color', ' BLOB'),
                          ('float', ' NUMERIC')):
             if annote == pyd_type[0]:
-                return pyd_type[1]
-        return ' TEXT'
+                sql = pyd_type[1]
+                break
+        if sql == '':
+            sql = ' TEXT'
+        return sql
 
     def set_sql_data_rule(self,
                           p_col_nm: str,
@@ -87,36 +87,25 @@ class DataBase(object):
         return sql
 
     def set_sql_default(self,
-                        p_pyd_value: object) -> str:
+                        p_pyd_value: object,
+                        p_data_type: str) -> str:
         """Extract SQL default value from Pydantic data object.
-        For non-standard data types, if the model annotation is
-        not 'str', add a comment to the SQL.
         :args:
         - p_pyd_value (object) Pydantic value object
+        - p_data_type (str) SQLITE data type
         :returns:
         - (str) SQLITE SQL DEFAULT clause
-
-        @DEV:
-        - Move the generation of the comment to a standalone
-          method. I still want to see it even if there is no
-          default value.
         """
         sql = ''
         col_default = str(p_pyd_value.get_default()).strip() # type: ignore
         if col_default not in (None, 'PydanticUndefined'):
-            annote = p_pyd_value.annotation.__name__ # type: ignore
-
-            # pp(('annote', annote))
-
-            if annote in ['str', 'Color', 'Rect']:
-                sql = f" DEFAULT '{col_default}'"
-                if annote != 'str':
-                    sql += f"  -- {annote}"
-            else:
-                col_default = 0 if col_default == 'False'\
-                    else 1 if col_default == 'True'\
-                    else col_default
-                sql = f" DEFAULT {col_default}"
+            if col_default == 'True':
+                col_default = '1'
+            if col_default == 'False':
+                col_default = '0'
+            if p_data_type not in ('INTEGER', 'NUMERIC'):
+                col_default = f"'{col_default}'"
+            sql = f" DEFAULT {col_default}"
         return sql
 
     def set_sql_check_constraints(self,
@@ -139,10 +128,24 @@ class DataBase(object):
             sql = sql[:-2] + '))'
         return sql
 
-    def set_column_group(self,
-                         p_col_nm: str,
-                         p_constraints: dict,
-                         p_col_names: list) -> tuple:
+    def set_sql_comment(self,
+                        p_pyd_value: object) -> str:
+        """Convert Pydantic constraint annotations to SQLITE COMMENT.
+        :args:
+        - p_pyd_value (object) Pydantic value object
+        :returns:
+        - (str) SQLITE COMMENT
+        """
+        sql = ''
+        annote = p_pyd_value.annotation.__name__ # type: ignore
+        if annote in ['Color', 'Rect', 'Surface']:
+            sql += f",   -- {annote} object"
+        return sql
+
+    def set_sql_column_group(self,
+                             p_col_nm: str,
+                             p_constraints: dict,
+                             p_col_names: list) -> tuple:
         """
         Generate SQL CREATE TABLE code from a Pydantic data model
         for specialized data types, by splitting them into separate
@@ -164,10 +167,12 @@ class DataBase(object):
                 g_col_nm = f'{p_col_nm}_{k}'
                 p_col_names.append(g_col_nm)
                 sql += f' {g_col_nm}'
-                sql += self.set_sql_data_type(v)
+                data_ty_sql = self.set_sql_data_type(v)
+                sql += data_ty_sql
                 sql += self.set_sql_data_rule(k, v, p_constraints)
-                sql += self.set_sql_default(v)
+                sql += self.set_sql_default(v, data_ty_sql.split(' ')[1])
                 sql += self.set_sql_check_constraints(k, p_constraints)
+                sql += self.set_sql_comment(v)
                 sql += ',\n'
         return(sql, p_col_names)
 
@@ -184,7 +189,7 @@ class DataBase(object):
         if 'FK' in p_constraints.keys():
             for col, ref in p_constraints['FK'].items():
                 sql += (f"FOREIGN KEY ({col}) REFERENCES" +
-                            f" ({ref[0]}){ref[1]} " +
+                            f" {ref[0]}({ref[1]}) " +
                             "ON DELETE CASCADE,\n")
         return sql
 
@@ -219,20 +224,23 @@ class DataBase(object):
 
         @DEV:
         - Eventually use a "DT" constraint to specify date/time formats,
-            and use this to set the SQL data type + comment, if helpful.
+            and use it to set the SQL data type + comment + check,
+            if helpful.
         """
         col_names = []
         sqlns = []
         for col_nm, pyd_value in p_col_fields.items():
             sql, col_names =\
-                self.set_column_group(col_nm, p_constraints, col_names)
+                self.set_sql_column_group(col_nm, p_constraints, col_names)
             if sql == '':
                 col_names.append(col_nm)
                 sql = col_nm
-                sql += self.set_sql_data_type(pyd_value)
+                data_ty_sql = self.set_sql_data_type(pyd_value)
+                sql += data_ty_sql
                 sql += self.set_sql_data_rule(col_nm, pyd_value, p_constraints)
-                sql += self.set_sql_default(pyd_value)
+                sql += self.set_sql_default(pyd_value, data_ty_sql.split(' ')[1])
                 sql += self.set_sql_check_constraints(col_nm, p_constraints)
+                sql += self.set_sql_comment(pyd_value)
                 sql += ',\n'
             sqlns.append(sql)
         sqlns.append(self.set_sql_foreign_keys(p_constraints))
@@ -421,8 +429,8 @@ class DataBase(object):
         - (str) Content of the SQL file
         """
         sql_nm = str(p_sql_nm).upper()
-        if '.SQL' not in sql_nm :
-            sql_nm += '.SQL'
+        if '.sql' not in sql_nm :
+            sql_nm += '.sql'
         sql_path = path.join(FI.D['APP']['root'],
                              FI.D['APP']['dirs']['db'],
                              sql_nm)
@@ -505,7 +513,7 @@ class DataBase(object):
         if self.db_conn is not None:
             self.db_conn.commit()
         self.disconnect_db()
-    
+
     def execute_insert(self,
                        p_sql_nm: str,
                        p_values: tuple):
