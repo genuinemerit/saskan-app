@@ -46,11 +46,19 @@ class DataBase(object):
         - p_pyd_value (object) Pydantic value object
         :returns:
         - (str) SQLITE data type
+
+        @DEV:
+        - If it is useful to store other objects as BLOB,
+          e.g., Rect, Color, then I will need to add them here.
         """
         annote = p_pyd_value.annotation.__name__ # type: ignore
+
+        # pp(('annote', annote))
+
         for pyd_type in (('str', ' TEXT'),
                          ('int', ' INTEGER'),
                          ('bool', ' BOOLEAN'),
+                         ('Surface', ' BLOB'),
                          ('float', ' NUMERIC')):
             if annote == pyd_type[0]:
                 return pyd_type[1]
@@ -67,16 +75,13 @@ class DataBase(object):
         - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data rule
-        @DEV:
-        - Move PRIMARY KEY set-up to end of CREATE TABLE code, so that
-          I can handle composite keys same way as non-compound keys.
         """
         sql = ''
         for p_pyd_rule in (('UQ', ' UNIQUE'),
                            ('IX', ' INDEXED')):
             if p_pyd_rule[0] in p_constraints.keys() \
             and p_col_nm in p_constraints[p_pyd_rule[0]]:
-                sql = f'{p_pyd_rule[1]}'
+                sql += f'{p_pyd_rule[1]}'
         if p_pyd_value.is_required(): # type: ignore
             sql += ' NOT NULL'
         return sql
@@ -84,12 +89,17 @@ class DataBase(object):
     def set_sql_default(self,
                         p_pyd_value: object) -> str:
         """Extract SQL default value from Pydantic data object.
-        For non-standard data types, set to a string representation and if
-        the model annotation is not 'str', add a comment to the SQL.
+        For non-standard data types, if the model annotation is
+        not 'str', add a comment to the SQL.
         :args:
         - p_pyd_value (object) Pydantic value object
         :returns:
         - (str) SQLITE SQL DEFAULT clause
+
+        @DEV:
+        - Move the generation of the comment to a standalone
+          method. I still want to see it even if there is no
+          default value.
         """
         sql = ''
         col_default = str(p_pyd_value.get_default()).strip() # type: ignore

@@ -469,6 +469,29 @@ class GameRect(BaseModel):
     box: pg.Rect = pg.Rect(0, 0, 0, 0)
 
 
+class GameGraphic(BaseModel):
+    """
+    The design thinking here is that:
+    - all graphics are contained in a rectangular box
+    - the graphics have been converted to a PyGame Surface
+      which will be stored in a database as a blob
+    - a raw version of the graphic is stored in a file (url)
+    There is not just a "graphics" table. There are tables
+      which contain graphic elements. In some cases, these might
+      be generated code, such as SVG, in others they might be
+      bitmaps or other image files. The idea is to have a
+      consistent way to store and retrieve graphic elements,
+      associated to logical game elements. For GUI optimization,
+      probably other kinds of caching will be useful, but maybe
+      not. SQLite is pretty fast and is basically a file system.
+    """
+    model_config = ConfigDict(pydantic_config)
+    img_surface: pg.Surface
+    img_rect: GameRect
+    img_url: str = ''
+    img_desc: str = ''
+
+
 class Cell(BaseModel):
     """
     See notes below. This will likely be replaced by a Grid template
@@ -906,6 +929,198 @@ class MapXMap(BaseModel):
             "ORDER": ["map_nm_pk ASC"]
         }
 
+"""
+The language elements may be an area where I might want to
+start investing the use of an integrated AI system.  The advantage
+could be that fairly complex rules can be expressed in natural
+language and the AI can take care of the details of generating
+the language elements, refining the rules.
+"""
+
+class LangFamily(BaseModel):
+    """
+    Describe basic features of a language family, without getting too
+    complicated.
+    - desc: overview
+    - phonetics: how the language sounds, e.g. guttural, nasal, etc.
+    - cultural influences: e.g. from other languages, or from
+      historical events, migration patterns, etc.
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LANG_FAMILY"
+    lang_family_nm_pk: str
+    char_set_nm_fk: str = 'baric'
+    lang_family_desc: str = ''
+    phonetics: str = ''
+    cultural_influences: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["lang_family_nm_pk"],
+            "FK": {"char_set_nm_fk": ("CHAR_SET", "char_set_nm_pk")},
+            "CK": {"char_set_nm_fk":
+                ['baric', 'runic', 'gromik', 'arshk', 'other']},
+            "ORDER": ["lang_family_nm_pk ASC"]
+        }
+
+
+class Language(BaseModel):
+    """
+    Describe basic features of a language, without getting too
+    complicated.
+    - desc: overiew
+    - gramatics: how phrases are generally structured,
+        e.g. subject-verb-object
+    - lexicals: major sources of lexicon, for example, lots of
+        words relating to the sea, or to the sky, or to the
+        land, or to the stars, or to the gods, etc.
+    - social influences: e.g. from other languages, or from
+        class, trade, migration patterns, etc.
+    - word formations:  how words are generally structured,
+        e.g. single-syllable-only, consonant-vowel-consonant,
+        multiples by prefix, etc.
+    More possible features:
+/*
+lang_object structure:
+{"glossary":
+    {"phrase": "definition", ...},
+ "lexicon":
+    {"word": "definition", ...},
+ "grammar":
+    # the entire structure of a language, includes most of the following,
+    # as well as things like rules for making plurals, etc.
+    {"rule": "explanation", ...},
+ "phonology":
+   # distribtution of phonemes (sounds) in a language
+    {"rule": "explanation", ...},
+ "morphology":
+   # how words are constructed from morphemes (smallest units of meaning)
+    {"rule": "explanation", ...},
+ "syntax":
+    # how words are combined into phrases and sentences
+    {"rule": "explanation", ...},
+ "semantics":
+    {"rule": "explanation", ...},
+ "pragmatics":
+   # how context affects meaning, for example, intention, social status, etc.
+    {"rule": "explanation", ...},
+ "orthography":
+   # how a language is written, for example, alphabet, syllabary, etc.
+    {"rule": "explanation", ...},
+    {"letter": "pronunciation", ...},
+ "phonotactics":
+    # how sounds are combined into syllables and words
+     {"rule": "explanation", ...},
+    {"rule": "explanation", ...},
+*/
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LANGUAGE"
+    lang_nm_pk: str
+    lang_family_nm_fk: str
+    lang_desc: str = ''
+    gramatics: str = ''
+    lexicals: str = ''
+    social_influences : str = ''
+    word_formations: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["lang_nm_pk"],
+            "FK": {"lang_family_nm_fk":
+                    ("LANG_FAMILY", "lang_family_nm_pk")},
+            "ORDER": ["lang_family_nm_fk ASC", "lang_nm_pk ASC"]
+        }
+
+
+class LangDialect(BaseModel):
+    """
+    Describe basic features of a dialect, without getting too
+    complicated.
+    - divergence_factors: how the dialect differs from the
+      main language, e.g. pronunciation, vocabulary, etc.
+    - syncretic_factors: how the dialect is similar to or borrows
+      from neighboring languages, e.g. pronunciation, vocabulary, ..
+    - preservation_factors: how the dialect preserves old features
+      of the main language which are no longer standard
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LANG_DIALECT"
+    dialect_nm_pk: str
+    lang_nm_fk: str
+    dialect_desc: str = ''
+    divergence_factors: str = ''
+    syncretic_factors: str = ''
+    preservation_factors: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["dialect_nm_pk"],
+            "FK": {"lang_nm_fk":
+                    ("LANGUAGE", "lang_nm_pk")},
+            "ORDER": ["lang_fnm_fk ASC", "dialect_nm_pk ASC"]
+        }
+
+
+class CharSet(BaseModel):
+    """
+    Description of a set of characters used in a language.
+    An alphabet represents consonants and vowels each separately as individual letters.
+    An abjad represents consonants only as distinct letters; vowels are represented as diacritics. In some cases, the vowels may be omitted entirely, and are implied from context .
+    An abugida represents consonants as separate letters, but the glyph used also implies a “default” vowel, and deletion or change of vowel is represented with modifications of the glyph, in a fashion similar to diacritics, but not the same.
+    A syllabary represents a syllable of the language - usually but not invariably in the form CV (consonant followed by vowel) - as a single glyph; there is no necessary relationship between glyphs that carry the same consonant, or the same vowel.
+    Ideograms use a single - often complex - glyph to represent a word or concept. In some languages, the ideogram may actually be compound, with one portion signalling the pronunciation, and another portion signalling the meaning.
+
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "CHAR_SET"
+    char_set_nm_pk: str
+    char_set_type: str = 'alphabet'
+    char_set_desc: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["char_set_nm_pk"],
+            "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
+            "ORDER": ["char_set_nm_pk ASC"]
+        }
+
+
+class CharMember(BaseModel):
+    """
+    Describes the individual characters in a character set.
+    Where the character is not represented in Unicode, a picture
+    of the character (BLOB) and its name is stored, along with
+    a description.
+    Member types are defined by the type of writing system
+    (character set) they belong to. But further categorizations
+    are possible for numerics, punctuation, and so on.
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "CHAR_MEMBER"
+    char_member_id_pk: int
+    char_member_nm: str
+    char_set_nm_fk: str
+    char_member_graph: GameGraphic
+    char_member_desc: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["char_member_id_pk"],
+            "UQ": ["char_member_nm"],
+            "IX": ["char_member_nm"],
+            "FK": {"char_set_nm_fk":
+                    ("CHAR_SET", "char_set_nm_pk")},
+            "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
+            "GROUP": {"char_member_graph": GameGraphic},
+            "ORDER": ["char_set_nm_fk ASC", "char_member_nm ASC"]
+        }
+
 
 """
 Next:
@@ -914,12 +1129,16 @@ Next:
     - MapxGridTemplate
     - Various demographic tables and associations to
       each other and to Map tables, e.g.
+      - species (sentients, animals, plants, etc.)\
+      x languages
+      - populations
+      - belief systems
       - canals
       - towns
       - continents
       - world sections
       - regions
-      - countries
+      - countries (over time...)
       - federations
       - provinces
       - counties, cantons and departments
@@ -947,6 +1166,8 @@ Next:
       - scenes
       - buildings
       - caverns
+      - languages
+      - glossaries
         - etc.
     And before defining ALL of those tables, do a few, then
     make sure the actual database generation works as well as the
@@ -954,8 +1175,8 @@ Next:
     of these new structures. Generate calendars, lunar and planetary
     charts, and so on; and store results in DB instead of files.
     Then do some more work on generating displays in the GUI. After
-    a solid iteration, then come back and do more tables, more content-
-    generation alogrithms, and so on.
+    a solid iteration, then come back and do more tables, more
+    content-generation alogrithms, and so on.
 """
 
 class InitGameDatabase(object):
@@ -975,7 +1196,9 @@ class InitGameDatabase(object):
         """
         for model in [Universe, ExternalUniv,
                       GalacticCluster, Galaxy, StarSystem,
-                      World, Moon, Map, MapXMap]:
+                      World, Moon, Map, MapXMap,
+                      LangFamily, Language, LangDialect,
+                      CharSet, CharMember]:
             DB.generate_sql(model)
 
 
