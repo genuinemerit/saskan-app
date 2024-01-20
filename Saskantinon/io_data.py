@@ -433,6 +433,17 @@ class PitchYawRollAngle(BaseModel):
     roll: float = 0.0
 
 
+class GeogLatLong(BaseModel):
+    """
+    Latitudes and longitudes are in decimal degrees.
+    Lat north is positive, lat south is negative.
+    Lon east (between universal meridien and international date line)
+      is positive, lon west is negative.
+    """
+    model_config = ConfigDict(pydantic_config)
+    lat: float = 0.0
+    lon: float = 0.0
+
 class GeogLocation(BaseModel):
     """
     All GeogLocations are rectangular.
@@ -534,11 +545,6 @@ class GameGrid(BaseModel):
     """
     This is an in-game storage structure, not a drawing canvas.
     It holds information for display in each grid cell.
-    There is also a set of Grid templates defined in a DB table.
-    They define the size of the grid (r, c), the size of the cells
-    (w, h) in px, and the size of each cell in km (w, h). That will
-    likely do away with the need for the 'Cell' class, but not the
-    'Grid' class.
     """
     model_config = ConfigDict(pydantic_config)
     RowsCols: ColRowIx
@@ -555,6 +561,23 @@ class GameGrid(BaseModel):
 # - GROUPed types derived from Pydantic data types defined above,
 # - sort order for SELECT queries.
 # =======================================================
+class Backup(BaseModel):
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "BACKUP"
+    bkup_nm: str
+    bkup_dttm: str
+    bkup_type: str
+    file_from: str
+    file_to: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["bkup_nm", "bkup_dttm"],
+            "ORDER": ["bkup_dttm DESC", "bkup_nm ASC"]
+        }
+
+
 class Universe(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "UNIVERSE"
@@ -749,11 +772,11 @@ For a simplified star system generation algorithm that balances storytelling and
 class StarSystem(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "STAR_SYSTEM"
-    star_system_name_pk: str
+    star_system_nm_pk: str
     galaxy_nm_fk: str
-    nearest_pulsar_name_fk: str = ''
-    nearest_black_hole_name_fk: str = ''
-    binary_star_system_name_fk: str = ''
+    nearest_pulsar_nm_fk: str = ''
+    nearest_black_hole_nm_fk: str = ''
+    binary_star_system_nm_fk: str = ''
     is_black_hole: bool = False
     is_pulsar: bool = False
     center_from_galaxy_center_pc: CoordXYZ
@@ -782,9 +805,9 @@ class StarSystem(BaseModel):
         return {
             "PK": ["star_system_nm_pk"],
             "FK": {"galaxy_nm_fk": ("GALAXY", "galaxy_nm_pk"),
-                   "binary_star_system_name_fk": ("STAR_SYSTEM", "star_system_nm_pk"),
-                   "nearest_pulsar_name_fk": ("STAR_SYSTEM", "star_system_nm_pk"),
-                   "nearest_black_hole_name_fk": ("STAR_SYSTEM", "star_system_nm_pk")},
+                   "binary_star_system_nm_fk": ("STAR_SYSTEM", "star_system_nm_pk"),
+                   "nearest_pulsar_nm_fk": ("STAR_SYSTEM", "star_system_nm_pk"),
+                   "nearest_black_hole_nm_fk": ("STAR_SYSTEM", "star_system_nm_pk")},
             "CK": {"relative_size": ['small', 'medium', 'large'],
                    "spectral_class": ['O', 'B', 'A', 'F', 'G', 'K', 'M'],
                    'luminosity_class': ['I', 'II', 'III', 'IV', 'V'],
@@ -828,7 +851,7 @@ class World(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "WORLD"
     world_nm_pk: str
-    star_system_name_fk: str
+    star_system_nm_fk: str
     world_type: str = 'habitable'
     obliquity_dg: float = 0.0    # a/k/a axial tilt
     distance_from_star_au: float = 0.0
@@ -874,7 +897,7 @@ class Moon(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "MOON"
     moon_nm_pk: str
-    world_name_fk: str
+    world_nm_fk: str
     center_from_world_center_km: CoordXYZ
     mass_kg: float = 0.0
     radius_km: float = 0.0
@@ -891,11 +914,11 @@ class Moon(BaseModel):
     def constraints(cls):
         return {
             "PK": ["moon_nm_pk"],
-            "FK": {"world_name_fk": ("WORLD", "world_name_fk")},
+            "FK": {"world_nm_fk": ("WORLD", "world_nm_pk")},
             "CK": {"rotation_direction": ['prograde', 'retrograde'],
                    "orbit_direction": ['prograde', 'retrograde']},
             "GROUP": {"center_from_world_center_km": CoordXYZ},
-            "ORDER": ["world_name_fk ASC",
+            "ORDER": ["world_nm_fk ASC",
                       "moon_nm_pk ASC"]
         }
 
@@ -929,14 +952,14 @@ class Map(BaseModel):
     model_config = ConfigDict(pydantic_config)
     tablename: str = "MAP"
     map_nm_pk: str
-    container_map_name_fk: str=''
+    container_map_nm_fk: str=''
     map_loc: GeogLocation
 
     @classmethod
     def constraints(cls):
         return {
             "PK": ["map_nm_pk"],
-            "FK": {"container_map_name_fk": ("MAP", "map_name_pk")},
+            "FK": {"container_map_nm_fk": ("MAP", "map_nm_pk")},
             "GROUP": {"map_loc": GeogLocation},
             "ORDER": ["map_nm_pk ASC"]
         }
@@ -947,23 +970,78 @@ class MapXMap(BaseModel):
     Associative keys --
     - MAPs (n) overlap <--> MAPs (n)
     - MAPs (n) border <--> MAPs (n)
-    PK is a composite key of map_name_1_fk and map_name_2_fk
+    PK is a composite key of map_nm_1_fk and map_nm_2_fk
     """
     model_config = ConfigDict(pydantic_config)
-    tablename: str = "MAPxMAP"
-    map_name_1_fk: str
-    map_name_2_fk: str
+    tablename: str = "MAP_X_MAP"
+    map_nm_1_fk: str
+    map_nm_2_fk: str
     touch_type: str
 
     @classmethod
     def constraints(cls):
         return {
-            "PK": ["map_name_1_fk", "map_name_2_fk"],
-            "FK": {"map_name_1_fk": ("MAP", "map_name_pk"),
-                   "map_name_2_fk": ("MAP", "map_name_pk")},
+            "PK": ["map_nm_1_fk", "map_nm_2_fk"],
+            "FK": {"map_nm_1_fk": ("MAP", "map_nm_pk"),
+                   "map_nm_2_fk": ("MAP", "map_nm_pk")},
             "CK": {"touch_type": ['borders', 'overlaps']},
             "ORDER": ["map_nm_pk ASC"]
         }
+
+
+class Grid(BaseModel):
+    """
+    Define the size of a grid (r, c), the dim of the cells (w, h)
+    in PyGame px, and the dim of each cell in km (w, h).
+    The z layers are provided for future use, e.g. in case I want to
+    use them to track altitude, depth, or elevation in a 3D game, or
+    with maps that provide z-level data.
+
+    @DEV:
+    - Consider other grid types, such as hexagonal, triangular, etc.
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "GRID"
+    grid_nm_pk: str
+    row_cnt: int
+    col_cnt: int
+    z_up_cnt: int
+    z_down_cnt: int
+    width_px: float
+    height_px: float
+    width_km: float
+    height_km: float
+    z_up_m: float
+    z_down_m: float
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["grid_nm_pk"],
+            "ORDER": ["grid_nm_pk ASC"]
+        }
+
+
+class GridXMap(BaseModel):
+    """
+    Associative keys --
+    - GRIDs (n) <--> MAPs (n)
+    PK is a composite key of grid_nm_fk and map_nm_fk
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "GRID_X_MAP"
+    grid_nm_fk: str
+    map_nm_fk: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["grid_nm_fk", "map_nm_fk"],
+            "FK": {"grid_nm_fk": ("GRID", "grid_nm_pk"),
+                   "map_nm_fk": ("MAP", "map_nm_pk")},
+            "ORDER": ["grid_nm_fk ASC", "map_nm_fk ASC"]
+        }
+
 
 """
 The language elements may be an area where I might want to
@@ -972,6 +1050,62 @@ could be that fairly complex rules can be expressed in natural
 language and the AI can take care of the details of generating
 the language elements, refining the rules.
 """
+
+class CharMember(BaseModel):
+    """
+    Describes the individual characters in a character set.
+    Where the character is not represented in Unicode, a picture
+    of the character (BLOB) and its name is stored, along with
+    a description.
+    Member types are defined by the type of writing system
+    (character set) they belong to. But further categorizations
+    are possible for numerics, punctuation, and so on.
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "CHAR_MEMBER"
+    char_member_id_pk: int
+    char_member_nm: str
+    char_set_nm_fk: str
+    char_member: Graphic
+    char_member_desc: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["char_member_id_pk"],
+            "UQ": ["char_member_nm"],
+            "FK": {"char_set_nm_fk":
+                    ("CHAR_SET", "char_set_nm_pk")},
+            "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
+            "GROUP": {"char_member": Graphic},
+            "ORDER": ["char_set_nm_fk ASC", "char_member_nm ASC"]
+        }
+
+
+class CharSet(BaseModel):
+    """
+    Description of a set of characters used in a language.
+    An alphabet represents consonants and vowels each separately as individual letters.
+    An abjad represents consonants only as distinct letters; vowels are represented as diacritics. In some cases, the vowels may be omitted entirely, and are implied from context .
+    An abugida represents consonants as separate letters, but the glyph used also implies a “default” vowel, and deletion or change of vowel is represented with modifications of the glyph, in a fashion similar to diacritics, but not the same.
+    A syllabary represents a syllable of the language - usually but not invariably in the form CV (consonant followed by vowel) - as a single glyph; there is no necessary relationship between glyphs that carry the same consonant, or the same vowel.
+    Ideograms use a single - often complex - glyph to represent a word or concept. In some languages, the ideogram may actually be compound, with one portion signalling the pronunciation, and another portion signalling the meaning.
+
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "CHAR_SET"
+    char_set_nm_pk: str
+    char_set_type: str = 'alphabet'
+    char_set_desc: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["char_set_nm_pk"],
+            "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
+            "ORDER": ["char_set_nm_pk ASC"]
+        }
+
 
 class LangFamily(BaseModel):
     """
@@ -1102,60 +1236,108 @@ class LangDialect(BaseModel):
         }
 
 
-class CharSet(BaseModel):
+class Glossary(BaseModel):
     """
-    Description of a set of characters used in a language.
-    An alphabet represents consonants and vowels each separately as individual letters.
-    An abjad represents consonants only as distinct letters; vowels are represented as diacritics. In some cases, the vowels may be omitted entirely, and are implied from context .
-    An abugida represents consonants as separate letters, but the glyph used also implies a “default” vowel, and deletion or change of vowel is represented with modifications of the glyph, in a fashion similar to diacritics, but not the same.
-    A syllabary represents a syllable of the language - usually but not invariably in the form CV (consonant followed by vowel) - as a single glyph; there is no necessary relationship between glyphs that carry the same consonant, or the same vowel.
-    Ideograms use a single - often complex - glyph to represent a word or concept. In some languages, the ideogram may actually be compound, with one portion signalling the pronunciation, and another portion signalling the meaning.
-
+    The glossary is a multi-lingual dictionary of sorts.
+    It is a collection of words and phrases , and their translations
+    into other languages. A glossary unit is assigned a gloss_uid.
+    That value is shared by entries in the glossary for the same
+    concept.  For example, the gloss_uid for the concept of of "bear"
+    (in the "common" language, e.g. English) might be 13453.  Then
+    entries for the word meaning "bear" in the various game languages
+    and dialects would all have the same gloss_uid. May eventually
+    want to look into using the sqlite CREATE INDEX command to optimize
+    lookups. Remember that the gloss_uid is neither a PK nor an FK.
     """
     model_config = ConfigDict(pydantic_config)
-    tablename: str = "CHAR_SET"
-    char_set_nm_pk: str
-    char_set_type: str = 'alphabet'
-    char_set_desc: str = ''
+    tablename: str = "GLOSSARY"
+    gloss_uid: int
+    lang_nm_fk: str
+    dialect_nm_fk: str = ''
+    gloss_value: str
 
     @classmethod
     def constraints(cls):
         return {
-            "PK": ["char_set_nm_pk"],
-            "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
-            "ORDER": ["char_set_nm_pk ASC"]
+            "PK": ["gloss_uid", "lang_nm_fk", "dialect_nm_fk"],
+            "FK": {"lang_nm_fk": ("LANGUAGE", "lang_nm_pk"),
+                   "dialect_nm_fk": ("LANG_DIALECT", "lang_nm_pk")},
+            "ORDER": ["gloss_uid ASC", "gloss_value ASC",
+                      "lang_nm_fk ASC", "dialect_nm_fk ASC"]
         }
 
 
-class CharMember(BaseModel):
+class Lake(BaseModel):
     """
-    Describes the individual characters in a character set.
-    Where the character is not represented in Unicode, a picture
-    of the character (BLOB) and its name is stored, along with
-    a description.
-    Member types are defined by the type of writing system
-    (character set) they belong to. But further categorizations
-    are possible for numerics, punctuation, and so on.
+    Geographic features, e.g. lakes, rivers, mountains, etc. are
+    named by reference to a gloss_uid. It is a PK on this table,
+    but not on the GLOSSARY table. Many geo features will have a
+    complex line defined by a series of points, preferably defined
+    by a tuple of latitude and longitude. The more points are added,
+    the more precise the curves or lines can be. THe set of points
+    is stored as JSON.  There is not a Pydantic model for them
+    since they are of undetermined length. The SQL generator code
+    needs to be able to handle them, so they are identified
+    using a special classmethod "constraint": "JSON".
+    I am going to try identifiying the gloss_uid as both a PK and
+    as an FK on this table. Not sure if that will be acceptable to
+    SQLITE since it is not even an index on GLOSSARY. We'll see.
+
+    catchment_area_radius_m: The area of land where rainfall is
+    collected and drained into the lake. This is not the same as
+    the area of the lake itself. For game purposes,
+    let's assume it is a circle with a radius.
+
+    accessibility: How easy it is to reach the lake, whether
+    there are roads, trails, or settlements nearby. This can likely
+    be quantified in other ways, but keep this attribute to help
+    with design
+
+    special_features: Any unique or notable features, like islands,
+    underwater caves, or geothermal activity
+
+    lake_usage:  fishing, recreation, transportation, as a water
+    source for nearby settlements. could expand to more attributes
+    like resevoir.
+
+    conservation_status: Efforts to protect or preserve the lake
+
+    current_conditions: water quality, temperature, frozen, etc.
     """
     model_config = ConfigDict(pydantic_config)
-    tablename: str = "CHAR_MEMBER"
-    char_member_id_pk: int
-    char_member_nm: str
-    char_set_nm_fk: str
-    char_member: Graphic
-    char_member_desc: str = ''
+    tablename: str = "LAKE"
+    lake_nm_gloss_uid_pk: int
+    lake_size: str = "medium"
+    water_type: str = "freshwater"
+    tidal_influence: bool = False
+    lake_surface_m2: float
+    max_depth_m: float
+    avg_depth_m: float
+    lake_altitude_m: float
+    catchment_area_radius_m: float
+    shoreline_points: str
+
+    lake_origin: str = ''
+    flora_and_fauna: str = ''
+    water_color: str = ''
+    accessibility: str = ''
+    special_features: str = ''
+    lake_usage: str = ''
+    legends_or_myths: str = ''
+    lake_history: str = ''
+    conservation_status: str = ''
+    current_conditions: str = ''
 
     @classmethod
     def constraints(cls):
         return {
-            "PK": ["char_member_id_pk"],
-            "UQ": ["char_member_nm"],
-            "IX": ["char_member_nm"],
-            "FK": {"char_set_nm_fk":
-                    ("CHAR_SET", "char_set_nm_pk")},
-            "CK": {"char_set_type": ['alphabet', 'abjad', 'abugida', 'syllabary', 'ideogram']},
-            "GROUP": {"char_member": Graphic},
-            "ORDER": ["char_set_nm_fk ASC", "char_member_nm ASC"]
+            "PK": ["lake_nm_gloss_uid_pk"],
+            "FK": {"lake_nm_gloss_uid_pk": ("GLOSSARY", "gloss_uid_pk")},
+            "CK": {"lake_size": ['small', 'medium', 'large'],
+                   "water_type": ['freshwater', 'saline', 'partially_salinated']},
+            "JSON": ["shoreline_points"],
+            "ORDER": ["gloss_uid ASC", "gloss_value ASC",
+                      "lang_nm_fk ASC", "dialect_nm_fk ASC"]
         }
 
 
@@ -1231,11 +1413,14 @@ class InitGameDatabase(object):
     def create_sql_files(self):
         """Pass pydantic data object to create SQL files.
         """
-        for model in [Universe, ExternalUniv,
-                      GalacticCluster, Galaxy, StarSystem,
-                      World, Moon, Map, MapXMap,
+        for model in [Backup,
+                      Universe, ExternalUniv,
+                      GalacticCluster, Galaxy, StarSystem, World, Moon,
+                      Map, MapXMap, Grid, GridXMap,
+                      CharSet, CharMember,
                       LangFamily, Language, LangDialect,
-                      CharSet, CharMember]:
+                      Glossary,
+                      Lake]:
             DB.generate_sql(model)
 
 

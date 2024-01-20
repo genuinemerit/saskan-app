@@ -41,25 +41,36 @@ class DataBase(object):
     # Generate SQL files from Pydantic models
     # ===========================================
     def set_sql_data_type(self,
-                          p_pyd_value: object) -> str:
+                          p_col_nm: str,
+                          p_pyd_value: object,
+                          p_constraints: dict ) -> str:
         """Convert Pydantic data type to SQLITE data type.
         :args:
+        - p_col_nm (str) Name of data column
         - p_pyd_value (object) Pydantic value object
+        - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data type
         """
         sql = ''
-        annote = p_pyd_value.annotation.__name__ # type: ignore
-        for pyd_type in (('str', ' TEXT'),
-                         ('int', ' INTEGER'),
-                         ('bool', ' BOOLEAN'),
-                         ('Surface', ' BLOB'),
-                         ('Rect', ' BLOB'),
-                         ('Color', ' BLOB'),
-                         ('float', ' NUMERIC')):
-            if annote == pyd_type[0]:
-                sql = pyd_type[1]
-                break
+
+        pp((p_constraints))
+
+        if 'JSON' in p_constraints.keys()\
+        and p_col_nm in p_constraints['JSON']:
+            sql = ' JSON'
+        else:
+            annote = p_pyd_value.annotation.__name__ # type: ignore
+            for pyd_type in (('str', ' TEXT'),
+                            ('int', ' INTEGER'),
+                            ('bool', ' BOOLEAN'),
+                            ('Surface', ' BLOB'),
+                            ('Rect', ' BLOB'),
+                            ('Color', ' BLOB'),
+                            ('float', ' NUMERIC')):
+                if annote == pyd_type[0]:
+                    sql = pyd_type[1]
+                    break
         if sql == '':
             sql = ' TEXT'
         return sql
@@ -77,8 +88,7 @@ class DataBase(object):
         - (str) SQLITE data rule
         """
         sql = ''
-        for p_pyd_rule in (('UQ', ' UNIQUE'),
-                           ('IX', ' INDEXED')):
+        for p_pyd_rule in (('UQ', ' UNIQUE')):
             if p_pyd_rule[0] in p_constraints.keys() \
             and p_col_nm in p_constraints[p_pyd_rule[0]]:
                 sql += f'{p_pyd_rule[1]}'
@@ -167,7 +177,7 @@ class DataBase(object):
                 g_col_nm = f'{p_col_nm}_{k}'
                 p_col_names.append(g_col_nm)
                 sql += f' {g_col_nm}'
-                data_ty_sql = self.set_sql_data_type(v)
+                data_ty_sql = self.set_sql_data_type(k, v, p_constraints)
                 sql += data_ty_sql
                 sql += self.set_sql_data_rule(k, v, p_constraints)
                 sql += self.set_sql_default(v, data_ty_sql.split(' ')[1])
@@ -221,11 +231,6 @@ class DataBase(object):
         - SQL file to [APP]/sql/CREATE_[p_table_name].sql
         :returns:
         - (list) List of column names
-
-        @DEV:
-        - Eventually use a "DT" constraint to specify date/time formats,
-            and use it to set the SQL data type + comment + check,
-            if helpful.
         """
         col_names = []
         sqlns = []
@@ -235,11 +240,16 @@ class DataBase(object):
             if sql == '':
                 col_names.append(col_nm)
                 sql = col_nm
-                data_ty_sql = self.set_sql_data_type(pyd_value)
+                data_ty_sql =\
+                    self.set_sql_data_type(col_nm, pyd_value, p_constraints)
                 sql += data_ty_sql
-                sql += self.set_sql_data_rule(col_nm, pyd_value, p_constraints)
-                sql += self.set_sql_default(pyd_value, data_ty_sql.split(' ')[1])
-                sql += self.set_sql_check_constraints(col_nm, p_constraints)
+                sql +=\
+                    self.set_sql_data_rule(col_nm, pyd_value, p_constraints)
+                sql +=\
+                    self.set_sql_default(pyd_value,
+                                         data_ty_sql.split(' ')[1])
+                sql +=\
+                    self.set_sql_check_constraints(col_nm, p_constraints)
                 sql += self.set_sql_comment(pyd_value)
                 sql += ',\n'
             sqlns.append(sql)
@@ -499,12 +509,12 @@ class DataBase(object):
         - p_sql_nm (str): Name of external SQL file
         """
 
-        print(f"In execute_dml, p_sql_nm = {p_sql_nm}")
+        # print(f"In execute_dml, p_sql_nm = {p_sql_nm}")
 
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
 
-        print(f"In execute_dml, SQL = {SQL}\n")
+        # print(f"In execute_dml, SQL = {SQL}\n")
 
         if SQL.count(';') > 1:
             self.cur.executescript(SQL)
