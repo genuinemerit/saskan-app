@@ -985,7 +985,7 @@ class MapXMap(BaseModel):
             "FK": {"map_nm_1_fk": ("MAP", "map_nm_pk"),
                    "map_nm_2_fk": ("MAP", "map_nm_pk")},
             "CK": {"touch_type": ['borders', 'overlaps']},
-            "ORDER": ["map_nm_pk ASC"]
+            "ORDER": ["map_nm_1_fk ASC", "map_nm_2_fk ASC"]
         }
 
 
@@ -1271,17 +1271,15 @@ class Lake(BaseModel):
     """
     Geographic features, e.g. lakes, rivers, mountains, etc. are
     named by reference to a gloss_uid. It is a PK on this table,
-    but not on the GLOSSARY table. Many geo features will have a
-    complex line defined by a series of points, preferably defined
-    by a tuple of latitude and longitude. The more points are added,
-    the more precise the curves or lines can be. THe set of points
-    is stored as JSON.  There is not a Pydantic model for them
-    since they are of undetermined length. The SQL generator code
-    needs to be able to handle them, so they are identified
-    using a special classmethod "constraint": "JSON".
-    I am going to try identifiying the gloss_uid as both a PK and
-    as an FK on this table. Not sure if that will be acceptable to
-    SQLITE since it is not even an index on GLOSSARY. We'll see.
+    but not on the GLOSSARY table. This may be an area where a VIEW
+    could come in handy, but do that later.
+
+    Most geo features have a complex line defined by a series of points,
+    preferably defined by a tuple of latitude and longitude.
+    The more points are added, the more precise the curve or lines.
+    Points stored as JSON.  No Pydantic model  since they have an
+    undetermined length. SQL generator code identifies them via a
+    classmethod "constraint" keyed by "JSON".
 
     catchment_area_radius_m: The area of land where rainfall is
     collected and drained into the lake. This is not the same as
@@ -1303,19 +1301,23 @@ class Lake(BaseModel):
     conservation_status: Efforts to protect or preserve the lake
 
     current_conditions: water quality, temperature, frozen, etc.
+
+    JSON:
+    lake_shorline_points: [GeogLatLong, ..]
     """
     model_config = ConfigDict(pydantic_config)
     tablename: str = "LAKE"
     lake_nm_gloss_uid_pk: int
+    lake_shoreline_points: str
     lake_size: str = "medium"
     water_type: str = "freshwater"
+    lake_type: str = "lake"
     tidal_influence: bool = False
     lake_surface_m2: float
     max_depth_m: float
     avg_depth_m: float
     lake_altitude_m: float
     catchment_area_radius_m: float
-    shoreline_points: str
 
     lake_origin: str = ''
     flora_and_fauna: str = ''
@@ -1334,12 +1336,327 @@ class Lake(BaseModel):
             "PK": ["lake_nm_gloss_uid_pk"],
             "FK": {"lake_nm_gloss_uid_pk": ("GLOSSARY", "gloss_uid_pk")},
             "CK": {"lake_size": ['small', 'medium', 'large'],
-                   "water_type": ['freshwater', 'saline', 'partially_salinated']},
-            "JSON": ["shoreline_points"],
-            "ORDER": ["gloss_uid ASC", "gloss_value ASC",
-                      "lang_nm_fk ASC", "dialect_nm_fk ASC"]
+                   "water_type": ['freshwater', 'saline', 'brackish'],
+                   "lake_type": ['lake', 'reservoir', 'pond',
+                                 'pool', 'loch', 'hot spring',
+                                 'swamp', 'marsh', 'mill pond',
+                                 'oxbow lake', 'spring', 'sinkhole',
+                                 'acquifer', 'vernal pool', 'wadi']},
+            "JSON": ["lake_shoreline_points"],
+            "ORDER": ["lake_nm_gloss_uid_pk ASC"]
         }
 
+
+class LakeXMap(BaseModel):
+    """
+    Associative keys --
+    - LAKEs (n) <--> MAPs (n)
+    PK is a composite key of lake_nm_fk and map_nm_fk
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LAKE_X_MAP"
+    lake_nm_gloss_uid_fk: str
+    map_nm_fk: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["lake_nm_gloss_uid_fk", "map_nm_fk"],
+            "FK": {"lake_nm_gloss_uid_fk":
+                    ("LAKE", "lake_nm_gloss_uid_pk"),
+                   "map_nm_fk": ("MAP", "map_nm_pk")},
+            "ORDER": ["lake_nm_gloss_uid_fk ASC", "map_nm_fk ASC"]
+        }
+
+
+class River(BaseModel):
+    """
+    drainage_basin_m: Avg area of land where rainfall is collected and drained into the river on each bank. For game purposes, just select a number of meters from center of river.
+
+    avg_velocity_m_per_h: Meters per hour on average. This is not the same as the max velocity, which is likely to be much higher.
+
+    JSON:
+    river_course_points: [GeogLatLong, ..]
+    river_bank_points: [GeogLatLong, ..]
+    "hazards": [{"uid": int, "type": <'rapids', 'wreckage', 'sandbar',
+                                      'waterfall', 'shallow', 'dam',
+                                      'weir'. 'habitat'>,
+                 "loc": GeogLatLong}, ...],
+    "features": [{"uid": int, "type": <'lock', 'delta', 'bridge',
+                                       'crossing', 'footbridge',
+                                       'pier', 'marina', 'boathouse',
+                                       'habitat'>,
+                   "loc": GeogLatLong}, ...]
+    """
+    tablename: str = "RIVER"
+    river_nm_gloss_uid_fk: int
+    river_course_points: str
+    river_bank_points: str
+    sea_to_gloss_uid_fk: int=0
+    lake_to_gloss_uid_fk: int=0
+    river_to_gloss_uid_fk: int=0
+    river_type: str = 'perrenial'
+    avg_width_m: float
+    avg_depth_m: float
+    total_length_km: float
+    drainage_basin_km: float=0.0
+    avg_velocity_m_per_h: float=0.0
+    gradient_m_per_km: float=0.0
+    hazards: str = ''
+    features: str = ''
+
+    navigation_type: str = 'none'
+    flora_and_fauna: str = ''
+    water_quality: str = ''
+    historical_events: str = ''
+    current_conditions: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["river_nm_gloss_uid_fk"],
+            "FK": {"river_nm_gloss_uid_fk":
+                    ("GLOSSARY", "gloss_uid_fk"),
+                   "sea_to_gloss_uid_fk":
+                    ("SEA", "sea_nm_gloss_uid_fk"),
+                   "lake_to_gloss_uid_fk":
+                    ("LAKE", "lake_nm_gloss_uid_fk"),
+                   "river_to_gloss_uid_fk":
+                    ("RIVER", "river_nm_gloss_uid_fk")},
+            "CK": {"river_type": ['perrenial', 'periodic', 'episodic',
+                                  'exotic', 'tributary', 'distributary',
+                                  'underground', 'aqueduct', 'canal',
+                                  'rapids', 'winding', 'stream',
+                                  'glacier'],
+                   "navigation_type": ["small craft", "large craft",
+                                       "none"]},
+            "JSON": ["river_course_points", "river_bank_points",
+                     "hazards", "features"],
+            "ORDER": ["river_nm_gloss_uid_fk ASC"]
+        }
+
+
+class RiverXMap(BaseModel):
+    """
+    Associative keys --
+    - RIVERs (n) <--> MAPs (n)
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "RIVER_X_MAP"
+    river_nm_gloss_uid_fk: str
+    map_nm_fk: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["river_nm_gloss_uid_fk", "map_nm_fk"],
+            "FK": {"river_nm_gloss_uid_fk":
+                    ("RIVER", "river_nm_gloss_uid_fk"),
+                   "map_nm_fk": ("MAP", "map_nm_pk")},
+            "ORDER": ["river_nm_gloss_uid_fk ASC", "map_nm_fk ASC"]
+        }
+
+
+class WaterBody(BaseModel):
+    """
+    If it works out, may use this instead of LAKE. And maybe RIVER.
+    But will keep them for now. This is intended to be used mainly
+    for bodies of water associated with oceans or great lakes.
+    """
+    tablename: str = "WATER_BODY"
+    body_nm_gloss_uid_pk: int
+    body_shoreline_points: str
+    is_coastal: bool = True
+    is_frozen: bool = False
+    body_type: str
+    water_type: str
+    tidal_influence: bool = False
+    tidal_flows_per_day: int = 0
+    avg_high_tide_m: float = 0.0
+    avg_low_tide_m: float = 0.0
+    max_high_tide_m: float = 0.0
+    wave_type: str
+    body_surface_area_m2: float
+    body_surface_altitude_m: float
+    max_depth_m: float
+    avg_depth_m: float
+
+    hazards: str = ''
+    features: str = ''
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_gloss_uid_pk"],
+            "FK": {"body_nm_gloss_uid_pk":
+                    ("GLOSSARY", "gloss_uid_pk")},
+            "CK": {"water_type": ['salinated', 'brackish', 'freshwater'],
+                   "body_type": ['fjord', 'sea', 'ocean', 'harbor',
+                                 'lagoon', 'bay', 'gulf', 'sound',
+                                 'bight', 'delta', 'estuary', 'strait',
+                                 'ice field', 'ice sheet', 'ice shelf',
+                                 'iceberg', 'ice floe', 'ice pack',
+                                 'roadstead', 'tidal pool',
+                                 'salt marsh'],
+                   "wave_type": ['low', 'medium', 'high', 'none']},
+            "JSON": ["body_shoreline_points", "hazards", "features"],
+            "ORDER": ["body_nm_gloss_uid_fk ASC"]
+        }
+
+
+class WaterBodyXMap(BaseModel):
+    """
+    Associative keys --
+    - WATER_BODYs (n) <--> MAPs (n)
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "WATER_BODY_X_MAP"
+    body_nm_gloss_uid_fk: str
+    map_nm_fk: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_gloss_uid_fk", "map_nm_fk"],
+            "FK": {"body_nm_gloss_uid_fk":
+                    ("WATER_BODY", "body_nm_gloss_uid_fk"),
+                   "map_nm_fk": ("MAP", "map_nm_pk")},
+            "ORDER": ["body_nm_gloss_uid_fk ASC", "map_nm_fk ASC"]
+        }
+
+
+class WaterBodyXRiver(BaseModel):
+    """
+    Associative keys --
+    - WATER_BODYs (n) <--> RIVERs (n)
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "WATER_BODY_X_RIVER"
+    body_nm_gloss_uid_fk: str
+    river_nm_gloss_uid_fk: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_gloss_uid_fk", "river_nm_gloss_uid_fk"],
+            "FK": {"body_nm_gloss_uid_fk":
+                    ("WATER_BODY", "body_nm_gloss_uid_fk"),
+                   "river_nm_gloss_uid_fk":
+                       ("RIVER", "river_nm_gloss_uid_fk")},
+            "ORDER": ["body_nm_gloss_uid_fk ASC",
+                      "river_nm_gloss_uid_fk ASC"]
+        }
+
+
+class LandBody(BaseModel):
+    """
+    Use this for geographic features that are not water.
+    Including: continents, islands, geographic regions.
+    """
+    tablename: str = "LAND_BODY"
+    body_nm_gloss_uid_pk: int
+    body_shoreline_points: str
+    body_landline_points: str
+    body_type: str
+    body_surface_area_m2: float
+    body_surface_avg_altitude_m: float
+    max_altitude_m: float
+    min_altitude_m: float
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_gloss_uid_pk"],
+            "FK": {"body_nm_gloss_uid_pk":
+                    ("GLOSSARY", "gloss_uid_pk")},
+            "CK": {"body_type": ['island', 'continent',
+                                 'sub-continent', 'region'],
+                   "wave_type": ['low', 'medium', 'high', 'none']},
+            "JSON": ["body_shoreline_points",
+                     "body_landline_points"],
+            "ORDER": ["body_nm_gloss_uid_fk ASC"]
+        }
+
+
+class LandBodyXMap(BaseModel):
+    """
+    Associative keys --
+    - LAND_BODYs (n) <--> MAPs (n)
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LAND_BODY_X_MAP"
+    body_nm_gloss_uid_fk: str
+    map_nm_fk: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_gloss_uid_fk", "map_nm_fk"],
+            "FK": {"body_nm_gloss_uid_fk":
+                    ("LAND_BODY", "body_nm_gloss_uid_fk"),
+                   "map_nm_fk": ("MAP", "map_nm_pk")},
+            "ORDER": ["body_nm_gloss_uid_fk ASC", "map_nm_fk ASC"]
+        }
+
+
+class LandBodyXLandBody(BaseModel):
+    """
+    Associative keys --
+    - LAND_BODYs (n) <--> LAND_BODYs (n)
+    - relation:
+        - body 1 --> body 2
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LAND_BODY_X_LAND_BODY"
+    body_nm_1_gloss_uid_fk: str
+    body_nm_2_gloss_uid_fk: str
+    body_relation_type: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_1_gloss_uid_fk",
+                   "body_nm_2_gloss_uid_fk"],
+            "FK": {"body_nm_1_gloss_uid_fk":
+                    ("LAND_BODY", "body_nm_gloss_uid_fk"),
+                   "body_nm_2_gloss_uid_fk":
+                    ("LAND_BODY", "body_nm_gloss_uid_fk")},
+            "CK": {"body_relation_type": ['borders', 'overlaps',
+                                 'contains', 'contained by'],
+                   "wave_type": ['low', 'medium', 'high', 'none']},
+            "ORDER": ["body_nm_1_gloss_uid_fk ASC",
+                      "body_nm_2_gloss_uid_fk ASC"]
+        }
+
+
+class LandBodyXWaterBody(BaseModel):
+    """
+    Associative keys --
+    - LAND_BODYs (n) <--> WATER_BODYs (n)
+    - relation:
+        - body 1 --> body 2
+    """
+    model_config = ConfigDict(pydantic_config)
+    tablename: str = "LAND_BODY_X_WATER_BODY"
+    body_nm_1_gloss_uid_fk: str
+    body_nm_2_gloss_uid_fk: str
+    body_relation_type: str
+
+    @classmethod
+    def constraints(cls):
+        return {
+            "PK": ["body_nm_1_gloss_uid_fk",
+                   "body_nm_2_gloss_uid_fk"],
+            "FK": {"body_nm_1_gloss_uid_fk":
+                    ("LAND_BODY", "body_nm_gloss_uid_fk"),
+                   "body_nm_2_gloss_uid_fk":
+                    ("WATER_BODY", "body_nm_gloss_uid_fk")},
+            "CK": {"body_relation_type": ['borders', 'overlaps',
+                                 'contains', 'contained by'],
+                   "wave_type": ['low', 'medium', 'high', 'none']},
+            "ORDER": ["body_nm_1_gloss_uid_fk ASC",
+                      "body_nm_2_gloss_uid_fk ASC"]
+        }
 
 """
 Next:
@@ -1350,43 +1667,42 @@ Next:
       each other and to Map tables, e.g.
       - species (sentients, animals, plants, etc.)\
       x languages
+      X glossaries
+      X continents
+      X world sections
+      X regions
+      X lakes
+      X rivers
+      X canals
+      X islands
+      - roads
+      - paths
+      - trails
+      - sea lanes
+      - mountains
+      - hills
+      - mines
+      - quarries
+      - caverns
+      - forests
+      - undersea domains
       - populations
       - belief systems
-      - canals
-      - towns
-      - continents
-      - world sections
-      - regions
       - countries (over time...)
       - federations
       - provinces
+      - towns
       - counties, cantons and departments
       - towns
       - villages
       - estates and communes
       - tribal lands
       - neighborhoods and precincts
-      - lakes
-      - rivers
-      - roads
-      - paths
-      - trails
+      - farms and fields
       - ruins
       - temples
-      - mountains
-      - hills
-      - mines
-      - quarries
-      - farms and fields
-      - forests
-      - islands
-      - sea lanes
-      - undersea domains
       - scenes
       - buildings
-      - caverns
-      - languages
-      - glossaries
         - etc.
     And before defining ALL of those tables, do a few, then
     make sure the actual database generation works as well as the
@@ -1420,7 +1736,10 @@ class InitGameDatabase(object):
                       CharSet, CharMember,
                       LangFamily, Language, LangDialect,
                       Glossary,
-                      Lake]:
+                      Lake, LakeXMap, River, RiverXMap,
+                      WaterBody, WaterBodyXMap, WaterBodyXRiver,
+                      LandBody, LandBodyXMap, LandBodyXLandBody,
+                      LandBodyXWaterBody]:
             DB.generate_sql(model)
 
 

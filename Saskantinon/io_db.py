@@ -54,7 +54,7 @@ class DataBase(object):
         """
         sql = ''
 
-        pp((p_constraints))
+        # pp((p_constraints))
 
         if 'JSON' in p_constraints.keys()\
         and p_col_nm in p_constraints['JSON']:
