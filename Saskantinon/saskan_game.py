@@ -13,7 +13,7 @@ Saskan App GUI.  pygame version.
     - TextInput: Handle text input events in a single input box
     - TextInputGroup: Handle groups of text input boxes, like a form
     - InfoBar: Manage display of info bar/dock at bottom of main frame
-    - GameConsole: Manage display of widgets (text, for now) in CONSOLE
+    - GameConsole: Manage display of widgets (text, for now) in CDI.CONSOLE
     - GameMap: Manage display of map & related widgets in GAMEMAP
     - SaskanGame: Main class, event loop, state mgmt, event handlers
     - __main__: Entry point for this module, instantitates all classes
@@ -33,8 +33,8 @@ Saskan App GUI.  pygame version.
 - Go for more features, better performance than earler prototypes,
     but don't worry about interactiviity or complete game yet.
     Focus most on prototyping the windows and widgets.
-- Convert from JSON to DB for most values.
-- Only use JSON for install-level customizations, overrides.
+---> Convert from JSON to DB for most values.
+---> Only use JSON for install-level customizations, overrides.
 - Use io_time, io_graph, io_music modules for dynamic things.
 - Reimplement wiretap and logger modules later on.
     - Print statements and debugger are OK for now.
@@ -43,7 +43,7 @@ Saskan App GUI.  pygame version.
     - See pygame_lab/app4 ("turtles") for some ideas.
 - Work on loading, displaying more complex maps/settings data.
     - Show key/legend for political boundaries.
-    - Work on some geographical data.
+    ---> Work on some geographical data.
     - Work on some temporal data.
     - Work on some weather data.
     - Work on some demographic (population, language, religion) data.
@@ -81,251 +81,79 @@ Saskan App GUI.  pygame version.
         - Start to design some typical scenarios, following the script / beat sheet.
 
     The security concern with pickling is the possiblity of executing code
-    from a remote source which is malicious. The use of internally is unlikely
+    from a remote source which is malicious. The use of it internally is unlikely
     to cause problems. The use of pickle to store data is not a security risk.
     To be safer, create a hash or a signature of the data and store that with the
     pickled data. When you unpickle the data, you can check the hash/signature to
     make sure the data has not been tampered with. This is not a guarantee, but
     it is better than nothing. In my use cases, it may not serve much purpose to
     be pickling data; it can just as easily be stored in a database as JSON.
+
+    Now I'm using JSON data structures on the DB only in a few instances. And
+    storing as JSON, not as BLOB/pickled bytes.
 """
 
 # trunk-ignore(bandit/B403)
-import pickle
-import platform
-from numpy import append
+import pickle           # remove this eventually
+# from numpy import append
 import pygame as pg
 import sys
 import webbrowser
 
 from copy import copy
-from dataclasses import dataclass
-from pprint import pprint as pp    # noqa: F401, format like pp for files
+# from dataclasses import dataclass
+from pprint import pprint as pp     # noqa: F401, format like pp for files
 from pprint import pformat as pf    # noqa: F401, format like pp for files
 from pygame.locals import *         # noqa: F401, F403
+# from pydantic import BaseModel, ConfigDict
+from pydantic.dataclasses import dataclass
+
+from io_data import SaskanConstants     # type: ignore
+from io_data import DataRec             # type: ignore
+from io_data import Display             # type: ignore
+from io_data import GameCell            # type: ignore
+from io_data import GameCoord           # type: ignore
+from io_data import GameImage           # type: ignore
+from io_data import GameGrid            # type: ignore
+from io_data import GameRect            # type: ignore
+from io_data import SaskanRect          # type: ignore
 
 from io_db import DataBase          # type: ignore
 from io_file import FileIO          # type: ignore
 from io_shell import ShellIO        # type: ignore
-from saskan_math import SaskanRect  # type: ignore
 
+# Constants
+# ================================================
+CON = SaskanConstants()
+CAS = CON.Astro()
+CCL = CON.Colors()
+CDI = Display()
+CGM = CON.Geom()
+CGO = CON.Geog()
+
+# Data Records
+# ================================================
+DR = DataRec()
+
+# In-Game Data Structures
+# ================================================
+GCL = GameCell()
+GCO = GameCoord()
+GGR = GameGrid()
+GIM = GameImage()
+GRC = GameRect()
+GSR = SaskanRect()
+
+# External Methods
+# ================================================
 DB = DataBase()
 FI = FileIO()
 SI = ShellIO()
-SR = SaskanRect()
 # WT = WireTap()
+# LG = Logger()
 
-# Global constants for parameterized configs
-FRAME = "game_frame"
-MENUS = "game_menus"
-FONT_TINY_SZ = 12
-FONT_SM_SZ = 24
-FONT_MED_SZ = 30
-LG_FONT_SZ = 36
-FONT_SANS = 'DejaVu Sans'
-FONT_FXD = 'Courier 10 Pitch'
-# PyGame Init needs to be here to work properly with PG class.
 pg.init()
 
-
-@dataclass(frozen=True)
-class PG():
-    """PyGame and platform constants.
-       Static characteristics of the game widgets.
-    """
-    # CLI Colors and accents
-    # Remove these if they are not used...
-    CL_BLUE = '\033[94m'
-    CL_BOLD = '\033[1m'
-    CL_CYAN = '\033[96m'
-    CL_DARKCYAN = '\033[36m'
-    CL_END = '\033[0m'
-    CL_GREEN = '\033[92m'
-    CL_PURPLE = '\033[95m'
-    CL_RED = '\033[91m'
-    CL_YELLOW = '\033[93m'
-    CL_UNDERLINE = '\033[4m'
-
-    # PyGame constants
-    # =====================================================
-    # PyGame Colors
-    CP_BLACK = pg.Color(0, 0, 0)
-    CP_BLUE = pg.Color(0, 0, 255)
-    CP_BLUEPOWDER = pg.Color(176, 224, 230)
-    CP_GRAY = pg.Color(80,80,80)
-    CP_GRAY_DARK = pg.Color(20, 20, 20)
-    CP_GREEN = pg.Color(0, 255, 0)
-    CP_PALEPINK = pg.Color(215, 198, 198)
-    CP_RED = pg.Color(255, 0, 0)
-    CP_SILVER = pg.Color(192, 192, 192)
-    CP_WHITE = pg.Color(255, 255, 255)
-
-    # PyGame Fonts
-    F_SANS_TINY = pg.font.SysFont(FONT_SANS, FONT_TINY_SZ)
-    F_SANS_SM = pg.font.SysFont(FONT_SANS, FONT_SM_SZ)
-    F_SANS_MED = pg.font.SysFont(FONT_SANS, FONT_MED_SZ)
-    F_SANS_LG = pg.font.SysFont(FONT_SANS, LG_FONT_SZ)
-    F_FIXED_LG = pg.font.SysFont(FONT_FXD, LG_FONT_SZ)
-
-    # PyGame Cursors
-    CUR_ARROW = pg.cursors.Cursor(pg.SYSTEM_CURSOR_ARROW)
-    CUR_CROSS = pg.cursors.Cursor(pg.SYSTEM_CURSOR_CROSSHAIR)
-    CUR_HAND = pg.cursors.Cursor(pg.SYSTEM_CURSOR_HAND)
-    CUR_IBEAM = pg.cursors.Cursor(pg.SYSTEM_CURSOR_IBEAM)
-    CUR_WAIT = pg.cursors.Cursor(pg.SYSTEM_CURSOR_WAIT)
-    
-    # PyGame Keyboard
-    # add, remove, modify as needed...
-    KY_QUIT = (pg.K_q, pg.K_ESCAPE)
-    KY_ANIM = (pg.K_F3, pg.K_F4, pg.K_F5)
-    KY_DATA = (pg.K_a, pg.K_l)
-    KY_RPT_TYPE = (pg.K_KP1, pg.K_KP2, pg.K_KP3)
-    KY_RPT_MODE = (pg.K_UP, pg.K_RIGHT, pg.K_LEFT)
-
-    # Platform
-    # =====================================================
-    info = pg.display.Info()
-    PLATFORM = (
-        FI.F[FRAME]["dsc"] +
-        #  " | " + platform.platform() +
-        #  " | " + platform.architecture()[0] +
-        f" | monitor (w, h): {info.current_w}, {info.current_h}" +
-        " | Python " + platform.python_version() +
-        " | Pygame " + pg.version.ver)
-
-    # Game widgets
-    # =====================================================
-    # Overall game window frame
-    WIN_W = round(info.current_w * 0.9)
-    WIN_H = round(info.current_h * 0.9)
-    WIN_MID = (WIN_W / 2, WIN_H / 2)
-    WIN = pg.display.set_mode((WIN_W, WIN_H))
-    pg.display.set_caption(FI.F[FRAME]["ttl"])
-
-    # Menu Bar
-    # ----
-    # top, left of first, left-most menu bar member.
-    MBAR_X = WIN_W * 0.01
-    MBAR_Y = WIN_H * 0.005
-    # w, h, margin of __each__ menu bar member.
-    MBAR_W = (WIN_W - (MBAR_X * 2)) / len(FI.M[MENUS]["menu"])
-    MBAR_W = 240 if MBAR_W > 240 else MBAR_W
-    MBAR_H = WIN_H * 0.04
-    MBAR_MARGIN = 6
-
-    # Game Map window
-    # --------
-    GAMEMAP_X = int(round(WIN_W * 0.01))
-    GAMEMAP_Y = int(round(WIN_H * 0.06))
-    GAMEMAP_W = int(round(WIN_W * 0.8))
-    GAMEMAP_H = int(round(WIN_H * 0.9))
-    GAMEMAP_TTL = FI.W["game_windows"]["gamemap"]["ttl"]
-
-    # Console window
-    # -------
-    # Location and size
-    CONSOLE = FI.W["game_windows"]["console"]
-    CONSOLE_X = int(round(GAMEMAP_X + GAMEMAP_W + 20))
-    CONSOLE_Y = GAMEMAP_Y
-    CONSOLE_W = int(round(WIN_W * 0.15))
-    CONSOLE_H = GAMEMAP_H
-    CONSOLE_BOX = pg.Rect(CONSOLE_X, CONSOLE_Y, CONSOLE_W, CONSOLE_H)
-    # Content
-    # For now, the header/title on CONSOLE is static
-    CONSOLE_TTL_TXT = FI.W["game_windows"]["console"]["ttl"]
-    CONSOLE_TTL_IMG = F_SANS_MED.render(CONSOLE_TTL_TXT,
-                                       True, CP_BLUEPOWDER, CP_BLACK)
-    CONSOLE_TTL_BOX = CONSOLE_TTL_IMG.get_rect()
-    CONSOLE_TTL_BOX.topleft = (CONSOLE_X + 5, CONSOLE_Y + 5)
-    CONSOLE_DIVIDER = "-" * 16
-
-    # Info Bar
-    # ---
-    # Located at bottom of main window frame.
-    IBAR_LOC = (GAMEMAP_X, int(round(WIN_H * 0.97)))
-
-    # Help Pages -- external web pages, displayed in a browser
-    # ----
-    WHTM = FI.U["uri"]["help"]  # links to web pages / help pages
-
-    # Game Map Grid
-    #          ----
-    # The GAMEMAP 'window' contains a "grid", which consists of
-    #   a matrix of grid-cells, each with its own data record.
-    # MAP (post) data (from config, or DB sources) gets mapped over grids.
-    #   Each grid-cell can be recalibrated to allow for
-    #   zooming in and out, use of different measures, etc.
-    # The "grid" has 3 layers of data structures:
-    # - GRID = data applied to all grids, to grid as a whole
-    # - G_LNS = horz and vert lines of the grid.
-    #   Makes drawing the grid faster, easier on the screen.
-    # - G_CELL = grid data matrix, a data record for each grid-cell
-
-    # GRID = data applied to all grids, to grid as a whole
-    # ----
-    # Saskan math rectangle object:
-    GRID_S_RECT = SR.make_rect(GAMEMAP_Y, GAMEMAP_X,
-                               GAMEMAP_W, GAMEMAP_H)
-    # Pygame rectangle object:
-    GRID_BOX = GRID_S_RECT["pg_rect"]
-    # top-left, from GAMEMAP to grid
-    GRID_OFFSET_X = int(round(GAMEMAP_W * 0.01))
-    GRID_OFFSET_Y = int(round(GAMEMAP_H * 0.02))
-    GRID_ROWS = 32
-    GRID_COLS = 46
-    GRID_VISIBLE = False
-    GRID_CELL_PX_W =\
-        int(round(GAMEMAP_W - GRID_OFFSET_X) / GRID_COLS)
-    GRID_CELL_PX_H =\
-        int(round(GAMEMAP_H - GRID_OFFSET_Y) / GRID_ROWS)
-    # default virtual measurement units (kilometers)
-    GRID_CELL_KM_W = 33
-    GRID_CELL_KM_H =\
-        int(round(GRID_CELL_KM_W * (GRID_CELL_PX_H / GRID_CELL_PX_W)))
-
-    # G_LNS = horz and vert lines of the grid, for faster drawing.
-    # -----
-    G_LNS_PX_W = GRID_CELL_PX_W * GRID_COLS
-    G_LNS_PX_H = GRID_CELL_PX_H * GRID_ROWS
-    G_LNS_KM_W = GRID_CELL_KM_W * GRID_COLS
-    G_LNS_KM_H = GRID_CELL_KM_H * GRID_ROWS
-    # line segment specifications
-    # x,y each horiz or vert line segment
-    G_LNS_X_LEFT = int(round(GRID_OFFSET_X + GRID_BOX.x))
-    G_LNS_X_RGHT = int(round(G_LNS_X_LEFT + G_LNS_PX_W))
-    G_LNS_Y_TOP = int(round(GRID_OFFSET_Y + GRID_BOX.y))
-    G_LNS_Y_BOT = int(round(G_LNS_Y_TOP + G_LNS_PX_H))
-    G_LNS_HZ = list()     # (x1, y1), (x2, y2)
-    G_LNS_VT = list()     # (x1, y1), (x2, y2)
-    for hz in range(GRID_ROWS + 1):
-        y = G_LNS_Y_TOP + (hz * GRID_CELL_PX_H)
-        G_LNS_HZ.append([(G_LNS_X_LEFT, y), (G_LNS_X_RGHT, y)])
-    for vt in range(GRID_COLS + 1):
-        x = G_LNS_X_LEFT + (vt * GRID_CELL_PX_W)
-        G_LNS_VT.append([(x, G_LNS_Y_TOP), (x, G_LNS_Y_BOT)])
-
-    # G_CELL = grid data-cell matrix, a record for each grid-cell
-    # ------
-    # The static data for each grid-cell consists of:
-    # - KEY: unique string in "0n_0n" format
-    # - DATA:
-    #   - SaskanMath rectangle object for grid-cell
-    #   - PyGame rectangle object for grid-cell
-    # Then can be overloaded as needed based on MAPs.
-    G_CELL = dict()
-    for c in range(0, GRID_COLS):
-        for r in range(0, GRID_ROWS):
-            ky = f"{str(c).zfill(2)}_{str(r).zfill(2)}"
-            x = G_LNS_VT[c][0][0] # x of vert line
-            y = G_LNS_HZ[r][0][1] # y of horz line
-            G_CELL[ky] = {
-                "s_rect": SR.make_rect(
-                    y, x, GRID_CELL_PX_W, GRID_CELL_PX_H)}
-            G_CELL[ky]["box"] = G_CELL[ky]["s_rect"]["pg_rect"]
-
-    # Other
-    KEYMOD_NONE = 4096
-    TIMER = pg.time.Clock()
 
 class SetGameData(object):
     """Methods for inserting and updating values on SASKAN.db.
@@ -366,7 +194,7 @@ class SetGameData(object):
         DB.execute_insert(p_sql_nm, (p_values, pickle.dumps(p_object)))
 
 class GameDataNew(object):
-    """Get resources for display in GAMEMAP and CONSOLE.
+    """Get resources for display in GAMEMAP and CDI.CONSOLE.
     Read mainly from the DB. May be a few config files too.
     Notes:
     - "txt" refers to a string of text.
@@ -377,11 +205,11 @@ class GameDataNew(object):
 
 
 class GameData(object):
-    """Get and set resources displayed in GAMEMAP and CONSOLE.
+    """Get and set resources displayed in GAMEMAP and CDI.CONSOLE.
     This class is instantiated as GDAT, a global object.
     Notes:
     - "txt" refers to a string of text.
-    - "img" refers to a PyGame image object rendered from the txt.
+    - "img" refers to aCDI.TIMER PyGame image object rendered from the txt.
     - "box" refers to a PyGame rectangle object around the img.
     @DEV:
     - Layers of data, zoom-in, zoom-out, other views
@@ -390,14 +218,16 @@ class GameData(object):
     - Event trigger conditions / business rules
 
     - This class is quite large. Let's think about 3 classes:
-        - GameData: load data for use in GAMEMAP and CONSOLE
-        - SetConsole: prep data, incl. widget definitions, for CONSOLE
+        - GameData: load data for use in GAMEMAP and CDI.CONSOLE
+        - SetConsole: prep data, incl. widget definitions, for CDI.CONSOLE
         - SetGameMap: align data to grid for scaling, zooming
+    - And refactor as needed to use io_data and DB structures.
+    - Definitely break out into multiple classes.
     """
     def __init__(self):
-        """Dynamically loaded data for GAMEMAP and CONSOLE.
-        Values are displayed in CONSOLE but refer to GAMEMAP.
-        For G_CELL, static values are read in from PG, then
+        """Dynamically loaded data for GAMEMAP and CDI.CONSOLE.
+        Values are displayed in CDI.CONSOLE but refer to GAMEMAP.
+        For CDI.GRID, static values are read in from PG, then
            data is extended here.
         """
         self.DATASRC = {"actv": False,
@@ -408,7 +238,6 @@ class GameData(object):
                             "box": None}
         self.CONSOLE_TEXT: list = list()
         self.MAP_BOX = None
-        self.G_CELLS = PG.G_CELL
 
     def make_grid_key(self,
                       p_col : int,
@@ -447,9 +276,9 @@ class GameData(object):
         :attr:
         - p_attr (dict): name-value pairs to format
         :sets:
-        - self.CONSOLE[n]["txt"] (list): strings to render as text
+        - self.CDI.CONSOLE[n]["txt"] (list): strings to render as text
         """
-        for t in [PG.CONSOLE_DIVIDER,
+        for t in [CDI.DASH16,
                   f"{p_attr['label']}:",
                   f"  {p_attr['name']}"]:
             rec = copy(self.CONSOLE_REC)
@@ -463,9 +292,9 @@ class GameData(object):
         :attr:
         - p_attr (dict): name-value pairs to format
         :sets:
-        - self.CONSOLE[n]["txt"] (list): strings to render as text
+        - self.CDI.CONSOLE[n]["txt"] (list): strings to render as text
         """
-        for t in [PG.CONSOLE_DIVIDER,
+        for t in [CDI.DASH16,
                   f"{p_attr['label']}:",
                   f"  {p_attr['name']}",
                   f"  {p_attr['type']}"]:
@@ -482,9 +311,9 @@ class GameData(object):
         :attr:
         - p_attr (dict): name-value pairs to format
         :sets:
-        - self.CONSOLE[n]["txt"] (list): strings to render as text
+        - self.CDI.CONSOLE[n]["txt"] (list): strings to render as text
         """
-        for t in [PG.CONSOLE_DIVIDER,
+        for t in [CDI.DASH16,
                   f"{p_attr['label']}:",
                   f"  {p_attr['common']}"]:
             rec = copy(self.CONSOLE_REC)
@@ -504,7 +333,7 @@ class GameData(object):
         :attr:
         - p_attr (dict): name-value pairs to format
         :sets:
-        - self.CONSOLE[n]["txt"] (list): strings to render as text
+        - self.CDI.CONSOLE[n]["txt"] (list): strings to render as text
         """
         ky = "distance" if "distance" in p_attr.keys() else\
             "location" if "location" in p_attr.keys() else None
@@ -512,7 +341,7 @@ class GameData(object):
             sub_k = ["height", "width"] if ky == "distance" else\
                 ["top", "bottom", "left", "right"]
             rec = copy(self.CONSOLE_REC)
-            rec['txt'] = PG.CONSOLE_DIVIDER
+            rec['txt'] = CDI.DASH16
             self.CONSOLE_TEXT.append(rec)
             rec = copy(self.CONSOLE_REC)
             rec["txt"] =\
@@ -534,10 +363,10 @@ class GameData(object):
         :attr:
         - p_attr (dict): name-value pairs to format
         :sets:
-        - self.CONSOLE[n]["txt"] (list): strings to render as text
+        - self.CDI.CONSOLE[n]["txt"] (list): strings to render as text
         """
         rec = copy(self.CONSOLE_REC)
-        rec["txt"] = PG.CONSOLE_DIVIDER
+        rec["txt"] = CDI.DASH16
         self.CONSOLE_TEXT.append(rec)
         rec = copy(self.CONSOLE_REC)
         rec["txt"] = f"{p_attr['label']}:"
@@ -569,38 +398,39 @@ class GameData(object):
                     rec["txt"] = f"      {n}"
                     self.CONSOLE_TEXT.append(rec)
 
-    # Data rendering methods for CONSOLE
+    # Data rendering methods for CDI.CONSOLE
     # ==================================
     def render_text_lines(self):
         """
-        Store rendering objects for lines of CONSOLE text.
+        Store rendering objects for lines of CDI.CONSOLE text.
         After rendering the img from txt, set the box for the img.
         Then adjust topleft of the box according to line number.
         """
         print('render_text_lines()...')
 
-        x = PG.CONSOLE_TTL_BOX.x
-        y = PG.CONSOLE_TTL_BOX.y + FONT_MED_SZ
+        x = CDI.CONSOLE_TTL_BOX.x
+        y = CDI.CONSOLE_TTL_BOX.y + CDI.FONT_MED_SZ
 
         pp(("self.CONSOLE_TEXT: ", self.CONSOLE_TEXT))
 
         for ix, val in enumerate(self.CONSOLE_TEXT):
             txt = val["txt"]
             self.CONSOLE_TEXT[ix]["img"] =\
-                PG.F_SANS_TINY.render(txt, True, PG.CP_BLUEPOWDER,
-                                      PG.CP_BLACK)
+                CDI.F_SANS_TINY.render(txt, True,
+                                       CCL.CP_BLUEPOWDER,
+                                       CCL.CP_BLACK)
             self.CONSOLE_TEXT[ix]["box"] =\
                 self.CONSOLE_TEXT[ix]["img"].get_rect()
             self.CONSOLE_TEXT[ix]["box"].topleft =\
-                (x, y + ((FONT_TINY_SZ + 2) * (ix + 1)))
+                (x, y + ((CDI.FONT_TINY_SZ + 2) * (ix + 1)))
 
             pp(("ix: ", ix, "self.CONSOLE_TEXT[ix]: ", self.CONSOLE_TEXT[ix]))
 
     def set_console_text(self):
-        """Format text lines for display in CONSOLE.
+        """Format text lines for display in CDI.CONSOLE.
         - "catg" identifies source of config data to format.
         - "item" identifies type of data to format.
-        
+
         @TODO:
         - Move the geo data, etc. into a database.
         - May want to revisit, optimize the methods for formatting
@@ -639,7 +469,7 @@ class GameData(object):
         - p_attr (dict): 'map' data for the "Saskan Lands" region from
             the saskan_geo.json file.
         :sets:
-        - self.G_CELLS['map']: map km dimensions and scaling factors
+        - CDI.GRID['map']: map km dimensions and scaling factors
 
         - Get km dimensions for entire map rectangle
         - Reject maps that are too big
@@ -648,6 +478,16 @@ class GameData(object):
         - Multiply # of grid-cells in the map box by px per grid-cell
           to get line height and width in px for the map box.
         - Center 'map' in the 'grid'; by grid count, by px
+
+        @DEV
+        - Debug, refactor to use io_data structures and eventually
+            DB structures for dynamic grid/map mapping.
+        - Instead of just snapping the "map" as defined here onto
+          the GameGrid structure, think about how to pull in map
+          data from the database and align it to the grid.
+        - Also consider that the grid settings should also be
+          pulled in from a database record.
+        - Take some time here to get it working, not just a kludge.
         """
         err = ""
         map = {'ln': dict(),
@@ -656,23 +496,23 @@ class GameData(object):
         map['ln']['km'] =\
             {'w': round(int(p_attr["distance"]["width"]["amt"])),
              'h': round(int(p_attr["distance"]["height"]["amt"]))}
-        if map['ln']['km']['w'] > PG.G_LNS_KM_W:
-            err = f"Map km w {map['w']} > grid km w {PG.G_LNS_KM_W}"
-        if map['ln']['km']['h'] > PG.G_LNS_KM_H:
-            err = f"Map km h {map['h']} > grid km h {PG.G_LNS_KM_H}"
+        if map['ln']['km']['w'] > CDI.G_LNS_KM_W:
+            err = f"Map km w {map['w']} > grid km w {CDI.G_LNS_KM_W}"
+        if map['ln']['km']['h'] > CDI.G_LNS_KM_H:
+            err = f"Map km h {map['h']} > grid km h {CDI.G_LNS_KM_H}"
         if err != "":
             raise ValueError(err)
         # Verified that the map rect is smaller than the grid rect.
         # Compute a ratio of map to grid.
         # Divide map km w, h by grid km w, h
         map['ln']['ratio'] =\
-            {'w': round((map['ln']['km']['w'] / PG.G_LNS_KM_W), 4),
-             'h': round((map['ln']['km']['h'] / PG.G_LNS_KM_H), 4)}
+            {'w': round((map['ln']['km']['w'] / CDI.G_LNS_KM_W), 4),
+             'h': round((map['ln']['km']['h'] / CDI.G_LNS_KM_H), 4)}
         # Compute map line dimensions in px
         # Multiply grid line px w, h by map ratio w, h
         map['ln']['px'] =\
-            {'w': int(round(PG.G_LNS_PX_W * map['ln']['ratio']['w'])),
-            'h': int(round(PG.G_LNS_PX_H * map['ln']['ratio']['h']))}
+            {'w': int(round(CDI.G_LNS_PX_W * map['ln']['ratio']['w'])),
+            'h': int(round(CDI.G_LNS_PX_H * map['ln']['ratio']['h']))}
         # The map rect needs to be centered in the grid rect.
         #  Compute the offset of the map rect from the grid rect.
         #  Compute topleft of the map in relation to topleft of the grid.
@@ -682,28 +522,28 @@ class GameData(object):
         #  between grid width and map width.
         # And then adjusted once more for the offset of the grid from the window.
         map['ln']['px']['left'] =\
-            int(round((PG.G_LNS_PX_W - map['ln']['px']['w']) / 2) +
-                      PG.GRID_OFFSET_X)
+            int(round((CDI.G_LNS_PX_W - map['ln']['px']['w']) / 2) +
+                      CDI.GRID_OFFSET_X)
         map['ln']['px']['top'] =\
-            int(round((PG.G_LNS_PX_H - map['ln']['px']['h']) / 2) +
-                      (PG.GRID_OFFSET_Y * 4))  #  not sure why, but I need this
-        self.G_CELLS["map"] = map
+            int(round((CDI.G_LNS_PX_H - map['ln']['px']['h']) / 2) +
+                      (CDI.GRID_OFFSET_Y * 4))  #  not sure why, but I need this
+        CDI.GRID["map"] = map
 
     def set_map_grid_collisions(self):
-        """ Store collisions between G_CELLS and 'map' box.
+        """ Store collisions between CDI.GRIDS and 'map' box.
         """
-        cells = {k:v for k, v in self.G_CELLS.items() if k != "map"}
+        cells = {k:v for k, v in CDI.GRID.items() if k != "map"}
         for ck, crec in cells.items():
-            self.G_CELLS[ck]["is_inside"] = False
-            self.G_CELLS[ck]["overlaps"] = False
+            CDI.GRID[ck]["is_inside"] = False
+            CDI.GRID[ck]["overlaps"] = False
             if SR.rect_contains(
-                    self.G_CELLS["map"]["box"], crec["box"]):
-                self.G_CELLS[ck]["is_inside"] = True
+                    CDI.GRID["map"]["box"], crec["box"]):
+                CDI.GRID[ck]["is_inside"] = True
             elif SR.rect_overlaps(
-                    self.G_CELLS["map"]["box"], crec["box"]):
-                self.G_CELLS[ck]["overlaps"] = True
+                    CDI.GRID["map"]["box"], crec["box"]):
+                CDI.GRID[ck]["overlaps"] = True
 
-    # Set "map" dimensions and other content in G_CELLS
+    # Set "map" dimensions and other content in CDI.GRIDS
     # =================================================
     def set_gamemap_dims(self,
                          p_attr: dict):
@@ -719,19 +559,19 @@ class GameData(object):
         - Do collision checks between the map box and grid cells
         """
         self.compute_map_scale(p_attr)
-        map_px = self.G_CELLS["map"]["ln"]["px"]
-        self.G_CELLS["map"]["s_rect"] =  SR.make_rect(map_px["top"],
+        map_px = CDI.GRID["map"]["ln"]["px"]
+        CDI.GRID["map"]["s_rect"] =  SR.make_rect(map_px["top"],
                                                       map_px["left"],
                                                       map_px["w"],
                                                       map_px["h"])
-        self.G_CELLS["map"]["box"] =\
-            self.G_CELLS["map"]["s_rect"]["pg_rect"]
+        CDI.GRID["map"]["box"] =\
+            CDI.GRID["map"]["s_rect"]["pg_rect"]
         self.set_map_grid_collisions()
 
     def set_map_grid(self):
         """
         Based on currently selected .DATASRC["catg"] and .DATASRC["item"]:
-        - assign values to G_CELLS for "map".
+        - assign values to CDI.GRIDS for "map".
         Note:
         - For now, only "geo" data (saskan_geo.json) is handled
         """
@@ -784,14 +624,14 @@ class GameMenu(object):
         """
         self.mbars =\
             {ky: {"name": val["name"]}
-             for ky, val in FI.M[MENUS]["menu"].items()}
+             for ky, val in FI.M[CDI.MENUS]["menu"].items()}
         # x --> left edge of first, leftmost menu bar member
-        x = PG.MBAR_X
+        x = CDI.MBAR_X
         for mb_k, v in self.mbars.items():
             self.mbars[mb_k] =\
                 {"name": v["name"],
-                 "txt": PG.F_SANS_SM.render(
-                     v["name"], True, PG.CP_BLUEPOWDER, PG.CP_GRAY_DARK),
+                 "txt": CDI.F_SANS_SM.render(
+                     v["name"], True, CCL.CP_BLUEPOWDER, CP_GRAY_DARK),
                  "selected": False,
                  "tbox": None,
                  "mbox": None}
@@ -800,9 +640,9 @@ class GameMenu(object):
                 self.mbars[mb_k]["txt"].get_rect()
             # Default rect for menu bar member container
             self.mbars[mb_k]["mbox"] =\
-                pg.Rect((x, PG.MBAR_Y), (PG.MBAR_W,
-                                         PG.MBAR_H + 
-                                         (PG.MBAR_MARGIN * 2)))
+                pg.Rect((x, CDI.MBAR_Y), (CDI.MBAR_W,
+                                         CDI.MBAR_H +
+                                         (CDI.MBAR_MARGIN * 2)))
             x = self.mbars[mb_k]["mbox"].right # shift x for next bar
             # Center text rect in menu bar member rect
             # Kludge to account for visual niceness of text
@@ -810,7 +650,7 @@ class GameMenu(object):
                 self.mbars[mb_k]["mbox"].left +\
                     (self.mbars[mb_k]["mbox"].width / 2) - 12
             self.mbars[mb_k]["tbox"].top =\
-                self.mbars[mb_k]["mbox"].top + PG.MBAR_MARGIN + 5
+                self.mbars[mb_k]["mbox"].top + CDI.MBAR_MARGIN + 5
 
     def set_menu_list_box(self,
                           p_mb_k: str):
@@ -828,7 +668,7 @@ class GameMenu(object):
             left = self.mbars[p_mb_k]["mbox"].left
             top = self.mbars[p_mb_k]["mbox"].bottom
             self.mbars[p_mb_k]["mlist_box"] =\
-                pg.Rect((left, top), (PG.MBAR_W, 0))
+                pg.Rect((left, top), (CDI.MBAR_W, 0))
 
     def set_menu_item_box(self,
                           p_mb_k: str,
@@ -837,7 +677,7 @@ class GameMenu(object):
         """
         Define bounding box for text in menu item.
         - width is text width plus margin on each side
-        - height is fixed amount (PG.MBAR_H)
+        - height is fixed amount (CDI.MBAR_H)
         - top is bottom of menu bar member box
             plus fixed height X menu item index (order in list)
             plus margin
@@ -850,15 +690,15 @@ class GameMenu(object):
         - p_mi_x: order (index) of the menu item in the list
         """
         text_w = self.mitems[p_mb_k][p_mi_k]["mi_text_enabled"].get_width()
-        width = text_w + (PG.MBAR_MARGIN * 2)
+        width = text_w + (CDI.MBAR_MARGIN * 2)
         top = self.mbars[p_mb_k]["mbox"].bottom +\
-            (PG.MBAR_H * p_mi_x) + PG.MBAR_MARGIN
+            (CDI.MBAR_H * p_mi_x) + CDI.MBAR_MARGIN
         left = self.mbars[p_mb_k]["mbox"].left +\
-            (PG.MBAR_MARGIN * 4)
+            (CDI.MBAR_MARGIN * 4)
         self.mitems[p_mb_k][p_mi_k]["mitm_box"] =\
-            pg.Rect((left, top), (width, PG.MBAR_H))
+            pg.Rect((left, top), (width, CDI.MBAR_H))
 
-        self.mbars[p_mb_k]["mlist_box"].height += PG.MBAR_H
+        self.mbars[p_mb_k]["mlist_box"].height += CDI.MBAR_H
 
     def set_menu_item(self,
                       p_mb_k: str,
@@ -887,11 +727,11 @@ class GameMenu(object):
         self.mitems[p_mb_k][p_mi_k]['enabled'] =\
             p_mi_v['enabled'] if 'enabled' in p_mi_v.keys() else True
         self.mitems[p_mb_k][p_mi_k]["mi_text_enabled"] =\
-            PG.F_SANS_SM.render(p_mi_v["name"], True,
-                                PG.CP_BLUEPOWDER, PG.CP_GRAY_DARK)
+            CDI.F_SANS_SM.render(p_mi_v["name"], True,
+                                CCL.CP_BLUEPOWDER, CP_GRAY_DARK)
         self.mitems[p_mb_k][p_mi_k]["mi_text_disabled"] =\
-            PG.F_SANS_SM.render(p_mi_v["name"], True,
-                                PG.CP_GRAY, PG.CP_GRAY_DARK)
+            CDI.F_SANS_SM.render(p_mi_v["name"], True,
+                                CP_GRAY, CP_GRAY_DARK)
         self.set_menu_item_box(p_mb_k, p_mi_k, p_mi_x)
 
     def set_menus(self):
@@ -902,7 +742,7 @@ class GameMenu(object):
         """
         # Init menu items from config
         self.mitems = {ky: val["items"]
-                       for ky, val in FI.M[MENUS]["menu"].items()}
+                       for ky, val in FI.M[CDI.MENUS]["menu"].items()}
         for mb_k, mlist in self.mitems.items():
             self.set_menu_list_box(mb_k)
             mi_x = 0
@@ -920,12 +760,12 @@ class GameMenu(object):
         - menu bar members, the "menu bar"
         """
         for _, mb_vals in self.mbars.items():
-            pg.draw.rect(PG.WIN, PG.CP_BLUEPOWDER, mb_vals["mbox"], 2)
-            PG.WIN.blit(mb_vals["txt"], mb_vals["tbox"])
+            pg.draw.rect(CDI.WIN, CCL.CP_BLUEPOWDER, mb_vals["mbox"], 2)
+            CDI.WIN.blit(mb_vals["txt"], mb_vals["tbox"])
         mbox = [mb_vals["mbox"] for _, mb_vals in self.mbars.items()
                 if mb_vals["selected"] is True]
         if len(mbox) > 0:
-            pg.draw.rect(PG.WIN, PG.CP_GREEN, mbox[0], 2)
+            pg.draw.rect(CDI.WIN, CP_GREEN, mbox[0], 2)
 
     def draw_menu_items(self,
                         mb_k: str = ''):
@@ -939,13 +779,13 @@ class GameMenu(object):
         """
         if mb_k not in ('', None) and\
                 self.mbars[mb_k]["selected"] is True:
-            pg.draw.rect(PG.WIN, PG.CP_GRAY_DARK,
+            pg.draw.rect(CDI.WIN, CP_GRAY_DARK,
                          self.mbars[mb_k]["mlist_box"], 0)
             for _, mi_v in self.mitems[mb_k].items():
                 if mi_v["enabled"]:
-                    PG.WIN.blit(mi_v["mi_text_enabled"], mi_v["mitm_box"])
+                    CDI.WIN.blit(mi_v["mi_text_enabled"], mi_v["mitm_box"])
                 else:
-                    PG.WIN.blit(mi_v["mi_text_disabled"], mi_v["mitm_box"])
+                    CDI.WIN.blit(mi_v["mi_text_disabled"], mi_v["mitm_box"])
 
     def click_mbar(self,
                    p_mouse_loc: tuple) -> str:
@@ -1023,38 +863,38 @@ class GameMenu(object):
         - Simplify this. May be able to get rid of it.
         """
         self.mitems[mb_k][mi_ky]["enabled"] = False
-        txt_color = PG.CP_GRAY
+        txt_color = CP_GRAY
         # Set enabled status of identified item
         if p_use_default:
             if ("default" in list(self.mitems[mb_k][mi_ky].keys()) and\
                 self.mitems[mb_k][mi_ky]["default"] == "enabled") or\
                "default" not in list(self.mitems[mb_k][mi_ky].keys()):
                     self.mitems[mb_k][mi_ky]["enabled"] = True
-                    txt_color = PG.CP_BLUEPOWDER
+                    txt_color = CCL.CP_BLUEPOWDER
             # Set text color and content of identified item
             self.mitems[mb_k][mi_ky]["mi_text"] =\
-                PG.F_SANS_SM.render(self.mitems[mb_k][mi_ky]["name"],
-                                    True, txt_color, PG.CP_GRAY_DARK)
+                CDI.F_SANS_SM.render(self.mitems[mb_k][mi_ky]["name"],
+                                    True, txt_color, CP_GRAY_DARK)
         else:
             # Default selected item to enabled status
             self.mitems[mb_k][mi_ky]["enabled"] = True
             self.mitems[mb_k][mi_ky]["mi_text"] =\
-                PG.F_SANS_SM.render(self.mitems[mb_k][mi_ky]["name"],
-                                    True, PG.CP_BLUEPOWDER, PG.CP_GRAY_DARK)
+                CDI.F_SANS_SM.render(self.mitems[mb_k][mi_ky]["name"],
+                                    True, CCL.CP_BLUEPOWDER, CP_GRAY_DARK)
             # Identify dependent menu items and modify their enabled status
             if "disable" in list(self.mitems[mb_k][mi_ky].keys()):
                 for dep_ky in self.mitems[mb_k][mi_ky]["disable"]:
                     self.mitems[mb_k][dep_ky]["enabled"] = False
                     self.mitems[mb_k][dep_ky]["mi_text"] =\
-                        PG.F_SANS_SM.render(self.mitems[mb_k][dep_ky]["name"],
-                                            True, PG.CP_GRAY, PG.CP_GRAY_DARK)
+                        CDI.F_SANS_SM.render(self.mitems[mb_k][dep_ky]["name"],
+                                            True, CP_GRAY, CP_GRAY_DARK)
             if "enable" in list(self.mitems[mb_k][mi_ky].keys()):
                 for dep_ky in self.mitems[mb_k][mi_ky]["enable"]:
                     self.mitems[mb_k][dep_ky]["enabled"] = True
                     self.mitems[mb_k][dep_ky]["mi_text"] =\
-                        PG.F_SANS_SM.render(self.mitems[mb_k][dep_ky]["name"],
-                                            True, PG.CP_BLUEPOWDER,
-                                            PG.CP_GRAY_DARK)
+                        CDI.F_SANS_SM.render(self.mitems[mb_k][dep_ky]["name"],
+                                            True, CCL.CP_BLUEPOWDER,
+                                            CP_GRAY_DARK)
 
 
 class InfoBar(object):
@@ -1082,17 +922,17 @@ class InfoBar(object):
         Set and draw the Info Bar text.
         Draw the info bar text, optionally including status info.
         """
-        text = PG.PLATFORM + "   | " + self.status_text
-        self.itxt = PG.F_SANS_SM.render(text, True, PG.CP_BLUEPOWDER,
-                                        PG.CP_BLACK)
+        text = CDI.PLATFORM + "   | " + self.status_text
+        self.itxt = CDI.F_SANS_SM.render(text, True, CCL.CP_BLUEPOWDER,
+                                        CCL.CP_BLACK)
         self.ibox = self.itxt.get_rect()
-        self.ibox.topleft = PG.IBAR_LOC
-        PG.WIN.blit(self.itxt, self.ibox)
+        self.ibox.topleft = CDI.IBAR_LOC
+        CDI.WIN.blit(self.itxt, self.ibox)
 
 
 class HtmlDisplay(object):
     """Set content for display in external web browser.
-    This class is instantiated as a global object named WHTM.
+    This class is instantiated as a global object named CDI.WHTM.
     Pass in a URI to display in the browser.
     """
 
@@ -1116,7 +956,7 @@ class HtmlDisplay(object):
 class GameConsole(object):
     """Draw the Game Console window.
     Display game data like score, map descriptions, etc.
-    Instantiated as global object CONSOLE.
+    Instantiated as global object CDI.CONSOLE.
 
     Note:
     - Objects were rendered, boxed in GDAT and PG classes.
@@ -1132,15 +972,15 @@ class GameConsole(object):
         pass
 
     def draw(self):
-        """ Draw CONSOLE rectange and blit its title text img.
+        """ Draw CDI.CONSOLE rectange and blit its title text img.
         - Blit txt imgs for current data in CONSOLE_TEXT.
         """
         # Draw container rect and header.
-        pg.draw.rect(PG.WIN, PG.CP_BLACK, PG.CONSOLE_BOX, 0)
-        PG.WIN.blit(PG.CONSOLE_TTL_IMG, PG.CONSOLE_TTL_BOX)
+        pg.draw.rect(CDI.WIN, CCL.CP_BLACK, CDI.CONSOLE_BOX, 0)
+        CDI.WIN.blit(CDI.CONSOLE_TTL_IMG, CDI.CONSOLE_TTL_BOX)
         # Draw lines of text
         for txt in GDAT.CONSOLE_TEXT:
-           PG.WIN.blit(txt["img"], txt["box"])
+           CDI.WIN.blit(txt["img"], txt["box"])
 
 
 class GameMap(object):
@@ -1163,28 +1003,28 @@ class GameMap(object):
         """Draw "grid" and "map" in GAMEMAP using PG, GDAT objects.
         """
         # Draw grid box with thick border
-        pg.draw.rect(PG.WIN, PG.CP_SILVER, PG.GRID_BOX, 5)
+        pg.draw.rect(CDI.WIN, CP_SILVER, CDI.GRID_BOX, 5)
         # Draw grid lines      # vt and hz are: ((x1, y1), (x2, y2))
-        for vt in PG.G_LNS_VT:
-            pg.draw.aalines(PG.WIN, PG.CP_WHITE, False, vt)
-        for hz in PG.G_LNS_HZ:
-            pg.draw.aalines(PG.WIN, PG.CP_WHITE, False, hz)
+        for vt in CDI.G_LNS_VT:
+            pg.draw.aalines(CDI.WIN, CP_WHITE, False, vt)
+        for hz in CDI.G_LNS_HZ:
+            pg.draw.aalines(CDI.WIN, CP_WHITE, False, hz)
         # Highlight grid squares inside or overlapping the map box
-        for _, grec in GDAT.G_CELLS.items():
+        for _, grec in GDAT.CDI.GRIDS.items():
             if "is_inside" in grec.keys() and grec["is_inside"]:
-                pg.draw.rect(PG.WIN, PG.CP_WHITE, grec["box"], 0)
+                pg.draw.rect(CDI.WIN, CP_WHITE, grec["box"], 0)
             elif "overlaps" in grec.keys() and grec["overlaps"]:
-                pg.draw.rect(PG.WIN, PG.CP_SILVER, grec["box"], 0)
+                pg.draw.rect(CDI.WIN, CP_SILVER, grec["box"], 0)
         # Draw map box with thick border
         if GDAT.MAP_BOX is not None:
-            pg.draw.rect(PG.WIN, PG.CP_PALEPINK, GDAT.MAP_BOX, 5) # type: ignore
+            pg.draw.rect(CDI.WIN, CP_PALEPINK, GDAT.MAP_BOX, 5) # type: ignore
 
     def draw_hover_cell(self,
                         p_grid_loc: str):
         """
         Highlight/colorize grid-cell indicating grid that cursor is
         presently hovering over. When this method is called from
-        refesh_screen(), it passes in a G_CELL key in p_grid_loc.
+        refesh_screen(), it passes in a CDI.GRID key in p_grid_loc.
         :args:
         - p_grid_loc: (str) Column/Row key of grid to highlight,
             in "0n_0n" (col, row) format, using leading zeros.
@@ -1197,8 +1037,8 @@ class GameMap(object):
             - Achieved using Surface alpha argument with blit()
         """
         if p_grid_loc != "":
-            pg.draw.rect(PG.WIN, PG.CP_PALEPINK,
-                GDAT.G_CELLS[p_grid_loc]["box"], 0)
+            pg.draw.rect(CDI.WIN, CP_PALEPINK,
+                GDAT.CDI.GRIDS[p_grid_loc]["box"], 0)
 
 
 class TextInput(pg.sprite.Sprite):
@@ -1225,8 +1065,8 @@ class TextInput(pg.sprite.Sprite):
         self.t_rect = SR.make_rect(p_y, p_x, p_w, p_h)
         self.t_box = self.t_rect["box"]
         self.t_value = ""
-        self.t_font = PG.F_FIXED_LG
-        self.t_color = PG.CP_GREEN
+        self.t_font = CDI.F_FIXED_LG
+        self.t_color = CP_GREEN
         self.text = self.t_font.render(self.t_value, True, self.t_color)
         self.is_selected = False
 
@@ -1264,10 +1104,10 @@ class TextInput(pg.sprite.Sprite):
         self.pos = self.text.get_rect(center=(self.t_box.x + self.t_box.w / 2,
                                               self.t_box.y + self.t_box.h / 2))
         if self.is_selected:
-            pg.draw.rect(PG.WIN, PG.CP_BLUEPOWDER, self.t_box, 2)
+            pg.draw.rect(CDI.WIN, CCL.CP_BLUEPOWDER, self.t_box, 2)
         else:
-            pg.draw.rect(PG.WIN, PG.CP_BLUE, self.t_box, 2)
-        PG.WIN.blit(self.text, self.pos)
+            pg.draw.rect(CDI.WIN, CP_BLUE, self.t_box, 2)
+        CDI.WIN.blit(self.text, self.pos)
 
 
 class TextInputGroup(pg.sprite.Group):
@@ -1328,7 +1168,7 @@ class SaskanGame(object):
         """
         if (event.type == pg.QUIT or
                 (event.type == pg.KEYUP and
-                    event.key in PG.KY_QUIT)):
+                    event.key in CDI.KY_QUIT)):
             self.exit_appl()
 
     def handle_menu_item_click(self,
@@ -1345,11 +1185,11 @@ class SaskanGame(object):
             self.exit_appl()
         elif "help" in mi_k:
             if mi_k == "pg_help":
-                WHTM.draw(PG.WHTM["pygame"])
+                CDI.WHTM.draw(CDI.WHTM["pygame"])
             elif mi_k == "app_help":
-                WHTM.draw(PG.WHTM["app"])
+                CDI.WHTM.draw(CDI.WHTM["app"])
             elif mi_k == "game_help":
-                WHTM.draw(PG.WHTM["game"])
+                CDI.WHTM.draw(CDI.WHTM["game"])
         elif mi_k == "start":
             GDAT.set_datasrc({"catg": 'geo',
                               "item": 'Saskan Lands',
@@ -1364,7 +1204,7 @@ class SaskanGame(object):
     # Loop Events
     # ==============================================================
     def track_grid(self):
-        """Keep track of what grid mouse is over using G_LNS_VT, G_LNS_HZ
+        """Keep track of what grid mouse is over using CDI.G_LNS_VT, CDI.G_LNS_HZ
            to ID grid loc. May be a little faster than parsing thru each
            element of .grid["G"] matrix.
         Note:
@@ -1375,17 +1215,17 @@ class SaskanGame(object):
         IBAR.info_status["grid_loc"] = ""
         grid_col = -1
         # vt ande hz are: (x1, y1), (x2, y2)
-        for i in range(0, PG.GRID_COLS):
-            vt = PG.G_LNS_VT[i]
+        for i in range(0, CDI.GRID_COLS):
+            vt = CDI.G_LNS_VT[i]
             if mouse_loc[0] >= vt[0][0] and\
-               mouse_loc[0] <= vt[0][0] + PG.GRID_CELL_PX_W:
+               mouse_loc[0] <= vt[0][0] + CDI.GRID_CELL_PX_W:
                     grid_col = i
                     break
         grid_row = -1
-        for i in range(0, PG.GRID_ROWS):
-            hz = PG.G_LNS_HZ[i]
+        for i in range(0, CDI.GRID_ROWS):
+            hz = CDI.G_LNS_HZ[i]
             if mouse_loc[1] >= hz[0][1] and\
-               mouse_loc[1] <= hz[0][1] + PG.GRID_CELL_PX_H:
+               mouse_loc[1] <= hz[0][1] + CDI.GRID_CELL_PX_H:
                     grid_row = i
                     break
         if grid_row > -1 and grid_col > -1:
@@ -1420,11 +1260,11 @@ class SaskanGame(object):
         the frame count, which is handled in track_state().
         """
         # black out the entire screen
-        PG.WIN.fill(PG.CP_BLACK)
+        CDI.WIN.fill(CCL.CP_BLACK)
 
         # Display info content based on what is currently
         #  posted in the GameData object
-        CONSOLE.draw()
+        CDI.CONSOLE.draw()
 
         # Check, Draw info bar
         IBAR.set_ibar_status_text()
@@ -1444,7 +1284,7 @@ class SaskanGame(object):
             GMNU.draw_menu_items(mb_k)
 
         pg.display.update()
-        PG.TIMER.tick(30)
+        CDI.TIMER.tick(30)
 
     # Main Loop
     # ==============================================================
@@ -1500,7 +1340,7 @@ if __name__ == '__main__':
     GDAT = GameData()
     GMNU = GameMenu()
     IBAR = InfoBar()
-    WHTM = HtmlDisplay()  # for Help windows
-    CONSOLE = GameConsole()
+    CDI.WHTM = HtmlDisplay()  # for Help windows
+    CDI.CONSOLE = GameConsole()
     GAMEMAP = GameMap()
     SaskanGame()
