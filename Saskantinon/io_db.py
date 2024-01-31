@@ -16,14 +16,15 @@ import pendulum
 import shutil
 import sqlite3 as sq3
 
-from os import path
-from pprint import pprint as pp    # noqa: F401
-from io_file import FileIO
-
 from copy import copy
 from pathlib import Path
+from os import path
+from pprint import pprint as pp    # noqa: F401
+
+from io_file import FileIO
 
 FI = FileIO()
+
 
 class DataBase(object):
     """Support Sqlite3 database setup, usage, maintenance.
@@ -57,10 +58,10 @@ class DataBase(object):
         # pp((p_constraints))
 
         if 'JSON' in p_constraints.keys()\
-        and p_col_nm in p_constraints['JSON']:
+          and p_col_nm in p_constraints['JSON']:
             sql = ' JSON'
         else:
-            annote = p_pyd_value.annotation.__name__ # type: ignore
+            annote = p_pyd_value.annotation.__name__  # type: ignore
             for pyd_type in (('str', ' TEXT'),
                             ('int', ' INTEGER'),
                             ('bool', ' BOOLEAN'),
@@ -78,7 +79,7 @@ class DataBase(object):
     def set_sql_data_rule(self,
                           p_col_nm: str,
                           p_pyd_value: object,
-                          p_constraints: dict ) -> str:
+                          p_constraints: dict) -> str:
         """Convert Pydantic constraint annotations to SQLITE data rule.
         :args:
         - p_col_nm (str) Name of data column
@@ -323,8 +324,8 @@ class DataBase(object):
         - SQL file to [APP]/sql/UPDATE_[p_table_name].sql
         """
         sql = f"UPDATE {p_table_name} SET\n" +\
-                f"{',\n'.join([f'{col}=?' for col in p_col_names])}" +\
-                f"\nWHERE {p_constraints['PK'][0]}=?;\n"
+            f"{',\n'.join([f'{col}=?' for col in p_col_names])}" +\
+            f"\nWHERE {p_constraints['PK'][0]}=?;\n"
         FI.write_file(
             path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql"), sql)
 
@@ -334,10 +335,19 @@ class DataBase(object):
         Generate full set of SQL code from a Pydantic data model.
         :args:
         - p_data_model (inherited from BaseModel) Pydantic data model class
+        > But now going to try it without using Pydantic BaseModel
         """
-        model_fields = copy(p_data_model.model_fields) # type: ignore
+        # will need to do something different here:
+        model_fields = copy(p_data_model.model_fields)  # type: ignore
+
+        print(dir(p_data_model))
+
         table_name = model_fields['tablename'].get_default()
-        constraints = p_data_model.constraints() # type: ignore
+        # I think this might still work, but I'm not sure:
+        constraints = p_data_model.constraints()  # type: ignore
+
+        pp(('constraints', constraints))
+
         col_fields = {nm: val for nm, val in model_fields.items()
                       if nm != 'tablename'}
         col_names = list()

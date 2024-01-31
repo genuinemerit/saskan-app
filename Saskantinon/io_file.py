@@ -64,9 +64,10 @@ class FileIO(object):
             if Path(p_dir_path).exists() and Path(p_dir_path).is_dir():
                 files = [f for f in Path(p_dir_path).iterdir()]
                 if p_file_pattern != '':
-                    files = [f for f in files if all(s in f.name for s in srch)]
+                    files = [f for f in files
+                             if all(s in f.name for s in srch)]
         except Exception as err:
-            raise(err)
+            raise (err)
         return files
 
     @classmethod
@@ -199,7 +200,7 @@ class FileIO(object):
                    p_cfg_nm: str) -> dict:
         """Read configuration data from APP config dir.
         :args:
-        - p_app_path (str): local app path for file
+        - p_file_dir (str): local app path for file
         - p_cfg_nm (str): name of config file to read
         :returns:
         - (dict) Config file values as python dict, or None.
@@ -207,8 +208,11 @@ class FileIO(object):
         cfg = dict()
         p_cfg_nm = p_cfg_nm.lower().replace(".json", "") + ".json"
         try:
-            cfg_j= self.get_file(path.join(
+            cfg_j = self.get_file(path.join(
                 SI.get_cwd_home(), p_file_dir, p_cfg_nm))
+
+            # pp(('cfg_j', cfg_j))
+
             cfg = json.loads(cfg_j)
             return cfg
         except Exception as err:
@@ -230,7 +234,7 @@ class FileIO(object):
                 # trunk-ignore(bandit/B605)
                 system(f"mkdir {p_path}")
             except Exception as err:
-                raise(err)
+                raise (err)
         if not Path(p_path).exists():
             raise Exception(f"{p_path} directory creation failed.")
 
@@ -244,7 +248,7 @@ class FileIO(object):
         try:
             remove(p_path)
         except OSError as err:
-            raise(err)
+            raise (err)
 
     @classmethod
     def copy_one_file(cls,
@@ -293,7 +297,7 @@ class FileIO(object):
         try:
             symlink(p_link_from, p_link_to)
         except OSError as err:
-            raise(err)
+            raise (err)
 
     @classmethod
     def append_file(cls,
@@ -313,7 +317,7 @@ class FileIO(object):
             f.write(p_text)
             f.close()
         except Exception as err:
-            raise(err)
+            raise (err)
 
     @classmethod
     def write_file(cls,
@@ -375,9 +379,9 @@ class FileIO(object):
             cmd = f"chmod u=rw,g=r,o=r {p_path}"
             ok, msg = SI.run_cmd(cmd)
             if not ok:
-                raise(msg)
+                raise (msg)
         except Exception as err:
-            raise(err)
+            raise (err)
 
     @classmethod
     def make_writable(cls, p_path: str):
@@ -390,9 +394,9 @@ class FileIO(object):
             cmd = f"chmod u=rwx,g=rwx,o=rwx {p_path}"
             ok, msg = SI.run_cmd(cmd)
             if not ok:
-                raise(msg)
+                raise (msg)
         except Exception as err:
-            raise(err)
+            raise (err)
 
     @classmethod
     def make_executable(cls, p_path: str):
@@ -405,9 +409,9 @@ class FileIO(object):
             cmd = f"chmod u=rwx,g=rx,o=rx {p_path}"
             ok, msg = SI.run_cmd(cmd)
             if not ok:
-                raise(msg)
+                raise (msg)
         except Exception as err:
-            raise(err)
+            raise (err)
 
     # Shaping and analysis methods
     # ==============================================================

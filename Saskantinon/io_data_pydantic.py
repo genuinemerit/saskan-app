@@ -48,19 +48,16 @@ and keep all or most values in this module as constants.
 - GetGameData - methods for getting values from SASKAN.db
 """
 
-# In this version I am trying to define all the data structures
-# I need without using Pydantic. The test will be to see if that still
-# allows me to generate SQL code relatively painlessly.
-
+# from networkx import max_flow_min_cost
 import platform
 import pygame as pg
 
 from copy import copy
-from dataclasses import dataclass, field
 from pprint import pprint as pp     # noqa: F401
 from pprint import pformat as pf    # noqa: F401
-# from pydantic import object, ConfigDict
-# from pydantic.dataclasses import dataclass
+from pydantic import BaseModel, ConfigDict
+from pydantic.dataclasses import dataclass
+from typing import ClassVar
 
 from io_db import DataBase
 from io_file import FileIO
@@ -72,7 +69,6 @@ SI = ShellIO()
 
 pg.init()                   # Initialize PyGame for use in this module
 
-"""
 pydantic_config = ConfigDict(arbitrary_types_allowed=True,
                              from_attributes=True,
                              populate_by_name=True,
@@ -80,14 +76,13 @@ pydantic_config = ConfigDict(arbitrary_types_allowed=True,
                              use_enum_values=True,
                              validate_assignment=True,
                              validate_default=True)
-"""
 
 
 class SaskanConstants():
     """Constant values related to game play.
     """
 
-    @dataclass(order=True, slots=True)
+    @dataclass(order=True, frozen=True, slots=True)
     class Astro():
         """ Astronomical and physics units and conversions.
         """
@@ -187,7 +182,7 @@ class SaskanConstants():
         PC_TO_KPC = 0.001             # parsecs -> kiloparsecs
         PC_TO_LY = 3.261598           # parsecs -> light years
 
-    @dataclass(order=True, slots=True)
+    @dataclass(order=True, frozen=True, slots=True)
     class Colors():
         """Define immutable constants.
         """
@@ -215,7 +210,7 @@ class SaskanConstants():
         CP_SILVER = pg.Color(192, 192, 192)
         CP_WHITE = pg.Color(255, 255, 255)
 
-    @dataclass(order=True, slots=True)
+    @dataclass(order=True, frozen=True, slots=True)
     class Geog():
         """Values used to do various computations using
         a variety of units and formulae for measures of
@@ -309,7 +304,7 @@ class SaskanConstants():
         KM_TO_DGLAT = 0.00898315284   # kilometers -> degree of latitude
         KM_TO_DGLONG = 0.00898311175  # kilometers -> degree of longitude
 
-    @dataclass(order=True, slots=True)
+    @dataclass(order=True, frozen=True, slots=True)
     class Geom:
         """Types of measurements or objects assigned to a
         meaningful abbreviations and names in English,
@@ -366,72 +361,6 @@ class SaskanConstants():
         SHP = "shape"
 
 
-"""
-The following "internal" methods provide default_factory methods
-inside of dataclasses. Needed when dataclasses module determines
-that a field type is mutable. In most cases, a pygame structure.
-"""
-
-
-def init_color(p_color: str) -> pg.Color:
-    """
-    Return a PyGame color object.
-    :args:
-    - p_color: (str) name of color
-    :returns:
-    - (pg.Color) PyGame color object from SaskanConstants.Colors
-
-    # PyGame Colors
-    CP_BLACK = pg.Color(0, 0, 0)
-    CP_BLUE = pg.Color(0, 0, 255)
-    CP_BLUEPOWDER = pg.Color(176, 224, 230)
-    CP_GRAY = pg.Color(80, 80, 80)
-    CP_GRAY_DARK = pg.Color(20, 20, 20)
-    CP_GREEN = pg.Color(0, 255, 0)
-    CP_PALEPINK = pg.Color(215, 198, 198)
-    CP_RED = pg.Color(255, 0, 0)
-    CP_SILVER = pg.Color(192, 192, 192)
-    CP_WHITE = pg.Color(255, 255, 255)
-    """
-    c = p_color.lower()
-    if c == "black":
-        return SaskanConstants.Colors.CP_BLACK
-    elif c == "blue":
-        return SaskanConstants.Colors.CP_BLUE
-    elif c == "bluepowder":
-        return SaskanConstants.Colors.CP_BLUEPOWDER
-    elif c == "gray":
-        return SaskanConstants.Colors.CP_GRAY
-    elif c == "gray_dark":
-        return SaskanConstants.Colors.CP_GRAY_DARK
-    elif c == "green":
-        return SaskanConstants.Colors.CP_GREEN
-    elif c == "palepink":
-        return SaskanConstants.Colors.CP_PALEPINK
-    elif c == "red":
-        return SaskanConstants.Colors.CP_RED
-    elif c == "silver":
-        return SaskanConstants.Colors.CP_SILVER
-    elif c == "white":
-        return SaskanConstants.Colors.CP_WHITE
-
-
-def init_rect(p_rect: tuple = None) -> pg.Rect:
-    """
-    Return a PyGame Rect object.
-    :args:
-    - p_rect: (tuple) coordinate of the Rect
-      if None, then set to 0, 0, 0, 0
-      (top, left, bottom, right)
-    :returns:
-    - (pg.Rect) PyGame Rect object of specified dimensions
-    """
-    if p_rect is None:
-        return pg.Rect(0, 0, 0, 0)
-    else:
-        return pg.Rect(p_rect)
-
-
 # =============================================================
 # GROUP Attributes for DB or in-memory use
 #
@@ -449,56 +378,58 @@ def init_rect(p_rect: tuple = None) -> pg.Rect:
 # getting pretty messy.
 # For structures used only in memory, not a problem.
 # =============================================================
-@dataclass(order=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
 class DataRec(object):
     """Base class for grouped attributes.
     """
+    model_config = ConfigDict(pydantic_config)
+    # If I have this ^, do I need it in the sub-classes?
 
-    class ColRowIx(object):
-
+    class ColRowIx(BaseModel):
+        model_config = ConfigDict(pydantic_config)
         r: int = 0
         c: int = 0
 
-    class WidthHeight(object):
-
+    class WidthHeight(BaseModel):
+        model_config = ConfigDict(pydantic_config)
         w: float = 0.0
         h: float = 0.0
 
-    class CoordXYZ(object):
-
+    class CoordXYZ(BaseModel):
+        model_config = ConfigDict(pydantic_config)
         x: float = 0.0
         y: float = 0.0
         z: float = 0.0
 
-    class CoordXY(object):
-
+    class CoordXY(BaseModel):
+        model_config = ConfigDict(pydantic_config)
         x: float = 0.0
         y: float = 0.0
 
-    class CoordABC(object):
-
+    class CoordABC(BaseModel):
+        model_config = ConfigDict(pydantic_config)
         a: float = 0.0
         b: float = 0.0
         c: float = 0.0
 
-    class PitchYawRollAngle(object):
-
+    class PitchYawRollAngle(BaseModel):
+        model_config = ConfigDict(pydantic_config)
         pitch: float = 0.0
         yaw: float = 0.0
         roll: float = 0.0
 
-    class GeogLatLong(object):
+    class GeogLatLong(BaseModel):
         """
         Latitudes and longitudes are in decimal degrees.
         Lat north is positive, lat south is negative.
         Lon east (between universal meridien and international date line)
         is positive, lon west is negative.
         """
-
+        model_config = ConfigDict(pydantic_config)
         lat: float = 0.0
         lon: float = 0.0
 
-    class GeogLocation(object):
+    class GeogLocation(BaseModel):
         """
         All GeogLocations are rectangular.
 
@@ -514,7 +445,7 @@ class DataRec(object):
         different grids to scale displays, that is, set km to px, or
         km to cells.
         """
-
+        model_config = ConfigDict(pydantic_config)
         latitude_north_dg: float = 0.0
         latitude_south_dg: float = 0.0
         longitude_east_dg: float = 0.0
@@ -529,7 +460,7 @@ class DataRec(object):
         max_altitude_m: float = 0.0
         min_altitude_m: float = 0.0
 
-    class Graphic(object):
+    class Graphic(BaseModel):
         """
         The design thinking here is that:
         - the placement of a graphic element is not stored in
@@ -548,11 +479,10 @@ class DataRec(object):
         not. SQLite is pretty fast and is basically a file system.
         Pydanitc pukes when trying to store a PyGame Surface -- cannot
         pickle it. So, let's not do that. We'll create the surface
-        objects more interactiely during construction. OR... don't
-        use Pydantic. Just use dataclasses. That's what I'm doing now.
+        objects more interactiely during construction.
         """
-
-        img_surface: pg.Surface = pg.Surface((0, 0))
+        model_config = ConfigDict(pydantic_config)
+        # img_surface: pg.Surface = pg.Surface((0, 0))
         img_rect: pg.Rect = pg.Rect(0, 0, 0, 0)
         img_url: str = ''
         img_desc: str = ''
@@ -694,77 +624,72 @@ class SaskanRect(object):
             return False
 
 
+SR = SaskanRect()
+
+
 # =============================================================
-# RECORDS for in-memory use
+# RECORDS for in-memory use only
 # =============================================================
 
-@dataclass(order=True, slots=True)
-class GameCoord(object):
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
+class GameCoord(BaseModel):
+    """
+    Pydantic pukes when it sees an embedded Pydantic model
+    which is itself defined under a different class. I don't really
+    want to have a bazillion separate BaseModel classes, so I am
+    starting to get disillusioned with Pydantic. If I can still
+    generate SQL OK without using Pydantic, then I will probably
+    be happier not using it.
+    """
+    model_config = ConfigDict(pydantic_config)
     top_left: DataRec.CoordXY = DataRec.CoordXY()
     top_right: DataRec.CoordXY = DataRec.CoordXY()
     bottom_left: DataRec.CoordXY = DataRec.CoordXY()
     bottom_right: DataRec.CoordXY = DataRec.CoordXY()
 
 
-def _game_coord() -> GameCoord:
-    """
-    Return a GameCoord object with all coords initialized to 0, 0.
-    Used as a default_factory method for dataclass fields.
-    :returns:
-    - (GameCoord) GameCoord object
-    """
-    return GameCoord()
-
-
-@dataclass(order=True, slots=True)
-class GameRect(object):
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
+class GameRect(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     height_width: DataRec.WidthHeight = DataRec.WidthHeight()
-    coord_rect: GameCoord = field(default_factory=lambda: _game_coord())
+    coord_rect: GameCoord = GameCoord()
     center: DataRec.CoordXY = DataRec.CoordXY()
     fill: bool = False
-    fill_color: pg.Color = field(default_factory=lambda: init_color("green"))
-    line_color: pg.Color = field(default_factory=lambda: init_color("black"))
-    box: pg.Rect = field(default_factory=lambda: init_rect())
+    fill_color: pg.Color = SaskanConstants.Colors.CP_GREEN
+    line_color: pg.Color = SaskanConstants.Colors.CP_BLACK
+    box: pg.Rect = pg.Rect(0, 0, 0, 0)
 
 
-def _game_rect() -> GameRect:
-    """
-    Return a GameRect object with all fields initialized to 0 or False.
-    Used as a default_factory method for dataclass fields.
-    :returns:
-    - (GameRect) GameRect object
-    """
-    return GameRect()
-
-
-@dataclass(order=True, slots=True)
-class GameImage(object):
-
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
+class GameImage(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     image: DataRec.Graphic = DataRec.Graphic()
-    img_placement: GameRect = field(default_factory=lambda: _game_rect())
+    img_placement: GameRect = GameRect()
 
 
-@dataclass(order=True, slots=True)
-class GameCell(object):
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
+class GameCell(BaseModel):
     """
     See notes below. This may be replaced by a DB Grid template.
     """
+    model_config = ConfigDict(pydantic_config)
     rc: DataRec.ColRowIx = DataRec.ColRowIx()
     wh: DataRec.WidthHeight = DataRec.WidthHeight()
-    rect: GameRect = field(default_factory=lambda: _game_rect())
+    rect: GameRect = GameRect()
 
 
-@dataclass(order=True, slots=True)
-class GameGrid(object):
+@dataclass(order=True, frozen=True, slots=True, config=pydantic_config)
+class GameGrid(BaseModel):
     """
     This is an in-game storage structure, not a drawing canvas.
     It holds information for display in each grid cell.
     """
+    model_config = ConfigDict(pydantic_config)
     RowsCols: DataRec.ColRowIx = DataRec.ColRowIx()
-    cells: dict[str, GameCell] = field(default_factory=dict)
+    cells: dict[str, GameCell] = {}
 
 
-@dataclass(order=True, slots=True)
+@dataclass(order=True, frozen=True, slots=True)
 class Display():
     """Values related to constructing GUI's, but which do not require
     importing and initialzing PyGame, nor reading values in from config
@@ -802,7 +727,7 @@ class Display():
     KY_RPT_MODE = (pg.K_UP, pg.K_RIGHT, pg.K_LEFT)
     # Saskan Game Platform
     # -------------------
-    info = pg.display.Info()
+    info = pg.Display.Info()
     FRAME = "game_frame"  # --> c_frame.json
     MENUS = "game_menus"  # --> c_menus.json
     PLATFORM = (
@@ -817,9 +742,9 @@ class Display():
     WIN_W = round(info.current_w * 0.9)
     WIN_H = round(info.current_h * 0.9)
     WIN_MID = (WIN_W / 2, WIN_H / 2)
-    WIN = pg.display.set_mode((WIN_W, WIN_H))
-    pg.display.set_caption(FI.F[FRAME]["ttl"])
-    info = pg.display.Info()
+    WIN = pg.Display.set_mode((WIN_W, WIN_H))
+    pg.Display.set_caption(FI.F[FRAME]["ttl"])
+    info = pg.Display.Info()
     KEYMOD_NONE = 4096
     TIMER = pg.time.Clock()
     # Menu bar for Saskan Game app
@@ -852,11 +777,8 @@ class Display():
     # resolutions of displays.
     # --------------------------------------
     # Persistent values for the grid:
-    # The software tried to render a Pygame window from this
-    # assignment. Not sure what is going on. When I instantiate
-    # SaskanRect ahead of time, that doesn't happen. Interesting...
-    GRID_S_RECT = SaskanRect.make_rect(GAMEMAP_Y, GAMEMAP_X,
-                                       GAMEMAP_W, GAMEMAP_H)
+    GRID_S_RECT = SR.make_rect(GAMEMAP_Y, GAMEMAP_X,
+                               GAMEMAP_W, GAMEMAP_H)
     GRID_BOX = GRID_S_RECT["box"]
     GRID_OFFSET_X = int(round(GAMEMAP_W * 0.01))
     GRID_OFFSET_Y = int(round(GAMEMAP_H * 0.02))
@@ -963,8 +885,8 @@ class Display():
 # - GROUPed types derived from Pydantic data types defined above,
 # - sort order for SELECT queries.
 # =======================================================
-class Backup(object):
-
+class Backup(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "BACKUP"
     bkup_nm: str
     bkup_dttm: str
@@ -980,8 +902,8 @@ class Backup(object):
         }
 
 
-class Universe(object):
-
+class Universe(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "UNIVERSE"
     univ_nm_pk: str
     radius_gly: float = 0.0
@@ -1002,8 +924,8 @@ class Universe(object):
         }
 
 
-class ExternalUniv(object):
-
+class ExternalUniv(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "EXTERNAL_UNIVERSE"
     external_univ_nm_pk: str
     univ_nm_fk: str
@@ -1022,8 +944,8 @@ class ExternalUniv(object):
         }
 
 
-class GalacticCluster(object):
-
+class GalacticCluster(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "GALACTIC_CLUSTER"
     galactic_cluster_nm_pk: str
     univ_nm_fk: str = ''
@@ -1061,8 +983,8 @@ class GalacticCluster(object):
         }
 
 
-class Galaxy(object):
-
+class Galaxy(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "GALAXY"
     galaxy_nm_pk: str
     galactic_cluster_nm_fk: str = ''
@@ -1191,8 +1113,8 @@ and basic simulation, consider the following critical data elements:
 """
 
 
-class StarSystem(object):
-
+class StarSystem(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "STAR_SYSTEM"
     star_system_nm_pk: str
     galaxy_nm_fk: str
@@ -1278,7 +1200,7 @@ of eclipses and other astronomical events.
 """
 
 
-class World(object):
+class World(BaseModel):
     """
     @DEV:
     It may not be possible to assign a default value to what
@@ -1286,7 +1208,7 @@ class World(object):
     assignment and make sure that the code assigns the
     desired values.
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "WORLD"
     world_nm_pk: str
     star_system_nm_fk: str
@@ -1335,8 +1257,8 @@ and so on will be tracked on a separate table or set of tables.
 """
 
 
-class Moon(object):
-
+class Moon(BaseModel):
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "MOON"
     moon_nm_pk: str
     world_nm_fk: str
@@ -1368,7 +1290,7 @@ class Moon(object):
         }
 
 
-class Map(object):
+class Map(BaseModel):
     """
     Foreign key --
     - MAP (1) contains <-- MAPs (n)   and
@@ -1394,7 +1316,7 @@ class Map(object):
          - demographics (population density, etc.)
     */
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "MAP"
     map_nm_pk: str
     container_map_nm_fk: str = ''
@@ -1410,14 +1332,14 @@ class Map(object):
         }
 
 
-class MapXMap(object):
+class MapXMap(BaseModel):
     """
     Associative keys --
     - MAPs (n) overlap <--> MAPs (n)
     - MAPs (n) border <--> MAPs (n)
     PK is a composite key of map_nm_1_fk and map_nm_2_fk
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "MAP_X_MAP"
     map_nm_1_fk: str
     map_nm_2_fk: str
@@ -1434,7 +1356,7 @@ class MapXMap(object):
         }
 
 
-class Grid(object):
+class Grid(BaseModel):
     """
     Define the size of a grid (r, c), the dim of the cells (w, h)
     in PyGame px, and the dim of each cell in km (w, h).
@@ -1445,7 +1367,7 @@ class Grid(object):
     @DEV:
     - Consider other grid types, such as hexagonal, triangular, etc.
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "GRID"
     grid_nm_pk: str
     row_cnt: int
@@ -1467,13 +1389,13 @@ class Grid(object):
         }
 
 
-class GridXMap(object):
+class GridXMap(BaseModel):
     """
     Associative keys --
     - GRIDs (n) <--> MAPs (n)
     PK is a composite key of grid_nm_fk and map_nm_fk
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "GRID_X_MAP"
     grid_nm_fk: str
     map_nm_fk: str
@@ -1497,7 +1419,7 @@ the language elements, refining the rules.
 """
 
 
-class CharMember(object):
+class CharMember(BaseModel):
     """
     Describes the individual characters in a character set.
     Where the character is not represented in Unicode, a picture
@@ -1507,7 +1429,7 @@ class CharMember(object):
     (character set) they belong to. But further categorizations
     are possible for numerics, punctuation, and so on.
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "CHAR_MEMBER"
     char_member_id_pk: int
     char_member_nm: str
@@ -1529,7 +1451,7 @@ class CharMember(object):
         }
 
 
-class CharSet(object):
+class CharSet(BaseModel):
     """
     Description of a set of characters used in a language.
     An alphabet represents consonants and vowels each
@@ -1552,7 +1474,7 @@ class CharSet(object):
     actually be compound, with one portion signalling the
     pronunciation, and another portion signalling the meaning.
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "CHAR_SET"
     char_set_nm_pk: str
     char_set_type: str = 'alphabet'
@@ -1569,7 +1491,7 @@ class CharSet(object):
         }
 
 
-class LangFamily(object):
+class LangFamily(BaseModel):
     """
     Describe basic features of a language family, without getting too
     complicated.
@@ -1579,7 +1501,7 @@ class LangFamily(object):
       historical events, migration patterns, etc.
     NB: 'baric' is an in-game construct, not a real-world one.
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LANG_FAMILY"
     lang_family_nm_pk: str
     char_set_nm_fk: str = 'baric'
@@ -1599,7 +1521,7 @@ class LangFamily(object):
         }
 
 
-class Language(object):
+class Language(BaseModel):
     """
     Describe basic features of a language, without getting too
     complicated.
@@ -1653,7 +1575,7 @@ lang_object structure:
     {"rule": "explanation", ...},
 */
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LANGUAGE"
     lang_nm_pk: str
     lang_family_nm_fk: str
@@ -1673,7 +1595,7 @@ lang_object structure:
         }
 
 
-class LangDialect(object):
+class LangDialect(BaseModel):
     """
     Describe basic features of a dialect, without getting too
     complicated.
@@ -1684,7 +1606,7 @@ class LangDialect(object):
     - preservation_factors: how the dialect preserves old features
       of the main language which are no longer standard
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LANG_DIALECT"
     dialect_nm_pk: str
     lang_nm_fk: str
@@ -1703,7 +1625,7 @@ class LangDialect(object):
         }
 
 
-class Glossary(object):
+class Glossary(BaseModel):
     """
     The glossary is a multi-lingual dictionary of sorts.
     It is a collection of words and phrases , and their
@@ -1720,7 +1642,7 @@ class Glossary(object):
     sqlite CREATE INDEX command to optimize lookups.
     Remember that the gloss_uid is neither a PK nor an FK.
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "GLOSSARY"
     gloss_uid: int
     lang_nm_fk: str
@@ -1738,7 +1660,7 @@ class Glossary(object):
         }
 
 
-class Lake(object):
+class Lake(BaseModel):
     """
     Geographic features, e.g. lakes, rivers, mountains, etc. are
     named by reference to a gloss_uid. It is a PK on this table,
@@ -1776,7 +1698,7 @@ class Lake(object):
     JSON:
     lake_shorline_points: [GeogLatLong, ..]
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LAKE"
     lake_nm_gloss_uid_pk: int
     lake_shoreline_points: str
@@ -1818,13 +1740,13 @@ class Lake(object):
         }
 
 
-class LakeXMap(object):
+class LakeXMap(BaseModel):
     """
     Associative keys --
     - LAKEs (n) <--> MAPs (n)
     PK is a composite key of lake_nm_fk and map_nm_fk
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LAKE_X_MAP"
     lake_nm_gloss_uid_fk: str
     map_nm_fk: str
@@ -1841,7 +1763,7 @@ class LakeXMap(object):
         }
 
 
-class River(object):
+class River(BaseModel):
     """
     drainage_basin_m: Avg area of land where rainfall is
     collected and drained into the river on each bank. For game
@@ -1918,12 +1840,12 @@ class River(object):
         }
 
 
-class RiverXMap(object):
+class RiverXMap(BaseModel):
     """
     Associative keys --
     - RIVERs (n) <--> MAPs (n)
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "RIVER_X_MAP"
     river_nm_gloss_uid_fk: str
     map_nm_fk: str
@@ -1939,7 +1861,7 @@ class RiverXMap(object):
         }
 
 
-class WaterBody(object):
+class WaterBody(BaseModel):
     """
     If it works out, may use this instead of LAKE.
     And maybe RIVER.
@@ -1990,12 +1912,12 @@ class WaterBody(object):
         }
 
 
-class WaterBodyXMap(object):
+class WaterBodyXMap(BaseModel):
     """
     Associative keys --
     - WATER_BODYs (n) <--> MAPs (n)
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "WATER_BODY_X_MAP"
     body_nm_gloss_uid_fk: str
     map_nm_fk: str
@@ -2011,12 +1933,12 @@ class WaterBodyXMap(object):
         }
 
 
-class WaterBodyXRiver(object):
+class WaterBodyXRiver(BaseModel):
     """
     Associative keys --
     - WATER_BODYs (n) <--> RIVERs (n)
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "WATER_BODY_X_RIVER"
     body_nm_gloss_uid_fk: str
     river_nm_gloss_uid_fk: str
@@ -2035,7 +1957,7 @@ class WaterBodyXRiver(object):
         }
 
 
-class LandBody(object):
+class LandBody(BaseModel):
     """
     Use this for geographic features that are not water.
     Including: continents, islands, geographic regions.
@@ -2065,12 +1987,12 @@ class LandBody(object):
         }
 
 
-class LandBodyXMap(object):
+class LandBodyXMap(BaseModel):
     """
     Associative keys --
     - LAND_BODYs (n) <--> MAPs (n)
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LAND_BODY_X_MAP"
     body_nm_gloss_uid_fk: str
     map_nm_fk: str
@@ -2086,14 +2008,14 @@ class LandBodyXMap(object):
         }
 
 
-class LandBodyXLandBody(object):
+class LandBodyXLandBody(BaseModel):
     """
     Associative keys --
     - LAND_BODYs (n) <--> LAND_BODYs (n)
     - relation:
         - body 1 --> body 2
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LAND_BODY_X_LAND_BODY"
     body_nm_1_gloss_uid_fk: str
     body_nm_2_gloss_uid_fk: str
@@ -2117,14 +2039,14 @@ class LandBodyXLandBody(object):
         }
 
 
-class LandBodyXWaterBody(object):
+class LandBodyXWaterBody(BaseModel):
     """
     Associative keys --
     - LAND_BODYs (n) <--> WATER_BODYs (n)
     - relation:
         - body 1 --> body 2
     """
-
+    model_config = ConfigDict(pydantic_config)
     tablename: str = "LAND_BODY_X_WATER_BODY"
     body_nm_1_gloss_uid_fk: str
     body_nm_2_gloss_uid_fk: str
@@ -2580,10 +2502,10 @@ class GetGameData(object):
         for ck, crec in cells.items():
             self.G_CELLS[ck]["is_inside"] = False
             self.G_CELLS[ck]["overlaps"] = False
-            if SaskanRect.rect_contains(
+            if SR.rect_contains(
                     self.G_CELLS["map"]["box"], crec["box"]):
                 self.G_CELLS[ck]["is_inside"] = True
-            elif SaskanRect.rect_overlaps(
+            elif SR.rect_overlaps(
                     self.G_CELLS["map"]["box"], crec["box"]):
                 self.G_CELLS[ck]["overlaps"] = True
 
@@ -2607,7 +2529,7 @@ class GetGameData(object):
         self.compute_map_scale(p_attr)
         map_px = self.G_CELLS["map"]["ln"]["px"]
         self.G_CELLS["map"]["s_rect"] =\
-            SaskanRect.make_rect(map_px["top"], map_px["left"],
+            SR.make_rect(map_px["top"], map_px["left"],
                          map_px["w"], map_px["h"])
         self.G_CELLS["map"]["box"] =\
             self.G_CELLS["map"]["s_rect"]["pg_rect"]
