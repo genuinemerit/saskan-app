@@ -133,3 +133,4 @@ tests/
 *.sqbpro
 .vscode/
 /.vscode
+.cosine

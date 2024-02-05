@@ -44,7 +44,7 @@ class DataBase(object):
     def set_sql_data_type(self,
                           p_col_nm: str,
                           p_pyd_value: object,
-                          p_constraints: dict ) -> str:
+                          p_constraints: dict) -> str:
         """Convert Pydantic data type to SQLITE data type.
         :args:
         - p_col_nm (str) Name of data column
@@ -58,17 +58,17 @@ class DataBase(object):
         # pp((p_constraints))
 
         if 'JSON' in p_constraints.keys()\
-          and p_col_nm in p_constraints['JSON']:
+                and p_col_nm in p_constraints['JSON']:
             sql = ' JSON'
         else:
             annote = p_pyd_value.annotation.__name__  # type: ignore
             for pyd_type in (('str', ' TEXT'),
-                            ('int', ' INTEGER'),
-                            ('bool', ' BOOLEAN'),
-                            ('Surface', ' BLOB'),
-                            ('Rect', ' BLOB'),
-                            ('Color', ' BLOB'),
-                            ('float', ' NUMERIC')):
+                             ('int', ' INTEGER'),
+                             ('bool', ' BOOLEAN'),
+                             ('Surface', ' BLOB'),
+                             ('Rect', ' BLOB'),
+                             ('Color', ' BLOB'),
+                             ('float', ' NUMERIC')):
                 if annote == pyd_type[0]:
                     sql = pyd_type[1]
                     break
@@ -91,9 +91,9 @@ class DataBase(object):
         sql = ''
         for p_pyd_rule in (('UQ', ' UNIQUE')):
             if p_pyd_rule[0] in p_constraints.keys() \
-            and p_col_nm in p_constraints[p_pyd_rule[0]]:
+                    and p_col_nm in p_constraints[p_pyd_rule[0]]:
                 sql += f'{p_pyd_rule[1]}'
-        if p_pyd_value.is_required(): # type: ignore
+        if p_pyd_value.is_required():      # type: ignore
             sql += ' NOT NULL'
         return sql
 
@@ -108,7 +108,7 @@ class DataBase(object):
         - (str) SQLITE SQL DEFAULT clause
         """
         sql = ''
-        col_default = str(p_pyd_value.get_default()).strip() # type: ignore
+        col_default = str(p_pyd_value.get_default()).strip()   # type: ignore
         if col_default not in (None, 'PydanticUndefined'):
             if col_default == 'True':
                 col_default = '1'
@@ -132,7 +132,7 @@ class DataBase(object):
         """
         sql = ''
         if 'CK' in p_constraints.keys() \
-        and p_col_nm in p_constraints['CK']:
+                and p_col_nm in p_constraints['CK']:
             sql = f' CHECK({p_col_nm} IN ('
             for ck_val in p_constraints['CK'][p_col_nm]:
                 sql += f"'{ck_val}', "
@@ -148,7 +148,7 @@ class DataBase(object):
         - (str) SQLITE COMMENT
         """
         sql = ''
-        annote = p_pyd_value.annotation.__name__ # type: ignore
+        annote = p_pyd_value.annotation.__name__  # type: ignore
         if annote in ['Color', 'Rect', 'Surface']:
             sql += f",   -- {annote} object"
         return sql
@@ -171,7 +171,7 @@ class DataBase(object):
         """
         sql = ''
         if 'GROUP' in p_constraints.keys()\
-        and p_col_nm in p_constraints['GROUP']:
+                and p_col_nm in p_constraints['GROUP']:
             model_fields = copy(p_constraints['GROUP'][p_col_nm].model_fields)
             sql += f"-- GROUP {p_col_nm}\n"
             for k, v in model_fields.items():
@@ -185,7 +185,7 @@ class DataBase(object):
                 sql += self.set_sql_check_constraints(k, p_constraints)
                 sql += self.set_sql_comment(v)
                 sql += ',\n'
-        return(sql, p_col_names)
+        return (sql, p_col_names)
 
     def set_sql_foreign_keys(self,
                              p_constraints: dict) -> str:
@@ -200,8 +200,8 @@ class DataBase(object):
         if 'FK' in p_constraints.keys():
             for col, ref in p_constraints['FK'].items():
                 sql += (f"FOREIGN KEY ({col}) REFERENCES" +
-                            f" {ref[0]}({ref[1]}) " +
-                            "ON DELETE CASCADE,\n")
+                        f" {ref[0]}({ref[1]}) " +
+                        "ON DELETE CASCADE,\n")
         return sql
 
     def set_sql_primary_key(self,
@@ -449,7 +449,7 @@ class DataBase(object):
         - (str) Content of the SQL file
         """
         sql_nm = str(p_sql_nm).upper()
-        if '.sql' not in sql_nm :
+        if '.sql' not in sql_nm:
             sql_nm += '.sql'
         sql_path = path.join(FI.D['APP']['root'],
                              FI.D['APP']['dirs']['db'],
@@ -600,4 +600,3 @@ class DataBase(object):
             self.execute_dml(sql.name)
 
         self.disconnect_db()
-        
