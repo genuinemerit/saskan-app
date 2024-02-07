@@ -48,7 +48,7 @@ class DataBase(object):
         """Convert Pydantic data type to SQLITE data type.
         :args:
         - p_col_nm (str) Name of data column
-        - p_def_value (object) Pydantic value object
+        - p_def_value (object) default value
         - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data type
@@ -58,14 +58,14 @@ class DataBase(object):
                 and p_col_nm in p_constraints['JSON']:
             sql = ' JSON'
         else:
-            field_type = type(p_def_value)
+            field_type = str(type(p_def_value)).split(' ')[1].split("'")[1]
             for data_type in (('str', ' TEXT'),
-                              ('int', ' INTEGER'),
                               ('bool', ' BOOLEAN'),
                               ('Surface', ' BLOB'),
                               ('Rect', ' BLOB'),
                               ('Color', ' BLOB'),
-                              ('float', ' NUMERIC')):
+                              ('float', ' NUMERIC'),
+                              ('int', ' INTEGER')):
                 if field_type == data_type[0]:
                     sql = data_type[1]
                     break
@@ -214,10 +214,7 @@ class DataBase(object):
         """
         sql = ''
         if 'PK' in p_constraints.keys():
-            # For some reason, the list is coming across wrapped
-            # in a tuple, so we need to unwrap it.
-            pk_constraint = p_constraints['PK'][0]
-            sql = f"PRIMARY KEY ({', '.join(pk_constraint)}),\n"
+            sql = f"PRIMARY KEY ({', '.join(p_constraints['PK'])}),\n"
         return sql
 
     def generate_create_sql(self,
@@ -261,7 +258,6 @@ class DataBase(object):
         sqlns[len(sqlns)-1] = sqlns[len(sqlns)-1][:-2]
         sql = f"CREATE TABLE IF NOT EXISTS {p_table_nm} (\n" +\
               f"{''.join(sqlns)});\n"
-        pp(('sql', sql))
         FI.write_file(
             path.join(self.DB_PATH, f"CREATE_{p_table_nm}.sql"), sql)
         return col_names
@@ -307,6 +303,8 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/SELECT_ALL_[p_table_name].sql
         """
+        # ORDER constraint list comes across properly, that is,
+        # not wrapped inside a tuple
         sql = f"SELECT {',\n'.join(p_col_names)}\nFROM {p_table_name}"
         if "ORDER" in p_constraints.keys():
             sql += f"\nORDER BY {', '.join(p_constraints['ORDER'])}"
@@ -319,6 +317,7 @@ class DataBase(object):
                             p_constraints,
                             p_col_names):
         """Generate SQL UPDATE code.
+        - If more than one PK, then use AND logic in the WHERE clause
         :args:
         - p_table_name (str) Name of table to update
         - p_constraints (dict) Dict of constraints for the table
@@ -326,9 +325,13 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/UPDATE_[p_table_name].sql
         """
+        if len(p_constraints['PK']) > 1:
+            pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        else:
+            pk = p_constraints['PK'][0] + "=?"
         sql = f"UPDATE {p_table_name} SET\n" +\
             f"{',\n'.join([f'{col}=?' for col in p_col_names])}" +\
-            f"\nWHERE {p_constraints['PK'][0]}=?;\n"
+            f"\nWHERE {pk};\n"
         FI.write_file(
             path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql"), sql)
 
@@ -349,23 +352,19 @@ class DataBase(object):
                        in model['Constraints'].__dict__.items()
                        if not k.startswith('_')}
         model.pop('Constraints')
-
-        pp(('table_name', table_name))
-        pp(('model', model))
-        pp(('constraints', constraints))
-
         col_names = list()
         col_names =\
             self.generate_create_sql(table_name, constraints, model)
 
+        print("\n\n====================")
+        pp(('table_name', table_name))
+        pp(('constraints', constraints))
         pp(('col_names', col_names))
 
-        """
         self.generate_drop_sql(table_name)
         self.generate_insert_sql(table_name, col_names)
         self.generate_select_all_sql(table_name, constraints, col_names)
         self.generate_update_sql(table_name, constraints, col_names)
-        """
 
     # Backup, Archive and Restore
     # ===========================================

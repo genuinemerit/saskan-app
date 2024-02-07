@@ -806,7 +806,8 @@ class GameGridData(object):
 #
 # The following models are used to create SQLITE tables and
 #   standard/generic SQL commands (INSERT, UPDATE, SELECT).
-# A classmethod identifies:
+# All fields must have a default value.
+# A sub-class identifies:
 # - SQLITE constraints,
 # - GROUPed types derived from data types defined above,
 # - sort order for SELECT queries.
@@ -820,8 +821,27 @@ class Backup(object):
     file_to: str = ''
 
     class Constraints(object):
-        PK: list = ["bkup_nm", "bkup_dttm"],
+        PK: list = ["bkup_nm", "bkup_dttm"]
         ORDER: list = ["bkup_dttm DESC", "bkup_nm ASC"]
+
+
+class Universe(object):
+
+    _tablename: str = "UNIVERSE"
+    univ_nm_pk: str = ''
+    radius_gly: float = 0.0
+    volume_gly3: float = 0.0
+    volume_pc3: float = 0.0
+    elapsed_time_gyr: float = 0.0
+    expansion_rate_kmpsec_per_mpc: float = 0.0
+    mass_kg: float = 0.0
+    dark_energy_kg: float = 0.0
+    dark_matter_kg: float = 0.0
+    baryonic_matter_kg: float = 0.0
+
+    class Constraints(object):
+        PK: list = ["univ_nm_pk"]
+        ORDER: list = ["univ_nm_ix ASC"]
 
 
 # =======================================================
@@ -843,5 +863,6 @@ class InitGameDB(object):
     def create_sql_files(self):
         """Pass data object to create SQL files.
         """
-        for model in [Backup]:
+        for model in [Backup,
+                      Universe]:
             DB.generate_sql(model)
