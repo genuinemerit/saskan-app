@@ -43,34 +43,31 @@ class DataBase(object):
     # ===========================================
     def set_sql_data_type(self,
                           p_col_nm: str,
-                          p_pyd_value: object,
+                          p_def_value: object,
                           p_constraints: dict) -> str:
         """Convert Pydantic data type to SQLITE data type.
         :args:
         - p_col_nm (str) Name of data column
-        - p_pyd_value (object) Pydantic value object
+        - p_def_value (object) Pydantic value object
         - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data type
         """
         sql = ''
-
-        # pp((p_constraints))
-
         if 'JSON' in p_constraints.keys()\
                 and p_col_nm in p_constraints['JSON']:
             sql = ' JSON'
         else:
-            annote = p_pyd_value.annotation.__name__  # type: ignore
-            for pyd_type in (('str', ' TEXT'),
-                             ('int', ' INTEGER'),
-                             ('bool', ' BOOLEAN'),
-                             ('Surface', ' BLOB'),
-                             ('Rect', ' BLOB'),
-                             ('Color', ' BLOB'),
-                             ('float', ' NUMERIC')):
-                if annote == pyd_type[0]:
-                    sql = pyd_type[1]
+            field_type = type(p_def_value)
+            for data_type in (('str', ' TEXT'),
+                              ('int', ' INTEGER'),
+                              ('bool', ' BOOLEAN'),
+                              ('Surface', ' BLOB'),
+                              ('Rect', ' BLOB'),
+                              ('Color', ' BLOB'),
+                              ('float', ' NUMERIC')):
+                if field_type == data_type[0]:
+                    sql = data_type[1]
                     break
         if sql == '':
             sql = ' TEXT'
@@ -78,38 +75,38 @@ class DataBase(object):
 
     def set_sql_data_rule(self,
                           p_col_nm: str,
-                          p_pyd_value: object,
+                          p_def_value: object,
                           p_constraints: dict) -> str:
-        """Convert Pydantic constraint annotations to SQLITE data rule.
+        """Convert constraint annotations to SQLITE data rule.
+        For now, everything is NOT NULL.
         :args:
         - p_col_nm (str) Name of data column
-        - p_pyd_value (object) Pydantic value object
+        - p_def_value (object) Pydantic value object
         - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data rule
         """
         sql = ''
-        for p_pyd_rule in (('UQ', ' UNIQUE')):
-            if p_pyd_rule[0] in p_constraints.keys() \
-                    and p_col_nm in p_constraints[p_pyd_rule[0]]:
-                sql += f'{p_pyd_rule[1]}'
-        if p_pyd_value.is_required():      # type: ignore
-            sql += ' NOT NULL'
+        for data_rule in (('UQ', ' UNIQUE')):
+            if data_rule[0] in p_constraints.keys() \
+                    and p_col_nm in p_constraints[data_rule[0]]:
+                sql += f'{data_rule[1]}'
+        sql += ' NOT NULL'
         return sql
 
     def set_sql_default(self,
-                        p_pyd_value: object,
+                        p_def_value: object,
                         p_data_type: str) -> str:
         """Extract SQL default value from Pydantic data object.
         :args:
-        - p_pyd_value (object) Pydantic value object
+        - p_def_value (object) Pydantic value object
         - p_data_type (str) SQLITE data type
         :returns:
         - (str) SQLITE SQL DEFAULT clause
         """
         sql = ''
-        col_default = str(p_pyd_value.get_default()).strip()   # type: ignore
-        if col_default not in (None, 'PydanticUndefined'):
+        col_default = str(p_def_value).strip()
+        if col_default not in (None, 'Undefined'):
             if col_default == 'True':
                 col_default = '1'
             if col_default == 'False':
@@ -140,17 +137,19 @@ class DataBase(object):
         return sql
 
     def set_sql_comment(self,
-                        p_pyd_value: object) -> str:
-        """Convert Pydantic constraint annotations to SQLITE COMMENT.
+                        p_def_value: object) -> str:
+        """Convert constraint annotations to SQLITE COMMENT.
         :args:
-        - p_pyd_value (object) Pydantic value object
+        - p_def_value (object) Pydantic value object
         :returns:
         - (str) SQLITE COMMENT
+        @DEV:
+        - Needs work. Not sure how non-standard data types will work now.
         """
         sql = ''
-        annote = p_pyd_value.annotation.__name__  # type: ignore
-        if annote in ['Color', 'Rect', 'Surface']:
-            sql += f",   -- {annote} object"
+        # annote = p_def_value.annotation.__name__  # type: ignore
+        # if annote in ['Color', 'Rect', 'Surface']:
+        #     sql += f",   -- {annote} object"
         return sql
 
     def set_sql_column_group(self,
@@ -158,7 +157,7 @@ class DataBase(object):
                              p_constraints: dict,
                              p_col_names: list) -> tuple:
         """
-        Generate SQL CREATE TABLE code from a Pydantic data model
+        Generate SQL CREATE TABLE code from a data model
         for specialized data types, by splitting them into separate
         columns grouped with a similar name.
         :args:
@@ -215,7 +214,10 @@ class DataBase(object):
         """
         sql = ''
         if 'PK' in p_constraints.keys():
-            sql = f"PRIMARY KEY ({', '.join(p_constraints['PK'])}),\n"
+            # For some reason, the list is coming across wrapped
+            # in a tuple, so we need to unwrap it.
+            pk_constraint = p_constraints['PK'][0]
+            sql = f"PRIMARY KEY ({', '.join(pk_constraint)}),\n"
         return sql
 
     def generate_create_sql(self,
@@ -223,11 +225,11 @@ class DataBase(object):
                             p_constraints: dict,
                             p_col_fields: dict) -> list:
         """
-        Generate SQL CREATE TABLE code from a Pydantic data model.
+        Generate SQL CREATE TABLE code from data model.
         :args:
         - p_table_name (str) Name of table to create SQL for
         - p_constraints (dict) Dict of constraints for the table
-        - p_col_fields (dict) Dict of column fields for the table
+        - p_col_fields (dict) Dict of column fields, default values
         :writes:
         - SQL file to [APP]/sql/CREATE_[p_table_name].sql
         :returns:
@@ -235,23 +237,23 @@ class DataBase(object):
         """
         col_names = []
         sqlns = []
-        for col_nm, pyd_value in p_col_fields.items():
+        for col_nm, def_value in p_col_fields.items():
             sql, col_names =\
                 self.set_sql_column_group(col_nm, p_constraints, col_names)
             if sql == '':
                 col_names.append(col_nm)
                 sql = col_nm
                 data_ty_sql =\
-                    self.set_sql_data_type(col_nm, pyd_value, p_constraints)
+                    self.set_sql_data_type(col_nm, def_value, p_constraints)
                 sql += data_ty_sql
                 sql +=\
-                    self.set_sql_data_rule(col_nm, pyd_value, p_constraints)
+                    self.set_sql_data_rule(col_nm, def_value, p_constraints)
                 sql +=\
-                    self.set_sql_default(pyd_value,
+                    self.set_sql_default(def_value,
                                          data_ty_sql.split(' ')[1])
                 sql +=\
                     self.set_sql_check_constraints(col_nm, p_constraints)
-                sql += self.set_sql_comment(pyd_value)
+                sql += self.set_sql_comment(def_value)
                 sql += ',\n'
             sqlns.append(sql)
         sqlns.append(self.set_sql_foreign_keys(p_constraints))
@@ -259,6 +261,7 @@ class DataBase(object):
         sqlns[len(sqlns)-1] = sqlns[len(sqlns)-1][:-2]
         sql = f"CREATE TABLE IF NOT EXISTS {p_table_nm} (\n" +\
               f"{''.join(sqlns)});\n"
+        pp(('sql', sql))
         FI.write_file(
             path.join(self.DB_PATH, f"CREATE_{p_table_nm}.sql"), sql)
         return col_names
@@ -334,29 +337,35 @@ class DataBase(object):
         """
         Generate full set of SQL code from a Pydantic data model.
         :args:
-        - p_data_model (inherited from BaseModel) Pydantic data model class
-        > But now going to try it without using Pydantic BaseModel
+        - p_data_model: data model class object
         """
         # will need to do something different here:
-        model_fields = copy(p_data_model.model_fields)  # type: ignore
+        model = {k: v for k, v in p_data_model.__dict__.items()
+                 if not k.startswith('_')
+                 or k in ['_tablename']}
+        table_name = model['_tablename']
+        model.pop('_tablename')
+        constraints = {k: v for k, v
+                       in model['Constraints'].__dict__.items()
+                       if not k.startswith('_')}
+        model.pop('Constraints')
 
-        print(dir(p_data_model))
-
-        table_name = model_fields['tablename'].get_default()
-        # I think this might still work, but I'm not sure:
-        constraints = p_data_model.constraints()  # type: ignore
-
+        pp(('table_name', table_name))
+        pp(('model', model))
         pp(('constraints', constraints))
 
-        col_fields = {nm: val for nm, val in model_fields.items()
-                      if nm != 'tablename'}
         col_names = list()
         col_names =\
-            self.generate_create_sql(table_name, constraints, col_fields)
+            self.generate_create_sql(table_name, constraints, model)
+
+        pp(('col_names', col_names))
+
+        """
         self.generate_drop_sql(table_name)
         self.generate_insert_sql(table_name, col_names)
         self.generate_select_all_sql(table_name, constraints, col_names)
         self.generate_update_sql(table_name, constraints, col_names)
+        """
 
     # Backup, Archive and Restore
     # ===========================================
