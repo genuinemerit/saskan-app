@@ -9,7 +9,8 @@ Saskan Data Management middleware.
 import platform
 import pygame as pg
 
-# from copy import copy
+from os import path
+from pathlib import Path
 from pprint import pprint as pp     # noqa: F401
 from pprint import pformat as pf    # noqa: F401
 
@@ -866,3 +867,20 @@ class InitGameDB(object):
         for model in [Backup,
                       Universe]:
             DB.generate_sql(model)
+
+    def boot_saskan_db(self):
+        """
+        Backup DB if it exists.
+        Pass SQL DROP and CREATE files.
+        N.B. - This is a destructive operation.
+        - Logged records appear in the backups, not in the
+          refreshed database.
+        """
+        file_path = Path(DB.DB)
+        if file_path.exists():
+            DB.backup_db()
+            DB.archive_db()
+        for sql in FI.scan_dir(DB.DB_PATH, 'DROP'):
+            DB.execute_dml(sql.name)
+        for sql in FI.scan_dir(DB.DB_PATH, 'CREATE'):
+            DB.execute_dml(sql.name)

@@ -9,9 +9,6 @@
 
 Manage data for saskan_data app using sqlite3.
 """
-# import numbers
-import pickle
-# import re
 import pendulum
 import shutil
 import sqlite3 as sq3
@@ -22,8 +19,10 @@ from os import path
 from pprint import pprint as pp    # noqa: F401
 
 from io_file import FileIO
+from io_shell import ShellIO
 
 FI = FileIO()
+SI = ShellIO()
 
 
 class DataBase(object):
@@ -373,9 +372,8 @@ class DataBase(object):
         """Copy main DB file to backup location."""
         bkup_dttm = pendulum.now().format('YYYYMMDD_HHmmss')
         self.execute_insert(
-            'INSERT_BKUPS',
-            (bkup_dttm, self.DB_BKUP, 'backup',
-             pickle.dumps({'files': [self.DB_BKUP]})))
+            'INSERT_BACKUP',
+            (SI.get_key(), bkup_dttm, 'backup', self.DB, self.DB_BKUP))
         shutil.copyfile(self.DB, self.DB_BKUP)
 
     def archive_db(self):
@@ -384,16 +382,16 @@ class DataBase(object):
         file_nm = 'SASKAN_' + bkup_dttm + '.arcv'
         bkup_nm = path.join(self.DB_PATH, file_nm)
         self.execute_insert(
-            'INSERT_BKUPS', (bkup_dttm, bkup_nm, 'archive',
-                             pickle.dumps({'files': [bkup_nm]})))
+            'INSERT_BACKUP',
+            (SI.get_key(), bkup_dttm, 'archive', self.DB, file_nm))
         shutil.copyfile(self.DB, bkup_nm)
 
     def restore_db(self):
         """Copy backup DB file to main location."""
         bkup_dttm = pendulum.now().format('YYYYMMDD_HHmmss')
         self.execute_insert(
-            'INSERT_BKUPS', (bkup_dttm, self.DB, 'restore',
-                             pickle.dumps({'files': [self.DB]})))
+            'INSERT_BACKUP',
+            (SI.get_key(), bkup_dttm, 'restore', self.DB_BKUP, self.DB))
         shutil.copyfile(self.DB_BKUP, self.DB)
 
     # DataBase Connections
@@ -456,9 +454,7 @@ class DataBase(object):
         :returns:
         - (str) Content of the SQL file
         """
-        sql_nm = str(p_sql_nm).upper()
-        if '.sql' not in sql_nm:
-            sql_nm += '.sql'
+        sql_nm = str(p_sql_nm.split('.')[0]).upper() + '.sql'
         sql_path = path.join(FI.D['APP']['root'],
                              FI.D['APP']['dirs']['db'],
                              sql_nm)
@@ -526,14 +522,8 @@ class DataBase(object):
         :args:
         - p_sql_nm (str): Name of external SQL file
         """
-
-        # print(f"In execute_dml, p_sql_nm = {p_sql_nm}")
-
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-
-        # print(f"In execute_dml, SQL = {SQL}\n")
-
         if SQL.count(';') > 1:
             self.cur.executescript(SQL)
         else:
@@ -550,8 +540,6 @@ class DataBase(object):
            For now I will assume that:
             - INSERTs will always expect full list of values
             - caller knows what values to provide and in what order
-            - Any object values have already been pickled
-              (though why not just store them as text?)
         :args:
         - p_sql_nm (str): Name of external SQL file
         - p_values (tuple): n-tuple of values to insert
