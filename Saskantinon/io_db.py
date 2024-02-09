@@ -60,9 +60,6 @@ class DataBase(object):
             field_type = str(type(p_def_value)).split(' ')[1].split("'")[1]
             for data_type in (('str', ' TEXT'),
                               ('bool', ' BOOLEAN'),
-                              ('Surface', ' BLOB'),
-                              ('Rect', ' BLOB'),
-                              ('Color', ' BLOB'),
                               ('float', ' NUMERIC'),
                               ('int', ' INTEGER')):
                 if field_type == data_type[0]:
@@ -105,14 +102,13 @@ class DataBase(object):
         """
         sql = ''
         col_default = str(p_def_value).strip()
-        if col_default not in (None, 'Undefined'):
-            if col_default == 'True':
-                col_default = '1'
-            if col_default == 'False':
-                col_default = '0'
-            if p_data_type not in ('INTEGER', 'NUMERIC'):
-                col_default = f"'{col_default}'"
-            sql = f" DEFAULT {col_default}"
+        if col_default == 'True':
+            col_default = '1'
+        elif col_default == 'False':
+            col_default = '0'
+        elif p_data_type not in ('INTEGER', 'NUMERIC'):
+            col_default = f"'{col_default}'"
+        sql = f" DEFAULT {col_default}"
         return sql
 
     def set_sql_check_constraints(self,
@@ -139,16 +135,15 @@ class DataBase(object):
                         p_def_value: object) -> str:
         """Convert constraint annotations to SQLITE COMMENT.
         :args:
-        - p_def_value (object) Pydantic value object
+        - p_def_value (object) may be a class-object value
+          if so, then add a comment
         :returns:
         - (str) SQLITE COMMENT
-        @DEV:
-        - Needs work. Not sure how non-standard data types will work now.
         """
         sql = ''
-        # annote = p_def_value.annotation.__name__  # type: ignore
-        # if annote in ['Color', 'Rect', 'Surface']:
-        #     sql += f",   -- {annote} object"
+        for data_type in ['rect', 'pg', 'color', 'surface']:
+            if data_type in str(p_def_value):
+                sql += f",   -- {str(p_def_value)} object"
         return sql
 
     def set_sql_column_group(self,
@@ -158,7 +153,8 @@ class DataBase(object):
         """
         Generate SQL CREATE TABLE code from a data model
         for specialized data types, by splitting them into separate
-        columns grouped with a similar name.
+        columns grouped with a similar name. Assuming for now that
+        the grouped sub-classes are all located in the Struct class.
         :args:
         - p_col_nm (str) Name of customized data objects
         - p_constraints (dict) Dict of constraints for the table
@@ -170,9 +166,11 @@ class DataBase(object):
         sql = ''
         if 'GROUP' in p_constraints.keys()\
                 and p_col_nm in p_constraints['GROUP']:
-            model_fields = copy(p_constraints['GROUP'][p_col_nm].model_fields)
             sql += f"-- GROUP {p_col_nm}\n"
-            for k, v in model_fields.items():
+            group_class = copy(p_constraints['GROUP'][p_col_nm])
+            sub_model = {k: v for k, v in group_class.__dict__.items()
+                         if not k.startswith('_')}
+            for k, v in sub_model.items():
                 g_col_nm = f'{p_col_nm}_{k}'
                 p_col_names.append(g_col_nm)
                 sql += f' {g_col_nm}'

@@ -9,7 +9,7 @@ Saskan Data Management middleware.
 import platform
 import pygame as pg
 
-from os import path
+# from os import path
 from pathlib import Path
 from pprint import pprint as pp     # noqa: F401
 from pprint import pformat as pf    # noqa: F401
@@ -436,125 +436,84 @@ class Struct(object):
     """
 
     class ColumnRowIndex(object):
-        def __init__(self,
-                     r: int = 0,
-                     c: int = 0):
-            """Structure for column and row indexes."""
-            self.r = r
-            self.c = c
+        """Structure for column and row indexes."""
+        r: int = 0
+        c: int = 0
 
     class MatrixUpDown(object):
-        def __init__(self,
-                     u: int = 0,
-                     d: int = 0):
-            """Structure for z-up and z-down indexes."""
-            self.z_up = u
-            self.z_down = d
+        """Structure for z-up and z-down indexes."""
+        u: int = 0
+        d: int = 0
 
     class WidthHeight(object):
-        def __init__(self,
-                     w: float = 0.0,
-                     h: float = 0.0):
-            """Structure for width and height measures."""
-            self.w = w
-            self.h = h
+        """Structure for width and height measures."""
+        w: float = 0.0
+        h: float = 0.0
 
     class CoordXYZ(object):
-        def __init__(self,
-                     x: float = 0.0,
-                     y: float = 0.0,
-                     z: float = 0.0):
-            """Structure for x, y, z coordinates."""
-            self.x = x
-            self.y = y
-            self.z = z
+        """Structure for x, y, z coordinates."""
+        x: float = 0.0
+        y: float = 0.0
+        z: float = 0.0
 
     class CoordXY(object):
-        def __init__(self,
-                     x: float = 0.0,
-                     y: float = 0.0):
-            """Structure for x, y coordinates."""
-            self.x = x
-            self.y = y
+        """Structure for x, y coordinates."""
+        x: float = 0.0
+        y: float = 0.0
 
     class AxesABC(object):
-        def __init__(self,
-                     a: float = 0.0,
-                     b: float = 0.0,
-                     c: float = 0.0):
-            """Structure for a, b, c axes."""
-            self.a = a
-            self.b = b
-            self.c = c
+        """Structure for a, b, c axes."""
+        a: float = 0.0
+        b: float = 0.0
+        c: float = 0.0
 
     class PitchYawRollAngle(object):
-        def __init__(self,
-                     pitch: float = 0.0,
-                     yaw: float = 0.0,
-                     roll: float = 0.0):
-            """Structure for pitch, yaw,, roll angles."""
-            self.pitch = pitch
-            self.yaw = yaw
-            self.roll = roll
+        """Structure for pitch, yaw,, roll angles."""
+        pitch: float = 0.0
+        yaw: float = 0.0
+        roll: float = 0.0
 
     class GameLatLong(object):
-        def __init__(self,
-                     lat: float = 0.0,
-                     long: float = 0.0):
-            """Structure for game latitude and longitude.
-            Game lat and long refer to fantasy world locations;
-            cannot use standard Earth-based geo-loc modules.
+        """Structure for game latitude and longitude.
+        Game lat and long refer to fantasy world locations;
+        cannot use standard Earth-based geo-loc modules.
 
-            Latitudes and longitudes are in decimal degrees.
-            Lat north is positive; south is negative.
-            East, between the fantasy-planet equivalent of
-            universal meridien and international date line,
-            is positive; west is negative.
-            """
-            self.latitude = lat
-            self.longitude = long
+        Latitudes and longitudes are in decimal degrees.
+        Lat north is positive; south is negative.
+        East, between the fantasy-planet equivalent of
+        universal meridien and international date line,
+        is positive; west is negative.
+        """
+        latiutde_dg: float = 0.0
+        longitude_dg: float = 0.0
 
     class GameLocation(object):
-        def __init__(self,
-                     north: float = 0.0,
-                     south: float = 0.0,
-                     east: float = 0.0,
-                     west: float = 0.0,
-                     avg_alt: float = 0.0,
-                     max_alt: float = 0.0,
-                     min_alt: float = 0.0):
-            """
-            This is a general-purpose, high level location
-            data structure, mainly planar and rectangular.
-            Use degrees as the specifier for locations.
-            Then compute km or other physical dimensions
-            based on scaling to a grid when rendering.
+        """
+        This is a general-purpose, high level location
+        data structure, mainly planar and rectangular.
+        Use degrees as the specifier for locations.
+        Then compute km or other physical dimensions
+        based on scaling to a grid when rendering.
 
-            Provide rough altitudes (average, min and max) meters,
-            to give a general sense of the 3rd dimension.
-            Detail heights and depths in specialized data structures.
-            """
-            self.latitude_north_dg = north
-            self.latitude_south_dg = south
-            self.longitude_east_dg = east
-            self.longitude_west_dg = west
-            self.avg_altitude_m = avg_alt
-            self.max_altitude_m = max_alt
-            self.min_altitude_m = min_alt
+        Provide rough altitudes (average, min and max) meters,
+        to give a general sense of the 3rd dimension.
+        Detail heights and depths in specialized data structures.
+        """
+        latitude_north_dg: float = 0.0
+        latitude_south_dg: float = 0.0
+        longitude_east_dg: float = 0.0
+        longitude_west_dg: float = 0.0
+        avg_altitude_m: float = 0.0
+        max_altitude_m: float = 0.0
+        min_altitude_m: float = 0.0
 
     class Graphic(object):
-        def __init__(self,
-                     pg_surface: pg.Surface,
-                     pg_rect: pg.Rect,
-                     img_type: ImageType,
-                     img_url: str = '',
-                     img_desc: str = ''):
-            """A data structure for referencing an image file."""
-            self.img_surface = pg_surface
-            self.img_rect = pg_rect
-            self.img_type = img_type
-            self.img_url = img_url
-            self.img_desc = img_desc
+        """A data structure for referencing an image file."""
+        pg_surface: pg.Surface
+        pg_rect: pg.Rect
+        img_type: ImageType
+        img_url: str = ''
+        img_desc: str = ''
 
 
 #  GAME COMPLEX DATA STRUCTURES
@@ -845,6 +804,59 @@ class Universe(object):
         ORDER: list = ["univ_nm_ix ASC"]
 
 
+class ExternalUniv(object):
+
+    _tablename: str = "EXTERNAL_UNIVERSE"
+    external_univ_nm_pk: str = ''
+    univ_nm_fk: str = ''
+    mass_kg: float = 0.0
+    dark_energy_kg: float = 0.0
+    dark_matter_kg: float = 0.0
+    baryonic_matter_kg: float = 0.0
+
+    class Constraints(object):
+        PK: list = ["external_univ_nm_pk"]
+        FK: dict = {"univ_nm_fk": ("UNIVERSE", "univ_nm_pk")}
+        ORDER: list = ["univ_nm_fk ASC",
+                       "external_univ_nm_pk ASC"]
+
+
+class GalacticCluster(object):
+
+    _tablename: str = "GALACTIC_CLUSTER"
+    galactic_cluster_nm_pk: str = ''
+    univ_nm_fk: str = ''
+    center_from_univ_center_gly: Struct.CoordXYZ = Struct.CoordXYZ()
+    boundary_gly: pg.Rect = pg.Rect(0, 0, 0, 0)
+    cluster_shape: str = 'ellipsoid'
+    shape_pc: Struct.CoordXYZ = Struct.CoordXYZ()
+    shape_axes: Struct.AxesABC = Struct.AxesABC()
+    shape_rot: Struct.PitchYawRollAngle = Struct.PitchYawRollAngle()
+    volume_pc3: float = 0.0
+    mass_kg: float = 0.0
+    dark_energy_kg: float = 0.0
+    dark_matter_kg: float = 0.0
+    baryonic_matter_kg: float = 0.0
+    timing_pulsar_pulse_per_ms: float = 0.0
+    timing_pulsar_loc_gly: Struct.CoordXYZ = Struct.CoordXYZ()
+
+    class Constraints(object):
+        PK: list = ["galactic_cluster_nm_pk"]
+        FK: dict = {"univ_nm_fk": ("UNIVERSE", "univ_nm_pk")}
+        CK: dict = {"cluster_shape":
+                    ['ellipsoid', 'spherical']}
+        GROUP: dict = {"center_from_univ_center_gly":
+                       Struct.CoordXYZ,
+                       "timing_pulsar_loc_gly":
+                       Struct.CoordXYZ,
+                       "shape_pc": Struct.CoordXYZ,
+                       "shape_axes": Struct.AxesABC,
+                       "shape_rot":
+                       Struct.PitchYawRollAngle}
+        ORDER: list = ["univ_nm_fk ASC",
+                       "galactic_cluster_nm_pk ASC"]
+
+
 # =======================================================
 # DB/ORM Calls
 # - Create SQL files
@@ -865,7 +877,7 @@ class InitGameDB(object):
         """Pass data object to create SQL files.
         """
         for model in [Backup,
-                      Universe]:
+                      Universe, ExternalUniv, GalacticCluster]:
             DB.generate_sql(model)
 
     def boot_saskan_db(self):
