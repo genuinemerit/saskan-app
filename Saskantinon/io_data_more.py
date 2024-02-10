@@ -1074,7 +1074,6 @@ class StarSystem(object):
                       "star_system_nm_pk ASC"]
         }
 
-
 """
 Planetary charts, indicating the path of 'wanderers' and their
 'congruences', and so on as seen from the perspective of a given
@@ -1090,11 +1089,6 @@ of eclipses and other astronomical events.
 
 class World(object):
     """
-    @DEV:
-    It may not be possible to assign a default value to what
-    will become a BLOB. If so, then just leave off the default
-    assignment and make sure that the code assigns the
-    desired values.
     """
 
     tablename: str = "WORLD"

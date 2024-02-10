@@ -473,6 +473,17 @@ class Struct(object):
         yaw: float = 0.0
         roll: float = 0.0
 
+    class GameRect(object):
+        """Simple structure for defining rectangles.
+        This provides a way to store the minimal set of
+        values needed. See GamePlane and pg.Rect for more
+        complex structures.
+        """
+        x: float = 0.0
+        y: float = 0.0
+        w: float = 0.0
+        h: float = 0.0
+
     class GameLatLong(object):
         """Structure for game latitude and longitude.
         Game lat and long refer to fantasy world locations;
@@ -773,6 +784,8 @@ class GameGridData(object):
 # - sort order for SELECT queries.
 # =======================================================
 class Backup(object):
+    """Store metadata about database backup, restore, archive.
+    """
     _tablename: str = "BACKUP"
     bkup_nm: str = ''
     bkup_dttm: str = ''
@@ -786,7 +799,9 @@ class Backup(object):
 
 
 class Universe(object):
-
+    """Define qualities of a game Universe.
+    This is the highest, broadest container in the game model.
+    """
     _tablename: str = "UNIVERSE"
     univ_nm_pk: str = ''
     radius_gly: float = 0.0
@@ -805,7 +820,10 @@ class Universe(object):
 
 
 class ExternalUniv(object):
-
+    """The External Universe just defines qualities of the Game
+    Universe that lie outside of the "playable" Universe. An External
+    Universe is always 1:1 to a Universe.
+    """
     _tablename: str = "EXTERNAL_UNIVERSE"
     external_univ_nm_pk: str = ''
     univ_nm_fk: str = ''
@@ -822,12 +840,15 @@ class ExternalUniv(object):
 
 
 class GalacticCluster(object):
-
+    """The Galactic Cluster defines a section of the Game Universe
+    in which a particular game instance is played. A Galactic Cluster
+    is 1:1 to a Universe and may contain multiple Galaxies.
+    """
     _tablename: str = "GALACTIC_CLUSTER"
     galactic_cluster_nm_pk: str = ''
     univ_nm_fk: str = ''
     center_from_univ_center_gly: Struct.CoordXYZ = Struct.CoordXYZ()
-    boundary_gly: pg.Rect = pg.Rect(0, 0, 0, 0)
+    boundary_gly: Struct.GameRect = Struct.GameRect()
     cluster_shape: str = 'ellipsoid'
     shape_pc: Struct.CoordXYZ = Struct.CoordXYZ()
     shape_axes: Struct.AxesABC = Struct.AxesABC()
@@ -845,16 +866,296 @@ class GalacticCluster(object):
         FK: dict = {"univ_nm_fk": ("UNIVERSE", "univ_nm_pk")}
         CK: dict = {"cluster_shape":
                     ['ellipsoid', 'spherical']}
-        GROUP: dict = {"center_from_univ_center_gly":
-                       Struct.CoordXYZ,
-                       "timing_pulsar_loc_gly":
-                       Struct.CoordXYZ,
+        GROUP: dict = {"center_from_univ_center_gly": Struct.CoordXYZ,
+                       "boundary_gly": Struct.GameRect,
+                       "timing_pulsar_loc_gly": Struct.CoordXYZ,
                        "shape_pc": Struct.CoordXYZ,
                        "shape_axes": Struct.AxesABC,
-                       "shape_rot":
-                       Struct.PitchYawRollAngle}
+                       "shape_rot":  Struct.PitchYawRollAngle}
         ORDER: list = ["univ_nm_fk ASC",
                        "galactic_cluster_nm_pk ASC"]
+
+
+class Galaxy(object):
+    """The Galaxy defines a section of the Galactic Cluster in
+    which a particular game instance is played. A Galaxy is 1:1 to a
+    Galactic Cluster and may contain multiple Star-Systems.
+
+    @DEV:
+    - May want to revist how pg.Rect() is used. The class structure
+      actually has tons of attributes. All I really want to store in
+      the DB is x, y, w, h.  Even GamePlane is too complex since it
+      references other classes.  Let's define a simple Struct like
+      GameRect.
+    """
+    _tablename: str = "GALAXY"
+    galaxy_nm_pk: str = ''
+    galactic_cluster_nm_fk: str = ''
+    relative_size: str = 'medium'
+    center_from_univ_center_kpc: Struct.CoordXYZ = Struct.CoordXYZ()
+    halo_radius_pc: float = 0.0
+    boundary_pc: Struct.GameRect = Struct.GameRect()
+    volume_gpc3: float = 0.0
+    mass_kg: float = 0.0
+    bulge_shape: str = 'ellipsoid'
+    bulge_center_from_center_ly: Struct.CoordXYZ = Struct.CoordXYZ()
+    bulge_dim_axes: Struct.AxesABC = Struct.AxesABC()
+    bulge_black_hole_mass_kg: float = 0.0
+    bulge_volume_gpc3: float = 0.0
+    bulge_total_mass_kg: float = 0.0
+    star_field_shape: str = 'ellipsoid'
+    star_field_dim_from_center_ly: Struct.CoordXYZ = Struct.CoordXYZ()
+    star_field_dim_axes: Struct.AxesABC = Struct.AxesABC()
+    star_field_vol_gpc3: float = 0.0
+    star_field_mass_kg: float = 0.0
+    interstellar_mass_kg: float = 0.0
+
+    class Constraints(object):
+        PK: list = ["galaxy_nm_pk"]
+        FK: dict = {"galactic_cluster_nm_fk":
+                    ("GALACTIC_CLUSTER",
+                     "galactic_cluster_nm_pk")}
+        CK: dict = {"relative_size": ['small', 'medium', 'large'],
+                    "bulge_shape": ['ellipsoid', 'spherical'],
+                    "star_field_shape": ['ellipsoid', 'spherical']}
+        GROUP: dict = {"center_from_univ_center_kpc": Struct.CoordXYZ,
+                       "boundary_pc": Struct.GameRect,
+                       "bulge_center_from_center_ly": Struct.CoordXYZ,
+                       "bulge_dim_axes": Struct.AxesABC,
+                       "star_field_dim_from_center_ly": Struct.CoordXYZ,
+                       "star_field_dim_axes": Struct.AxesABC}
+        ORDER: list = ["galactic_cluster_nm_fk ASC",
+                       "galaxy_nm_pk ASC"]
+
+
+"""
+Notes for generating star systems, planets, and other objects.
+
+For a simplified star system generation algorithm that balances storytelling
+and basic simulation, consider the following critical data elements:
+
+    Star Type:
+        Spectral Class: O, B, A, F, G, K, M (from hottest to coolest).
+        O - Blue
+        B - Blue-White
+        A - White
+        F - Yellow-White
+        G - Yellow (like the Sun)
+        K - Orange
+        M - Red
+        Luminosity: Brightness of the star.
+        I - Supergiant = 1000-10000Ls
+        II - Bright Giant = 100-1000Ls
+        III - Giant = 10-100Ls
+        IV - Subgiant = 1-10Ls
+        V - Main Sequence = ~1Ls (Ls = Luminosity of the Sun)
+
+    Planetary Orbits:
+        Habitable Zone: Distance range from the star where conditions could
+        support liquid water.
+        Distribution of Planets: Inner rocky planets, outer gas giants.
+        Orbital Eccentricity: How elliptical or circular the orbits are.
+
+    Planetary Characteristics:
+        Size and Mass: Determines gravity and atmosphere retention.
+        Atmosphere Composition: Essential for life support.
+        Surface Conditions: Temperature, pressure, and climate.
+        Axial Tilt: Influences seasons and climate variations.
+        Natural Satellites: Presence of moons.
+
+    Asteroid Belts and Comets:
+        Distribution: Inner, outer, or multiple belts.
+        Density: Sparse or dense with potential impact events.
+
+    Star System Dynamics:
+        Binary/Multiple Star Systems:
+          Presence of companion stars.
+        Stability: Long-term stability of planetary orbits.
+        Age of the Star: Influences the evolution of planets
+        and potential for life.
+            Spectral types O, B, and A represent "young" stars.
+                years? 1-10 million years
+            Spectral types F, G, and K represent
+            "middle-aged" stars.
+                years? 1-10 billion years
+            Spectral type M represents "old" stars.
+                years? 1-10 trillion years
+
+    Exotic Elements:
+        Presence of Anomalies: Unusual phenomena, e.g.,
+        pulsars, black holes.
+        Unstable Conditions: Solar flares, intense radiation.
+
+    Historical Events:
+        Past Catastrophes: Previous asteroid impacts, major
+        events.
+        Evolutionary Factors: Historical conditions affecting
+        life evolution.
+
+    Special Conditions:
+        Tidally Locked Planets: Planets with one side
+        permanently facing the star.
+        Rogue Planets: Unbound to any star.
+
+    Metadata for Storytelling:
+        Dominant Species: If there is intelligent life, their
+        characteristics.
+        Cultural Factors: Influences on civilizations.
+        Current State: Technological level, conflicts,
+        alliances.
+
+    Visual Characteristics:
+        Sky Colors: Affected by atmospheric composition.
+        Day/Night Lengths: Influences daily life.
+"""
+
+
+class StarSystem(object):
+    """A Star System is a collection of planets, moons, and other objects.
+    Usually it has one star, but it can have multiple stars.
+    In most cases, we are only interested in star systems that include
+    at least one habitable planet, but we can include others.
+    """
+    _tablename: str = "STAR_SYSTEM"
+    star_system_nm_pk: str = ''
+    galaxy_nm_fk: str = ''
+    nearest_pulsar_nm_fk: str = ''
+    nearest_black_hole_nm_fk: str = ''
+    binary_star_system_nm_fk: str = ''
+    is_black_hole: bool = False
+    is_pulsar: bool = False
+    center_from_galaxy_center_pc: Struct.CoordXYZ = Struct.CoordXYZ()
+    boundary_pc: Struct.GameRect = Struct.GameRect()
+    volume_pc3: float = 0.0
+    mass_kg: float = 0.0
+    system_shape: str = 'ellipsoid'
+    relative_size: str = 'medium'
+    spectral_class: str = 'G'
+    aprox_age_gyr: float = 0.0
+    luminosity_class: str = 'V'
+    frequency_of_flares: str = 'rare'
+    intensity_of_flares: str = 'low'
+    frequency_of_comets: str = 'rare'
+    unbound_planets_cnt: int = 0
+    orbiting_planets_cnt: int = 0
+    inner_habitable_boundary_au: float = 0.0
+    outer_habitable_boundary_au: float = 0.0
+    planetary_orbits_shape: str = 'circular'
+    orbital_stability: str = 'stable'
+    asteroid_belt_density: str = 'sparse'
+    asteroid_belt_loc: str = 'inner'
+
+    class Constraints(object):
+        PK: list = ["star_system_nm_pk"]
+        FK: dict = {"galaxy_nm_fk": ("GALAXY", "galaxy_nm_pk"),
+                    "binary_star_system_nm_fk":
+                    ("STAR_SYSTEM", "star_system_nm_pk"),
+                    "nearest_pulsar_nm_fk":
+                    ("STAR_SYSTEM", "star_system_nm_pk"),
+                    "nearest_black_hole_nm_fk":
+                    ("STAR_SYSTEM", "star_system_nm_pk")}
+        CK: dict = {"relative_size": ['small', 'medium', 'large'],
+                    "spectral_class":
+                    ['O', 'B', 'A', 'F', 'G', 'K', 'M'],
+                    'luminosity_class':
+                    ['I', 'II', 'III', 'IV', 'V'],
+                    "system_shape": ['ellipsoid', 'spherical'],
+                    "planetary_orbits_shape":
+                    ['circular', 'elliptical'],
+                    "orbital_stability": ['stable', 'unstable'],
+                    "asteroid_belt_density": ['sparse', 'dense'],
+                    'asteroid_belt_loc':
+                    ['inner', 'outer', 'multiple'],
+                    "frequency_of_flares":
+                    ['rare', 'occasional', 'frequent'],
+                    "intensity_of_flares":
+                    ['low', 'medium', 'high'],
+                    "frequency_of_comets":
+                    ['rare', 'occasional', 'frequent']}
+        GROUP: dict = {"center_from_galaxy_center_pc": Struct.CoordXYZ,
+                       "boundary_pc": Struct.GameRect,
+                       "bulge_dim_from_center_ly": Struct.CoordXYZ,
+                       "bulge_dim_axes": Struct.AxesABC,
+                       "star_field_dim_from_center_ly": Struct.CoordXYZ,
+                       "star_field_dim_axes": Struct.AxesABC}
+        ORDER: list = ["galaxy_nm_fk ASC",
+                       "star_system_nm_pk ASC"]
+
+
+class World(object):
+    """
+    A World is a planet within a Star System. It may be habitable or not.
+    """
+    _tablename: str = "WORLD"
+    world_nm_pk: str = ''
+    star_system_nm_fk: str = ''
+    world_type: str = 'habitable'
+    obliquity_dg: float = 0.0    # a/k/a axial tilt
+    distance_from_star_au: float = 0.0
+    distance_from_star_km: float = 0.0
+    radius_km: float = 0.0
+    mass_kg: float = 0.0
+    gravity_m_per_s_per_s: float = 0.0
+    orbit_gdy: float = 0.0
+    orbit_gyr: float = 0.0
+    tidally_locked: bool = False
+    rotation_gdy: float = 0.0
+    rotation_direction: str = 'prograde'
+    orbit_direction: str = 'prograde'
+    moons_cnt: int = 0
+    world_desc: str = ''
+    atmosphere: str = ''
+    sky_color: pg.Color = Colors.CP_BLUE
+    biosphere: str = ''
+    sentients: str = ''
+    climate: str = ''
+    tech_level: str = ''
+    terrain: str = ''
+
+    class Constraints(object):
+        PK: list = ["world_nm_pk"]
+        FK: dict = {"star_system_nm_fk":
+                    ("STAR_SYSTEM", "star_system_nm_pk")}
+        CK: dict = {"world_type":
+                    ['habitable', 'gas giant', 'rocky',
+                     'desert', 'oceanic', 'ice planet',
+                     'molten', 'other'],
+                    "rotation_direction": ['prograde', 'retrograde'],
+                    "orbit_direction": ['prograde', 'retrograde']}
+        ORDER: list = ["star_system_nm_fk ASC",
+                       "world_nm_pk ASC"]
+
+
+class Moon(object):
+    """
+    A Moon is any type of satellite around a World.
+    A Moon is associated with one World, and multiple Moons can be
+    associated with one World.
+    """
+    _tablename: str = "MOON"
+    moon_nm_pk: str = ''
+    world_nm_fk: str = ''
+    center_from_world_center_km: Struct.CoordXYZ
+    mass_kg: float = 0.0
+    radius_km: float = 0.0
+    obliquity_dg: float = 0.0    # a/k/a axial tilt
+    tidally_locked: bool = True
+    rotation_direction: str = 'prograde'
+    orbit_direction: str = 'prograde'
+    orbit_world_days: float = 0.0
+    rotation_world_days: float = 0.0
+    initial_velocity: float = 0.0
+    angular_velocity: float = 0.0
+
+    class Constraints(object):
+        PK: list = ["moon_nm_pk"]
+        FK: dict = {"world_nm_fk": ("WORLD", "world_nm_pk")}
+        CK: dict = {"rotation_direction":
+                    ['prograde', 'retrograde'],
+                    "orbit_direction":
+                    ['prograde', 'retrograde']}
+        GROUP: dict = {"center_from_world_center_km": Struct.CoordXYZ}
+        ORDER: list = ["world_nm_fk ASC", "moon_nm_pk ASC"]
 
 
 # =======================================================
@@ -877,7 +1178,8 @@ class InitGameDB(object):
         """Pass data object to create SQL files.
         """
         for model in [Backup,
-                      Universe, ExternalUniv, GalacticCluster]:
+                      Universe, ExternalUniv, GalacticCluster, Galaxy,
+                      StarSystem, World, Moon]:
             DB.generate_sql(model)
 
     def boot_saskan_db(self):

@@ -166,8 +166,8 @@ class DataBase(object):
         sql = ''
         if 'GROUP' in p_constraints.keys()\
                 and p_col_nm in p_constraints['GROUP']:
-            sql += f"-- GROUP {p_col_nm}\n"
             group_class = copy(p_constraints['GROUP'][p_col_nm])
+            sql += f"-- GROUP {p_col_nm}: {str(group_class)}\n"
             sub_model = {k: v for k, v in group_class.__dict__.items()
                          if not k.startswith('_')}
             for k, v in sub_model.items():
