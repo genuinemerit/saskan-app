@@ -13,6 +13,7 @@ import pendulum
 import shutil
 import sqlite3 as sq3
 
+from collections import OrderedDict
 from copy import copy
 from pathlib import Path
 from os import path
@@ -297,7 +298,7 @@ class DataBase(object):
                                 p_table_name: str,
                                 p_constraints: dict,
                                 p_col_names: list):
-        """Generate SQL SELECT code.
+        """Generate SQL SELECT ALL code.
         :args:
         - p_table_name (str) Name of table to select from
         - p_constraints (dict) Dict of constraints for the table
@@ -305,14 +306,37 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/SELECT_ALL_[p_table_name].sql
         """
-        # ORDER constraint list comes across properly, that is,
-        # not wrapped inside a tuple
         sql = f"SELECT {',\n'.join(p_col_names)}\nFROM {p_table_name}"
         if "ORDER" in p_constraints.keys():
             sql += f"\nORDER BY {', '.join(p_constraints['ORDER'])}"
         sql += ';\n'
         FI.write_file(
             path.join(self.DB_PATH, f"SELECT_ALL_{p_table_name}.sql"), sql)
+
+    def generate_select_pk_sql(self,
+                               p_table_name: str,
+                               p_constraints: dict,
+                               p_col_names: list):
+        """Generate SQL SELECT WHERE = [PK] code.
+        :args:
+        - p_table_name (str) Name of table to select from
+        - p_constraints (dict) Dict of constraints for the table
+        - p_col_names (list) List of column names for the table
+        :writes:
+        - SQL file to [APP]/sql/SELECT_ALL_[p_table_name].sql
+        """
+        if len(p_constraints['PK']) > 1:
+            pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        else:
+            pk = p_constraints['PK'][0] + "=?"
+        sql = f"SELECT {',\n'.join(p_col_names)}\nFROM {p_table_name}"
+        sql += f"\nWHERE {pk}"
+        if "ORDER" in p_constraints.keys():
+            sql += f"\nORDER BY {', '.join(p_constraints['ORDER'])}"
+        sql += ';\n'
+        FI.write_file(
+            path.join(self.DB_PATH,
+                      f"SELECT_BY_PK_{p_table_name}.sql"), sql)
 
     def generate_update_sql(self,
                             p_table_name: str,
@@ -331,8 +355,12 @@ class DataBase(object):
             pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
         else:
             pk = p_constraints['PK'][0] + "=?"
+        # modify to eliminate PK fields from the list of
+        # columns to update
         sql = f"UPDATE {p_table_name} SET\n" +\
-            f"{',\n'.join([f'{col}=?' for col in p_col_names])}" +\
+            f"{',\n'.join([f'{col}=?'
+                           for col in p_col_names
+                           if col not in p_constraints['PK']])}" +\
             f"\nWHERE {pk};\n"
         FI.write_file(
             path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql"), sql)
@@ -379,6 +407,7 @@ class DataBase(object):
         self.generate_drop_sql(table_name)
         self.generate_insert_sql(table_name, col_names)
         self.generate_select_all_sql(table_name, constraints, col_names)
+        self.generate_select_pk_sql(table_name, constraints, col_names)
         self.generate_update_sql(table_name, constraints, col_names)
         self.generate_delete_sql(table_name, constraints)
 
@@ -497,8 +526,10 @@ class DataBase(object):
         - (list) of column names for the table
         """
         if p_tbl_nm in (None, ''):
-            SQL = p_sql_select
-            tbl_nm = SQL.split('\n')[0].split(' ')[-1]
+            for ln in p_sql_select.split('\n'):
+                if ln.upper().startswith('FROM'):
+                    tbl_nm = ln.split(' ')[1]
+                    break
         else:
             tbl_nm = p_tbl_nm
         self.cur.execute(f"PRAGMA table_info({tbl_nm})")
@@ -506,36 +537,31 @@ class DataBase(object):
         col_nms = [c[1] for c in cols]
         return col_nms
 
-    # Executing SQL Scripts
-    # ===========================================
-
-    def execute_select(self,
-                       p_sql_nm: str) -> dict:
-        """Run a SQL SELECT file which does not use
-           any dynamic parameters.
-        :args:
-        - p_sql_nm (str): Name of external SQL file
-        :returns:
-        - (dict) Dict of lists, {col_nms: [data values]}
+    def set_dict_from_cursor(self,
+                             p_cols: list) -> OrderedDict:
         """
-        self.connect_db()
-        SQL: str = self.get_sql_file(p_sql_nm)
-        COLS: list = self.get_db_columns(p_sql_select=SQL)
-        self.cur.execute(SQL)
-        DATA: list = [r for r in self.cur.fetchall()]
-        if len(DATA) == 0:
-            result: dict = {col: [] for col in COLS}
-        else:
-            result: dict = {col: [row[i] for row in DATA]
-                            for i, col in enumerate(COLS)}
-        self.disconnect_db()
+        Translate current cursor contents into a dict of lists
+        :args:
+        - p_cols (list) List of column names
+        :return:
+        - (OrderedDict )dict of lists, with column names as keys
+          and in same order as listed in table-column order.
+        """
+        result = OrderedDict().fromkeys(p_cols)
+        FETCH = self.cur.fetchall()    # list of tuples
+        for row in FETCH:
+            for i, col in enumerate(p_cols):
+                if result[col] is None:
+                    result[col] = list()
+                result[col].append(row[i])
         return result
 
+    # Executing SQL Scripts
+    # ===========================================
     def execute_dml(self,
                     p_sql_nm: str):
-        """Run a static SQL DROP, CREATE, DELETE, INSERT or MODIFY file,
-        that is, a 'hard-coded' one which does not use any dynamic
-        parameters.
+        """Run a static SQL DROP OR CREATE file, that is,
+        a SQL file which does not use dynamic parameters.
         :args:
         - p_sql_nm (str): Name of external SQL file
         """
@@ -549,6 +575,53 @@ class DataBase(object):
             self.db_conn.commit()
         self.disconnect_db()
 
+    def execute_select_all(self,
+                           p_sql_nm: str) -> OrderedDict:
+        """Run a SQL SELECT ALL file which does not use
+           any dynamic parameters.
+        Iterate (fetchall) over the cursor to see record(s).
+        :args:
+        - p_sql_nm (str): Name of external SQL file
+        :returns:
+        - (OrderedDict) Dict of lists, {col_nms: [data values]}
+        """
+        self.connect_db()
+        SQL: str = self.get_sql_file(p_sql_nm)
+        COLS: list = self.get_db_columns(p_sql_select=SQL)
+        self.cur.execute(SQL)
+        result = self.set_dict_from_cursor(COLS)
+        self.disconnect_db()
+        return result
+
+    def execute_select_by_pk(self,
+                             p_sql_nm: str,
+                             p_key_vals: list) -> OrderedDict:
+        """Run a SQL SELECT by PK file which uses key values
+        (primary key) for WHERE clause.
+           For now I will assume that:
+            - caller knows what values to provide and in what order
+        Iterate (fetchall) over the cursor to see record(s).
+        :args:
+        - p_sql_nm (str): Name of external SQL file
+        - p_key_vals (list): Value of primary key(s) to match on
+        :returns:
+        - (dict) Dict of lists, {col_nms: [data values]}
+
+        @DEV:
+        - Next, add:
+            - SELECT method that uses a VIEW which includes
+              all or some associated records from other tables.
+        """
+        if isinstance(p_key_vals, str):
+            p_key_vals = [p_key_vals]
+        self.connect_db()
+        SQL = self.get_sql_file(p_sql_nm)
+        COLS = self.get_db_columns(p_sql_select=SQL)
+        self.cur.execute(SQL, p_key_vals)
+        result = self.set_dict_from_cursor(COLS)
+        self.disconnect_db()
+        return result
+
     def execute_insert(self,
                        p_sql_nm: str,
                        p_values: tuple):
@@ -560,6 +633,10 @@ class DataBase(object):
         :args:
         - p_sql_nm (str): Name of external SQL file
         - p_values (tuple): n-tuple of values to insert
+
+        @ DEV:
+        - Can probably use a list instaed of a tuple, if that
+          helps with anything down the road.
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
@@ -569,22 +646,44 @@ class DataBase(object):
 
     def execute_update(self,
                        p_sql_nm: str,
-                       p_key_val: str,
-                       p_values: tuple):
+                       p_values: list,
+                       p_key_vals: list):
         """Run a SQL UPDATE file which uses dynamic values.
-           Key value is the matching condition for WHERE clause (prim key).
+           Key value is matching condition for WHERE clause (prim key).
            Values are the column names in specified order.
            For now I will assume that:
             - UPDATEs will always expect full list of values
             - caller knows what values to provide and in what order
         :args:
         - p_sql_nm (str): Name of external SQL file
-        - p_key_val (str): Value of primary key to match on
-        - p_values (tuple): n-tuple of values to update
+        - p_values (list): list of values to update
+        - p_key_vals (list): Value of primary key)s_ to match on
         """
+        if isinstance(p_key_vals, str):
+            p_key_vals = [p_key_vals]
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)
-        self.cur.execute(SQL, p_values + (p_key_val,))
+        self.cur.execute(SQL, p_values + p_key_vals)
+        if self.db_conn is not None:
+            self.db_conn.commit()   # type: ignore
+        self.disconnect_db()
+
+    def execute_delete(self,
+                       p_sql_nm: str,
+                       p_key_vals: list):
+        """Run a SQL DELETE file which uses key values (primary key)
+           for WHERE clause (prim key).
+           For now I will assume that:
+            - caller knows what values to provide and in what order
+        :args:
+        - p_sql_nm (str): Name of external SQL file
+        - p_key_vals (list): Value of primary key(s) to match on
+        """
+        if isinstance(p_key_vals, str):
+            p_key_vals = [p_key_vals]
+        self.connect_db()
+        SQL = self.get_sql_file(p_sql_nm)
+        self.cur.execute(SQL, p_key_vals)
         if self.db_conn is not None:
             self.db_conn.commit()   # type: ignore
         self.disconnect_db()

@@ -1,3 +1,4 @@
+from pprint import pprint as pp
 from io_db import DataBase
 DB = DataBase()
 
@@ -14,6 +15,72 @@ class CreateUniverses(object):
                                   'Our Universe',
                                   3.0e52, 0.7, 0.25, 0.05)
     DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_1_values)
+
+    # Example 2: Small universe with faster expansion
+    universe_2_values = ('Tiny Universe', 10.0, 41855.0,
+                         0.4, 5.0,
+                         200.0, 1.0e48, 0.5, 0.4, 0.1)
+    DB.execute_insert('INSERT_UNIVERSE', universe_2_values)
+    external_universe_2_values = ('External Universe 2',
+                                  'Tiny Universe',
+                                  1.0e48, 0.5, 0.4, 0.1)
+    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_2_values)
+
+    # Example 3: Large universe with slow expansion
+    universe_3_values = ('Vast Universe', 150.0, 88200.0,
+                         100.0, 20.0,
+                         30.0, 5.0e53, 0.9, 0.05, 0.05)
+    DB.execute_insert('INSERT_UNIVERSE', universe_3_values)
+    external_universe_3_values = ('External Universe 3',
+                                  'Vast Universe',
+                                  5.0e53, 0.9, 0.05, 0.05)
+    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_3_values)
+
+    # Example 4: Universe with significant dark matter
+    universe_4_values = ('Dark Universe', 75.0, 17663.0,
+                         20.0, 10.0,
+                         100.0, 2.0e51, 0.0, 1.0, 0.0)
+    DB.execute_insert('INSERT_UNIVERSE', universe_4_values)
+    external_universe_4_values = ('External Universe 4',
+                                  'Dark Universe',
+                                  2.0e51, 0.0, 1.0, 0.0)
+    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_4_values)
+
+    # Example 5: Universe with dominant dark energy
+    universe_5_values = ('Energetic Universe', 120.0,
+                         64286.0, 60.0,
+                         15.0, 50.0, 4.0e52, 1.0, 0.0, 0.0)
+    DB.execute_insert('INSERT_UNIVERSE', universe_5_values)
+    external_universe_5_values = ('External Universe 5',
+                                  'Energetic Universe',
+                                  4.0e52, 1.0, 0.0, 0.0)
+    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_5_values)
+
+    # Test: Delete Universe #5
+    # When checking result, note that the delete should
+    #  cascade to the associated EXTERNAL_UNIVERSE record
+    DB.execute_delete('DELETE_UNIVERSE', ['Energetic Universe'])
+
+    # Test: Update Universe #4 and External Universe #4
+    # Keep in mind that the UPDATE SQL requires passing in values
+    #  for the entire record in a tuple, minus the PK, which is
+    #  THEN provided separately in a list.
+    DB.execute_update('UPDATE_UNIVERSE',
+                      [76.0, 17663.0, 20.0, 10.0,
+                       100.0, 2.0e51, 0.1, 1.5, 5.5],
+                      ['Dark Universe'])
+    DB.execute_update('UPDATE_EXTERNAL_UNIVERSE',
+                      ['Dark Universe', 2.0e51, 0.9, 8.4, 4.5],
+                      ['External Universe 4'])
+
+    # Test: Select Unviverse #3 by PK
+    data = DB.execute_select_by_pk('SELECT_BY_PK_UNIVERSE',
+                                   ['Vast Universe'])
+    pp((data))
+    # Test: Select All Unviverses
+    data = DB.execute_select_all('SELECT_ALL_UNIVERSE')
+    pp((data))
+    """
 
     # The list of values is incorrect.
     # Several are missing.
@@ -182,42 +249,4 @@ class CreateUniverses(object):
         2.0,  # timing_pulsar_loc_gly_z
     ))
 
-    # Example 2: Small universe with faster expansion
-    universe_2_values = ('Tiny Universe', 10.0, 41855.0,
-                         0.4, 5.0,
-                         200.0, 1.0e48, 0.5, 0.4, 0.1)
-    DB.execute_insert('INSERT_UNIVERSE', universe_2_values)
-    external_universe_2_values = ('External Universe 2',
-                                  'Tiny Universe',
-                                  1.0e48, 0.5, 0.4, 0.1)
-    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_2_values)
-
-    # Example 3: Large universe with slow expansion
-    universe_3_values = ('Vast Universe', 150.0, 88200.0,
-                         100.0, 20.0,
-                         30.0, 5.0e53, 0.9, 0.05, 0.05)
-    DB.execute_insert('INSERT_UNIVERSE', universe_3_values)
-    external_universe_3_values = ('External Universe 3',
-                                  'Vast Universe',
-                                  5.0e53, 0.9, 0.05, 0.05)
-    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_3_values)
-
-    # Example 4: Universe with significant dark matter
-    universe_4_values = ('Dark Universe', 75.0, 17663.0,
-                         20.0, 10.0,
-                         100.0, 2.0e51, 0.0, 1.0, 0.0)
-    DB.execute_insert('INSERT_UNIVERSE', universe_4_values)
-    external_universe_4_values = ('External Universe 4',
-                                  'Dark Universe',
-                                  2.0e51, 0.0, 1.0, 0.0)
-    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_4_values)
-
-    # Example 5: Universe with dominant dark energy
-    universe_5_values = ('Energetic Universe', 120.0,
-                         64286.0, 60.0,
-                         15.0, 50.0, 4.0e52, 1.0, 0.0, 0.0)
-    DB.execute_insert('INSERT_UNIVERSE', universe_5_values)
-    external_universe_5_values = ('External Universe 5',
-                                  'Energetic Universe',
-                                  4.0e52, 1.0, 0.0, 0.0)
-    DB.execute_insert('INSERT_EXTERNAL_UNIVERSE', external_universe_5_values)
+"""

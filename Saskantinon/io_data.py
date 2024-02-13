@@ -854,7 +854,7 @@ class Universe(object):
 
     class Constraints(object):
         PK: list = ["univ_nm_pk"]
-        ORDER: list = ["univ_nm_ix ASC"]
+        ORDER: list = ["univ_nm_pk ASC"]
 
 
 class ExternalUniv(object):
@@ -1368,7 +1368,4 @@ class InitGameDB(object):
         for sql in FI.scan_dir(DB.DB_PATH, 'DROP'):
             DB.execute_dml(sql.name)
         for sql in FI.scan_dir(DB.DB_PATH, 'CREATE'):
-
-            print(sql.name)
-
             DB.execute_dml(sql.name)
