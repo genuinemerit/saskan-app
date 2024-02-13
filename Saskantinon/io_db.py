@@ -74,7 +74,15 @@ class DataBase(object):
                           p_def_value: object,
                           p_constraints: dict) -> str:
         """Convert constraint annotations to SQLITE data rule.
-        For now, everything is NOT NULL.
+
+        @DEV:
+        For now, everything is NOT NULL. Is that even necessary?
+        This is only checking for UNIQUE constraints, which I am
+        not using. I am using PRIMARY KEY instead.
+        Let's try not executing this method and see if I really
+        need it.
+        Also: def_value is never used.
+
         :args:
         - p_col_nm (str) Name of data column
         - p_def_value (object) Pydantic value object
@@ -109,26 +117,6 @@ class DataBase(object):
         elif p_data_type not in ('INTEGER', 'NUMERIC'):
             col_default = f"'{col_default}'"
         sql = f" DEFAULT {col_default}"
-        return sql
-
-    def set_sql_check_constraints(self,
-                                  p_col_nm: str,
-                                  p_constraints: dict) -> str:
-        """Convert Pydantic constraint annotations to SQLITE CHECK rule,
-           which is a list of allowed values, similar to ENUM.
-        :args:
-        - p_col_nm (str) Name of data column
-        - p_constraints (dict) Dict of constraints for the table
-        :returns:
-        - (str) SQLITE CHECK rule
-        """
-        sql = ''
-        if 'CK' in p_constraints.keys() \
-                and p_col_nm in p_constraints['CK']:
-            sql = f' CHECK({p_col_nm} IN ('
-            for ck_val in p_constraints['CK'][p_col_nm]:
-                sql += f"'{ck_val}', "
-            sql = sql[:-2] + '))'
         return sql
 
     def set_sql_comment(self,
@@ -176,9 +164,10 @@ class DataBase(object):
                 sql += f' {g_col_nm}'
                 data_ty_sql = self.set_sql_data_type(k, v, p_constraints)
                 sql += data_ty_sql
-                sql += self.set_sql_data_rule(k, v, p_constraints)
+                # sql += self.set_sql_data_rule(k, v, p_constraints)
                 sql += self.set_sql_default(v, data_ty_sql.split(' ')[1])
-                sql += self.set_sql_check_constraints(k, p_constraints)
+                # remove from here
+                # sql += self.set_sql_check_constraints(k, p_constraints)
                 sql += self.set_sql_comment(v)
                 sql += ',\n'
         return (sql, p_col_names)
@@ -214,6 +203,23 @@ class DataBase(object):
             sql = f"PRIMARY KEY ({', '.join(p_constraints['PK'])}),\n"
         return sql
 
+    def set_sql_check_constraints(self,
+                                  p_constraints: dict) -> str:
+        """Convert CHECK constraint annotations to a SQLITE CHECK rule
+        that validates against a list of allowed values, similar to ENUM.
+        For example:
+        CHECK (col_name IN ('val1', 'val2', 'val3'))
+        :args:
+        - p_constraints (dict) Dict of constraints for the table
+        :returns:
+        - (str) SQLITE CHECK rule
+        """
+        sql = ''
+        if 'CK' in p_constraints.keys():
+            for ck_col, ck_vals in p_constraints['CK'].items():
+                sql = f"CHECK ({ck_col} IN {str(tuple(ck_vals))}),\n"
+        return sql
+
     def generate_create_sql(self,
                             p_table_nm: str,
                             p_constraints: dict,
@@ -240,16 +246,15 @@ class DataBase(object):
                 data_ty_sql =\
                     self.set_sql_data_type(col_nm, def_value, p_constraints)
                 sql += data_ty_sql
-                sql +=\
-                    self.set_sql_data_rule(col_nm, def_value, p_constraints)
+                # sql +=\
+                #     self.set_sql_data_rule(col_nm, def_value, p_constraints)
                 sql +=\
                     self.set_sql_default(def_value,
                                          data_ty_sql.split(' ')[1])
-                sql +=\
-                    self.set_sql_check_constraints(col_nm, p_constraints)
                 sql += self.set_sql_comment(def_value)
                 sql += ',\n'
             sqlns.append(sql)
+        sqlns.append(self.set_sql_check_constraints(p_constraints))
         sqlns.append(self.set_sql_foreign_keys(p_constraints))
         sqlns.append(self.set_sql_primary_key(p_constraints))
         sqlns[len(sqlns)-1] = sqlns[len(sqlns)-1][:-2]
@@ -310,9 +315,9 @@ class DataBase(object):
             path.join(self.DB_PATH, f"SELECT_ALL_{p_table_name}.sql"), sql)
 
     def generate_update_sql(self,
-                            p_table_name,
-                            p_constraints,
-                            p_col_names):
+                            p_table_name: str,
+                            p_constraints: dict,
+                            p_col_names: list):
         """Generate SQL UPDATE code.
         - If more than one PK, then use AND logic in the WHERE clause
         :args:
@@ -331,6 +336,25 @@ class DataBase(object):
             f"\nWHERE {pk};\n"
         FI.write_file(
             path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql"), sql)
+
+    def generate_delete_sql(self,
+                            p_table_name: str,
+                            p_constraints: dict):
+        """Generate SQL DELETE code.
+        - If more than one PK, then use AND logic in the WHERE clause
+        :args:
+        - p_table_name (str) Name of table to delete from
+        - p_constraints (dict) Dict of constraints for the table
+        :writes:
+        - SQL file to [APP]/sql/DELETE_[p_table_name].sql
+        """
+        if len(p_constraints['PK']) > 1:
+            pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        else:
+            pk = p_constraints['PK'][0] + "=?"
+        sql = f"DELETE FROM {p_table_name}\nWHERE {pk};\n"
+        FI.write_file(
+            path.join(self.DB_PATH, f"DELETE_{p_table_name}.sql"), sql)
 
     def generate_sql(self,
                      p_data_model: object):
@@ -352,16 +376,11 @@ class DataBase(object):
         col_names = list()
         col_names =\
             self.generate_create_sql(table_name, constraints, model)
-
-        print("\n\n====================")
-        pp(('table_name', table_name))
-        pp(('constraints', constraints))
-        pp(('col_names', col_names))
-
         self.generate_drop_sql(table_name)
         self.generate_insert_sql(table_name, col_names)
         self.generate_select_all_sql(table_name, constraints, col_names)
         self.generate_update_sql(table_name, constraints, col_names)
+        self.generate_delete_sql(table_name, constraints)
 
     # Backup, Archive and Restore
     # ===========================================

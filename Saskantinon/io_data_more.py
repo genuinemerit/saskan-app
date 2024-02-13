@@ -1074,6 +1074,7 @@ class StarSystem(object):
                       "star_system_nm_pk ASC"]
         }
 
+
 """
 Planetary charts, indicating the path of 'wanderers' and their
 'congruences', and so on as seen from the perspective of a given
@@ -1242,12 +1243,11 @@ class Grid(object):
     """
     Define the size of a grid (r, c), the dim of the cells (w, h)
     in PyGame px, and the dim of each cell in km (w, h).
-    The z layers are provided for future use, e.g. in case I want to
-    use them to track altitude, depth, or elevation in a 3D game, or
-    with maps that provide z-level data.
+    The z layers are provided to track altitude, depth, or elevation
+    for maps that provide z-level data.
 
     @DEV:
-    - Consider other grid types, such as hexagonal, triangular, etc.
+    - Consider other grid shapes, such as hexagonal, triangular, etc.
     """
 
     tablename: str = "GRID"

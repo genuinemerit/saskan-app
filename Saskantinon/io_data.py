@@ -498,13 +498,16 @@ class Struct(object):
         latiutde_dg: float = 0.0
         longitude_dg: float = 0.0
 
-    class GameLocation(object):
+    class GameGeoLocation(object):
         """
-        This is a general-purpose, high level location
-        data structure, mainly planar and rectangular.
+        This is a general-purpose, high level geo-location
+        data structure,  planar and rectangular.
         Use degrees as the specifier for locations.
         Then compute km or other physical dimensions
         based on scaling to a grid when rendering.
+
+        Will need a different type of locator for astronomical
+        data.
 
         Provide rough altitudes (average, min and max) meters,
         to give a general sense of the 3rd dimension.
@@ -517,6 +520,27 @@ class Struct(object):
         avg_altitude_m: float = 0.0
         max_altitude_m: float = 0.0
         min_altitude_m: float = 0.0
+
+    class Game3DLocation(object):
+        """
+        This is a general-purpose, high level 3D location/shape
+        container structure, box-shaped, that is, six adjoining
+        rectangles with parallel sides.  Use x, y, z coordinates
+        which can be mapped to whatever units are needed. For
+        example, in a Universe, the x,y,z coordinates might refer
+        to mega-parsecs, whereas in an Undersea world they might
+        refer to kilometers.
+        The box is defined as an x,y,z origin point, which can
+        be conceived of visually as the upper-left, foremost
+        corner of the box. The box is then defined by w, h and d =
+        lateral dimensions in the x, y and z directions.
+        """
+        origin_x: float = 0.0
+        origin_y: float = 0.0
+        origin_z: float = 0.0
+        width_x: float = 0.0
+        height_y: float = 0.0
+        depth_z: float = 0.0
 
     class Graphic(object):
         """A data structure for referencing an image file."""
@@ -632,6 +656,11 @@ class GameGridData(object):
     - placement of grid within containing map-window defined in GameDisplay
     To make smaller cells, assign more rows and columns to the grid;
     to make bigger cells, assign fewer rows and columns.
+
+    @DEV:
+    - Eventually have a 3D version of this class. That may also be
+    able to work as a 2D grid, where the z dimension of its only layer
+    is zero.
     """
     def __init__(self,
                  p_cols: int = 1,
@@ -783,6 +812,10 @@ class GameGridData(object):
 # - GROUPed types derived from data types defined above,
 # - sort order for SELECT queries.
 # =======================================================
+
+# =============================================================
+# System Maintenance
+# =============================================================
 class Backup(object):
     """Store metadata about database backup, restore, archive.
     """
@@ -798,9 +831,14 @@ class Backup(object):
         ORDER: list = ["bkup_dttm DESC", "bkup_nm ASC"]
 
 
+# =============================================================
+# Game Astronomy
+# =============================================================
 class Universe(object):
     """Define qualities of a game Universe.
     This is the highest, broadest container in the game model.
+    A Universe may contain multiple Galactic Clusters.
+    It is conceptualized as a sphere.
     """
     _tablename: str = "UNIVERSE"
     univ_nm_pk: str = ''
@@ -822,7 +860,7 @@ class Universe(object):
 class ExternalUniv(object):
     """The External Universe just defines qualities of the Game
     Universe that lie outside of the "playable" Universe. An External
-    Universe is always 1:1 to a Universe.
+    Universe is always 1:1 to a Universe. It has no shape, only mass.
     """
     _tablename: str = "EXTERNAL_UNIVERSE"
     external_univ_nm_pk: str = ''
@@ -842,13 +880,15 @@ class ExternalUniv(object):
 class GalacticCluster(object):
     """The Galactic Cluster defines a section of the Game Universe
     in which a particular game instance is played. A Galactic Cluster
-    is 1:1 to a Universe and may contain multiple Galaxies.
+    is contained by one Universe and it may contain multiple Galaxies.
+    Conceptualized as a bulging shape, usually ellipsoid, centered in
+    a boundary box.
     """
     _tablename: str = "GALACTIC_CLUSTER"
     galactic_cluster_nm_pk: str = ''
     univ_nm_fk: str = ''
     center_from_univ_center_gly: Struct.CoordXYZ = Struct.CoordXYZ()
-    boundary_gly: Struct.GameRect = Struct.GameRect()
+    boundary_gly: Struct.Game3DLocation = Struct.Game3DLocation()
     cluster_shape: str = 'ellipsoid'
     shape_pc: Struct.CoordXYZ = Struct.CoordXYZ()
     shape_axes: Struct.AxesABC = Struct.AxesABC()
@@ -867,11 +907,11 @@ class GalacticCluster(object):
         CK: dict = {"cluster_shape":
                     ['ellipsoid', 'spherical']}
         GROUP: dict = {"center_from_univ_center_gly": Struct.CoordXYZ,
-                       "boundary_gly": Struct.GameRect,
-                       "timing_pulsar_loc_gly": Struct.CoordXYZ,
+                       "boundary_gly": Struct.Game3DLocation,
                        "shape_pc": Struct.CoordXYZ,
                        "shape_axes": Struct.AxesABC,
-                       "shape_rot":  Struct.PitchYawRollAngle}
+                       "shape_rot":  Struct.PitchYawRollAngle,
+                       "timing_pulsar_loc_gly": Struct.CoordXYZ}
         ORDER: list = ["univ_nm_fk ASC",
                        "galactic_cluster_nm_pk ASC"]
 
@@ -879,14 +919,11 @@ class GalacticCluster(object):
 class Galaxy(object):
     """The Galaxy defines a section of the Galactic Cluster in
     which a particular game instance is played. A Galaxy is 1:1 to a
-    Galactic Cluster and may contain multiple Star-Systems.
-
-    @DEV:
-    - May want to revist how pg.Rect() is used. The class structure
-      actually has tons of attributes. All I really want to store in
-      the DB is x, y, w, h.  Even GamePlane is too complex since it
-      references other classes.  Let's define a simple Struct like
-      GameRect.
+    Galactic Cluster and it may contain multiple Star-Systems.
+    Conceptualized as a sphere, centered in a boundary box.
+    It has a bulge, typically ellipsoid, in the center and a star
+    field area, also ellipsoid, but can include matter outside the
+    star field, all the way to edge of its halo.
     """
     _tablename: str = "GALAXY"
     galaxy_nm_pk: str = ''
@@ -894,18 +931,20 @@ class Galaxy(object):
     relative_size: str = 'medium'
     center_from_univ_center_kpc: Struct.CoordXYZ = Struct.CoordXYZ()
     halo_radius_pc: float = 0.0
-    boundary_pc: Struct.GameRect = Struct.GameRect()
+    boundary_pc: Struct.Game3DLocation = Struct.Game3DLocation()
     volume_gpc3: float = 0.0
     mass_kg: float = 0.0
     bulge_shape: str = 'ellipsoid'
     bulge_center_from_center_ly: Struct.CoordXYZ = Struct.CoordXYZ()
     bulge_dim_axes: Struct.AxesABC = Struct.AxesABC()
+    bulge_dim_rot: Struct.PitchYawRollAngle = Struct.PitchYawRollAngle()
     bulge_black_hole_mass_kg: float = 0.0
     bulge_volume_gpc3: float = 0.0
     bulge_total_mass_kg: float = 0.0
     star_field_shape: str = 'ellipsoid'
     star_field_dim_from_center_ly: Struct.CoordXYZ = Struct.CoordXYZ()
     star_field_dim_axes: Struct.AxesABC = Struct.AxesABC()
+    star_field_dim_rot: Struct.PitchYawRollAngle = Struct.PitchYawRollAngle()
     star_field_vol_gpc3: float = 0.0
     star_field_mass_kg: float = 0.0
     interstellar_mass_kg: float = 0.0
@@ -919,11 +958,13 @@ class Galaxy(object):
                     "bulge_shape": ['ellipsoid', 'spherical'],
                     "star_field_shape": ['ellipsoid', 'spherical']}
         GROUP: dict = {"center_from_univ_center_kpc": Struct.CoordXYZ,
-                       "boundary_pc": Struct.GameRect,
+                       "boundary_pc": Struct.Game3DLocation,
                        "bulge_center_from_center_ly": Struct.CoordXYZ,
                        "bulge_dim_axes": Struct.AxesABC,
+                       "bulge_dim_rot": Struct.PitchYawRollAngle,
                        "star_field_dim_from_center_ly": Struct.CoordXYZ,
-                       "star_field_dim_axes": Struct.AxesABC}
+                       "star_field_dim_axes": Struct.AxesABC,
+                       "star_field_dim_rot": Struct.PitchYawRollAngle}
         ORDER: list = ["galactic_cluster_nm_fk ASC",
                        "galaxy_nm_pk ASC"]
 
@@ -1015,6 +1056,8 @@ class StarSystem(object):
     Usually it has one star, but it can have multiple stars.
     In most cases, we are only interested in star systems that include
     at least one habitable planet, but we can include others.
+    Conceptualized as a bulging shape, usually ellipsoid, centered in
+    a boundary box.
     """
     _tablename: str = "STAR_SYSTEM"
     star_system_nm_pk: str = ''
@@ -1024,11 +1067,13 @@ class StarSystem(object):
     binary_star_system_nm_fk: str = ''
     is_black_hole: bool = False
     is_pulsar: bool = False
-    center_from_galaxy_center_pc: Struct.CoordXYZ = Struct.CoordXYZ()
-    boundary_pc: Struct.GameRect = Struct.GameRect()
+    boundary_pc: Struct.Game3DLocation = Struct.Game3DLocation()
     volume_pc3: float = 0.0
     mass_kg: float = 0.0
     system_shape: str = 'ellipsoid'
+    center_from_galaxy_center_pc: Struct.CoordXYZ = Struct.CoordXYZ()
+    system_dim_axes: Struct.AxesABC = Struct.AxesABC()
+    system_dim_rot: Struct.PitchYawRollAngle = Struct.PitchYawRollAngle()
     relative_size: str = 'medium'
     spectral_class: str = 'G'
     aprox_age_gyr: float = 0.0
@@ -1072,14 +1117,25 @@ class StarSystem(object):
                     ['low', 'medium', 'high'],
                     "frequency_of_comets":
                     ['rare', 'occasional', 'frequent']}
-        GROUP: dict = {"center_from_galaxy_center_pc": Struct.CoordXYZ,
-                       "boundary_pc": Struct.GameRect,
-                       "bulge_dim_from_center_ly": Struct.CoordXYZ,
-                       "bulge_dim_axes": Struct.AxesABC,
-                       "star_field_dim_from_center_ly": Struct.CoordXYZ,
-                       "star_field_dim_axes": Struct.AxesABC}
+        GROUP: dict = {"boundary_pc": Struct.Game3DLocation,
+                       "center_from_galaxy_center_pc": Struct.CoordXYZ,
+                       "system_dim_axes": Struct.AxesABC,
+                       "system_dim_rot": Struct.PitchYawRollAngle}
         ORDER: list = ["galaxy_nm_fk ASC",
                        "star_system_nm_pk ASC"]
+
+
+"""
+Planetary charts, indicating the path of 'wanderers' and their
+'congruences', and so on as seen from the perspective of a given
+world, will be tracked on a separate table or set of tables.
+Such charts would include the path of comets and rogue planets,
+unless I decide to track those on a separate table or set of tables.
+
+Tracking of seasons and accounting of calendars is also
+handled on separate tables.  The same is true for tracking
+of eclipses and other astronomical events.
+"""
 
 
 class World(object):
@@ -1158,6 +1214,120 @@ class Moon(object):
         ORDER: list = ["world_nm_fk ASC", "moon_nm_pk ASC"]
 
 
+# =============================================================
+# Abstract Maps and Grids
+# =============================================================
+class Map(object):
+    """
+    Foreign key --
+    - MAP (1) contains <-- MAPs (n)   and
+      MAPs (n) are contained by --> MAP (1).
+
+    Map is a rectangle or box. It often has a parent/container.
+    A map rectangle is defined as a game-world geo location.
+    A map box is defined as an astronomical, undersea or underground
+    3D location.
+
+    This structure is for defining 'templates' of maps
+        that lay over a grid. For example, there might be
+        a map_name that is associated with provinces and
+        a different one that is associated with regions.
+        There could also be multiple variations of, say,
+        county-level maps, depending on large or small.
+    It will be associated with another table w/ more detailed info
+    relating to things like:
+        - geography (continents, regions, mountains, hills, rivers,
+            lakes, seas, oceans, etc.)
+        - political boundaries (countries, provinces, states, counties, etc.)
+        - roads, paths, trails, waterways, bodies of water, etc.
+        - cities, towns, villages, neighborhoods, etc.
+        - other points of interest (ruins, temples, etc.)
+        - natural resources (mines, quarries, etc.)
+        - demographics (population density, etc.)
+    """
+    _tablename: str = "MAP"
+    map_nm_pk: str = ''
+    container_map_nm_fk: str = ''
+    map_type: str = 'geo'
+    geo_map_loc: Struct.GameGeoLocation = Struct.GameGeoLocation()
+    three_d_map_loc: Struct.Game3DLocation = Struct.Game3DLocation()
+
+    class Constraints(object):
+        PK: list = ["map_nm_pk"]
+        FK: dict = {"container_map_nm_fk": ("MAP", "map_nm_pk")}
+        CK: dict = {"map_type":
+                    ['geo', 'astro', 'underwater', 'underground']}
+        GROUP: dict = {"geo_map_loc": Struct.GameGeoLocation,
+                       "three_d_map_loc":
+                       Struct.Game3DLocation}
+        ORDER: list = ["map_nm_pk ASC"]
+
+
+class MapXMap(object):
+    """
+    Associative keys --
+    - MAPs (n) overlap <--> MAPs (n)
+    - MAPs (n) border <--> MAPs (n)
+    PK is a composite key of map_nm_1_fk and map_nm_2_fk
+    """
+    _tablename: str = "MAP_X_MAP"
+    map_nm_1_fk: str = ''
+    map_nm_2_fk: str = ''
+    touch_type: str = ''
+
+    class Constraints(object):
+        PK: list = ["map_nm_1_fk", "map_nm_2_fk"]
+        FK: dict = {"map_nm_1_fk": ("MAP", "map_nm_pk"),
+                    "map_nm_2_fk": ("MAP", "map_nm_pk")}
+        CK: dict = {"touch_type": ['borders', 'overlaps']}
+        ORDER: list = ["map_nm_1_fk ASC", "map_nm_2_fk ASC"]
+
+
+class Grid(object):
+    """
+    Define the size of a grid (r, c), the dim of the cells (w, h, z)
+    in PyGame px, and the dim of each cell in km (w, h) or m (z).
+    The z layers are provided to track altitude, depth, or elevation
+    for maps that provide z-level data.
+
+    @DEV:
+    - Consider other grid shapes, such as hexagonal, triangular, etc.
+    """
+    _tablename: str = "GRID"
+    grid_nm_pk: str = ''
+    row_cnt: int = 0
+    col_cnt: int = 0
+    z_up_cnt: int = 0
+    z_down_cnt: int = 0
+    width_px: float = 0.0
+    height_px: float = 0.0
+    width_km: float = 0.0
+    height_km: float = 0.0
+    z_up_m: float = 0.0
+    z_down_m: float = 0.0
+
+    class Constraints(object):
+        PK: list = ["grid_nm_pk"]
+        ORDER: list = ["grid_nm_pk ASC"]
+
+
+class GridXMap(object):
+    """
+    Associative keys --
+    - GRIDs (n) <--> MAPs (n)
+    PK is a composite key of grid_nm_fk and map_nm_fk
+    """
+    _tablename: str = "GRID_X_MAP"
+    grid_nm_fk: str = ''
+    map_nm_fk: str = ''
+
+    class Constraints(object):
+        PK: list = ["grid_nm_fk", "map_nm_fk"]
+        FK: dict = {"grid_nm_fk": ("GRID", "grid_nm_pk"),
+                    "map_nm_fk": ("MAP", "map_nm_pk")}
+        ORDER: list = ["grid_nm_fk ASC", "map_nm_fk ASC"]
+
+
 # =======================================================
 # DB/ORM Calls
 # - Create SQL files
@@ -1179,7 +1349,8 @@ class InitGameDB(object):
         """
         for model in [Backup,
                       Universe, ExternalUniv, GalacticCluster, Galaxy,
-                      StarSystem, World, Moon]:
+                      StarSystem, World, Moon,
+                      Map, MapXMap, Grid, GridXMap]:
             DB.generate_sql(model)
 
     def boot_saskan_db(self):
@@ -1190,11 +1361,14 @@ class InitGameDB(object):
         - Logged records appear in the backups, not in the
           refreshed database.
         """
-        file_path = Path(DB.DB)
-        if file_path.exists():
-            DB.backup_db()
-            DB.archive_db()
+        # file_path = Path(DB.DB)
+        # if file_path.exists():
+        #     DB.backup_db()
+        #     DB.archive_db()
         for sql in FI.scan_dir(DB.DB_PATH, 'DROP'):
             DB.execute_dml(sql.name)
         for sql in FI.scan_dir(DB.DB_PATH, 'CREATE'):
+
+            print(sql.name)
+
             DB.execute_dml(sql.name)
