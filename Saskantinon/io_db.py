@@ -636,7 +636,8 @@ class DataBase(object):
 
         @ DEV:
         - Can probably use a list instaed of a tuple, if that
-          helps with anything down the road.
+          helps with anything down the road. OR maybe just to
+          be consistent with other methods.
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)

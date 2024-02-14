@@ -939,13 +939,13 @@ class Galaxy(object):
     bulge_dim_axes: Struct.AxesABC = Struct.AxesABC()
     bulge_dim_rot: Struct.PitchYawRollAngle = Struct.PitchYawRollAngle()
     bulge_black_hole_mass_kg: float = 0.0
-    bulge_volume_gpc3: float = 0.0
+    bulge_volume_ly3: float = 0.0
     bulge_total_mass_kg: float = 0.0
     star_field_shape: str = 'ellipsoid'
     star_field_dim_from_center_ly: Struct.CoordXYZ = Struct.CoordXYZ()
     star_field_dim_axes: Struct.AxesABC = Struct.AxesABC()
     star_field_dim_rot: Struct.PitchYawRollAngle = Struct.PitchYawRollAngle()
-    star_field_vol_gpc3: float = 0.0
+    star_field_vol_ly3: float = 0.0
     star_field_mass_kg: float = 0.0
     interstellar_mass_kg: float = 0.0
 

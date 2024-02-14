@@ -80,17 +80,11 @@ class CreateUniverses(object):
     # Test: Select All Unviverses
     data = DB.execute_select_all('SELECT_ALL_UNIVERSE')
     pp((data))
-    """
 
-    # The list of values is incorrect.
-    # Several are missing.
+    # Attach a Galactic Cluster to Universe #1 "Our Universe"
     DB.execute_insert("INSERT_GALACTIC_CLUSTER", (
-        "Perseus_Cluster",  # external_univ_nm_pk
-        "Our_Universe",  # univ_nm_fk
-        1.5e16,  # mass_kg
-        0.2e16,  # dark_energy_kg
-        0.5e16,  # dark_matter_kg
-        0.8e16,  # baryonic_matter_kg
+        "Perseus Cluster",  # external_univ_nm_pk
+        "Our Universe",  # univ_nm_fk
         10.0,  # center_from_univ_center_gly_x
         20.0,  # center_from_univ_center_gly_y
         30.0,  # center_from_univ_center_gly_z
@@ -111,142 +105,373 @@ class CreateUniverses(object):
         0.0,  # shape_rot_yaw
         0.0,  # shape_rot_roll
         8000.0,  # volume_pc3
+        1.5e16,  # mass_kg
+        0.2e16,  # dark_energy_kg
+        0.5e16,  # dark_matter_kg
+        0.8e16,  # baryonic_matter_kg
         10.0,  # timing_pulsar_pulse_per_ms
         12.0,  # timing_pulsar_loc_gly_x
         22.0,  # timing_pulsar_loc_gly_y
-        32.0,  # timing_pulsar_loc_gly_z
+        32.0  # timing_pulsar_loc_gly_z
     ))
 
-    DB.execute_insert("INSERT_GALACTIC_CLUSTER", (
-        "Virgo_Cluster",  # external_univ_nm_pk
-        "Our_Universe",  # univ_nm_fk
-        2.0e16,  # mass_kg
-        0.3e16,  # dark_energy_kg
-        0.6e16,  # dark_matter_kg
-        1.0e16,  # baryonic_matter_kg
-        -5.0,  # center_from_univ_center_gly_x
-        25.0,  # center_from_univ_center_gly_y
-        -15.0,  # center_from_univ_center_gly_z
-        -10.0,  # boundary_gly_origin_x
-        20.0,  # boundary_gly_origin_y
-        -20.0,  # boundary_gly_origin_z
-        30.0,  # boundary_gly_width_x
-        25.0,  # boundary_gly_height_y
-        35.0,  # boundary_gly_depth_z
-        "spherical",  # cluster_shape
-        1.0,  # shape_pc_x
-        1.0,  # shape_pc_y
-        1.0,  # shape_pc_z
-        30.0,  # shape_axes_a
-        25.0,  # shape_axes_b
-        35.0,  # shape_axes_c
-        0.0,  # shape_rot_pitch
-        0.0,  # shape_rot_yaw
-        0.0,  # shape_rot_roll
-        18750.0,  # volume_pc3
-        15.0,  # timing_pulsar_pulse_per_ms
-        -3.0,  # timing_pulsar_loc_gly_x
-        23.0,  # timing_pulsar_loc_gly_y
-        -13.0,  # timing_pulsar_loc_gly_z
+    # Test: Select Galactic Cluster by PK
+    data = DB.execute_select_by_pk('SELECT_BY_PK_GALACTIC_CLUSTER',
+                                   ['Perseus Cluster'])
+    pp((data))
+
+    # Attach a Galaxy to Galactic Cluster "Perseus Cluster"
+    DB.execute_insert("INSERT_GALAXY", (
+        "Blackbird Galaxy",  # galaxy_nm_pk,
+        "Perseus Cluster",  # galactic_cluster_nm_fk,
+        "medium",  # relative_size,
+        100.0,  # center_from_univ_center_kpc_x,
+        50.0,   # center_from_univ_center_kpc_y,
+        10.0,   # center_from_univ_center_kpc_z,
+        100.0,  # halo_radius_pc,
+        95.0,   # boundary_pc_origin_x,
+        45.0,   # boundary_pc_origin_y,
+        8.0,    # boundary_pc_origin_z,
+        20.0,   # boundary_pc_width_x,
+        5.0,    # boundary_pc_height_y,
+        6.0,    # Boundary_pc_depth_z,
+        20.0 * 5.0 * 6.0,   # volume_gpc3,
+        1.5e14,  # mass_kg,
+        'ellipsoid',  # bulge_shape,
+        4.0,   # bulge_center_from_center_ly_x,
+        2.0,   # bulge_center_from_center_ly_y,
+        2.0,   # bulge_center_from_center_ly_z,
+        1.0,   # bulge_dim_axes_a,
+        0.4,   # bulge_dim_axes_b,
+        0.5,   # bulge_dim_axes_c,
+        20.0,  # bulge_dim_rot_pitch,
+        5.0,   # bulge_dim_rot_yaw,
+        2.0,   # bulge_dim_rot_roll,
+        1.5e12,  # bulge_black_hole_mass_kg,
+        (4.0 * 2.0 * 2.0) / 1000,   # bulge_volume_gpc3,
+        1.5e13,   # bulge_total_mass_kg,
+        'ellipsoid',  # star_field_shape,
+        40.0,    # star_field_dim_from_center_ly_x,
+        10.0,    # star_field_dim_from_center_ly_y,
+        10.0,    # star_field_dim_from_center_ly_z,
+        1.0,     # star_field_dim_axes_a,
+        1.0,     # star_field_dim_axes_b,
+        1.0,     # star_field_dim_axes_c,
+        0.0,     # star_field_dim_rot_pitch,
+        4.0,     # star_field_dim_rot_yaw,
+        1.0,     # star_field_dim_rot_roll,
+        (40.0 * 10.0 * 10.0) / 1000,  # star_field_vol_gpc3,
+        1.5e10,  # star_field_mass_kg,
+        1.5e8,  # interstellar_mass_kg,
     ))
 
-    DB.execute_insert("INSERT_GALACTIC_CLUSTER", (
-        "Coma_Cluster",  # external_univ_nm_pk
-        "Our_Universe",  # univ_nm_fk
-        1.2e16,  # mass_kg
-        0.1e16,  # dark_energy_kg
-        0.4e16,  # dark_matter_kg
-        0.7e16,  # baryonic_matter_kg
-        -15.0,  # center_from_univ_center_gly_x
-        -5.0,  # center_from_univ_center_gly_y
-        10.0,  # center_from_univ_center_gly_z
-        -20.0,  # boundary_gly_origin_x
-        0.0,  # boundary_gly_origin_y
-        5.0,  # boundary_gly_origin_z
-        25.0,  # boundary_gly_width_x
-        20.0,  # boundary_gly_height_y
-        15.0,  # boundary_gly_depth_z
-        "ellipsoid",  # cluster_shape
-        1.0,  # shape_pc_x
-        1.0,  # shape_pc_y
-        1.0,  # shape_pc_z
-        25.0,  # shape_axes_a
-        20.0,  # shape_axes_b
-        15.0,  # shape_axes_c
-        0.0,  # shape_rot_pitch
-        0.0,  # shape_rot_yaw
-        0.0,  # shape_rot_roll
-        7500.0,  # volume_pc3
-        8.0,  # timing_pulsar_pulse_per_ms
-        -13.0,  # timing_pulsar_loc_gly_x
-        -3.0,  # timing_pulsar_loc_gly_y
-        13.0,  # timing_pulsar_loc_gly_z
+    # Test: Select Galaxy by PK
+    data = DB.execute_select_by_pk('SELECT_BY_PK_GALAXY',
+                                   ['Blackbird Galaxy'])
+    pp((data))
+
+    # Attach Star Systems to the Galaxy "Blackbird Galaxy"
+
+    DB.execute_insert("insert_star_system.sql", (
+        "SmallStarSystem1",
+        "Blackbird Galaxy",
+        None,  # Nearest pulsar
+        None,  # Nearest black hole
+        None,  # Binary star system
+        0,     # is_black_hole
+        0,     # is_pulsar
+        0.0,   # boundary_pc_origin_x
+        0.0,   # boundary_pc_origin_y
+        0.0,   # boundary_pc_origin_z
+        10.0,  # boundary_pc_width_x
+        10.0,  # boundary_pc_height_y
+        10.0,  # boundary_pc_depth_z
+        1000.0,  # volume_pc3
+        1000.0,  # mass_kg
+        "ellipsoid",  # system_shape
+        0.0,   # center_from_galaxy_center_pc_x
+        0.0,   # center_from_galaxy_center_pc_y
+        0.0,   # center_from_galaxy_center_pc_z
+        5.0,   # system_dim_axes_a
+        5.0,   # system_dim_axes_b
+        5.0,   # system_dim_axes_c
+        0.0,   # system_dim_rot_pitch
+        0.0,   # system_dim_rot_yaw
+        0.0,   # system_dim_rot_roll
+        "small",  # relative_size
+        "G",   # spectral_class
+        5.0,   # aprox_age_gyr
+        "V",   # luminosity_class
+        "rare",  # frequency_of_flares
+        "low",  # intensity_of_flares
+        "rare",  # frequency_of_comets
+        0,     # unbound_planets_cnt
+        0,     # orbiting_planets_cnt
+        0.0,   # inner_habitable_boundary_au
+        0.0,   # outer_habitable_boundary_au
+        "circular",  # planetary_orbits_shape
+        "stable",    # orbital_stability
+        "sparse",    # asteroid_belt_density
+        "inner"      # asteroid_belt_loc
     ))
 
-    DB.execute_insert("INSERT_GALACTIC_CLUSTER", (
-        "Fornax_Cluster",  # external_univ_nm_pk
-        "Our_Universe",  # univ_nm_fk
-        2.5e16,  # mass_kg
-        0.4e16,  # dark_energy_kg
-        0.7e16,  # dark_matter_kg
-        1.1e16,  # baryonic_matter_kg
-        20.0,  # center_from_univ_center_gly_x
-        15.0,  # center_from_univ_center_gly_y
-        -25.0,  # center_from_univ_center_gly_z
-        15.0,  # boundary_gly_origin_x
-        10.0,  # boundary_gly_origin_y
-        -30.0,  # boundary_gly_origin_z
-        35.0,  # boundary_gly_width_x
-        30.0,  # boundary_gly_height_y
-        25.0,  # boundary_gly_depth_z
-        "spherical",  # cluster_shape
-        1.0,  # shape_pc_x
-        1.0,  # shape_pc_y
-        1.0,  # shape_pc_z
-        35.0,  # shape_axes_a
-        30.0,  # shape_axes_b
-        25.0,  # shape_axes_c
-        0.0,  # shape_rot_pitch
-        0.0,  # shape_rot_yaw
-        0.0,  # shape_rot_roll
-        26250.0,  # volume_pc3
-        20.0,  # timing_pulsar_pulse_per_ms
-        22.0,  # timing_pulsar_loc_gly_x
-        17.0,  # timing_pulsar_loc_gly_y
-        -27.0,  # timing_pulsar_loc_gly_z
+    DB.execute_insert("insert_star_system.sql", (
+        "MediumStarSystem1",
+        "Blackbird Galaxy",
+        None,
+        None,
+        None,
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        20.0,
+        20.0,
+        20.0,
+        5000.0,
+        5000.0,
+        "ellipsoid",
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        15.0,
+        20.0,
+        0.0,
+        0.0,
+        0.0,
+        "medium",
+        "G",
+        10.0,
+        "V",
+        "rare",
+        "low",
+        "rare",
+        0,
+        0,
+        0.0,
+        0.0,
+        "circular",
+        "stable",
+        "sparse",
+        "inner"
     ))
 
-    DB.execute_insert("INSERT_GALACTIC_CLUSTER", (
-        "Hydra_Cluster",  # external_univ_nm_pk
-        "Our_Universe",  # univ_nm_fk
-        0.8e16,  # mass_kg
-        0.05e16,  # dark_energy_kg
-        0.2e16,  # dark_matter_kg
-        0.3e16,  # baryonic_matter_kg
-        0.0,  # center_from_univ_center_gly_x
-        -20.0,  # center_from_univ_center_gly_y
-        0.0,  # center_from_univ_center_gly_z
-        -5.0,  # boundary_gly_origin_x
-        -25.0,  # boundary_gly_origin_y
-        -5.0,  # boundary_gly_origin_z
-        15.0,  # boundary_gly_width_x
-        10.0,  # boundary_gly_height_y
-        15.0,  # boundary_gly_depth_z
-        "ellipsoid",  # cluster_shape
-        1.0,  # shape_pc_x
-        1.0,  # shape_pc_y
-        1.0,  # shape_pc_z
-        15.0,  # shape_axes_a
-        10.0,  # shape_axes_b
-        15.0,  # shape_axes_c
-        0.0,  # shape_rot_pitch
-        0.0,  # shape_rot_yaw
-        0.0,  # shape_rot_roll
-        2250.0,  # volume_pc3
-        5.0,  # timing_pulsar_pulse_per_ms
-        2.0,  # timing_pulsar_loc_gly_x
-        -23.0,  # timing_pulsar_loc_gly_y
-        2.0,  # timing_pulsar_loc_gly_z
+    DB.execute_insert("insert_star_system.sql", (
+        "LargeStarSystem1",
+        "Blackbird Galaxy",
+        None,
+        None,
+        None,
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        30.0,
+        30.0,
+        30.0,
+        10000.0,
+        10000.0,
+        "ellipsoid",
+        0.0,
+        0.0,
+        0.0,
+        20.0,
+        25.0,
+        30.0,
+        0.0,
+        0.0,
+        0.0,
+        "large",
+        "G",
+        15.0,
+        "V",
+        "rare",
+        "low",
+        "rare",
+        0,
+        0,
+        0.0,
+        0.0,
+        "circular",
+        "stable",
+        "sparse",
+        "inner"
     ))
 
-"""
+    DB.execute_insert("insert_star_system.sql", (
+        "PulsarSystem1",
+        "Blackbird Galaxy",
+        None,   # this has to be a valid FK or None
+        None,
+        None,
+        0,
+        1,   # is_pulsar
+        0.0,
+        0.0,
+        0.0,
+        15.0,
+        15.0,
+        15.0,
+        3000.0,
+        3000.0,
+        "ellipsoid",
+        0.0,
+        0.0,
+        0.0,
+        12.0,
+        12.0,
+        12.0,
+        0.0,
+        0.0,
+        0.0,
+        "medium",
+        "G",
+        10.0,
+        "V",
+        "rare",
+        "low",
+        "rare",
+        0,
+        0,
+        0.0,
+        0.0,
+        "circular",
+        "stable",
+        "sparse",
+        "inner"
+    ))
+
+    DB.execute_insert("insert_star_system.sql", (
+        "BinaryStarSystem1",
+        "Blackbird Galaxy",
+        "PulsarSystem1",    # nearest pulsar
+        None,
+        None,   # Later, update this to point to binary pair
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        25.0,
+        25.0,
+        25.0,
+        7000.0,
+        7000.0,
+        "ellipsoid",
+        0.0,
+        0.0,
+        0.0,
+        18.0,
+        18.0,
+        18.0,
+        0.0,
+        0.0,
+        0.0,
+        "medium",
+        "G",
+        12.0,
+        "V",
+        "rare",
+        "low",
+        "rare",
+        0,
+        0,
+        0.0,
+        0.0,
+        "circular",
+        "stable",
+        "sparse",
+        "inner"
+    ))
+
+    DB.execute_insert("insert_star_system.sql", (
+        "BinaryStarSystem2",
+        "Blackbird Galaxy",
+        "PulsarSystem1",      # nearest pulsar
+        None,
+        "BinaryStarSystem1",  # binary star system pair
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        25.0,
+        25.0,
+        25.0,
+        7000.0,
+        7000.0,
+        "ellipsoid",
+        0.0,
+        0.0,
+        0.0,
+        18.0,
+        18.0,
+        18.0,
+        0.0,
+        0.0,
+        0.0,
+        "medium",
+        "G",
+        12.0,
+        "V",
+        "rare",
+        "low",
+        "rare",
+        0,
+        0,
+        0.0,
+        0.0,
+        "circular",
+        "stable",
+        "sparse",
+        "inner"
+    ))
+
+    DB.execute_update("update_star_system.sql", [
+        "Blackbird Galaxy",
+        "PulsarSystem1",
+        None,
+        "BinaryStarSystem2",   # Updating to point to binary pair
+        0,
+        0,
+        0.0,
+        0.0,
+        0.0,
+        25.0,
+        25.0,
+        25.0,
+        7000.0,
+        7000.0,
+        "ellipsoid",
+        0.0,
+        0.0,
+        0.0,
+        18.0,
+        18.0,
+        18.0,
+        0.0,
+        0.0,
+        0.0,
+        "medium",
+        "G",
+        12.0,
+        "V",
+        "rare",
+        "low",
+        "rare",
+        0,
+        0,
+        0.0,
+        0.0,
+        "circular",
+        "stable",
+        "sparse",
+        "inner"],
+        ["BinaryStarSystem1"],
+    )
+
+    data = DB.execute_select_all('SELECT_ALL_STAR_SYSTEM')
+    pp((data))
