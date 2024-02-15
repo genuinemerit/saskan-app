@@ -31,7 +31,8 @@ class DataBase(object):
     """
 
     def __init__(self):
-        """Initialize Dbase object from configs.
+        """
+        Initialize DataBase object from configs.
         """
         self.DB_PATH = path.join(FI.D['APP']['root'],
                                  FI.D['APP']['dirs']['db'])
@@ -42,67 +43,35 @@ class DataBase(object):
     # Generate SQL files from Pydantic models
     # ===========================================
     def set_sql_data_type(self,
-                          p_col_nm: str,
                           p_def_value: object,
                           p_constraints: dict) -> str:
-        """Convert Pydantic data type to SQLITE data type.
+        """
+        Convert default value data type to SQLITE data type.
         :args:
-        - p_col_nm (str) Name of data column
         - p_def_value (object) default value
         - p_constraints (dict) Dict of constraints for the table
         :returns:
         - (str) SQLITE data type
         """
         sql = ''
-        if 'JSON' in p_constraints.keys()\
-                and p_col_nm in p_constraints['JSON']:
+        if 'JSON' in p_constraints.get('JSON', []):
             sql = ' JSON'
         else:
-            field_type = str(type(p_def_value)).split(' ')[1].split("'")[1]
-            for data_type in (('str', ' TEXT'),
-                              ('bool', ' BOOLEAN'),
-                              ('float', ' NUMERIC'),
-                              ('int', ' INTEGER')):
-                if field_type == data_type[0]:
-                    sql = data_type[1]
-                    break
-        if sql == '':
-            sql = ' TEXT'
-        return sql
-
-    def set_sql_data_rule(self,
-                          p_col_nm: str,
-                          p_def_value: object,
-                          p_constraints: dict) -> str:
-        """Convert constraint annotations to SQLITE data rule.
-
-        @DEV:
-        For now, everything is NOT NULL. Is that even necessary?
-        This is only checking for UNIQUE constraints, which I am
-        not using. I am using PRIMARY KEY instead.
-        Let's try not executing this method and see if I really
-        need it.
-        Also: def_value is never used.
-
-        :args:
-        - p_col_nm (str) Name of data column
-        - p_def_value (object) Pydantic value object
-        - p_constraints (dict) Dict of constraints for the table
-        :returns:
-        - (str) SQLITE data rule
-        """
-        sql = ''
-        for data_rule in (('UQ', ' UNIQUE')):
-            if data_rule[0] in p_constraints.keys() \
-                    and p_col_nm in p_constraints[data_rule[0]]:
-                sql += f'{data_rule[1]}'
-        sql += ' NOT NULL'
+            field_type = type(p_def_value).__name__
+            data_types = {
+                str: ' TEXT',
+                bool: ' BOOLEAN',
+                float: ' NUMERIC',
+                int: ' INTEGER'
+            }
+            sql = data_types.get(field_type, ' TEXT')
         return sql
 
     def set_sql_default(self,
                         p_def_value: object,
                         p_data_type: str) -> str:
-        """Extract SQL default value from Pydantic data object.
+        """
+        Extract SQL default value from Pydantic data object.
         :args:
         - p_def_value (object) Pydantic value object
         - p_data_type (str) SQLITE data type
@@ -122,7 +91,8 @@ class DataBase(object):
 
     def set_sql_comment(self,
                         p_def_value: object) -> str:
-        """Convert constraint annotations to SQLITE COMMENT.
+        """
+        Convert constraint annotations to SQLITE COMMENT.
         :args:
         - p_def_value (object) may be a class-object value
           if so, then add a comment
@@ -142,19 +112,17 @@ class DataBase(object):
         """
         Generate SQL CREATE TABLE code from a data model
         for specialized data types, by splitting them into separate
-        columns grouped with a similar name. Assuming for now that
-        the grouped sub-classes are all located in the Struct class.
+        columns grouped with a similar name.
         :args:
         - p_col_nm (str) Name of customized data objects
         - p_constraints (dict) Dict of constraints for the table
         - p_col_names (list) List of column names already processed
-        :returns:
+        :returns: tuple of:
         - (str) One or more lines of SQL code
         - (list) Updated list of column names already processed
         """
         sql = ''
-        if 'GROUP' in p_constraints.keys()\
-                and p_col_nm in p_constraints['GROUP']:
+        if 'GROUP' in p_constraints and p_col_nm in p_constraints['GROUP']:
             group_class = copy(p_constraints['GROUP'][p_col_nm])
             sql += f"-- GROUP {p_col_nm}: {str(group_class)}\n"
             sub_model = {k: v for k, v in group_class.__dict__.items()
@@ -163,12 +131,9 @@ class DataBase(object):
                 g_col_nm = f'{p_col_nm}_{k}'
                 p_col_names.append(g_col_nm)
                 sql += f' {g_col_nm}'
-                data_ty_sql = self.set_sql_data_type(k, v, p_constraints)
-                sql += data_ty_sql
-                # sql += self.set_sql_data_rule(k, v, p_constraints)
-                sql += self.set_sql_default(v, data_ty_sql.split(' ')[1])
-                # remove from here
-                # sql += self.set_sql_check_constraints(k, p_constraints)
+                data_type = self.set_sql_data_type(v, p_constraints)
+                sql += data_type
+                sql += self.set_sql_default(v, data_type.split(' ')[1])
                 sql += self.set_sql_comment(v)
                 sql += ',\n'
         return (sql, p_col_names)
@@ -183,11 +148,11 @@ class DataBase(object):
         - (str) One or more lines of SQL code
         """
         sql = ''
-        if 'FK' in p_constraints.keys():
-            for col, ref in p_constraints['FK'].items():
-                sql += (f"FOREIGN KEY ({col}) REFERENCES" +
-                        f" {ref[0]}({ref[1]}) " +
-                        "ON DELETE CASCADE,\n")
+        foreign_keys = p_constraints.get('FK', {})
+        for col, ref in foreign_keys.items():
+            table_name, column_name = ref[0], ref[1]
+            sql += f"FOREIGN KEY ({col}) REFERENCES {table_name}" +\
+                   f"({column_name}) ON DELETE CASCADE,\n"
         return sql
 
     def set_sql_primary_key(self,
@@ -199,14 +164,17 @@ class DataBase(object):
         :returns:
         - (str) One or more lines of SQL code
         """
-        sql = ''
-        if 'PK' in p_constraints.keys():
-            sql = f"PRIMARY KEY ({', '.join(p_constraints['PK'])}),\n"
+        primary_key = p_constraints.get('PK')
+        if primary_key:
+            sql = f"PRIMARY KEY ({', '.join(primary_key)}),\n"
+        else:
+            sql = ''
         return sql
 
     def set_sql_check_constraints(self,
                                   p_constraints: dict) -> str:
-        """Convert CHECK constraint annotations to a SQLITE CHECK rule
+        """
+        Convert CHECK constraint annotations to a SQLITE CHECK rule
         that validates against a list of allowed values, similar to ENUM.
         For example:
         CHECK (col_name IN ('val1', 'val2', 'val3'))
@@ -215,10 +183,11 @@ class DataBase(object):
         :returns:
         - (str) SQLITE CHECK rule
         """
+        check_constraints = p_constraints.get('CK', {})
         sql = ''
-        if 'CK' in p_constraints.keys():
-            for ck_col, ck_vals in p_constraints['CK'].items():
-                sql = f"CHECK ({ck_col} IN {str(tuple(ck_vals))}),\n"
+        for ck_col, ck_vals in check_constraints.items():
+            check_values = ', '.join(map(str, ck_vals))
+            sql += f"CHECK ({ck_col} IN ({check_values})),\n"
         return sql
 
     def generate_create_sql(self,
@@ -238,67 +207,71 @@ class DataBase(object):
         """
         col_names = []
         sqlns = []
+
         for col_nm, def_value in p_col_fields.items():
             sql, col_names =\
                 self.set_sql_column_group(col_nm, p_constraints, col_names)
-            if sql == '':
+
+            if not sql:
                 col_names.append(col_nm)
-                sql = col_nm
-                data_ty_sql =\
-                    self.set_sql_data_type(col_nm, def_value, p_constraints)
-                sql += data_ty_sql
-                # sql +=\
-                #     self.set_sql_data_rule(col_nm, def_value, p_constraints)
-                sql +=\
+                data_type_sql =\
+                    self.set_sql_data_type(def_value, p_constraints)
+                default_sql =\
                     self.set_sql_default(def_value,
-                                         data_ty_sql.split(' ')[1])
-                sql += self.set_sql_comment(def_value)
-                sql += ',\n'
+                                         data_type_sql.split(' ')[1])
+                comment_sql = self.set_sql_comment(def_value)
+                sql = f"{col_nm}{data_type_sql}{default_sql}{comment_sql},\n"
+
             sqlns.append(sql)
+
         sqlns.append(self.set_sql_check_constraints(p_constraints))
         sqlns.append(self.set_sql_foreign_keys(p_constraints))
         sqlns.append(self.set_sql_primary_key(p_constraints))
-        sqlns[len(sqlns)-1] = sqlns[len(sqlns)-1][:-2]
-        sql = f"CREATE TABLE IF NOT EXISTS {p_table_nm} (\n" +\
-              f"{''.join(sqlns)});\n"
-        FI.write_file(
-            path.join(self.DB_PATH, f"CREATE_{p_table_nm}.sql"), sql)
+        sqlns[-1] = sqlns[-1][:-2]
+
+        sql = f"CREATE TABLE IF NOT EXISTS {p_table_nm} " +\
+              f"(\n{''.join(sqlns)});\n"
+        FI.write_file(path.join(self.DB_PATH, f"CREATE_{p_table_nm}.sql"), sql)
+
         return col_names
 
     def generate_drop_sql(self,
                           p_table_name: str):
-        """Generate SQL DROP TABLE code.
+        """
+        Generate SQL DROP TABLE code.
         :args:
         - p_table_name (str) Name of table to drop
         :writes:
         - SQL file to [APP]/sql/DROP_[p_table_name].sql
         """
         sql = f"DROP TABLE IF EXISTS {p_table_name};\n"
-        FI.write_file(
-            path.join(self.DB_PATH, f"DROP_{p_table_name}.sql"), sql)
+        file_path = path.join(self.DB_PATH, f"DROP_{p_table_name}.sql")
+        FI.write_file(file_path, sql)
 
     def generate_insert_sql(self,
                             p_table_name: str,
                             p_col_names: list):
-        """Generate SQL INSERT code.
+        """
+        Generate SQL INSERT code.
         :args:
         - p_table_name (str) Name of table to insert into
         - p_col_names (list) List of column names for the table
         :writes:
         - SQL file to [APP]/sql/INSERT_[p_table_name].sql
         """
-        sql = f"INSERT INTO {p_table_name} " +\
-              f"(\n{',\n'.join(p_col_names)})" +\
-              " VALUES (" +\
-              f"{', '.join(['?' for i in range(len(p_col_names))])});\n"
-        FI.write_file(
-            path.join(self.DB_PATH, f"INSERT_{p_table_name}.sql"), sql)
+        placeholders = ', '.join(['?' for _ in p_col_names])
+        columns = ',\n'.join(p_col_names)
+        sql = f"INSERT INTO {p_table_name} (\n{columns}) " +\
+              f"VALUES ({placeholders});\n"
+        file_path = path.join(self.DB_PATH, f"INSERT_{p_table_name}.sql")
+        FI.write_file(file_path, sql)
 
     def generate_select_all_sql(self,
                                 p_table_name: str,
                                 p_constraints: dict,
                                 p_col_names: list):
-        """Generate SQL SELECT ALL code.
+        """
+        Generate SQL SELECT ALL code.
         :args:
         - p_table_name (str) Name of table to select from
         - p_constraints (dict) Dict of constraints for the table
@@ -306,43 +279,50 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/SELECT_ALL_[p_table_name].sql
         """
-        sql = f"SELECT {',\n'.join(p_col_names)}\nFROM {p_table_name}"
-        if "ORDER" in p_constraints.keys():
-            sql += f"\nORDER BY {', '.join(p_constraints['ORDER'])}"
+        columns = ',\n'.join(p_col_names)
+        sql = f"SELECT {columns}\nFROM {p_table_name}"
+
+        if "ORDER" in p_constraints:
+            order_by = ', '.join(p_constraints["ORDER"])
+            sql += f"\nORDER BY {order_by}"
+
         sql += ';\n'
-        FI.write_file(
-            path.join(self.DB_PATH, f"SELECT_ALL_{p_table_name}.sql"), sql)
+
+        file_path = path.join(self.DB_PATH, f"SELECT_ALL_{p_table_name}.sql")
+        FI.write_file(file_path, sql)
 
     def generate_select_pk_sql(self,
                                p_table_name: str,
                                p_constraints: dict,
                                p_col_names: list):
-        """Generate SQL SELECT WHERE = [PK] code.
+        """
+        Generate SQL SELECT WHERE = [PK] code.
         :args:
         - p_table_name (str) Name of table to select from
         - p_constraints (dict) Dict of constraints for the table
         - p_col_names (list) List of column names for the table
         :writes:
-        - SQL file to [APP]/sql/SELECT_ALL_[p_table_name].sql
+        - SQL file to [APP]/sql/SELECT_BY_PK_[p_table_name].sql
         """
-        if len(p_constraints['PK']) > 1:
-            pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
-        else:
-            pk = p_constraints['PK'][0] + "=?"
-        sql = f"SELECT {',\n'.join(p_col_names)}\nFROM {p_table_name}"
-        sql += f"\nWHERE {pk}"
-        if "ORDER" in p_constraints.keys():
-            sql += f"\nORDER BY {', '.join(p_constraints['ORDER'])}"
+        pk_conditions = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        sql = f"SELECT {', '.join(p_col_names)}\n" +\
+              f"FROM {p_table_name}\nWHERE {pk_conditions}"
+
+        if "ORDER" in p_constraints:
+            order_by = ', '.join(p_constraints['ORDER'])
+            sql += f"\nORDER BY {order_by}"
+
         sql += ';\n'
-        FI.write_file(
-            path.join(self.DB_PATH,
-                      f"SELECT_BY_PK_{p_table_name}.sql"), sql)
+
+        file_path = path.join(self.DB_PATH, f"SELECT_BY_PK_{p_table_name}.sql")
+        FI.write_file(file_path, sql)
 
     def generate_update_sql(self,
                             p_table_name: str,
                             p_constraints: dict,
                             p_col_names: list):
-        """Generate SQL UPDATE code.
+        """
+        Generate SQL UPDATE code.
         - If more than one PK, then use AND logic in the WHERE clause
         :args:
         - p_table_name (str) Name of table to update
@@ -351,24 +331,23 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/UPDATE_[p_table_name].sql
         """
-        if len(p_constraints['PK']) > 1:
-            pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
-        else:
-            pk = p_constraints['PK'][0] + "=?"
-        # modify to eliminate PK fields from the list of
-        # columns to update
-        sql = f"UPDATE {p_table_name} SET\n" +\
-            f"{',\n'.join([f'{col}=?'
-                           for col in p_col_names
-                           if col not in p_constraints['PK']])}" +\
-            f"\nWHERE {pk};\n"
-        FI.write_file(
-            path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql"), sql)
+        pk_conditions =\
+            ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        set_columns =\
+            ',\n'.join([f'{col}=?' for col in p_col_names
+                        if col not in p_constraints['PK']])
+
+        sql = f"UPDATE {p_table_name} SET\n{set_columns}\n" +\
+              f"WHERE {pk_conditions};\n"
+
+        file_path = path.join(self.DB_PATH, f"UPDATE_{p_table_name}.sql")
+        FI.write_file(file_path, sql)
 
     def generate_delete_sql(self,
                             p_table_name: str,
                             p_constraints: dict):
-        """Generate SQL DELETE code.
+        """
+        Generate SQL DELETE code.
         - If more than one PK, then use AND logic in the WHERE clause
         :args:
         - p_table_name (str) Name of table to delete from
@@ -376,13 +355,11 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/DELETE_[p_table_name].sql
         """
-        if len(p_constraints['PK']) > 1:
-            pk = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
-        else:
-            pk = p_constraints['PK'][0] + "=?"
-        sql = f"DELETE FROM {p_table_name}\nWHERE {pk};\n"
-        FI.write_file(
-            path.join(self.DB_PATH, f"DELETE_{p_table_name}.sql"), sql)
+        pk_conditions =\
+            ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        sql = f"DELETE FROM {p_table_name}\nWHERE {pk_conditions};\n"
+        file_path = path.join(self.DB_PATH, f"DELETE_{p_table_name}.sql")
+        FI.write_file(file_path, sql)
 
     def generate_sql(self,
                      p_data_model: object):
@@ -391,19 +368,12 @@ class DataBase(object):
         :args:
         - p_data_model: data model class object
         """
-        # will need to do something different here:
         model = {k: v for k, v in p_data_model.__dict__.items()
-                 if not k.startswith('_')
-                 or k in ['_tablename']}
-        table_name = model['_tablename']
-        model.pop('_tablename')
-        constraints = {k: v for k, v
-                       in model['Constraints'].__dict__.items()
+                 if not k.startswith('_') or k == '_tablename'}
+        table_name = model.pop('_tablename', None)
+        constraints = {k: v for k, v in model.pop('Constraints', {}).items()
                        if not k.startswith('_')}
-        model.pop('Constraints')
-        col_names = list()
-        col_names =\
-            self.generate_create_sql(table_name, constraints, model)
+        col_names = self.generate_create_sql(table_name, constraints, model)
         self.generate_drop_sql(table_name)
         self.generate_insert_sql(table_name, col_names)
         self.generate_select_all_sql(table_name, constraints, col_names)
