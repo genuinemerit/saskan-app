@@ -19,6 +19,9 @@ Units are as follows unless otherwise noted:
 - rotation => multiple or fraction of Gavoran days; or galactic seconds
 - orbit => revolution of Gavor around Faton:
     multiple, fractional Gavoran years (turns); or galactic seconds
+
+@DEV:
+- Decommission, moving remaining methods to io_data.py
 """
 
 # import matplotlib.colors as mColors

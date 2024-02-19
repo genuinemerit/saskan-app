@@ -91,6 +91,14 @@ Saskan App GUI.  pygame version.
 
     Now I'm using JSON data structures on the DB only in a few instances. And
     storing as JSON, not as BLOB/pickled bytes.
+
+    @TODO:
+    - review this module for refactoring based on changes to io_data and io_db.
+    - move data-loading/data-prep for both map-window and console-window to
+      separate modules: io_astro for astro data, io_geo for geo data, etc.
+    - these topic- or category-specific modules should have methods or sub-classes
+      for creating test-data, play-data and "rational" updates to the data, along
+      with pulling in records and views needed to construct displays.
 """
 
 # trunk-ignore(bandit/B403)

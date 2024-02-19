@@ -80,13 +80,31 @@ class Astro(object):
       `astro_dict = {k:v for k,v in Astro.__dict__.items()
                      if not k.startswith('__')}`
     """
+    # universe names
+    UNAME = [["Cosmic", "Mysterious", "Eternal", "Radiant",
+             "Infinite", "Celestial"],
+             ["Endless", "Magical", "Spectacular",
+              "Mystical", "Enchanting"],
+             ["Universe", "Cosmos", "Realm", "Dimension",
+              "Oblivion", "Infinity"]]
+    # galactic cluster names
+    GCNAME = [["Runic", "Starry", "Brilliant",
+               "Blessed", "Eternal", "Celestial"],
+              ["Oceanic", "Wonderful", "Waving",
+               "Milky", "Turning"],
+              ["Way", "Home", "Heavens", "Lights",
+               "Path", "Cluster"]]
     # galaxy names
-    GADJ = ["Brilliant", "Lustrous", "Twinkling",
-            "Silvery", "Argent", "Glistening"]
-    GITM = ["Way", "Trail", "Cloud", "Wave", "Skyway"]
-    GNAM = ["Galaxy", "Cluster", "Nebula", "Spiral",
-            "Starfield",  "Cosmos", "Nebula",
-            "Megacosm", "Space"]
+    GXNAME = [["Brilliant", "Lustrous", "Twinkling",
+               "Silvery", "Argent", "Glistening"],
+              ["Way", "Trail", "Cloud", "Wave", "Skyway"],
+              ["Galaxy", "Cluster", "Nebula", "Spiral",
+               "Starfield",  "Cosmos", "Nebula",
+               "Megacosm", "Space"]]
+    # timing pulsar names
+    TPNAME = [["Timer", "Chrono", "Clockwork",
+              "Lighthouse", "Beacon", "Pendumlum"],
+              ["Pulsar", "Star", "Nova", "Sentry", "Stupa"]]
     # mass, matter, energy
     DE = "dark energy"
     DM = "dark matter"
