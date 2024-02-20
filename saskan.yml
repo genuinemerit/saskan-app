@@ -29,6 +29,8 @@ dependencies:
   - numbers-parser
   - beautifulsoup4
   - sqlalchemy
+  - jupyter-core
+  - ipykernel
   # - selenium
   # - odfpy
   # - scrapy

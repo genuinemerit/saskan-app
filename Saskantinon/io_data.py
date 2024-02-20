@@ -10,7 +10,8 @@ import platform
 import pygame as pg
 
 # from os import path
-from pathlib import Path
+# from pathlib import Path
+from collections import OrderedDict
 from pprint import pprint as pp     # noqa: F401
 from pprint import pformat as pf    # noqa: F401
 
@@ -158,13 +159,16 @@ class Astro(object):
     LY2 = "square light year"
     LY3 = "cubic light year"
     # constants
-    DEP = 0.683              # dark energy percentage
-    DMP = 0.274              # dark matter percentage
-    BMP = 0.043              # baryonic matter percentage
-    TUV = 415000             # total univ volume in cubic gigalight years
-    TUK = 1.5e53             # total universe mass in kg
-    UNA = 13.787e9           # age of universe in Gavoran years (turns)
-    TUE = 73.3               # expansion rate of universe in km/s per Mpc
+    U_MIN_RAD_GLY = 45.824
+    U_MAX_RAD_GLY = 47.557
+    U_MIN_AGE_GYR = 2.67e10
+    U_MAX_AGE_GYR = 3.12e10
+    U_AVG_MASS_KG = 1.5e53
+    U_EXP_RATE = 73.3  # expansion rate in km/s per Mpc
+    U_VOL_TO_MASS = 3.61441428e+48  # volume to mass multiplier
+    U_DARK_ENERGY_PCT = 0.683       # dark energy percentage
+    U_DARK_MATTER_PCT = 0.274       # dark matter percentage
+    U_BARYONIC_PCT = 0.043          # baryonic matter percentage
     # conversions -- all are multiplicative in the indicated direction
     # For `AA_TO_BB`, BB = AA * value
     # Example: `AU_TO_KM` means `KM = AU * 1.495979e+8`
@@ -844,6 +848,15 @@ class Backup(object):
     file_from: str = ''
     file_to: str = ''
 
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Backup))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
+
     class Constraints(object):
         PK: list = ["bkup_nm", "bkup_dttm"]
         ORDER: list = ["bkup_dttm DESC", "bkup_nm ASC"]
@@ -863,12 +876,21 @@ class Universe(object):
     radius_gly: float = 0.0
     volume_gly3: float = 0.0
     volume_pc3: float = 0.0
-    elapsed_time_gyr: float = 0.0
+    age_gyr: float = 0.0
     expansion_rate_kmpsec_per_mpc: float = 0.0
-    mass_kg: float = 0.0
+    total_mass_kg: float = 0.0
     dark_energy_kg: float = 0.0
     dark_matter_kg: float = 0.0
     baryonic_matter_kg: float = 0.0
+
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Universe))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
 
     class Constraints(object):
         PK: list = ["univ_nm_pk"]
@@ -887,6 +909,15 @@ class ExternalUniv(object):
     dark_energy_kg: float = 0.0
     dark_matter_kg: float = 0.0
     baryonic_matter_kg: float = 0.0
+
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(ExternalUniv))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
 
     class Constraints(object):
         PK: list = ["external_univ_nm_pk"]
@@ -918,6 +949,15 @@ class GalacticCluster(object):
     baryonic_matter_kg: float = 0.0
     timing_pulsar_pulse_per_ms: float = 0.0
     timing_pulsar_loc_gly: Struct.CoordXYZ = Struct.CoordXYZ()
+
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(GalacticCluster))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
 
     class Constraints(object):
         PK: list = ["galactic_cluster_nm_pk"]
@@ -966,6 +1006,15 @@ class Galaxy(object):
     star_field_vol_ly3: float = 0.0
     star_field_mass_kg: float = 0.0
     interstellar_mass_kg: float = 0.0
+
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Galaxy))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
 
     class Constraints(object):
         PK: list = ["galaxy_nm_pk"]
@@ -1108,6 +1157,15 @@ class StarSystem(object):
     asteroid_belt_density: str = 'sparse'
     asteroid_belt_loc: str = 'inner'
 
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(StarSystem))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
+
     class Constraints(object):
         PK: list = ["star_system_nm_pk"]
         FK: dict = {"galaxy_nm_fk": ("GALAXY", "galaxy_nm_pk"),
@@ -1186,6 +1244,15 @@ class World(object):
     tech_level: str = ''
     terrain: str = ''
 
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(World))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
+
     class Constraints(object):
         PK: list = ["world_nm_pk"]
         FK: dict = {"star_system_nm_fk":
@@ -1220,6 +1287,15 @@ class Moon(object):
     rotation_world_days: float = 0.0
     initial_velocity: float = 0.0
     angular_velocity: float = 0.0
+
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Moon))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
 
     class Constraints(object):
         PK: list = ["moon_nm_pk"]
@@ -1270,6 +1346,15 @@ class Map(object):
     geo_map_loc: Struct.GameGeoLocation = Struct.GameGeoLocation()
     three_d_map_loc: Struct.Game3DLocation = Struct.Game3DLocation()
 
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Universe))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
+
     class Constraints(object):
         PK: list = ["map_nm_pk"]
         FK: dict = {"container_map_nm_fk": ("MAP", "map_nm_pk")}
@@ -1292,6 +1377,15 @@ class MapXMap(object):
     map_nm_1_fk: str = ''
     map_nm_2_fk: str = ''
     touch_type: str = ''
+
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Universe))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
 
     class Constraints(object):
         PK: list = ["map_nm_1_fk", "map_nm_2_fk"]
@@ -1324,6 +1418,15 @@ class Grid(object):
     z_up_m: float = 0.0
     z_down_m: float = 0.0
 
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Universe))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
+
     class Constraints(object):
         PK: list = ["grid_nm_pk"]
         ORDER: list = ["grid_nm_pk ASC"]
@@ -1339,17 +1442,30 @@ class GridXMap(object):
     grid_nm_fk: str = ''
     map_nm_fk: str = ''
 
+    def to_dict(self) -> dict:
+        """Convert object to dict.
+        """
+        all_vars = OrderedDict(vars(Universe))
+        public_vars = OrderedDict({k: v for k, v in all_vars.items()
+                                  if not k.startswith('_') and
+                                  k not in ('Constraints', 'to_dict')})
+        return {all_vars['_tablename']: public_vars}
+
     class Constraints(object):
         PK: list = ["grid_nm_fk", "map_nm_fk"]
         FK: dict = {"grid_nm_fk": ("GRID", "grid_nm_pk"),
                     "map_nm_fk": ("MAP", "map_nm_pk")}
         ORDER: list = ["grid_nm_fk ASC", "map_nm_fk ASC"]
 
+# Once the above have been tested, refactored, then add
+# more structures from io_data_old.py
+
 
 # =======================================================
 # DB/ORM Calls
 # - Create SQL files
 # - Create SQLITE tables
+# - @DEV - possibly move these to io_db?
 # =======================================================
 class InitGameDB(object):
     """Methods to:

@@ -186,6 +186,7 @@ class DataBase(object):
         check_constraints = p_constraints.get('CK', {})
         sql = ''
         for ck_col, ck_vals in check_constraints.items():
+            ck_vals = ["'" + str(v) + "'" for v in ck_vals]
             check_values = ', '.join(map(str, ck_vals))
             sql += f"CHECK ({ck_col} IN ({check_values})),\n"
         return sql
@@ -368,11 +369,13 @@ class DataBase(object):
         :args:
         - p_data_model: data model class object
         """
-        model = {k: v for k, v in p_data_model.__dict__.items()
-                 if not k.startswith('_') or k == '_tablename'}
-        table_name = model.pop('_tablename', None)
-        constraints = {k: v for k, v in model.pop('Constraints', {}).items()
+        constraints = {k: v for k, v
+                       in p_data_model.Constraints.__dict__.items()
                        if not k.startswith('_')}
+        table_name = p_data_model._tablename
+        model = {k: v for k, v in p_data_model.__dict__.items()
+                 if not k.startswith('_')
+                 and k not in ('to_dict', 'Constraints')}
         col_names = self.generate_create_sql(table_name, constraints, model)
         self.generate_drop_sql(table_name)
         self.generate_insert_sql(table_name, col_names)
