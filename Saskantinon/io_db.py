@@ -305,7 +305,8 @@ class DataBase(object):
         :writes:
         - SQL file to [APP]/sql/SELECT_BY_PK_[p_table_name].sql
         """
-        pk_conditions = ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
+        pk_conditions =\
+            ' AND '.join([f'{col}=?' for col in p_constraints['PK']])
         sql = f"SELECT {', '.join(p_col_names)}\n" +\
               f"FROM {p_table_name}\nWHERE {pk_conditions}"
 
@@ -597,7 +598,7 @@ class DataBase(object):
 
     def execute_insert(self,
                        p_sql_nm: str,
-                       p_values: tuple):
+                       p_values: list):
         """Run a SQL INSERT file which uses dynamic values.
            Values are the column names in specified order.
            For now I will assume that:
@@ -606,11 +607,6 @@ class DataBase(object):
         :args:
         - p_sql_nm (str): Name of external SQL file
         - p_values (tuple): n-tuple of values to insert
-
-        @ DEV:
-        - Can probably use a list instaed of a tuple, if that
-          helps with anything down the road. OR maybe just to
-          be consistent with other methods.
         """
         self.connect_db()
         SQL = self.get_sql_file(p_sql_nm)

@@ -53,7 +53,7 @@ SQL:
   providing data to display in the 'consolde-window', associated
   with a given map-grid combination.
 """
-
+import copy
 import math
 # import matplotlib.pyplot as plt
 # import numpy as np
@@ -62,6 +62,7 @@ import math
 import random
 # import time
 
+from collections import OrderedDict
 # from matplotlib.animation import FuncAnimation
 from pprint import pformat as pf  # noqa: F401
 from pprint import pprint as pp  # noqa: F401
@@ -107,10 +108,15 @@ class AstroUniverse:
 
     def __init__(self):
         """
-        Load existing U, XU, GC, GX, SS data from database.
+        Initialize AstroUniverse object.
+        """
+        pass
+
+    def get_all_universes(self):
+        """
+        Load all existing U, XU, GC, GX, SS data from database.
         """
         self.ALL_U = DB.execute_select_all('SELECT_ALL_UNIVERSE')
-        print(f"Known universes are: {str(self.ALL_U['univ_nm_pk'])}")
         self.ALL_XU = DB.execute_select_all('SELECT_ALL_EXTERNAL_UNIVERSE')
         self.ALL_GC = DB.execute_select_all('SELECT_ALL_GALACTIC_CLUSTER')
         self.ALL_GX = DB.execute_select_all('SELECT_ALL_GALAXY')
@@ -124,12 +130,10 @@ class AstroUniverse:
         - p_univ_nm: Name of Universe
         """
         XU = {}
-        if p_univ_nm in self.ALL_XU['univ_nm_fk']:
-            xux = self.ALL_XU['univ_nm_fk'].index(p_univ_nm)
-            XU = {k: self.ALL_XU[k][xux] for k in self.ALL_XU.keys()}
-        else:
-            print("No External Universe " +
-                  f"associated with {p_univ_nm}")
+        if self.ALL_XU['univ_nm_fk'] is not None:
+            if p_univ_nm in self.ALL_XU['univ_nm_fk']:
+                xux = self.ALL_XU['univ_nm_fk'].index(p_univ_nm)
+                XU = {k: self.ALL_XU[k][xux] for k in self.ALL_XU.keys()}
         return XU
 
     def get_galactic_clusters(self,
@@ -140,15 +144,13 @@ class AstroUniverse:
         - p_univ_nm: Name of Universe
         """
         GC = {}
-        if p_univ_nm in self.ALL_GC['univ_nm_fk']:
+        if self.ALL_GC['univ_nm_fk'] is not None\
+                and p_univ_nm in self.ALL_GC['univ_nm_fk']:
             gcux = [i for i, val in enumerate(self.ALL_GC['univ_nm_fk'])
                     if val == p_univ_nm]
             for i in gcux:
                 GC[self.ALL_GC['galactic_cluster_nm_pk'][i]] =\
                     {k: self.ALL_GC[k][i] for k in self.ALL_GC.keys()}
-        else:
-            print("No Galactic Clusters found in " +
-                  f"Universe {p_univ_nm}")
         return GC
 
     def get_galaxies(self,
@@ -157,7 +159,9 @@ class AstroUniverse:
         Return objects for Galaxies in specified Galactic Cluster.
         """
         GX = {}
-        if p_galactic_cluster_nm in self.ALL_GX['galactic_cluster_nm_fk']:
+        if self.ALL_GX['galactic_cluster_nm_fk'] is not None\
+                and p_galactic_cluster_nm in\
+                self.ALL_GX['galactic_cluster_nm_fk']:
             gxux = [i for i, val
                     in enumerate(self.ALL_GX['galactic_cluster_nm_fk'])
                     if val == p_galactic_cluster_nm]
@@ -178,7 +182,8 @@ class AstroUniverse:
         Return objects for Star Systems in specified Galaxy.
         """
         SS = {}
-        if p_galaxy_nm in self.ALL_SS['galaxy_nm_fk']:
+        if self.ALL_SS['galaxy_nm_fk'] is not None\
+                and p_galaxy_nm in self.ALL_SS['galaxy_nm_fk']:
             ssux = [i for i, val
                     in enumerate(self.ALL_SS['galaxy_nm_fk'])
                     if val == p_galaxy_nm]
@@ -205,15 +210,25 @@ class AstroUniverse:
           empty of values.
         """
         data = {}
-        data['U'] = Universe.to_dict(Universe)
-        data['XU'] = ExternalUniv.to_dict(ExternalUniv)
-        data['GC'] = GalacticCluster.to_dict(GalacticCluster)
-        data['GX'] = Galaxy.to_dict(Galaxy)
-        data['SS'] = StarSystem.to_dict(StarSystem)
+        data['update'] = False
+        data['U'] = Universe.to_dict(Universe)['UNIVERSE']
+        data['XU'] =\
+            ExternalUniv.to_dict(ExternalUniv)['EXTERNAL_UNIVERSE']
+        data['GC'] =\
+            GalacticCluster.to_dict(GalacticCluster)['GALACTIC_CLUSTER']
+        data['GX'] = Galaxy.to_dict(Galaxy)['GALAXY']
+        data['SS'] = StarSystem.to_dict(StarSystem)['STAR_SYSTEM']
+
+        # These are values returned from the database.
+        # I need to modify io_db so that "grouped" values
+        #  returned by a SELECT have been converted back to objects.
+
         if p_univ_nm_pk not in ('', None)\
                 and p_univ_nm_pk in self.ALL_U['univ_nm_pk']:
+            data['update'] = True
             ux = self.ALL_U['univ_nm_pk'].index(p_univ_nm_pk)
-            data['U'] = {k: self.ALL_U[k][ux] for k in self.ALL_U.keys()}
+            data['U'] = OrderedDict((k, self.ALL_U[k][ux])
+                                    for k in self.ALL_U.keys())
             data['XU'] = self.get_external_universe(p_univ_nm_pk)
             data['GC'] = self.get_galactic_clusters(p_univ_nm_pk)
             data['GX'] = {}
@@ -228,29 +243,28 @@ class AstroUniverse:
                     SS[ss_nm] = star_systems[ss_nm]
         return data
 
-    def set_univ_nm(self,
-                    p_db_univ_nm: Union[str, None],
-                    p_univ_nm: Union[str, None]) -> str:
+    def set_univ_name(self,
+                      p_db_univ_nm: Union[str, None],
+                      p_univ_nm: Union[str, None]) -> str:
         """
         :returns: (str) Name of new or existing universe
         """
         def set_random_name():
-            return ' '.join(random.choice(nms) for nms in Astro.UNAME)
+            uname = ' '.join(random.choice(nms) for nms in Astro.UNAME)
+            return uname
 
-        univ_nm = 'unknown'
+        univ_nm = ''
         if p_univ_nm in ('', None):
             if self.ALL_U['univ_nm_pk'] is None:
                 univ_nm = set_random_name()
             else:
-                while univ_nm not in self.ALL_U['univ_nm_pk']:
+                univ_nm = set_random_name()
+                while univ_nm in self.ALL_U['univ_nm_pk']:
                     univ_nm = set_random_name()
-            print(f"Creating new Universe  <<{univ_nm}>>")
         elif p_univ_nm == p_db_univ_nm:
             univ_nm = p_db_univ_nm
-            print(f"Universe <<{univ_nm}>> already exists.")
         else:
             univ_nm = p_univ_nm
-            print(f"Creating new Universe <<{univ_nm}>>")
         return univ_nm
 
     def set_univ_radius(self,
@@ -325,34 +339,12 @@ class AstroUniverse:
         :args:
         - (str) Optional. Universe name or '' or None.
         - (float|str|None) Optional. Universe radius in gly.
-        :writes (DB): UNIVERSE, and optionally EXTERNAL_UNIVERSE
-        :returns: (str)  maybe some kind of status meesage indicating
-          update, insert or no action taken
-
-        @TODO:
-        - Insert or Update DB. Finish the first prototype with
-          UNIVERSE, since it does not contain embedded objects.
-          Do EXTERNAL_UNIVERSE also. Then...
-        - Abstract the io_db method that translate embedded objects
-          to DB columns. For example, io_data.Struct.CoordXYZ objects
-          become 3 columns on the database. Will need to do the same
-          logic prior to inserting or updating for tables that use these
-          types of structures. It is the logic in io_db.set_sql_column_group()
-          so maybe that method can just be called from here. Or maybe
-          it needs to be abstracted in way to make it available to both
-          io_db and io_astro (and other callers).
-        - May also be useful to refactor io_db a bit to take advantage
-          of the to_dict methods included with the table structures.
-        - May also want to develop a method to transform the grouped
-          DB columns back into the corresponding object.
-        - Another way to manage it would be to do transforms in both
-          directions in io_db, as part of insert, update and select logic.
-          - I kind of like that idea. Keeps the logic in one place.
-          - Lets the user use the objects as they are designed to be used.
+        :writes (DB): UNIVERSE
+        :returns: (str) Name of updated or inserted universe.
         """
         u_data = self.get_universe(p_univ_nm)
-        U = u_data['U']['UNIVERSE']
-        U['univ_nm_pk'] = self.set_univ_nm(U['univ_nm_pk'], p_univ_nm)
+        U = copy.deepcopy(u_data['U'])
+        U['univ_nm_pk'] = self.set_univ_name(U['univ_nm_pk'], p_univ_nm)
         U['radius_gly'] = self.set_univ_radius(U['radius_gly'], p_radius_gly)
         U['volume_gly3'] = (4/3) * math.pi * (U['radius_gly'] ** 3)
         U['volume_pc3'] = U['volume_gly3'] * Astro.GLY_TO_PC
@@ -362,9 +354,123 @@ class AstroUniverse:
         U['dark_energy_kg'] = U['total_mass_kg'] * Astro.U_DARK_ENERGY_PCT
         U['dark_matter_kg'] = U['total_mass_kg'] * Astro.U_DARK_MATTER_PCT
         U['baryonic_matter_kg'] = U['total_mass_kg'] * Astro.U_BARYONIC_PCT
-        u_data['U']['UNIVERSE'] = U
+        if u_data['update']:
+            if U != u_data['U']:
+                key = list()
+                key.append(U.pop("univ_nm_pk"))
+                vals = list(U.values())
+                DB.execute_update('UPDATE_UNIVERSE', vals, key)
+        else:
+            vals = tuple(U.values())
+            DB.execute_insert('INSERT_UNIVERSE', vals)
+        ix = False
+        if self.ALL_U['univ_nm_pk'] is not None:
+            if U['univ_nm_pk'] in self.ALL_U['univ_nm_pk']:
+                ix = self.ALL_U['univ_nm_pk'].index(U['univ_nm_pk'])
+        for k, v in U.items():
+            if ix:
+                self.ALL_U[k][ix] = v
+            else:
+                self.ALL_U[k] = [v]
+        return U['univ_nm_pk']
 
-        pp(("U", U))
-        pp(("u_data", u_data))
+    def set_external_univ_name(self,
+                               p_univ_nm: str,
+                               p_db_external_univ_nm: Union[str, None],
+                               p_external_univ_nm: Union[str, None]) -> str:
+        """
+        If xu name provided, but it does not match existing xu name,
+          ignore the provided name and return the existing name.
+        If no xu name os provided, and there is an existing XU, use
+          the exixting name.
+        If xu name provided, and there is no existing XU, use provided name.
+        if no xu name provied and there is no existing XU, then geneate
+          XU name from the Universe Name.
+        :args:
+        - (str) Name of universe (required)
+        - (str|None) Name of existing external universe or None
+        - (str|None) Name of new external universe or None.
+        :returns: (str) Name of new or existing external universe
+        """
+        external_univ_nm = ''
+        if p_external_univ_nm not in ('', None) and\
+                p_db_external_univ_nm not in ('', None):
+            external_univ_nm = p_db_external_univ_nm
+        elif p_external_univ_nm in ('', None) and\
+                p_db_external_univ_nm not in ('', None):
+            external_univ_nm = p_db_external_univ_nm
+        elif p_external_univ_nm not in ('', None) and\
+                p_db_external_univ_nm in ('', None):
+            external_univ_nm = p_external_univ_nm
+        else:
+            external_univ_nm = "External " + p_univ_nm
+        return external_univ_nm
 
-        return 'Completed'
+    def set_external_universe(self,
+                              p_univ_nm: str,
+                              p_external_univ_nm: Union[str, None]):
+        """
+        Based on settings of Universe, either create or update its
+        associated External Universe object.
+
+        @TODO:
+        - Pick up here. Populate or recalculate External Universe values.
+        - Insert or Update database.
+        - Refresh self.XU values.
+        - Then see notes on refacoring io_db handling of "groups"/objects.
+        """
+        u_data = self.get_universe(p_univ_nm)
+        XU = copy.deepcopy(u_data['XU'])
+
+        pp(("XU 1: ", XU))
+
+        XU['univ_nm_fk'] = u_data['U']['univ_nm_pk']
+        db_external_univ_nm = None
+        if 'external_univ_nm_pk' in XU.keys():
+            db_external_univ_nm = XU['external_univ_nm_pk']
+        XU['external_univ_nm_pk'] =\
+            self.set_external_univ_name(db_external_univ_nm,
+                                        XU['univ_nm_fk'],
+                                        p_external_univ_nm)
+        pp(("XU 2: ", XU))
+
+    def set_astro(self,
+                  p_univ_nm: Union[str, None] = None,
+                  p_radius_gly: Union[float, str, None] = None,
+                  p_age_gyr: Union[float, str, None] = None,
+                  p_external_univ_nm: Union[str, None] = None):
+        """
+        Set all objects in the universe. Pretty much everything is
+        inter-connected. Let's see if we can have a single interface
+        for any type of update or insert to a universe, at least
+        down to a certain level -- e.g., worlds and moons.
+
+        @TODO:
+        - Do EXTERNAL_UNIVERSE, whic has no grouped objects. Then...
+        - Abstract the io_db method that translates embedded objects
+          to DB columns. For example, io_data.Struct.CoordXYZ objects
+          become 3 columns on the database. It is the logic in
+          io_db.set_sql_column_group()
+        - Refactor io_db to take advantage of to_dict methods
+          included with the table structures to transform the grouped
+          DB columns back into the corresponding object. Do this in
+          both the SELECT methods as well as INSERT, UPDATE. In other
+          words, don't require the calling modules to expect anything
+          other than the structures -- including objects -- as
+          defined in io_data.
+        - But don't store the objects as JSON or BLOB or Pickles.
+          I still want to be able to query and update elements within
+          those objects in a normal SQL way.
+        """
+        self.get_all_universes()
+        univ_nm = self.set_universe(p_univ_nm, p_radius_gly, p_age_gyr)
+
+        print("\n\n1------")
+        pp((self.ALL_U))
+        pp((self.ALL_XU))
+
+        self.set_external_universe(univ_nm, p_external_univ_nm)
+
+        print("\n\n2------")
+        pp((self.ALL_U))
+        pp((self.ALL_XU))
