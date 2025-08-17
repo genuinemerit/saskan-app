@@ -1,9 +1,9 @@
 [project]
 name = "Saskantinon"
-version = "0.0.0.a16"
-description = "Saskantinon game and admin tools"
+version = "0.0.0.a4"
+description = "Saskan Lands Game"
 authors = [{ name = "Genuine Merit Software", email = "genuinmemerit@pm.me" }]
-keywords = ["game", "saskantinon", "game editor", "RPG"]
+keywords = ["game", "saskantinon", "RPG"]
 license = "MIT"
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.12"
@@ -41,11 +41,11 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
-[project.scripts]
-saskan = "src/Saskantinon/__main__.py"
+[tool.project.scripts]
+saskan = "scripts.manage:cli"
 
 [project.urls]
 "Bug Tracker" = "https://github.com/genuinemerit/saskan-app/issues"
@@ -59,8 +59,3 @@ linting = ["flake8", "pycodestyle"]
 formatting = ["isort", "black"]
 docs = ["sphinx"]
 
-[tool.hatch.build.targets.wheel]
-include = ["src/Saskantinon"]
-
-[tool.hatch.build.targets.sdist]
-include = ["src/Saskantinon"]

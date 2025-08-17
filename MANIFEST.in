@@ -1,8 +1,5 @@
-# The MANIFEST.in is automatically read by setuptools, and is used to
-# include files from the source tree into the Python package which are
-# not python files. Typical uses include documentation, license, readme
-# and so on. It can also identify files, directories to exclude from the
-# distribution package.
+# The MANIFEST.in includes documentation, license, readme and so on.
+# It can also identify files, directories to exclude from the distribution package.
 
 include AUTHORS.rst
 include CONTRIBUTING.rst
@@ -11,7 +8,6 @@ include LICENSE
 include README.rst
 
 recursive-include test *
-recursive-exclude src/Saskantinon/BootSaskan
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 
