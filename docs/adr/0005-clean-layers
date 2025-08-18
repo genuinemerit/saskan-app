@@ -1,0 +1,29 @@
+Clean Layering & Purity Boundaries
+
+Date: 2025-08-17
+
+Status: Accepted
+
+Context: Prevent spaghetti and enable future engine/UI swaps.
+
+Decision: Enforce these boundaries:
+
+core/ domain models and hex/sim math are pure (no IO, no globals).
+
+engine/ orchestrates turn pipeline; systems return events; only a single commit mutates state.
+
+infra/ owns persistence, messaging, logging, config.
+
+UI layers communicate only via client API/messages.
+
+One RNG service, seeded per turn, passed explicitly.
+
+Consequences:
+
+High testability; easier refactors (e.g., alternate UIs or simulation detail).
+
+Slight overhead for event plumbing and state commits.
+
+Alternatives considered: Active-record style models (convenient, leaky IO), ad-hoc mutation across systems (fast initially, brittle).
+
+Notes/Follow-ups: Add property tests for invariants (conservation, non-negative populations, acyclic agency DAG). Define JSON Schemas for snapshots, triggers, config, intents, messages.

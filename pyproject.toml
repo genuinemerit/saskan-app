@@ -1,61 +1,130 @@
-[project]
-name = "Saskantinon"
-version = "0.0.0.a4"
-description = "Saskan Lands Game"
-authors = [{ name = "Genuine Merit Software", email = "genuinmemerit@pm.me" }]
-keywords = ["game", "saskantinon", "RPG"]
-license = "MIT"
-readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">=3.12"
-classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
-    "Environment :: X11 Applications",
-    "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: MIT License",
-    "Natural Language :: English",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Games/Entertainment :: Role-Playing",
-    "Topic :: Software Development :: Libraries :: Python Modules"
-]
-dependencies = [
-    "beautifulsoup4",
-    "Levenshtein",
-    "matplotlib",
-    "networkx",
-    "nltk",
-    "numbers-parser",
-    "numpy",
-    "openai",
-    "pandas",
-    "pathlib",
-    "pendulum",
-    "pygame",
-    "requests",
-    "rich",
-    "sqlalchemy",
-    "tabulate",
-    "tornado",
-    "twisted",
-    "tzlocal",
-]
-
 [build-system]
-requires = ["poetry-core"]
+requires = ["poetry-core>=1.9.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.project.scripts]
-saskan = "scripts.manage:cli"
+[tool.poetry]
+name = "saskantinon"
+version = "0.0.0a4"
+description = "Saskan Lands tools and scaffolding: world-building utilities, data models, CLI."
+license = "MIT"
+authors = ["Genuine Merit Software <genuinemerit@pm.me>"]
+readme = "README.md"
+keywords = ["game", "saskantinon", "rpg"]
 
-[project.urls]
+# Flat layout with multiple top-level packages
+# (Poetry will auto-discover packages with __init__.py; keep explicit includes to be clear.)
+packages = [
+  { include = "core" },
+  { include = "engine" },
+  { include = "infra" },
+  { include = "sims" },
+  { include = "tools" },
+  { include = "ui_cli" },
+  { include = "ui_pygame" },
+  { include = "ui_pyside" }
+]
+
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Games/Entertainment :: Role-Playing",
+  "Topic :: Software Development :: Libraries :: Python Modules"
+]
+
+# Ship common meta/docs if you publish; harmless for apps
+include = [
+  "AUTHORS.md",
+  "CHANGELOG.md",
+  "CODE_OF_CONDUCT.md",
+  "CONTRIBUTING.md",
+  "SECURITY.md",
+  "README.md",
+  "LICENSE",
+  "docs/**/*"
+]
+
+[tool.poetry.scripts]
+# You will create ui_cli/manage.py with a `cli()` function
+saskan = "ui_cli.manage:cli"
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+
+# Core runtime (lean; add more as they become truly required at runtime)
+beautifulsoup4 = "^4.12"
+Levenshtein = "^0.25"
+networkx = "^3.3"
+numbers-parser = "^4.0"
+numpy = "^2.0"
+openai = "^1.0"
+pendulum = "^3.0"
+requests = "^2.32"
+rich = "^13.7"
+SQLAlchemy = "^2.0"
+tabulate = "^0.9"
+tzlocal = "^5.2"
+
+# Heavy/optional at runtime → kept as extras
+matplotlib = { version = "^3.9", optional = true }
+nltk = { version = "^3.9", optional = true }
+pandas = { version = "^2.2", optional = true }
+pygame = { version = "^2.6", optional = true }
+
+# Databases
+# Default: stdlib sqlite3 via SQLAlchemy (no extra driver needed)
+# Optional Postgres support (sync)
+psycopg = { version = "^3.2", optional = true }
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.8"
+isort = "^5.13"
+ruff = "^0.6"
+pytest = "^8.3"
+coverage = "^7.6"
+mypy = "^1.11"  # optional, but good to have
+
+[tool.poetry.extras]
+analytics = ["matplotlib", "pandas", "nltk"]
+gui = ["pygame"]
+postgres = ["psycopg"]
+
+[tool.poetry.urls]
 "Bug Tracker" = "https://github.com/genuinemerit/saskan-app/issues"
-"Documentation" = "https://github.com/genuinemerit/saskan-wiki"
+"Documentation" = "https://github.com/genuinemerit/saskan-app/wiki"
 "Source Code" = "https://github.com/genuinemerit/saskan-app"
-"Story" = "https://github.com/genuinemerit/saskan-story"
 
-[project.optional-dependencies]
-testing = ["pytest", "coverage"]
-linting = ["flake8", "pycodestyle"]
-formatting = ["isort", "black"]
-docs = ["sphinx"]
+# -------------------------
+# Tooling configuration
+# -------------------------
 
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["core", "engine", "infra", "sims", "tools", "ui_cli", "ui_pygame", "ui_pyside"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+select = ["E", "F", "I"]      # pycodestyle/pyflakes/imports
+ignore = []
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict_optional = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true

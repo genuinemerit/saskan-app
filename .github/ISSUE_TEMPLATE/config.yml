@@ -1,0 +1,14 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 📖 Documentation
+    url: https://github.com/genuinemerit/saskan-app/wiki
+    about: Please check the documentation and wiki before filing an issue.
+
+  - name: 💬 Discussions
+    url: https://github.com/genuinemerit/saskan-app/discussions
+    about: For general questions, ideas, or open-ended conversations.
+
+  - name: 🔒 Security Reports
+    url: https://github.com/genuinemerit/saskan-app/security/policy
+    about: Please report security vulnerabilities privately via the SECURITY.md process.

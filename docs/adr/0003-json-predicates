@@ -1,0 +1,19 @@
+Triggers via JSON Predicates + Python Action Registry
+
+Date: 2025-08-17
+
+Status: Accepted
+
+Context: Lore-driven events must be data-first yet powerful; early need is clarity over expressiveness.
+
+Decision: Represent triggers as JSON predicates with fields: when, scope, requires, weight, effects. Provide a minimal operator set (and/or/not, ==, !=, <, >, <=, >=, in, numeric ranges, distance, counts/aggregates). Map effects to a named Python action registry (string → callable). Evaluate during the Story phase; enqueue effects; apply at commit.
+
+Consequences:
+
+Designers can author events in data; logic stays testable.
+
+Complex conditions require composing small predicates, not embedding code.
+
+Alternatives considered: Embedded Python scripting (powerful, mixes code/data), custom DSL (expressive, heavier parser/tooling).
+
+Notes/Follow-ups: Log which predicates fired with inputs/outputs; version trigger schema; i18n message IDs live in data, not code.

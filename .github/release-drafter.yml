@@ -1,0 +1,77 @@
+name-template: 'v$NEXT_PATCH_VERSION'
+tag-template: 'v$NEXT_PATCH_VERSION'
+
+# Group PRs into sections in the drafted release notes
+categories:
+  - title: 🚀 Features
+    labels: [enhancement, feature]
+  - title: 🐛 Bug Fixes
+    labels: [bug]
+  - title: 📚 Docs
+    labels: [docs, documentation]
+  - title: 🧰 Maintenance
+    labels: [chore, ci, refactor, style, perf, test]
+  - title: 🔒 Security
+    labels: [security]
+
+# How each PR is rendered
+change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
+change-title-escapes: '\<*_&'   # escape characters that break markdown
+
+# If a PR has any of these labels, exclude it from notes
+exclude-labels:
+  - skip-changelog
+
+# Determine next version from labels on merged PRs
+version-resolver:
+  major:
+    labels: [breaking, major]
+  minor:
+    labels: [enhancement, feature, minor]
+  patch:
+    labels: [bug, fix, patch, docs, documentation, chore, ci, refactor, style, perf, test, security]
+  default: patch
+
+# Release notes body
+template: |
+  ## Changes
+  $CHANGES
+
+  ## Contributors
+  $CONTRIBUTORS
+
+autolabeler:
+  # Title-based
+  - label: breaking
+    title:
+      - '/!:|BREAKING/i'
+  - label: enhancement
+    title:
+      - '/feat/i'
+  - label: bug
+    title:
+      - '/fix|bug/i'
+  - label: docs
+    title:
+      - '/docs?|readme|changelog/i'
+  - label: refactor
+    title:
+      - '/refactor/i'
+  - label: test
+    title:
+      - '/test|pytest/i'
+  - label: chore
+    title:
+      - '/chore|maintenance/i'
+
+  # Path-based (adjust to your repo layout)
+  - label: docs
+    files:
+      - 'docs/**'
+      - '**/*.md'
+  - label: test
+    files:
+      - 'tests/**'
+  - label: ci
+    files:
+      - '.github/workflows/**'
