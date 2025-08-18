@@ -12,7 +12,7 @@ ci:
   skip: []  # e.g., ["mypy"]
 
 # Global defaults
-default_stages: [commit]
+default_stages: [pre-commit]
 minimum_pre_commit_version: "3.7.0"
 
 repos:
@@ -63,7 +63,7 @@ repos:
         language: system   # use system shell + project venv via poetry
         pass_filenames: false
         types: [python]
-        stages: [commit]
+        stages: [pre-commit]
 
   # --- Optional: run tests on pre-push (fast suite only) ---
   # Enable when your tests are quick; otherwise keep this commented.
