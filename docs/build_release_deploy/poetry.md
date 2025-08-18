@@ -233,4 +233,56 @@ You don’t need to deactivate before switching to another project. Running poet
 
 So: deactivation is only about cleaning up your current shell session, not about Poetry state.
 
+## poetry refresh (install)
+
+Don’t need to blow away the venv every time we edit `pyproject.toml`.
+
+### Typical cases
+
+* **Changed metadata only** (name, description, classifiers, package layout, includes):
+  → Just keep working. No need to touch the venv, since installed deps haven’t changed.
+
+* **Added/removed/updated dependencies**:
+  → Run:
+
+  ```bash
+  poetry install
+  ```
+
+  This syncs the venv with the updated dependency list and refreshes `poetry.lock`.
+
+* **Changed dev tool config only** (black/isort/pytest/mypy settings):
+  → No action needed; those live in config, not in the environment.
+
+* **Big cleanup / want to be sure**:
+
+  ```bash
+  poetry lock --no-update
+  poetry install
+  ```
+
+  Ensures lockfile is regenerated and venv is synced.
+
+Don’t need to deactivate.
+
+`poetry install` works on the project’s virtualenv on disk, not on your currently active shell. Whether you’re “inside” the venv (`poetry shell` / `source …/activate`) or outside, the command does the same thing: it syncs that environment with your `pyproject.toml` and `poetry.lock`.
+
+**Best practice:**
+
+* Stay in your normal shell (no active venv) when running dependency management commands (`poetry install`, `poetry add`, `poetry update`).
+* Drop into `poetry shell` (or use `poetry run …`) only when you want to execute code.
+
+That way you avoid confusing yourself with nested or mismatched environments.
+
+
+---
+
+### Example
+
+I only **renamed the project/package and adjusted package paths** in `pyproject.toml`:
+
+* No need to nuke/re-init.
+* Just run `poetry install` once, to let Poetry check that metadata + lock are in sync.
+
+
 

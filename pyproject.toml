@@ -3,26 +3,17 @@ requires = ["poetry-core>=1.9.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "saskantinon"
-version = "0.0.0a4"
+name = "saskan"
+version = "0.0.0"
 description = "Saskan Lands tools and scaffolding: world-building utilities, data models, CLI."
 license = "MIT"
 authors = ["Genuine Merit Software <genuinemerit@pm.me>"]
 readme = "README.md"
-keywords = ["game", "saskantinon", "rpg"]
+keywords = ["game", "saskantinon", "Saskan Lands", "saskan", "rpg"]
 
-# Flat layout with multiple top-level packages
-# (Poetry will auto-discover packages with __init__.py; keep explicit includes to be clear.)
-packages = [
-  { include = "core" },
-  { include = "engine" },
-  { include = "infra" },
-  { include = "sims" },
-  { include = "tools" },
-  { include = "ui_cli" },
-  { include = "ui_pygame" },
-  { include = "ui_pyside" }
-]
+# Single top-level package
+# Poetry will auto-discover packages with __init__.py.
+packages = [{ include = "saskan" }]
 
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
@@ -45,12 +36,13 @@ include = [
   "SECURITY.md",
   "README.md",
   "LICENSE",
-  "docs/**/*"
+  "docs/**/*",
+  "saskan/data/**/*"
 ]
 
 [tool.poetry.scripts]
-# You will create ui_cli/manage.py with a `cli()` function
-saskan = "ui_cli.manage:cli"
+# Expects saskan/ui_cli/manage.py with def cli()
+saskan = "saskan.ui_cli.manage:cli"
 
 [tool.poetry.dependencies]
 python = ">=3.12,<3.13"
@@ -95,7 +87,7 @@ postgres = ["psycopg"]
 
 [tool.poetry.urls]
 "Bug Tracker" = "https://github.com/genuinemerit/saskan-app/issues"
-"Documentation" = "https://github.com/genuinemerit/saskan-app/wiki"
+"Documentation" = "https://github.com/genuinemerit/saskan-wiki/wiki"
 "Source Code" = "https://github.com/genuinemerit/saskan-app"
 
 # -------------------------
@@ -109,7 +101,7 @@ target-version = ["py312"]
 [tool.isort]
 profile = "black"
 line_length = 100
-known_first_party = ["core", "engine", "infra", "sims", "tools", "ui_cli", "ui_pygame", "ui_pyside"]
+known_first_party = ["saskan"]
 
 [tool.ruff]
 line-length = 100
@@ -119,10 +111,11 @@ ignore = []
 
 [tool.pytest.ini_options]
 addopts = "-q"
-testpaths = ["tests"]
+testpaths = ["saskan/tests"]
 
 [tool.mypy]
 python_version = "3.12"
+packages = ["saskan"]
 ignore_missing_imports = true
 strict_optional = true
 warn_unused_ignores = true
