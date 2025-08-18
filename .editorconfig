@@ -1,0 +1,43 @@
+# .editorconfig — shared editor settings
+# Black/isort/Ruff line length: 100
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Default indentation (Python-style)
+indent_style = space
+indent_size = 4
+# Advisory; honored by some editor plugins
+max_line_length = 100
+
+[*.py]
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+# Markdown: keep trailing spaces (for line breaks)
+[*.md]
+trim_trailing_whitespace = false
+# Editors may use this for soft wrap
+max_line_length = 100
+
+# YAML / TOML / JSON: 2-space indent
+[*.{yml,yaml,toml,json}]
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+# INI/CFG: 2-space indent (compact config files)
+[*.{ini,cfg}]
+indent_style = space
+indent_size = 2
+max_line_length = 100
+
+# Makefiles must use tabs
+[Makefile]
+indent_style = tab

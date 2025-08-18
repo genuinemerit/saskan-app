@@ -78,6 +78,9 @@ clean:
 	rm -rf .pytest_cache __pycache__ */__pycache__ htmlcov dist build .ruff_cache .mypy_cache .coverage coverage.xml
 ```
 
+For first actual prototype, see:  saskan-app/Makefile
+
+
 ### Variations to consider later
 
 * **Parametrized targets**: `make run ARGS="--seed=42"` → `poetry run saskan $(ARGS)`.
@@ -86,4 +89,57 @@ clean:
 * **Matrix runners**: pair with CI to call the same targets (`make lint test`).
 
 When you’re ready, tailor a Makefile to your exact toolchain and CI triggers.
+
+
+### Best practices baked in
+
+- Everything via Poetry (poetry run …) so tools use the project venv.
+
+- Single-source line length/format: formatters/lints rely on your pyproject.toml.
+
+- `check` bundles quality gates for CI and local use.
+
+- Guarded release: refuses to run on a dirty tree; uses poetry version for semver bumps and creates a git tag. You still publish manually (aligns with Release Drafter).
+
+#### Useful variations you can add later
+
+- DB helpers (if you adopt Docker): db-up, db-down, db-migrate, gated to only run if docker-compose.yml exists.
+
+- Smoke tests: a fast subset for pre-push hook or make smoke.
+
+- Docs: docs-serve for local preview (if you add MkDocs/Sphinx).
+
+See version of Makefile for old saskan-app project for examples of generating docs and running test suites.
+
+- Perf checks: bench running pytest-benchmark and storing .benchmarks/.
+
+- Type levels: type-strict vs. type to allow gradual mypy adoption.
+
+We can adapt the release target to auto-push and/or to call `gh release create` with the draft notes from Release Drafter, but keeping “manual push” is safer until we’re comfortable with the process.
+
+### Summary of what to go ahead and add now based on using the GitFlow pattern
+
+Guards: guard-clean, guard-branch-*, guard-branch-pattern-*
+
+Dev UX bundle: setup, fmt, lint, test, check
+
+Version helpers: version, bump
+
+GitFlow ops: start-release, finish-release, start-hotfix, finish-hotfix
+
+Packaging: build, clean-dist
+
+Optional: gh-release, ci-pr, ci-tag
+
+### How to use (GitFlow path) from Makefile:
+
+Start release: make start-release RELEASE=1.2.0
+
+Stabilize on release/1.2.0 (fixes/docs only). Optionally make bump BUMP=patch.
+
+Finish release (from that branch): make finish-release
+
+Hotfix flow mirrors the above with start-hotfix / finish-hotfix.
+
+This keeps our existing release target as a legacy/manual option while nudging toward the GitFlow cadence.
 

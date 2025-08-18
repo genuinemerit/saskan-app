@@ -257,4 +257,9 @@ Approach this like a solo dev building scaffolding for a team that may come late
 
 Take it step by step. Test each part before layering the next.
 
+---
+
+## YAML naming standard
+
+**YAML file naming**: This project standardizes on the `.yaml` extension for configuration files we author (e.g. `.pre-commit-config.yaml`), while third-party defaults like GitHub Actions may continue using `.yml`.
 

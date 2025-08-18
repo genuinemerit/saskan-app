@@ -12,5 +12,11 @@ We’ll treat these as code artifacts in their own right, review them, and desig
 
 ---
 
-This also can include secondary support tools like apt, snap and MacPorts
+This also includes secondary support tools such as:
+
+- package managers: apt, snap and MacPorts, or curl
+
+- gh: GitHub CLI
+
+- Makefiles
 

@@ -46,9 +46,15 @@ debug/
 *.log
 
 # --- Environments ---
+# Ignore real environment config/secrets
 .env
+.env.*
+/env/
+
+# Keep the example template committed
+!.env.example
+
 .venv
-env/
 venv/
 ENV/
 env.bak/

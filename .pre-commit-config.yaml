@@ -1,0 +1,81 @@
+# .pre-commit-config.yaml
+# Quality gates for the Saskan repo
+# Install & enable:
+#   poetry add --group dev pre-commit
+#   poetry run pre-commit install
+# Run on all files once:
+#   poetry run pre-commit run --all-files
+
+ci:
+  autofix_prs: false
+  autofix_commit_msg: "chore(pre-commit): auto-fix"
+  skip: []  # e.g., ["mypy"]
+
+# Global defaults
+default_stages: [commit]
+minimum_pre_commit_version: "3.7.0"
+
+repos:
+  # --- Lightweight hygiene ---
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: detect-private-key
+
+  # --- Import sorting (logical) ---
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile=black", "--line-length=100"]
+        additional_dependencies: []  # keep tool version pinned here
+
+  # --- Formatting (physical) ---
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        args: ["--line-length=100"]
+        language_version: python3
+
+  # --- Fast linting (errors/pyflakes/imports) ---
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.6
+    hooks:
+      - id: ruff
+        args: ["--line-length=100", "check"]
+      - id: ruff-format  # ruff's formatter (kept after black for now, but you can drop black later)
+
+  # --- Type checking via project’s Poetry env ---
+  # We prefer using the same mypy version/config as in pyproject.toml.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (poetry)
+        entry: bash -c 'poetry run mypy'
+        language: system   # use system shell + project venv via poetry
+        pass_filenames: false
+        types: [python]
+        stages: [commit]
+
+  # --- Optional: run tests on pre-push (fast suite only) ---
+  # Enable when your tests are quick; otherwise keep this commented.
+  # - repo: local
+  #   hooks:
+  #     - id: pytest
+  #       name: pytest (quick)
+  #       entry: bash -c 'poetry run pytest -q'
+  #       language: system
+  #       pass_filenames: false
+  #       stages: [push]
+
+# File filters (tune as needed)
+exclude: |
+  ^docs/|^\.github/|^saskan/ui_pygame/.*\.(png|jpg|gif)$
