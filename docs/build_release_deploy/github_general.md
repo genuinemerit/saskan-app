@@ -75,6 +75,55 @@ By following these steps, you should be able to diagnose and resolve the SSH con
 
 It turned out that the problem was with Network Configuration. We had increased the Firewall Setting to "Maximum", which evidently blocked apps communicating on port 22 or using SSH (not sure which). As soon as I throttled it back down to "Medium" then the git command worked properly over ssh.
 
+---
+
+# GitHub CLI (gh)
+
+The **GitHub CLI (`gh`)** is a command-line tool for working with GitHub (repos, issues, PRs, releases, labels) without clicking around in the web UI.
+
+Also see: [docs/meta/package_installers.md](docs/meta/package_installers.md)
+
+It gives an example of how to install `gh`
+
+Running:
+
+```bash
+gh auth login
+```
+
+does two things:
+
+1. **Install credentials** – it links your local `gh` tool with your GitHub account by creating a secure authentication token. That way, when you run commands like `gh label create` or `gh pr create`, GitHub knows *who* you are and what permissions you have.
+
+2. **Set context** – it lets you pick default settings (HTTPS vs SSH for git clone, which account/org to use, etc.) so subsequent `gh` commands don’t need extra flags.
+
+**Purpose in Saskan workflow setting up release labels:**
+
+* The label setup script (and later scripts for PRs, releases, etc.) calls GitHub APIs under the hood. Without logging in, `gh` has no authorization.
+* Once you’ve authenticated once with `gh auth login`, your local machine can securely run commands against your repos.
+
+Think of it as the handshake that makes the GitHub CLI a first-class, logged-in client — like `git` for code, but `gh` for GitHub itself.
 
 
+## gh auth status
 
+Normally don’t need to repeat it.
+
+When you run `gh auth login`, the CLI:
+
+* Exchanges that one-time browser code for a **personal access token (PAT)**.
+* Stores it in a config file on disk:
+
+  * `~/.config/gh/hosts.yml` (on Linux).
+* That token is re-used automatically by `gh` every time you open a new shell.
+
+### Expiry / re-login cases
+
+* **Browser login**: the PAT `gh` gets does not expire quickly. It stays valid until you revoke it manually, or if GitHub rotates tokens.
+* **If you revoke the token** in GitHub settings → you’ll need to run `gh auth login` again.
+* **If you change machines** → repeat once on the new machine.
+* **Multiple accounts** → `gh auth login --hostname github.com --scopes ...` per account, then pick which is default.
+
+So: you should only need to log in once per machine, not per terminal session.
+
+Command to check current login status is `gh auth status`.

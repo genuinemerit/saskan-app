@@ -6,194 +6,122 @@ See:
 
 ### `.github/release-drafter.yml`
 
+- Config file = how to draft release notes.
+
 and
 
 ### `.github/workflows/release-drafter.yml`
 
-- Config file = how to draft release notes.
+and 
 
-- Workflow file = when and where to run Release Drafter.
+### `.github/workflows/publish-release.yml`
 
-- Future changes mostly involve branch strategy, labels/categories, and versioning policy.
+- Workflow files = when and where to run Release Drafter.
 
-## How the two files work
+- Future changes will mostly involve branch strategy, labels/categories, and versioning policy.
 
-.github/release-drafter.yml (the config)
+## Flow we’ll follow
 
-Defines how Release Drafter should structure draft release notes.
+- Merge features into develop → draft notes update automatically.
 
-Groups merged PRs by label (Features, Bug Fixes, etc.).
+- Cut release/1.2.0 from develop → draft toggles to pre-release.
 
-Controls version bumping (major/minor/patch) based on labels.
+- Stabilize in release/1.2.0 (only fixes/docs).
 
-Skips PRs with skip-changelog.
+- Merge release/1.2.0 → main, tag v1.2.0 (manually or via a workflow step).
 
-Can even auto-label PRs by title or file path.
+- Pushing the tag triggers Publish Release → draft becomes official release with your tag.
 
-→ Think of it as the rulebook for how release notes are generated.
+## Hotfixes
 
-.github/workflows/release-drafter.yml (the workflow)
+- Branch hotfix/1.2.1 from main, fix, merge back to main, tag v1.2.1 → publish workflow fires.
 
-A GitHub Action triggered on PR activity and pushes to main.
+- Also merge hotfix back into develop to keep lines in sync.
 
-Runs the Release Drafter app with your config.
+## Defining labels
 
-Updates or creates a draft release in GitHub’s “Releases” section automatically.
+Right — Release Drafter doesn’t invent categories by itself, it looks at **labels on PRs**. If those labels don’t exist in your repo, the categories you configured won’t populate. So you need to pre-define them once in GitHub.
 
-→ Think of it as the automation that enforces the rulebook.
+---
 
-## What might change later
+## Why labels matter
 
-Branching model:
-If you switch from a simple main-only workflow to main + develop or release branches, you’ll need to update the workflow triggers (on: push: branches:).
+* When you merge a PR, Release Drafter checks its labels.
+* It sorts the PR into the right section (✨ Features, 🐛 Fixes, etc.).
+* If no label matches, the PR might show up under “Other Changes” or be skipped.
 
-Versioning strategy:
-Right now, version bumps are inferred from PR labels. If you adopt semantic-release, manual tagging, or a different scheme, you’d adjust the version-resolver or disable it.
+---
 
-Labels & categories:
-You may add new categories (performance, infra, dependencies) or refine existing ones as more contributors join.
+## How to create labels
 
-Autolabeler rules:
-If you standardize commit message conventions (Conventional Commits), you can simplify the autolabeler or even drop it.
+1. Go to your repo on GitHub.
+2. Click **Issues** → **Labels** (or visit directly: `https://github.com/<org>/<repo>/labels`).
+3. For each label, click **New label**.
 
-Security/Private repos:
-If you go private or handle sensitive changes, you might exclude certain categories from public notes.
+   * Enter the **name** (must match exactly what’s in your `.github/release-drafter.yml`).
+   * Optionally add a **description** (e.g., “New feature or enhancement”).
+   * Pick a color (just to help scanning).
+4. Save. Repeat until your label set is complete.
 
-### Notes / usage
+---
 
-* Label your PRs (`enhancement`, `bug`, `docs`, `chore`, `breaking`) to drive both **section grouping** and **version bumping**.
-* Add `skip-changelog` to any PR you don’t want listed.
-* When you’re ready to cut a release, go to **Releases → Draft**; the notes will be pre-filled and version set per `version-resolver`.
-* This pairs cleanly with your `CHANGELOG.md`—you can copy the generated notes into it or keep both.
+## Recommended label set (for GitFlow + Release Drafter)
 
-## Moving to a "Gitflow" feature -> develop -> main -> tagged-release schedule
+| Label             | Purpose                                | Suggested color |
+| ----------------- | -------------------------------------- | --------------- |
+| `feat`            | New features                           | bright green    |
+| `fix`             | Bug fixes                              | red             |
+| `hotfix`          | Emergency production fixes             | darker red      |
+| `perf`            | Performance improvements               | orange          |
+| `refactor`        | Internal code changes                  | purple          |
+| `docs`            | Documentation updates                  | blue            |
+| `chore`           | Maintenance, CI config, infra          | gray            |
+| `build`           | Build system changes                   | dark gray       |
+| `ci`              | Continuous integration changes         | light blue      |
+| `dependencies`    | Dependency bumps (manual)              | light green     |
+| `deps`            | Dependency bumps (Dependabot, etc.)    | pale green      |
+| `security`        | Security fixes                         | dark red        |
+| `breaking-change` | Backward-incompatible changes          | black           |
+| `skip-changelog`  | Don’t include this PR in release notes | very light gray |
 
-Here’s a compact “Gitflow-ready” plan.
+---
 
-# What changes under Gitflow
+## Example workflow
 
-* **Branches**
+* You merge a PR labeled `feat` → Release Drafter puts it in the **Features** section.
+* You merge a PR labeled `fix` → goes into **Fixes**.
+* If you tag it `breaking-change` too → Release Drafter bumps **major version**.
+* If you mark `skip-changelog` → it won’t show up in release notes at all.
 
-  * `feature/*` → PR → `develop` (integration)
-  * `release/*` → hardening → PR → `main` (final)
-  * `hotfix/*` → PR → `main` (urgent fix), then back-merge to `develop`
-* **Draft notes behavior**
+---
 
-  * Keep a **rolling prerelease draft** on `develop` (preview next version).
-  * Keep a **final release draft** on `main` (what ships).
-* **Versioning**
+Draft a **one-time script** (e.g., using GitHub CLI) that bulk-creates these labels in your repo, so you don’t have to click them in the UI one by one.
 
-  * On `develop`: preview tags like `vX.Y.Z-rc.N` (or just leave untagged).
-  * On `main`: normal `vX.Y.Z`, resolved from labels.
+THe one-time bash script that bulk-creates (or updates) the labels via GitHub CLI (gh). It’s idempotent and supports a dry-run.
 
-# Config setup
+Prereqs
 
-Use **two configs** so each branch can format notes differently.
+Install & auth: `gh auth login`
 
-## `.github/release-drafter.yml` (final, for `main`)
+Set your repo: export SASKAN_REPO="<owner>/<repo>" (e.g., org/saskan-app) (in ~/.bash_aliases then source it)
 
-* Same as the one we drafted earlier (sections, labels, version-resolver).
-* Normal tags: `v$NEXT_PATCH_VERSION`.
+Script: `saskan/tools/setup-labels.sh`
 
-```yaml
-# .github/release-drafter.yml
-name-template: 'v$NEXT_PATCH_VERSION'
-tag-template: 'v$NEXT_PATCH_VERSION'
-# … categories, change-template, exclude-labels, version-resolver, autolabeler …
-```
+### Usage
 
-## `.github/release-drafter-prerelease.yml` (for `develop`)
+bash setup-labels.sh                 # applies changes
 
-* Mark as prerelease; optional RC-style names.
-* Keep categories identical so wording stays consistent.
+or
 
-```yaml
-# .github/release-drafter-prerelease.yml
-name-template: 'v$NEXT_PATCH_VERSION-rc'
-tag-template: 'v$NEXT_PATCH_VERSION-rc'
-prerelease: true
-# (reuse the same categories, change-template, exclude-labels, version-resolver, autolabeler)
-```
+DRY_RUN=1 bash setup-labels.sh       # preview only
 
-# Workflow changes
+Delete unused default labels from GitHub repo:
 
-Run the Action on both branches, selecting the right config.
+Script: `saskan/tools/remove-default-labels.sh`
 
-```yaml
-# .github/workflows/release-drafter.yml
-name: Release Drafter
 
-on:
-  push:
-    branches: [ main, develop, 'release/*', 'hotfix/*' ]
-  pull_request:
-    types: [opened, edited, reopened, synchronize, labeled, unlabeled, closed]
-    branches: [ main, develop ]
-  workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: read
 
-jobs:
-  draft_on_develop:
-    if: github.ref == 'refs/heads/develop'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: release-drafter/release-drafter@v6
-        with:
-          config-name: release-drafter-prerelease.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  draft_on_main:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: release-drafter/release-drafter@v6
-        with:
-          config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  draft_on_release_branches:
-    if: startsWith(github.ref, 'refs/heads/release/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: release-drafter/release-drafter@v6
-        with:
-          # show prerelease notes while hardening on release/* (optional)
-          config-name: release-drafter-prerelease.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  draft_on_hotfix_branches:
-    if: startsWith(github.ref, 'refs/heads/hotfix/')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: release-drafter/release-drafter@v6
-        with:
-          # hotfixes typically go to main → use final template
-          config-name: release-drafter.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-# Labeling & version bumps
-
-* Keep using PR labels to drive **version-resolver** (e.g., `breaking` → major, `enhancement` → minor, `bug` → patch).
-* Enforce label usage via branch protection or a PR checklist.
-
-# Cutting releases
-
-* When `release/*` merges to `main`, the **main draft** is already populated → click “Publish release” (or add an auto-tagging job if you prefer).
-* After publishing, **back-merge `main` into `develop`** so version history stays aligned.
-
-# What you might tweak later
-
-* **Tag style on `develop`**: switch between `-rc` tags or untagged prereleases.
-* **Triggers**: if you add `support/*` or `maintenance/*` branches, include them.
-* **Categories**: add `Dependencies` if you rely on Dependabot, or split `Maintenance` into `CI`/`Refactor`.
-* **Automated tagging**: add a separate workflow to create tags when you publish (or use a “Release please” style flow instead of labels).
-
-This gives you clean previews on `develop`, production-ready notes on `main`, and scales as collaborators and branches multiply.

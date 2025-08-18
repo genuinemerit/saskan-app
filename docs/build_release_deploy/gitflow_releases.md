@@ -78,4 +78,42 @@ Branches are used not just for features but to represent **where in the lifecycl
 
 ---
 
-Next: map this **GitFlow structure into a minimal GitHub repo config** (branch protections, workflow rules, naming) so we can ease into it solo without tripping over the “heavy” parts
+# GitHub Issue Labels
+
+The labels in `genuinemerit/saskan-app` have all been set to reflect expectations in the workflow modules for the GitFlow release model.
+
+Here’s how to check repo’s labels in the **GitHub web UI**:
+
+1. Go to repository on GitHub (e.g., `https://github.com/<owner>/<repo>`).
+2. At the top, click **Issues**.
+3. In the Issues page, look just under the search bar — there’s a tab called **Labels**.
+
+   * Or go directly:
+
+     ```
+     https://github.com/<owner>/<repo>/labels
+     ```
+4. That page lists every label currently defined for the repo:
+
+   * Name
+   * Color
+   * Description
+   * Buttons to edit or delete.
+
+From there you can:
+
+* Verify whether your Release Drafter labels (`feat`, `fix`, `breaking-change`, etc.) exist.
+* Edit any existing ones (rename, recolor, add descriptions).
+* Add new ones with the **New label** button.
+
+---
+
+⚡ Tip: if you want to quickly check labels from the command line, you can also run:
+
+```bash
+gh label list --repo <owner>/<repo>
+```
+
+That prints a table of names, colors, and descriptions.
+
+

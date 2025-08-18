@@ -1,23 +1,39 @@
-name: Release Drafter
+name: Release Drafter (draft notes)
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    types: [opened, edited, reopened, synchronize, labeled, unlabeled, closed]
-  # Allow manual run
-  workflow_dispatch:
+    branches:
+      - develop
+      - 'release/**'
 
 permissions:
   contents: write
   pull-requests: read
 
 jobs:
-  update_release_draft:
+  draft-on-develop:
+    if: startsWith(github.ref, 'refs/heads/develop')
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
         with:
-          config-name: release-drafter.yml
+          # Regular draft (not a GitHub pre-release)
+          publish: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  draft-on-release-branch:
+    if: startsWith(github.ref, 'refs/heads/release/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        with:
+          publish: false
+          # Mark as a GitHub pre-release while stabilizing
+          prerelease: true
+          # Optional suffix for clarity in UI:
+          # name: 'v$RESOLVED_VERSION-rc'
+          # tag:  'v$RESOLVED_VERSION-rc'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,29 @@
+name: Publish Release (on tag)
+
+on:
+  push:
+    tags:
+      - 'v*'   # e.g., v1.2.0
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # Turn the current draft into a full release, tied to the tag you just pushed
+      - uses: release-drafter/release-drafter@v6
+        with:
+          publish: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # (Optional) attach build artifacts, SBOMs, etc., if a previous workflow uploaded them
+      # - name: Upload artifacts to release
+      #   uses: softprops/action-gh-release@v2
+      #   with:
+      #     files: |
+      #       dist/**/*    # adjust to your build outputs

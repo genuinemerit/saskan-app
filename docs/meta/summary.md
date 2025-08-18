@@ -9,3 +9,8 @@ Documentation scaffolding (README, CONTRIBUTING, Sphinx/Docusaurus configs)
 Environment & tooling (lint/format configs, .editorconfig, pre-commit hooks, VSCode/DevContainer configs)
 
 We’ll treat these as code artifacts in their own right, review them, and design good patterns/templates.
+
+---
+
+This also can include secondary support tools like apt, snap and MacPorts
+

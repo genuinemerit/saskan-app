@@ -1,77 +1,42 @@
-name-template: 'v$NEXT_PATCH_VERSION'
-tag-template: 'v$NEXT_PATCH_VERSION'
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
 
-# Group PRs into sections in the drafted release notes
+# Sections in the release notes
 categories:
-  - title: 🚀 Features
-    labels: [enhancement, feature]
-  - title: 🐛 Bug Fixes
-    labels: [bug]
-  - title: 📚 Docs
-    labels: [docs, documentation]
-  - title: 🧰 Maintenance
-    labels: [chore, ci, refactor, style, perf, test]
-  - title: 🔒 Security
-    labels: [security]
+  - title: '✨ Features'
+    labels: ['feat', 'feature']
+  - title: '🐛 Fixes'
+    labels: ['fix', 'bugfix', 'hotfix']
+  - title: '⚡ Performance'
+    labels: ['perf']
+  - title: '🧼 Refactors'
+    labels: ['refactor']
+  - title: '📚 Docs'
+    labels: ['docs']
+  - title: '🧰 Maintenance'
+    labels: ['chore', 'build', 'ci', 'dependencies', 'deps']
+  - title: '🔒 Security'
+    labels: ['security']
 
-# How each PR is rendered
+# How each merged PR renders
 change-template: '- $TITLE (#$NUMBER) by @$AUTHOR'
-change-title-escapes: '\<*_&'   # escape characters that break markdown
+no-changes-template: '- No user-facing changes.'
 
-# If a PR has any of these labels, exclude it from notes
-exclude-labels:
-  - skip-changelog
-
-# Determine next version from labels on merged PRs
+# Auto-bump version based on labels
 version-resolver:
   major:
-    labels: [breaking, major]
+    labels: ['breaking-change', 'breaking']
   minor:
-    labels: [enhancement, feature, minor]
+    labels: ['feat', 'feature']
   patch:
-    labels: [bug, fix, patch, docs, documentation, chore, ci, refactor, style, perf, test, security]
+    labels: ['fix', 'bugfix', 'hotfix', 'perf', 'refactor', 'docs', 'chore', 'build', 'ci', 'dependencies', 'deps', 'security']
   default: patch
 
-# Release notes body
+# Optional: exclude noise PRs from notes
+exclude-labels:
+  - 'skip-changelog'
+
+# (Optional) add a header template
 template: |
   ## Changes
   $CHANGES
-
-  ## Contributors
-  $CONTRIBUTORS
-
-autolabeler:
-  # Title-based
-  - label: breaking
-    title:
-      - '/!:|BREAKING/i'
-  - label: enhancement
-    title:
-      - '/feat/i'
-  - label: bug
-    title:
-      - '/fix|bug/i'
-  - label: docs
-    title:
-      - '/docs?|readme|changelog/i'
-  - label: refactor
-    title:
-      - '/refactor/i'
-  - label: test
-    title:
-      - '/test|pytest/i'
-  - label: chore
-    title:
-      - '/chore|maintenance/i'
-
-  # Path-based (adjust to your repo layout)
-  - label: docs
-    files:
-      - 'docs/**'
-      - '**/*.md'
-  - label: test
-    files:
-      - 'tests/**'
-  - label: ci
-    files:
-      - '.github/workflows/**'
