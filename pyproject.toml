@@ -71,6 +71,7 @@ pygame = { version = "^2.6", optional = true }
 # Default: stdlib sqlite3 via SQLAlchemy (no extra driver needed)
 # Optional Postgres support (sync)
 psycopg = { version = "^3.2", optional = true }
+typer = {extras = ["all"], version = "^0.16.1"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8"
@@ -105,7 +106,7 @@ known_first_party = ["saskan"]
 
 [tool.pytest.ini_options]
 addopts = "-q"
-testpaths = ["saskan/tests"]
+testpaths = ["tests"]
 
 [tool.mypy]
 python_version = "3.12"

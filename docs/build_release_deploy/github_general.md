@@ -128,8 +128,52 @@ So: you should only need to log in once per machine, not per terminal session.
 
 Command to check current login status is `gh auth status`.
 
-
 # Types of merges
 
 merge commits, squash merging, rebase merging
 
+---
+
+# git add -A vs. git add .
+
+Great question 👍 — they *look* similar, but there’s a subtle difference in what they stage:
+
+---
+
+## `git add -A`
+
+* Stages **all changes** in the repo:
+
+  * new files
+  * modified files
+  * deleted files
+* It’s shorthand for “add **all tracked/untracked changes, anywhere**.”
+* Doesn’t matter what directory you’re in — it covers the whole repo.
+
+---
+
+## `git add .`
+
+* Stages changes in the **current directory and below**.
+* It stages:
+
+  * new files
+  * modified files
+* ❌ It does **not** stage file deletions (unless you add `-u` too).
+* And it ignores stuff outside your current directory.
+  Example: if you run `git add .` inside `tests/`, it won’t stage a new file in `saskan/ui_cli/`.
+
+---
+
+## Practical rules of thumb
+
+* **`git add -A`**: “Stage everything everywhere (adds, mods, deletes).”
+  👉 Good for “commit all my work.”
+* **`git add .`**: “Stage what’s new/changed under here.”
+  👉 Good for partial commits when you’re working in one subdir.
+
+If we ever want “stage *all modifications/deletions*, but not new untracked files,” use `git add -u`.
+
+---
+
+✅ Most teams just standardize on `git add -A` for simplicity — less surprise, especially with deletions.
