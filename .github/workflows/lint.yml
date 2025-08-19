@@ -1,13 +1,25 @@
-# .github/workflows/lint.yml
 name: lint
-on: [push, pull_request]
+on:
+  pull_request:
+    branches: [ develop ]
+  push:
+    branches: [ develop ]  # optional; keep if you want push checks on develop
 jobs:
   lint:
+    name: lint
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pipx install poetry
-      - run: poetry install --no-root
-      - run: poetry run pre-commit run --all-files
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install deps
+        run: poetry install --no-interaction --no-ansi
+      - name: Lint (isort/black via pre-commit or direct)
+        run: |
+          poetry run isort . --check-only
+          poetry run black . --check

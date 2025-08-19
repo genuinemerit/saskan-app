@@ -1,0 +1,30 @@
+# Merges
+
+---
+
+## **Merge Commit**
+
+* **What it does:** Creates a new commit on the target branch that brings in all changes from the feature branch *and* preserves its entire commit history.
+* **History look:** Shows a “merge bubble” with multiple parents.
+* **Use when:** You want a complete, detailed history of all individual commits.
+
+---
+
+## **Squash Merge**
+
+* **What it does:** Combines all commits from the feature branch into a single new commit on the target branch.
+* **History look:** Clean, linear history (one commit per PR).
+* **Use when:** You want a tidy history that emphasizes features/PRs over incremental work.
+
+---
+
+## **Rebase Merge**
+
+* **What it does:** Re-applies each commit from the feature branch directly on top of the target branch, as if they were written there. No merge commit is created.
+* **History look:** Linear history with multiple commits preserved, but their commit IDs are rewritten.
+* **Use when:** You want a clean, linear history *and* to preserve individual commits (not squashed).
+
+---
+
+👉 Most teams standardize on **Squash merge** for PRs: keeps `develop`/`main` simple, and ties one commit = one PR.
+

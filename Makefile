@@ -121,8 +121,7 @@ fix:  ## Run all pre-commit hooks on the whole repo
 	$(PRUN) pre-commit run --all-files
 
 .PHONY: check
-check:  ## Full QA gate: format (idempotent), lint, type, tests
-	format lint type test
+check: format lint type test ## Full QA gate: lint, type, tests
 
 # --- Build / package -------------------------------------------------------
 

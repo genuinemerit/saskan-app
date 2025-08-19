@@ -2,21 +2,31 @@ name: CI
 
 on:
   pull_request:
-    branches: [develop]
+    branches: [ develop ]
   push:
-    branches: [develop]
+    branches: [ develop ]   # optional for PR gating; keep if you like
   workflow_dispatch:
 
 jobs:
   ci-pr:
+    name: ci-pr
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
-        with: { python-version: '3.12' }
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
       - name: Install Poetry
         run: pipx install poetry
-      - name: Install deps
-        run: poetry install
-      - name: Run checks
+
+      - name: Install deps & project
+        run: poetry install --no-interaction --no-ansi
+
+      - name: Run full gate (make ci-pr)
         run: make ci-pr
