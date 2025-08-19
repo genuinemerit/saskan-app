@@ -1,24 +1,23 @@
-# .github/workflows/typecheck.yml
 name: typecheck
-
 on:
   pull_request:
+    branches: [ develop ]
   push:
-
+    branches: [ develop ]
 jobs:
-  pytest:
+  typecheck:
+    name: typecheck
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
+        with: { python-version: '3.12' }
       - name: Install Poetry
         run: pipx install poetry
-
-      - name: Install deps & package
+      - name: Install deps
         run: poetry install --no-interaction --no-ansi
-
-      - run: poetry run mypy .
+      - name: Run mypy
+        run: poetry run mypy

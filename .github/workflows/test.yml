@@ -1,25 +1,23 @@
-# .github/workflows/test.yml
 name: test
-
 on:
   pull_request:
+    branches: [ develop ]
   push:
-
+    branches: [ develop ]
 jobs:
-  pytest:
+  test:
+    name: test
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
+        with: { python-version: '3.12' }
       - name: Install Poetry
         run: pipx install poetry
-
-      - name: Install deps & package
+      - name: Install deps & project
         run: poetry install --no-interaction --no-ansi
-
-      - name: Run tests
+      - name: Pytest
         run: poetry run pytest -q
