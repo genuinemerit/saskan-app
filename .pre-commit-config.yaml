@@ -12,13 +12,12 @@ ci:
   skip: []  # e.g., ["mypy"]
 
 # Global defaults
-default_stages: [pre-commit]
 minimum_pre_commit_version: "3.7.0"
 
 repos:
   # --- Lightweight hygiene ---
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: check-yaml
       - id: check-toml
@@ -31,7 +30,7 @@ repos:
 
   # --- Import sorting (logical) ---
   - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+    rev: 6.0.1
     hooks:
       - id: isort
         args: ["--profile=black", "--line-length=100"]
@@ -39,19 +38,11 @@ repos:
 
   # --- Formatting (physical) ---
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 25.1.0
     hooks:
       - id: black
         args: ["--line-length=100"]
         language_version: python3
-
-  # --- Fast linting (errors/pyflakes/imports) ---
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.6
-    hooks:
-      - id: ruff
-        args: ["--line-length=100", "check"]
-      - id: ruff-format  # ruff's formatter (kept after black for now, but you can drop black later)
 
   # --- Type checking via project’s Poetry env ---
   # We prefer using the same mypy version/config as in pyproject.toml.

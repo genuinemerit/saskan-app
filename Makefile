@@ -58,9 +58,7 @@ lock:  ## Recreate lockfile and sync env (use when deps change)
 	$(POETRY) install
 
 .PHONY: lint
-lint:  ## Lint: ruff + isort --check + black --check (fast)
-	$(call header,Ruff)
-	$(PRUN) ruff check .
+lint:  ## Lint: isort --check + black --check (fast)
 	$(call header,isort --check-only)
 	$(PRUN) isort . --check-only
 	$(call header,Black --check)
@@ -104,7 +102,7 @@ run:  ## Run the CLI (pass extra args via ARGS="...")
 .PHONY: clean
 clean:  ## Clean caches, build artifacts, coverage, pyc, etc.
 	$(call header,Clean caches & artifacts)
-	@rm -rf .pytest_cache .mypy_cache .ruff_cache htmlcov dist build \
+	@rm -rf .pytest_cache .mypy_cache htmlcov dist build \
 		coverage.xml .coverage
 	@find . -type d -name "__pycache__" -prune -exec rm -rf {} +
 	@find . -type f -name "*.py[co]" -delete

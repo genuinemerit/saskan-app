@@ -1,0 +1,139 @@
+.
+├── AUTHORS.md
+├── CHANGELOG.md
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+├── docs
+│   ├── adr
+│   │   ├── 0001-hex-grid
+│   │   ├── 0002-per-turn-snapshots
+│   │   ├── 0003-json-predicates
+│   │   ├── 0004-cli-with-typer
+│   │   └── 0005-clean-layers
+│   ├── architecture
+│   │   ├── client_server_game.md
+│   │   ├── documentation_system.md
+│   │   ├── project_structure.md
+│   │   └── summary.md
+│   ├── build_release_deploy
+│   │   ├── gitflow_releases.md
+│   │   ├── GitHub_Checklist
+│   │   ├── github_general.md
+│   │   ├── poetry.md
+│   │   ├── summary.md
+│   │   └── workflows.md
+│   ├── diagrams
+│   ├── glossary
+│   │   ├── ADR
+│   │   ├── DSL
+│   │   ├── HUD
+│   │   ├── i18n
+│   │   ├── MVP
+│   │   ├── MVVM
+│   │   ├── PR
+│   │   └── RNG
+│   ├── meta
+│   │   ├── configs_and_envs.md
+│   │   ├── makefiles.md
+│   │   ├── package_installers.md
+│   │   └── summary.md
+│   └── skunkworks
+│       ├── first_clean_pull_request.md
+│       └── socketserver.md
+├── .editorconfig
+├── env
+├── .env.example
+├── .github
+│   ├── CODEOWNERS
+│   ├── FUNDING.yml
+│   ├── ISSUE_TEMPLATE
+│   │   ├── bug_report.yml
+│   │   ├── config.yml
+│   │   └── feature_request.yml
+│   ├── PULL_REQUEST_TEMPLATE
+│   │   ├── bugfix.md
+│   │   ├── docs.md
+│   │   └── feature.md
+│   ├── pull_request_template.md
+│   ├── release-drafter.yml
+│   └── workflows
+│       ├── ci.yml
+│       ├── lint.yml
+│       ├── publish-release.yml
+│       ├── release-drafter.yml
+│       ├── release-tag.yml
+│       ├── test.yml
+│       └── typecheck.yml
+├── .gitignore
+├── LICENSE
+├── Makefile
+├── poetry.lock
+├── .pre-commit-config.yaml
+├── pyproject.toml
+├── .python-version
+├── README.md
+├── RELEASE.md
+├── saskan
+│   ├── core
+│   │   ├── hex
+│   │   ├── __init__.py
+│   │   ├── model
+│   │   ├── rules
+│   │   └── selectors
+│   ├── data
+│   │   ├── config
+│   │   ├── __init__.py
+│   │   ├── locales
+│   │   ├── maps
+│   │   ├── schemas
+│   │   └── story
+│   ├── engine
+│   │   ├── events
+│   │   ├── __init__.py
+│   │   ├── intents
+│   │   ├── rng
+│   │   ├── systems
+│   │   └── turn
+│   ├── infra
+│   │   ├── config
+│   │   ├── __init__.py
+│   │   ├── log
+│   │   ├── net
+│   │   ├── persistence
+│   │   └── schema
+│   ├── __init__.py
+│   ├── sims
+│   │   ├── ecology
+│   │   ├── __init__.py
+│   │   ├── logistics
+│   │   └── population
+│   ├── tools
+│   │   ├── exporters
+│   │   ├── __init__.py
+│   │   ├── poetry_activate
+│   │   ├── remove-default-labels.sh
+│   │   └── setup-labels.sh
+│   ├── ui_cli
+│   │   ├── client
+│   │   ├── commands
+│   │   ├── __init__.py
+│   │   ├── manage.py
+│   │   └── render
+│   ├── ui_pygame
+│   │   ├── hud
+│   │   ├── __init__.py
+│   │   ├── input
+│   │   └── render
+│   └── ui_pyside
+│       ├── i18n
+│       ├── __init__.py
+│       ├── viewmodels
+│       └── views
+├── saskan_lands.tar.gz
+├── scripts
+│   └── make_tree.sh
+├── SECURITY.md
+├── tests
+└── tree.txt
+
+58 directories, 79 files

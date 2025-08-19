@@ -1,0 +1,22 @@
+name: Build on tag
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  ci-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install deps
+        run: poetry install
+      - name: Checks + Build
+        run: make ci-tag
+      # Optionally upload dist/ to the Release:
+      # - uses: softprops/action-gh-release@v2
+      #   with: { files: dist/* }

@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop]
+  workflow_dispatch:
+
+jobs:
+  ci-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Install Poetry
+        run: pipx install poetry
+      - name: Install deps
+        run: poetry install
+      - name: Run checks
+        run: make ci-pr

@@ -127,3 +127,9 @@ When you run `gh auth login`, the CLI:
 So: you should only need to log in once per machine, not per terminal session.
 
 Command to check current login status is `gh auth status`.
+
+
+# Types of merges
+
+merge commits, squash merging, rebase merging
+

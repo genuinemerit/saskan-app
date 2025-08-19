@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "saskan"
-version = "0.0.0"
+version = "0.1.0"
 description = "Saskan Lands tools and scaffolding: world-building utilities, data models, CLI."
 license = "MIT"
 authors = ["Genuine Merit Software <genuinemerit@pm.me>"]
@@ -75,10 +75,10 @@ psycopg = { version = "^3.2", optional = true }
 [tool.poetry.group.dev.dependencies]
 black = "^24.8"
 isort = "^5.13"
-ruff = "^0.6"
 pytest = "^8.3"
 coverage = "^7.6"
 mypy = "^1.11"  # optional, but good to have
+pre-commit = "^4.3.0"
 
 [tool.poetry.extras]
 analytics = ["matplotlib", "pandas", "nltk"]
@@ -102,12 +102,6 @@ target-version = ["py312"]
 profile = "black"
 line_length = 100
 known_first_party = ["saskan"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py312"
-select = ["E", "F", "I"]      # pycodestyle/pyflakes/imports
-ignore = []
 
 [tool.pytest.ini_options]
 addopts = "-q"

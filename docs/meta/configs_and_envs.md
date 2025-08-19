@@ -181,3 +181,84 @@ Notes
 
 This file lives in repo root so all editors honor the same baseline style.
 
+# CODEOWNERS
+
+CODEOWNERS is simple once you see what it does.
+
+---
+
+## Purpose of CODEOWNERS
+
+* It’s a special file (`.github/CODEOWNERS`) that tells GitHub:
+  *“Whenever a PR touches these paths, request reviews from these people/teams.”*
+* It doesn’t block merging by itself — but if branch protection is set to **“Require review from Code Owners”**, then at least one of those owners must approve before merge.
+* For solo mode: you can set yourself as the owner so all PRs auto-request you (nice for discipline and history). Later, if you add collaborators, you can divide responsibility by directory.
+
+---
+
+## Format
+
+Each line: `<pattern> <owner(s)>`
+
+Examples:
+
+```text
+# Everything in the repo
+*       @phoenix-quinn
+
+# Docs go to a docs team
+/docs/  @phoenix-quinn @docs-team
+
+# Python package code to a dev team
+/saskan/ @phoenix-quinn @backend-team
+```
+
+Owners can be:
+
+* Individual GitHub usernames (`@phoenix-quinn`)
+* Teams within an org (`@myorg/devs`)
+
+---
+
+## What to do now (solo)
+
+Add a minimal file at `.github/CODEOWNERS`:
+
+```text
+# Default owner for all files
+*   @your-username
+```
+
+Replace `@your-username` with your actual GitHub handle (which is `@genuinemerit`)
+
+That way:
+
+* Every PR auto-assigns you as reviewer.
+* In branch protection you can later tick **Require review from Code Owners** to enforce it (today you can leave that off if you don’t want the extra click).
+
+---
+
+👉 For you right now: just put the file in place with your username. Later, when you grow the project, you can slice responsibility by directories (e.g. `/docs/`, `/infra/`, `/saskan/`).
+
+Would you like me to show you the **exact GitHub browser steps** to add CODEOWNERS (since you can’t create `.github/CODEOWNERS` through the UI directly), or are you comfortable just making the file in your repo and committing it?
+
+# RELEASE.md
+
+Purpose of RELEASE.md
+
+A RELEASE.md is a lightweight, human-readable guide to the release process for your repo.
+
+It complements automation (release-drafter, Makefile release, CI/CD workflows).
+
+Documents how maintainers should cut, tag, and publish a release.
+
+Ensures consistency when more contributors join.
+
+Helps “future you” remember the agreed steps in 6 months.
+
+It’s not a changelog (that’s CHANGELOG.md). Instead, it’s a playbook for producing a release.
+
+See: saskan-app/RELEASE.md
+
+
+
