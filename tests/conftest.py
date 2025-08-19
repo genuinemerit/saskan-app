@@ -1,8 +1,16 @@
 # tests/conftest.py
-import pytest
-from typer.testing import CliRunner
 
-from saskan.ui_cli.manage import app  # your Typer app
+import pathlib
+import sys
+
+# Add project root so "saskan" can be imported when not installed
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+import pytest  # noqa: E402
+from typer.testing import CliRunner  # noqa: E402
+
+from saskan.ui_cli.manage import app  # noqa: E402
 
 
 @pytest.fixture(scope="session")

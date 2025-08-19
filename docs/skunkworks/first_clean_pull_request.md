@@ -403,7 +403,7 @@ poetry run pytest -q
 - Green path: make check runs format → lint → type → test, and you’re CI-ready.
 ---
 
-## 5) Commit with a clean history
+## 5) Commit with a clean history 🗹
 
 Keep it tiny: one or two commits max.
 
@@ -413,12 +413,203 @@ git commit -m "feat(cli): add `hello` command to Typer app"
 git push -u origin feat/cli-hello
 ```
 
+---
+Notes on commit..
+
+note to self: don't use back-ticks in commit message texts
+
+```bash
+(saskan-py3.12) saskan-app$ git add -A
+(saskan-py3.12) saskan-app$ git commit -m "feat(cli): add `hello` command to Typer app"
+Command 'hello' not found, but can be installed with:
+sudo snap install hello              # version 2.10, or
+sudo apt  install hello              # version 2.10-3
+sudo apt  install hello-traditional  # version 2.10-6
+See 'snap info hello' for additional versions.
+check yaml...........................................(no files to check)Skipped
+check toml...............................................................Passed
+fix end of files.........................................................Passed
+trim trailing whitespace.................................................Passed
+mixed line ending........................................................Passed
+check for added large files..............................................Passed
+detect private key.......................................................Passed
+isort....................................................................Passed
+black....................................................................Passed
+mypy (poetry)............................................................Passed
+[feat/cli-hello 5771a3e] feat(cli): add  command to Typer app
+ 14 files changed, 671 insertions(+), 12 deletions(-)
+ create mode 100644 docs/glossary/fullgate.md
+ create mode 100644 docs/glossary/merges
+ create mode 100644 docs/meta/linters_and_typechecks.md
+ create mode 100644 docs/meta/pytest.md
+ create mode 100644 saskan/ui_cli/commands/__init__.py
+ create mode 100644 saskan/ui_cli/commands/greet.py
+ create mode 100644 tests/conftest.py
+ create mode 100644 tests/test_cli_hello.py
+(saskan-py3.12) saskan-app$ git push -u origin feat/cli-hello
+Enumerating objects: 38, done.
+Counting objects: 100% (38/38), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (24/24), done.
+Writing objects: 100% (24/24), 11.72 KiB | 11.72 MiB/s, done.
+Total 24 (delta 9), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas: 100% (9/9), completed with 9 local objects.
+remote:
+remote: Create a pull request for 'feat/cli-hello' on GitHub by visiting:
+remote:      https://github.com/genuinemerit/saskan-app/pull/new/feat/cli-hello
+remote:
+To github.com:genuinemerit/saskan-app.git
+ * [new branch]      feat/cli-hello -> feat/cli-hello
+branch 'feat/cli-hello' set up to track 'origin/feat/cli-hello'.
+(saskan-py3.12) saskan-app$
+```
+
+---
+
 ## 6) Open the PR → `feat/cli-hello` → `develop`
 
 * Use the existing **PR template**.
 * Title (Conventional Commits): `feat(cli): add hello command`
 * “Testing Evidence”: paste your `make` outputs (OK to summarize).
 * Keep scope: 1 feature + 1 test, nothing else.
+
+step-by-step:
+
+Heck yeah—let’s do the PR together. Here’s the exact click-by-click + what to type.
+
+# Step-by-step: open your first PR
+
+1. **Start from GitHub (your repo).** 🗹
+   Click **Pull requests**.
+
+2. **Choose how to start the PR.** 🗹
+
+   * If you see the banner “**feat/cli-hello had recent pushes**” → click **Compare & pull request**.
+   * Otherwise click **New pull request**.
+
+>> clicked it
+
+. How to phrase in PR
+
+Instead of lumping them under “fix”, you can list multiple commit scopes/types in one PR body:
+
+PR Title (main thing):
+
+feat(cli): add hello subcommand
+
+
+Body / description:
+
+Also includes:
+- fix(cli): correct Typer entrypoint in manage.py
+- build(pyproject): correct tests path
+- chore(makefile): fix check target order
+
+
+That way, the squash commit still reads cleanly (main feature), but the PR description records the smaller corrections.
+
+3. **Set branches (important).** 🗹
+
+   * **Base**: `develop`
+   * **Compare**: `feat/cli-hello`
+     Double-check the arrow shows `genuinemerit/saskan-app:develop ← genuinemerit/saskan-app:feat/cli-hello`.
+
+>> verified (at top of the PR page) that we are pointing the feat branch to the develop branch
+
+4. **Create as a Draft (nice solo workflow).**
+   Next to the green button, open the dropdown and choose **Create draft pull request**. (You can mark it “Ready for review” once checks pass.)
+
+>> Changed it to Draft Pull request
+
+5. **Title (Conventional Commits).** 🗹
+
+   ```
+   feat(cli): add hello subcommand
+   ```
+>> title is: feat(cli): add hello command to Typer app
+
+
+6. **Description — fill your PR template.** If it doesn’t auto-insert, click **“Choose a template”** (if you have multiple) or just paste this structure: 🗹
+
+   * **Summary:** Adds `saskan hello [-n NAME]` CLI subcommand; shows help at root.
+   * **Changes:**
+
+     * `saskan/ui_cli/commands/greet.py` – implement `hello`
+     * `saskan/ui_cli/manage.py` – Typer app, register subcommand, empty root callback with `no_args_is_help=True`
+     * `tests/` – `conftest.py`, `test_cli_hello.py`
+     * Makefile – `check` runs format → lint → type → test
+     * `pyproject.toml` – confirm `scripts` entry `saskan = "saskan.ui_cli.manage:cli"`
+   * **How I tested (evidence):**
+
+     ```text
+     poetry run saskan --help   # shows 'hello' as subcommand
+     poetry run saskan hello
+     poetry run saskan hello -n Phoenix
+     make check                 # format/lint/type/tests all green
+     ```
+   * **Checklist:** 🗹
+
+     * [x] Lint/type/tests pass locally (`make check`)
+     * [x] Small, focused PR; includes tests
+     * [x] No unrelated changes
+
+7. **Labels / projects / reviewers (optional).** 🗹
+   Add a `feature`/`cli` label if you use them. As a solo dev, reviewers are optional.
+
+8. **Create the PR.**🗹
+   Click **Create draft pull request** (or **Create pull request** if you skipped draft).
+
+>> On GitHub it shows draft PR submitted
+
+# Let CI run & make it green
+
+9. **Watch checks.**
+   On the PR, scroll to **Checks**. You should see the required ones: `ci-pr`, `lint`, `typecheck` (mypy), `test` (pytest).
+
+   * If a check fails, fix locally → `make check` → commit & push to `feat/cli-hello`. The PR updates automatically.
+   * If formatting fails: `make format` or `make fix` (pre-commit), then commit/push.
+
+>> several required checks passed right away
+>> test and testcheck are pending, seem to be taking a while
+>> it shows `push` and `pull_request` in failed state
+
+10. **Keep branch up to date (if required).**
+    If GitHub says “Out of date with base branch,” click **Update branch** or do:
+
+    ```bash
+    git switch feat/cli-hello
+    git fetch origin
+    git rebase origin/develop
+    git push --force-with-lease
+    ```
+
+11. **Mark Ready & merge.**
+    When all checks are ✅, click **Ready for review** (if it’s a draft), then use the green **Squash and merge**.
+
+    * Edit the squash commit message to something like:
+
+      ```
+      feat(cli): add hello subcommand
+
+      - add `saskan hello [-n NAME]`
+      - root shows help; no_args_is_help=True
+      - tests for default and named greeting
+      ```
+    * Click **Confirm squash and merge**.
+    * **Delete branch** (GitHub offers a button).
+
+# Post-merge cleanup (local)
+
+12. **Sync your local `develop`, remove the feature branch.**
+
+```bash
+git switch develop
+git pull
+git branch -d feat/cli-hello
+```
+
+That’s it—you’ve done the full, grown-up PR flow with protections and required checks. Next time it’ll feel automatic.
+
 
 CI should run: `lint`, `typecheck`, `test`, and `CI` workflow on **develop** PRs.
 
