@@ -1,4 +1,4 @@
-Save Format as Per-Turn Snapshots
+# ADR-0002: Save Format as Per-Turn Snapshots
 
 Date: 2025-08-17
 

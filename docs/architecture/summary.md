@@ -1,6 +1,4 @@
-You’ve framed this well — the balance between *fun/experimentation* and *sound software design*. A few refinements/questions to tighten the architecture:
-
-### Architecture / High-level
+# Architecture / High-level
 
 * **Layered structure**: Keep a clear separation between
 
@@ -14,35 +12,48 @@ You’ve framed this well — the balance between *fun/experimentation* and *sou
   * For prototyping, keep the server dumb and lightweight — run both client and server locally at first.
   * Design messages as **plain JSON over sockets** — human-readable, easy to debug. Later, if needed, swap in protobuf/msgpack.
 
-### Tooling / Scaffolding
+## Tooling / Scaffolding
 
 * **Poetry + tox** for clean packaging/testing.
 * **SQLAlchemy models** for core entities (player, town, NPC, world state).
 * **Alembic** if schema migration becomes necessary (but maybe skip until DB stabilizes).
 * **Logging** early on — even a simple structured logger saves headaches.
 
-### Data Handling
+## Data Handling
 
 * **Relational DB (SQLite)**: for persistent entities and history.
 * **JSON files**: for configs, maps, cultural tables, event probabilities, etc.
 * **Numpy/Pandas**: for simulations (ecology, population, economy). Consider wrapping these in service modules so you can scale complexity later.
 
-### UI / UX
+## UI / UX
 
 * **PySide**: Good for menus, dialogs, settings.
 * **PyGame**: Focus it only on the game loop, timers, canvas. Keep the overlap minimal (don’t let UI bleed into game loop).
 * **Internationalization**: Early habit — wrap UI strings in gettext or even a thin string-table class.
 
-### Development Approach
+### UI strategy
+
+**CLI first (ui\_cli/):**
+
+* Commands: `new`, `tick`, `inspect <tile|node|region>`, `plan <intent>`, `commit`, `log`.
+* Output: compact tables + JSON dump option for debugging.
+* Input: simple REPL + history; keep it stateless against server where possible.
+
+**Later (PySide + PyGame):**
+
+* PySide owns menu/settings/dialogs.
+* PyGame owns render surface + input for the map.
+* UI talks to client API only (never imports engine/core directly).
+
+## Development Approach
 
 * **Start with “toy loops”**: e.g., a world-tick loop that simulates a small town’s food supply with random events. Then add UI hooks, then persistence.
 * **Entity-first**: Define your world entities in code + ORM early (Player, Town, Resource, NPC). Keep the models lean and composable.
 * **Pull prototypes**: Make each imported experiment a **module** rather than tangled code. If something works, integrate; if not, you can unplug it.
 
+## High-level structure
 
-# High-level structure
-
-```
+```text
 saskan/
   core/                # pure game domain (no IO/UI)
   data/                # JSON configs, seed content, locale files
@@ -64,11 +75,9 @@ saskan/
 * Data-driven where it helps (JSON), Python where logic matters.
 * Early i18n, early logging, early tests.
 
----
+## Domain model (v0, minimal)
 
-# Domain model (v0, minimal)
-
-**Entities (core/)**
+### Entities (core/)
 
 * `World`: size, seed, calendar/time, ruleset refs.
 * `Tile`: terrain, biome, fertility, water, elevation, flags.
@@ -83,9 +92,7 @@ saskan/
 
 Keep entities small; attach behavior via **systems** rather than methods where possible.
 
----
-
-# Map model
+### Map model
 
 * **Grid**: orthogonal or hex (choose early; hex recommended for travel cost).
 * **Layers**: terrain, elevation, moisture, ownership, visibility/FoW.
@@ -96,9 +103,7 @@ Keep entities small; attach behavior via **systems** rather than methods where p
 * **Addressing**: `q,r` for hex (or `x,y`); never mix pixel coords into domain.
 * **Chunking**: simple chunks (e.g., 64×64) to bound operations and paging.
 
----
-
-# Turn pipeline (engine/turns.py)
+### Turn pipeline (engine/turns.py)
 
 Ordered, explicit phases—each phase consumes/produces events:
 
@@ -115,9 +120,7 @@ Ordered, explicit phases—each phase consumes/produces events:
 
 Each phase is a pluggable system with a stable interface.
 
----
-
-# Systems (engine/systems/\*)
+### Systems (engine/systems/\*)
 
 * `EcologySystem` (pollinators, fertility, climate drift)
 * `AgricultureSystem` (yields, famine risk)
@@ -131,9 +134,7 @@ Each phase is a pluggable system with a stable interface.
 
 Each takes `(state, rng, params) -> events`.
 
----
-
-# Scripting & story hooks
+### Scripting & story hooks
 
 **Goals:** data-first for triggers, Python callbacks for consequences.
 
@@ -143,24 +144,20 @@ Each takes `(state, rng, params) -> events`.
 * **Namespaces**: keep Saskan-lore canon in `data/story/` with IDs; never hard-code lore text in systems.
 * **Localization**: story text stored as message IDs; render via i18n layer.
 
----
-
-# Persistence (infra/persistence)
+### Persistence (infra/persistence)
 
 * **SQLite + SQLAlchemy ORM** for long-lived entities.
 * **JSON sidecars** for static configs, maps, story packs.
 * **Versioning**: `schema_version` table + optional Alembic later.
 * **Save/Load**: snapshot world state per turn (lightweight: store deltas or seed+event log); retain last N checkpoints.
 
----
-
-# Messaging (client/server)
+### Messaging (client/server)
 
 **Transport:** Python sockets (TCP), JSON messages, newline-delimited or length-prefixed.
 
 **Envelope (always):**
 
-```
+```json
 { "id": "<uuid>", "type": "<command|event|reply|error>", "name": "<verb>", "payload": {...}, "ts": "<iso8601>" }
 ```
 
@@ -177,25 +174,7 @@ Each takes `(state, rng, params) -> events`.
 
 **Error contract:** explicit `code`, `message`, `details` (no stack traces across the wire).
 
----
-
-# UI strategy
-
-**CLI first (ui\_cli/):**
-
-* Commands: `new`, `tick`, `inspect <tile|node|region>`, `plan <intent>`, `commit`, `log`.
-* Output: compact tables + JSON dump option for debugging.
-* Input: simple REPL + history; keep it stateless against server where possible.
-
-**Later (PySide + PyGame):**
-
-* PySide owns menu/settings/dialogs.
-* PyGame owns render surface + input for the map.
-* UI talks to client API only (never imports engine/core directly).
-
----
-
-# Data & configuration
+### Data & configuration
 
 * `data/config/`: tunables per system (JSON).
 * `data/maps/`: seeds, generated maps, imported heightmaps.
@@ -203,9 +182,7 @@ Each takes `(state, rng, params) -> events`.
 * `data/locales/`: `en/LC_MESSAGES/*.po` (or a light string table for MVP).
 * `data/schemas/`: JSON Schemas for validation (configs, story, intents, messages).
 
----
-
-# Testing & quality
+### Testing & quality
 
 * **Unit**: systems are pure → easy to test with fixed seeds.
 * **Property tests**: invariants (no negative population, conserved flows).
@@ -215,95 +192,78 @@ Each takes `(state, rng, params) -> events`.
 
 Tooling: `pytest`, `tox`, `pre-commit` (black, ruff, isort, mypy basic), `hypothesis` for property tests.
 
----
-
-# Logging & telemetry
+### Logging & telemetry
 
 * Structured logs (JSON). Levels: `TRACE` (dev), `INFO` (turn summaries), `WARN/ERROR`.
 * Per-turn log bundle: seed, params hash, duration per phase, event counts.
 
----
-
-# Internationalization
+### Internationalization
 
 * Wrap all UI/notifications in message IDs from day one.
 * Use gettext or a minimal key→string table; store lore text out of code.
 * Keep date/number formats locale-aware (even if English-only initially).
 
----
-
-# Mathematical tooling
+### Mathematical tooling
 
 * `numpy`/`pandas` only inside `sims/` modules.
 * Keep boundaries: sims accept/return plain Python structures (or dataclasses), not DataFrames, to avoid leaking into domain.
 
----
-
-# Build & env
+### Build & env
 
 * `poetry` for deps.
 * Dev scripts: `make dev`, `make test`, `make run-server`, `make run-cli`.
 * `.env` for tunables; config layering: defaults → file → env.
 
----
+#### MVP milestones (practical sequence)
 
-# MVP milestones (practical sequence)
-
-**M0 – Skeleton & CLI (1–2 days of focused work)**
+##### M0 – Skeleton & CLI (1–2 days of focused work)
 
 * Project layout, config loader, logging.
 * Deterministic world generator (tiny hex map), minimal entities.
 * Turn pipeline scaffold with 2–3 trivial systems.
 * CLI: `new`, `inspect`, `tick`.
 
-**M1 – Persistence & Graphs**
+##### M1 – Persistence & Graphs
 
 * SQLite models for `World/Tile/Node/Edge/Faction`.
 * Transport graph + basic path cost; save/load.
 * JSON schema validation for configs/story.
 
-**M2 – Story hooks**
+##### M2 – Story hooks
 
 * Trigger evaluation engine + action registry.
 * A small story pack tied to your existing lore (3–5 events).
 * Notifications surfaced in CLI.
 
-**M3 – Simulation pass**
+##### M3 – Simulation pass
 
 * Ecology→Agriculture→Population minimal loop (famine risk shows up).
 * Turn summaries + regression tests.
 
-**M4 – UI split**
+##### M4 – UI split
 
 * Client/server over sockets (local).
 * PySide stub menus; PyGame map viewer (static render first).
 
----
-
-# Risks to watch early
+## Risks to watch early
 
 * **Scope creep** in story engine—start with a tiny predicate language.
 * **Bleeding concerns** between UI and engine—enforce the boundaries.
 * **Data validity**—introduce JSON Schema validation early.
 * **Performance traps**—don’t let pandas leak into the core.
 
----
-
-# Open decisions (pick soon)
+## Decisions - ADRS
 
 * Hex vs orthogonal grid (recommend hex).
 * Save format: event-log + seed vs full snapshots (start with snapshots; add event-log later).
 * Trigger language: custom mini-DSL vs JSON predicates (start with JSON predicates).
 * CLI parser: `argparse` vs `typer` (typer is nicer, still simple).
 
-
-Good calls.
-
-## ADR set = Architecture Decision Records
+### ADR set = Architecture Decision Records
 
 Short, dated notes that capture a decision, its context, options considered, and consequences. One ADR per decision; stored in-repo (e.g., `docs/adr/0001-hex-grid.md`). They prevent “why did we choose X?” amnesia.
 
-## Hex grid: what to lock down
+#### Hex grid: what to lock down
 
 * **Coordinate system**: use **axial (q, r)** for logic, **odd-r** or **even-r** offsets only at UI edges. Keep pixel math isolated.
 * **Neighbor deltas (axial)**: the six neighbors are fixed vectors; make a constant table and never recompute.
@@ -312,7 +272,7 @@ Short, dated notes that capture a decision, its context, options considered, and
 * **Chunking**: decide a chunk size (e.g., 64×64 axial window) for paging and perf.
 * **Projection**: pick **pointy-top** or **flat-top** now (affects axial↔pixel formulas and neighbor layout). For Civ-like maps, **pointy-top** is common.
 
-### Minimal geometry surface (no code, just contracts)
+##### Minimal geometry surface (no code, just contracts)
 
 * `axial -> cube` and `cube -> axial`
 * `neighbors(hex) -> [hex×6]`
@@ -323,7 +283,7 @@ Short, dated notes that capture a decision, its context, options considered, and
 * `axial <-> pixel` (isolated in a renderer helper)
 * `wrap_policy` (none / horizontal / both): defines how coords normalize at edges.
 
-## Snapshots: format & lifecycle
+### Snapshots: format & lifecycle
 
 * **Granularity**: one JSON (or msgpack) per turn: `header` + `state` + `meta`.
 * **Header**: game id, turn number, schema version, RNG seed, ruleset hash.
@@ -332,7 +292,7 @@ Short, dated notes that capture a decision, its context, options considered, and
 * **Retention**: rolling window (e.g., last 20 turns) + manual “milestones”.
 * **Integrity**: include a hash of `state` and ruleset; validate on load.
 
-## Triggers as JSON predicates
+### Triggers as JSON predicates
 
 * **Shape**:
 
@@ -345,7 +305,7 @@ Short, dated notes that capture a decision, its context, options considered, and
 * **Evaluation cycle**: determine candidate scopes → evaluate `when` → resolve conflicts (priority/weight) → enqueue effects → commit at end of turn.
 * **Observability**: log which predicates fired with inputs/outputs for debugging.
 
-## Typer: usage model (no code, just design)
+### Typer: usage model (no code, just design)
 
 * **CLI shape**:
 
@@ -364,14 +324,6 @@ Short, dated notes that capture a decision, its context, options considered, and
   * Output modes: `--format table|json`; JSON is machine-friendly for scripting.
 * **Testing**: exercise commands through Typer’s testing helpers (later), but design commands to be thin wrappers around pure functions.
 
-## Immediate ADRs to write (5–10 lines each)
-
-1. **ADR-0001 Hex Grid**: pointy-top axial (q, r), cube math internally, wrap policy = none (for MVP).
-2. **ADR-0002 Snapshot Saves**: per-turn snapshots (JSON), rolling retention, integrity hash.
-3. **ADR-0003 Triggers**: JSON predicates + Python action registry; minimal operator set v1.
-4. **ADR-0004 CLI**: Typer-based multi-command interface; JSON/ table outputs.
-5. **ADR-0005 Boundaries**: core domain is pure; geometry and sims are side-effect free; IO confined to infra and UI.
-
 ## Guardrails to keep it clean
 
 * One module owns hex math; everyone else calls it.
@@ -385,7 +337,3 @@ Short, dated notes that capture a decision, its context, options considered, and
 * **World wrap** (torus vs none) for movement and distance semantics.
 * **Height/moisture model** inputs (procedural vs imported raster) to seed ecology.
 * **Notification taxonomy** (player-facing categories + i18n message IDs).
-
-
-
-

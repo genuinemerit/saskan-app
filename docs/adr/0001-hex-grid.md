@@ -1,4 +1,4 @@
-Hex Grid
+# ADR-0001: Hex Grid
 
 Date: 2025-08-17
 

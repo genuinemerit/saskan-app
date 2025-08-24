@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "system.welcome.schema.json",
+  "type": "object",
+  "required": ["server_version", "session_id", "motd", "accepted_capabilities"],
+  "properties": {
+    "server_version": { "type": "string", "minLength": 1 },
+    "session_id":     { "type": "string", "minLength": 1 },
+    "motd":           { "type": "string", "minLength": 1 },
+    "i18n_id":        { "type": "string", "minLength": 1 },
+    "accepted_capabilities": { "type":"array", "items":{"type":"string"}, "uniqueItems": true }
+
+  },
+  "additionalProperties": false
+}

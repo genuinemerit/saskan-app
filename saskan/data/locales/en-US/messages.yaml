@@ -1,0 +1,5 @@
+msg.handshake.welcome: "Welcome to the Saskan Lands"
+msg.handshake.reject.generic: "Handshake rejected."
+msg.handshake.reject.protocol: "Handshake rejected: unsupported protocol version."
+msg.handshake.reject.not_ready: "Handshake rejected: server is not ready."
+msg.handshake.reject.invalid: "Handshake rejected: invalid request."

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "handshake.request.schema.json",
+  "type": "object",
+  "required": ["client_version"],
+  "properties": {
+    "client_version": { "type": "string", "minLength": 1 },
+    "capabilities": { "type":"array", "items":{"type":"string"}, "default": [], "uniqueItems": true }
+
+  },
+  "additionalProperties": false
+}

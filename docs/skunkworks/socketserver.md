@@ -35,13 +35,11 @@ Action → Server
 
 {"type": "action", "player_id": "A", "move": "travel", "target": "Byenung"}
 
-
 Delta → Clients
 
 {"type": "delta", "changes": [
     {"table": "units", "id": "U123", "field": "location", "new": "Byenung"}
 ]}
-
 
 Chat & Broadcast
 
@@ -313,11 +311,9 @@ Server sends minimal update:
 
 {"type": "delta", "update": {"tile_id": 42, "status": "flooded"}}
 
-
 Client queries DB (read-only):
 
 SELECT * FROM map_tiles WHERE id=42;
-
 
 Client re-renders tile 42 using local data:
 
@@ -369,7 +365,6 @@ Example
 Server sends:
 
 {"type": "delta", "tile": 42, "changed": ["status"]}
-
 
 Client checks cache:
 

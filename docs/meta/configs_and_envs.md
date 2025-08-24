@@ -260,5 +260,48 @@ It’s not a changelog (that’s CHANGELOG.md). Instead, it’s a playbook for p
 
 See: saskan-app/RELEASE.md
 
+## When to use different types of config files/modules
 
+For PR‑2, keep **`services.py` as a plain Python module** with constants. That’s the right trade‑off for protocol/capability metadata that’s (a) source‑controlled, (b) rarely changes at runtime, and (c) needs to be imported by both code and tests.
 
+### What format for which kind of config?
+
+| Kind of setting                                | Changes at runtime? | Needs structure/types? | Operator‑editable? | Best fit now                                             |
+| ---------------------------------------------- | ------------------- | ---------------------- | ------------------ | -------------------------------------------------------- |
+| Protocol/version, allowed message names, enums | No                  | Low–moderate           | No                 | **Python module** (`services.py`)                        |
+| Network host/port/timeouts                     | Sometimes           | Low                    | Maybe (via env)    | **Python + env overrides** (`net.py` reading `SASKAN_*`) |
+| Localizable strings                            | Yes (by locale)     | Key→text map           | Yes                | **YAML bundles** (we already chose this)                 |
+| Large, nested app config (lots of knobs)       | Possibly            | High                   | Maybe              | YAML/JSON + schema validation (defer)                    |
+
+### Why a Python module for `services.py`
+
+* **Type safety & IDE help**: constants are typed, discoverable, and refactorable.
+* **Single import path**: schemas, CLI, server all import the same symbols—no file I/O at startup.
+* **Source of truth** lives in Git (exactly what you want for protocol evolution).
+* **No runtime mutability**: avoids “mysterious” behavior differences across environments.
+
+### When to *not* use `.ini` / `configparser`
+
+* Great for simple key/value pairs, but **weak for structured data** (sets, lists of names, nested mappings). You’ll end up encoding lists as comma strings and parsing them anyway.
+
+### JSON vs YAML (if/when you externalize later)
+
+* **JSON**: strict, easy to validate; but **no comments**, which hurts operator docs.
+* **YAML**: comments + readability; but needs a schema and careful parsing to avoid surprises.
+* If you externalize, pair it with a schema (jsonschema or pydantic) so changes fail fast.
+
+### Practical guidance for this project
+
+* **`services.py`** (authoritative, checked into Git): protocol/version, allowed message names, rejection reasons, capability list, supported locales, i18n IDs.
+* **`net.py`** (defaults in code + env overrides): host/port/timeouts. That gives ops one simple knob (`SASKAN_*`) without adding a file format.
+* **YAML bundles**: continue for i18n only.
+
+### “Switch later” triggers
+
+Consider moving some config to YAML/JSON **only if**:
+
+* Non‑developers must edit it without a code review,
+* You need per‑environment profiles (dev/staging/prod),
+* Or settings become **large and nested** (dozens of fields).
+
+Until then, the Python‑module approach keeps things simple, typed, and fast.

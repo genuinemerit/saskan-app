@@ -1,0 +1,23 @@
+# draining
+
+What does “draining” mean?
+
+Think of the server lifecycle states:
+
+- `init` → not listening yet, bootstrapping.
+- `ready` → actively listening, will accept + process requests.
+- `draining` → a graceful shutdown phase.
+
+Server stops admitting new work but still cleans up active connections.
+
+In the PR-2 case (one request → one reply), “draining” means:
+
+- still accept the TCP connection,
+- but immediately reply with system.reject {reason: "server_not_ready"}
+- then close.
+
+Why? So that new clients don’t just hang — they get a deterministic “server is closing down” response.
+
+stopped → socket closed, process exiting.
+
+So draining = graceful shutdown mode: new clients get a polite “not ready” reject instead of just a refused socket.

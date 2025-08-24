@@ -1,0 +1,5 @@
+msg.handshake.welcome: "Bienvenido a las Tierras Saskan"
+msg.handshake.reject.generic: "Conexión rechazada."
+msg.handshake.reject.protocol: "Conexión rechazada: versión de protocolo no admitida."
+msg.handshake.reject.not_ready: "Conexión rechazada: el servidor no está listo."
+msg.handshake.reject.invalid: "Conexión rechazada: solicitud no válida."

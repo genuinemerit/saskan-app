@@ -120,6 +120,74 @@ Delete unused default labels from GitHub repo:
 Script: `saskan/tools/remove-default-labels.sh`
 
 
+## Linter contracts
+
+Exactly.
+
+**import-linter** is a Python tool that inspects your project’s import graph and checks it against rules (“contracts”).
+
+* You declare contracts in a config file (usually `importlinter.ini`).
+* Then you run `lint-imports` locally or in CI.
+* If any import breaks a contract (e.g. `ui_cli` importing `engine`), the command exits non-zero and fails your check.
+
+That makes it perfect for a **CI workflow gate**: you add a job in GitHub Actions that runs `lint-imports`. If someone violates the layering rules, the PR will go red until they fix the imports.
+
+---
+
+### Example `importlinter.ini`
+
+```ini
+[importlinter]
+root_package = saskan
+
+[contract: ui_may_depend_on_client_only]
+name = UI may import only infra.net.client and infra.config
+type = forbidden
+modules = saskan.ui_cli
+forbidden_modules =
+    saskan.engine
+    saskan.core
+    saskan.infra.net.server
+    saskan.infra.persistence
+
+[contract: engine_must_not_import_infra_or_ui]
+name = Engine may not import Infra or UI
+type = forbidden
+modules = saskan.engine
+forbidden_modules =
+    saskan.ui_cli
+    saskan.infra.net
+    saskan.infra.persistence
+
+[contract: core_is_pure]
+name = Core imports nothing outside itself
+type = forbidden
+modules = saskan.core
+forbidden_modules =
+    saskan.engine
+    saskan.infra
+    saskan.ui_cli
+```
+
+Each `[contract: …]` block = one rule.
+
+---
+
+### In CI (GitHub Actions)
+
+Add a job step in `.github/workflows/lint.yml`:
+
+```yaml
+- name: Check import contracts
+  run: poetry run lint-imports
+```
+
+* `lint-imports` will read `importlinter.ini`, analyze imports, and fail if rules are broken.
+* That shows up as a red ❌ in the PR until fixed.
+
+---
+
+👉 An “import-linter contract block” is a *rule definition* that you check in with your repo. Running it in CI enforces the clean-layers design as a **status check** just like `black`, `mypy`, or `pytest`.
 
 
 

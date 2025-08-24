@@ -72,6 +72,7 @@ pygame = { version = "^2.6", optional = true }
 # Optional Postgres support (sync)
 psycopg = { version = "^3.2", optional = true }
 typer = {extras = ["all"], version = "^0.16.1"}
+jsonschema = "^4.25.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8"
@@ -80,6 +81,7 @@ pytest = "^8.3"
 coverage = "^7.6"
 mypy = "^1.11"  # optional, but good to have
 pre-commit = "^4.3.0"
+import-linter = "^2.4"
 
 [tool.poetry.extras]
 analytics = ["matplotlib", "pandas", "nltk"]

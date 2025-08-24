@@ -23,3 +23,5 @@ jobs:
         run: |
           poetry run isort . --check-only
           poetry run black . --check
+      - name: Import-linter (clean layers)
+        run: poetry run lint-imports

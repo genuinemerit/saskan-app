@@ -173,3 +173,43 @@ make finish-release
 
 That’s enough to start writing app code without over-complication. May want to ask ChatGPT to supply a tiny 'cli.py' + 'test_cli.py' scaffold so that the first PR is trivially green.
 
+---
+
+# git log
+
+Nice, clean, easy version that graphically shows squash merges:
+
+```bash
+git log --oneline --graph --decorate --all
+```
+
+For pro goodness:
+
+```bash
+git config --global alias.lg "log --oneline --graph --decorate --all"
+
+# then just type:
+git lg
+```
+
+---
+
+# git fetch
+
+git fetch --prune --tags
+
+Breaks down as:
+
+git fetch → updates your local knowledge of what exists on the remote (branches, tags).
+
+--tags → explicitly fetches tags as well (not just branches).
+
+--prune → removes (prunes) any local references that no longer exist on the remote.
+
+👉 Put together:
+
+If you’ve deleted tags (or branches) on the remote (origin),
+
+Running git fetch --prune --tags will clean up your local refs so they match.
+
+---

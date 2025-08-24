@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "system.reject.schema.json",
+  "type": "object",
+  "required": ["reason"],
+  "properties": {
+    "reason":    { "type": "string", "enum": [
+      "protocol_version_unsupported", "server_not_ready", "invalid_contract"
+    ]},
+    "i18n_id":   { "type": "string", "minLength": 1 },
+    "details":   { "type": "string" },
+    "supported": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

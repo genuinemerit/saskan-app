@@ -1,0 +1,3 @@
+# URN - Uniform Resource Name
+
+A Uniform Resource Name (URN) is a type of Uniform Resource Identifier (URI) that uniquely identifies a resource without specifying its location or how to access it. URNs are designed to be persistent and globally unique, often used for identifying resources like books or documents even after they become unavailable.
