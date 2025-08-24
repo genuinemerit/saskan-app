@@ -1,0 +1,21 @@
+# Concept of a “bundle”
+
+In i18n, a bundle = collection of translated strings for a locale.
+
+In our case: one YAML file per locale. The whole file is the “bundle.”
+
+Example: en-US/messages.yaml maps msg.handshake.welcome → "Welcome to the Saskan Lands".
+
+Loading the bundle = parsing that YAML into a Python dict.
+
+Then you can look up any key in memory without re-reading the file.
+
+Think of it like:
+
+Bundle (YAML file) = a bag of phrases.
+
+Key (msg.handshake.welcome) = the handle.
+
+Value = the translated string.
+
+So _load_bundle("es-ES") = “give me the Spanish bag of phrases as a dict.”

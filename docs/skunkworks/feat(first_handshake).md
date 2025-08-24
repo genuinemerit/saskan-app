@@ -632,12 +632,12 @@ Use this as your PR description. Terse, test‑first, no code pasted in the PR t
 
 ## 3) i18n bundles (PR‑2 minimum)
 
-* [ ] `saskan/data/locales/en-US/messages.yaml`
-* [ ] `saskan/data/locales/es-ES/messages.yaml`
+* [x] `saskan/data/locales/en-US/messages.yaml`
+* [x] `saskan/data/locales/es-ES/messages.yaml`
 
-  * [ ] `msg.handshake.welcome`
-  * [ ] `msg.handshake.reject.{generic,protocol,not_ready,invalid}`
-* [ ] Client lookup: locale from `SASKAN_LANG`; fallback to `en-US` → `motd`.
+  * [x] `msg.handshake.welcome`
+  * [x] `msg.handshake.reject.{generic,protocol,not_ready,invalid}`
+* [x] Client lookup: locale from `SASKAN_LANG`; fallback to `en-US` → `motd`.
 
 ---
 

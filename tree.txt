@@ -5,20 +5,20 @@
 ├── CONTRIBUTING.md
 ├── docs
 │   ├── adr
-│   │   ├── 0001-hex-grid
-│   │   ├── 0002-per-turn-snapshots
-│   │   ├── 0003-json-predicates
-│   │   ├── 0004-cli-with-typer
-│   │   ├── 0005-clean-layers
-│   │   ├── 0006-flat-maps
-│   │   ├── 0007-constrained-procedural-worldgen
-│   │   ├── 0008-notification-taxonomy
-│   │   ├── 0009-minimal-client-server
-│   │   ├── 0010-services-metadata
-│   │   ├── 0011-message-contracts-validatations
-│   │   ├── 0012-client-relations-delivery-semantics
-│   │   ├── 0013-message-retention
-│   │   └── 0014-startup-handshake-activation
+│   │   ├── 0001-hex-grid.md
+│   │   ├── 0002-per-turn-snapshots.md
+│   │   ├── 0003-json-predicates.md
+│   │   ├── 0004-cli-with-typer.md
+│   │   ├── 0005-clean-layers.md
+│   │   ├── 0006-flat-maps.md
+│   │   ├── 0007-constrained-procedural-worldgen.md
+│   │   ├── 0008-notification-taxonomy.md
+│   │   ├── 0009-minimal-client-server.md
+│   │   ├── 0010-services-metadata.md
+│   │   ├── 0011-message-contracts-validatations.md
+│   │   ├── 0012-client-relations-delivery-semantics.md
+│   │   ├── 0013-message-retention.md
+│   │   └── 0014-startup-handshake-activation.md
 │   ├── architecture
 │   │   ├── client_server_game.md
 │   │   ├── documentation_system.md
@@ -32,21 +32,32 @@
 │   │   ├── summary.md
 │   │   └── workflows.md
 │   ├── diagrams
-│   │   └── app_architecture.pdf
+│   │   ├── ADR-0014 Handshake Activation.png
+│   │   ├── app_architecture.pdf
+│   │   └── ports_connections
 │   ├── glossary
 │   │   ├── ADR
+│   │   ├── draining
 │   │   ├── DSL
+│   │   ├── DTO
 │   │   ├── fullgate.md
 │   │   ├── HUD
 │   │   ├── i18n
 │   │   ├── idempotent
 │   │   ├── merges
+│   │   ├── meta-schema
+│   │   ├── motd
 │   │   ├── MVP
 │   │   ├── MVVM
+│   │   ├── nc
+│   │   ├── NDJSON
 │   │   ├── PR
 │   │   ├── QoS
 │   │   ├── refs.md
 │   │   ├── RNG
+│   │   ├── RPC
+│   │   ├── semver
+│   │   ├── telnet
 │   │   ├── TTL
 │   │   └── URN
 │   ├── meta
@@ -55,13 +66,19 @@
 │   │   ├── makefiles.md
 │   │   ├── package_installers.md
 │   │   ├── pytest.md
-│   │   └── summary.md
+│   │   ├── summary.md
+│   │   └── validate_json.md
 │   └── skunkworks
 │       ├── feat(first_handshake).md
 │       ├── feat(greeting).md
 │       └── socketserver.md
 ├── .editorconfig
 ├── env
+│   ├── dev
+│   │   └── .env
+│   ├── .env -> ./dev/.env
+│   └── prod
+│       └── .env
 ├── .env.example
 ├── .github
 │   ├── CODEOWNERS
@@ -85,9 +102,9 @@
 │       ├── test.yml
 │       └── typecheck.yml
 ├── .gitignore
+├── importlinter.ini
 ├── LICENSE
 ├── Makefile
-├── old-tags.txt
 ├── poetry.lock
 ├── .pre-commit-config.yaml
 ├── pyproject.toml
@@ -117,6 +134,7 @@
 │   │   └── turn
 │   ├── infra
 │   │   ├── config
+│   │   ├── i18n
 │   │   ├── __init__.py
 │   │   ├── log
 │   │   ├── net
@@ -133,7 +151,8 @@
 │   │   ├── __init__.py
 │   │   ├── poetry_activate
 │   │   ├── remove-default-labels.sh
-│   │   └── setup-labels.sh
+│   │   ├── setup-labels.sh
+│   │   └── validate_json.py
 │   ├── ui_cli
 │   │   ├── client
 │   │   ├── commands
@@ -150,15 +169,15 @@
 │       ├── __init__.py
 │       ├── viewmodels
 │       └── views
-├── saskan_lands.tar.gz
 ├── scripts
 │   └── make_tree.sh
 ├── SECURITY.md
 ├── tests
 │   ├── conftest.py
-│   └── test_cli_hello.py
+│   ├── test_cli_hello.py
+│   └── test_validator.py
 ├── tree.txt
 └── .vscode
     └── settings.json
 
-59 directories, 103 files
+62 directories, 119 files

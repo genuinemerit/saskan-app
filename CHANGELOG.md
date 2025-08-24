@@ -8,9 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-- Placeholder for changes not yet released.
+- Implemented schema + validator for first_handshake (PR-2)
+- Enhanced ADRs 0003–0014 documenting handshake design
+- Implemented ui_cli commands for simple greeting (PR-1)
+- Added ADRs 0001–0014 outlining application design
 
 ---
+
+Ancient History
 
 ## [0.0.0a4] - 2025-08-17
 ### Added

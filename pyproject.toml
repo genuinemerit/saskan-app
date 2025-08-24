@@ -35,6 +35,7 @@ include = [
   "CONTRIBUTING.md",
   "SECURITY.md",
   "README.md",
+  "RELEASE.md",
   "LICENSE",
   "docs/**/*",
   "saskan/data/**/*"
@@ -73,6 +74,8 @@ pygame = { version = "^2.6", optional = true }
 psycopg = { version = "^3.2", optional = true }
 typer = {extras = ["all"], version = "^0.16.1"}
 jsonschema = "^4.25.1"
+pyyaml = "^6.0.2"
+types-pyyaml = "^6.0.12.20250822"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.8"
