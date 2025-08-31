@@ -100,6 +100,7 @@
 │   │   │   ├── python_functional_principles.md
 │   │   │   ├── python_import_files.md
 │   │   │   ├── python_logger.md
+│   │   │   ├── python_mypy.md
 │   │   │   ├── python_openai.md
 │   │   │   ├── python_pytest.md
 │   │   │   ├── python_random_seeds.md
@@ -203,6 +204,7 @@
 │   │   │   └── server
 │   │   ├── persistence
 │   │   └── schema
+│   │       ├── convert.py
 │   │       ├── dto.py
 │   │       ├── envelope.schema.json
 │   │       ├── handshake.request.schema.json
@@ -260,4 +262,4 @@
 └── .vscode
     └── settings.json
 
-68 directories, 193 files
+68 directories, 195 files

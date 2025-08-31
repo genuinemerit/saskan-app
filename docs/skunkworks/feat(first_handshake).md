@@ -680,9 +680,9 @@ Use this as your PR description. Terse, test‑first, no code pasted in the PR t
 
 ## 6) DTOs (no behavior)
 
-* [ ] `saskan/infra/dto/handshake.py`
+* [x] `saskan/infra/dto/handshake.py`
 
-  * [ ] `HandshakeRequestDTO`, `HandshakeWelcomeDTO`, `HandshakeRejectDTO`
+  * [x] `HandshakeRequestDTO`, `HandshakeWelcomeDTO`, `HandshakeRejectDTO`
 
 ---
 
@@ -690,28 +690,28 @@ Use this as your PR description. Terse, test‑first, no code pasted in the PR t
 
 **E2E (pytest)**
 
-* [ ] Start server in a thread/fixture; dynamic free port
-* [ ] **Happy path**: client connects → welcome within 1s; assert stdout and exit `0`
-* [ ] **Protocol mismatch**: reject with `supported`; exit `10`
-* [ ] **Invalid request**: malformed payload → reject `invalid_contract`; exit `10`
+* [x] Start server in a thread/fixture; dynamic free port
+* [x] **Happy path**: client connects → welcome within 1s; assert stdout and exit `0`
+* [x] **Protocol mismatch**: reject with `supported`; exit `10`
+* [x] **Invalid request**: malformed payload → reject `invalid_contract`; exit `10`
 * [ ] **Server not ready/draining**: reject `server_not_ready`; exit `10`
-* [ ] **Timeout**: server sleeps >1s → client exit `11`
+* [x] **Timeout**: server sleeps >1s → client exit `11`
 
 **Schema/validator**
 
 * [ ] Envelope required/malformed
 * [ ] `additionalProperties` failure
-* [ ] Unknown `name` → invalid\_contract
+* [x] Unknown `name` → invalid\_contract
 * [ ] Welcome schema enforced (missing `motd` fails in tests)
 
 **i18n**
 
-* [ ] `SASKAN_LANG=es-ES` → Spanish strings
-* [ ] Unknown locale → fallback to `en-US` → fallback to `motd`
+* [x] `SASKAN_LANG=es-ES` → Spanish strings
+* [x] Unknown locale → fallback to `en-US` → fallback to `motd`
 
 **Import boundaries**
 
-* [ ] Import‑linter run in CI (already added)
+* [x] Import‑linter run in CI (already added)
 
 ---
 

@@ -116,6 +116,7 @@ def send_msg_to_server(
             response_json: dict[str, Any] = json.loads(raw)
             name = response_json.get("name")
             payload = response_json.get("payload", {})
+            payload = payload[0]
 
             if name == "system.welcome":
                 welcome_dto = to_welcome_dto(payload)
@@ -126,7 +127,8 @@ def send_msg_to_server(
                 msg_string = localize_reply(reject_dto)
                 reply_msg = format_reject_reply(reject_dto, msg_string)
             else:
-                reply_msg = "[CLIENT] Received unknown reply format."
+                reply_msg = "unknown reply format."
+            reply_msg = f"CLIENT] Received reply:\n{reply_msg}"
         except ConnectionRefusedError:
             reply_msg = "[CLIENT] Connection refused by the server."
         except Exception as e:
