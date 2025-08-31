@@ -88,12 +88,12 @@ class IdleShutdownServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
     def drain_and_close(self) -> None:
         elapsed = self.seconds_since_activity()
-        print(f"Idle elapsed: {elapsed:.1f}s (timeout={self.idle_timeout}s)")
+        # print(f"Idle elapsed: {elapsed:.1f}s (timeout={self.idle_timeout}s)")
         if elapsed >= self.idle_timeout:
             print(f"Draining and closing connections after {elapsed:.1f}s of inactivity.")
-            # best-effort unregister
+            # Unregister any active clients
             for token in list(self.clients.keys()):
-                # mirror your unregister semantics
+                # mirror the unregister semantics
                 del self.clients[token]
             # orderly server shutdown
             self.shutdown()  # stop serve_forever loop

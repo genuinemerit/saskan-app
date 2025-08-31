@@ -2,13 +2,18 @@
 import typer
 
 from saskan.infra.log.logger import configure
-from saskan.ui_cli.client.connect import connect
+from saskan.ui_cli.commands.connect import connect
 from saskan.ui_cli.commands.greet import hello
-from saskan.ui_cli.server.start import start
+from saskan.ui_cli.commands.start import start
+from saskan.ui_cli.commands.version import version
 
-configure()  # Setup logging for CLI itself using defaults in infra/log/logger.py
+configure()  # Setup logging for CLI using defaults in infra/log/logger.py
 
-app = typer.Typer(help="Saskan CLI", no_args_is_help=True)  # show help if no subcommand
+# show help if no subcommand
+help_text = (
+    "Saskantinon Command Line Interface\n\n" + "saskan [COMMAND] --help for more info on a command"
+)
+app = typer.Typer(help=help_text, no_args_is_help=True)
 
 
 @app.callback()
@@ -20,8 +25,9 @@ def main():
 
 # Register subcommands
 app.command("hello")(hello)
-app.command("connect")(connect)
+app.command("version")(version)
 app.command("start")(start)
+app.command("connect")(connect)
 
 
 def cli():

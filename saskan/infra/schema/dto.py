@@ -5,35 +5,29 @@
 
 Dataclasses for Data Transfer Objects.
 """
+
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import List, Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class HandshakeRequestDTO:
-    id: str
-    ver: str
-    name: str
-    ts: str
-    meta: Dict[str, Any]
-    payload: Dict[str, Any]
+    client_version: str
+    capabilities: List[str]  # can be empty
 
 
-@dataclass
-class SystemRejectDTO:
-    id: str
-    ver: str
-    name: str
-    ts: str
-    meta: Dict[str, Any]
-    payload: Dict[str, Any]
+@dataclass(frozen=True)
+class WelcomeDTO:
+    server_version: str
+    session_id: str
+    motd: str
+    i18n_id: Optional[str] = None
+    accepted_capabilities: Optional[List[str]] = None
 
 
-@dataclass
-class SystemWelcometDTO:
-    id: str
-    ver: str
-    name: str
-    ts: str
-    meta: Dict[str, Any]
-    payload: Dict[str, Any]
+@dataclass(frozen=True)
+class RejectDTO:
+    reason: str
+    i18n_id: Optional[str] = None
+    details: Optional[str] = None
+    supported: Optional[List[str]] = None  # for protocol mismatch

@@ -4,6 +4,9 @@
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── docs
+│   ├── 2d 3d modeling
+│   │   ├── 3d ellipsoid models
+│   │   └── 3d matplotlib
 │   ├── adr
 │   │   ├── 0001-hex-grid.md
 │   │   ├── 0002-per-turn-snapshots.md
@@ -26,8 +29,9 @@
 │   │   └── summary.md
 │   ├── build_release_deploy
 │   │   ├── gitflow_releases.md
-│   │   ├── GitHub_Checklist
+│   │   ├── GitHub_Checklist.md
 │   │   ├── github_general.md
+│   │   ├── github_secrets.md
 │   │   ├── poetry.md
 │   │   ├── summary.md
 │   │   └── workflows.md
@@ -37,6 +41,7 @@
 │   │   └── ports_connections
 │   ├── glossary
 │   │   ├── ADR
+│   │   ├── bundle
 │   │   ├── draining
 │   │   ├── DSL
 │   │   ├── DTO
@@ -60,25 +65,70 @@
 │   │   ├── telnet
 │   │   ├── TTL
 │   │   └── URN
+│   ├── math_physics
+│   │   ├── circle_relationship.md
+│   │   ├── collision.md
+│   │   ├── compare_spheres.md
+│   │   ├── ellipsoid.md
+│   │   ├── ellipsoid_volume.md
+│   │   ├── enclosing_rectangle.md
+│   │   ├── pitch_yaw_roll.md
+│   │   └── sphere_volume.md
 │   ├── meta
+│   │   ├── ai_models.md
+│   │   ├── bash_aliases.md
 │   │   ├── configs_and_envs.md
+│   │   ├── environment_vars.md
+│   │   ├── file_permission_bits.md
+│   │   ├── html_markdown_convert.md
+│   │   ├── json_validate.md
 │   │   ├── linters_and_typechecks.md
+│   │   ├── lru_cache.md
+│   │   ├── macos_quirks.md
 │   │   ├── makefiles.md
 │   │   ├── package_installers.md
-│   │   ├── pytest.md
-│   │   ├── summary.md
-│   │   └── validate_json.md
+│   │   ├── pg_install.md
+│   │   ├── python
+│   │   │   ├── pygame_mouseclick.md
+│   │   │   ├── pygame_resolution.md
+│   │   │   ├── pytest_monkeypatch.md
+│   │   │   ├── python_blender.md
+│   │   │   ├── python_bytes.md
+│   │   │   ├── python_cli_help.md
+│   │   │   ├── python_dictdiffer.md
+│   │   │   ├── python_extend_zip.md
+│   │   │   ├── python_functional_principles.md
+│   │   │   ├── python_import_files.md
+│   │   │   ├── python_logger.md
+│   │   │   ├── python_openai.md
+│   │   │   ├── python_pytest.md
+│   │   │   ├── python_random_seeds.md
+│   │   │   ├── python_remove_dups.md
+│   │   │   └── python_traceback.md
+│   │   ├── scaffolding.md
+│   │   ├── socketserver.md
+│   │   ├── Spanish_style_guide.md
+│   │   ├── sqlite
+│   │   │   ├── sqlite_backup.md
+│   │   │   ├── sqlite_blobs.md
+│   │   │   ├── sqlite_booleans.md
+│   │   │   ├── sqlite_col_names.md
+│   │   │   ├── sqlite_commit.md
+│   │   │   ├── sqlite_date_and_time.md
+│   │   │   ├── sqlite_db_status.md
+│   │   │   ├── sqlite_empties.md
+│   │   │   ├── sqlite_enums.md
+│   │   │   ├── sqlite_execute_scripts.md
+│   │   │   ├── sqlite_foreign_keys.md
+│   │   │   ├── sqlite_get_checks.md
+│   │   │   └── sqlite_new_db.md
+│   │   ├── type_annotations.md
+│   │   └── type_Mapping.md
 │   └── skunkworks
 │       ├── feat(first_handshake).md
-│       ├── feat(greeting).md
-│       └── socketserver.md
+│       └── feat(greeting).md
 ├── .editorconfig
 ├── env
-│   ├── dev
-│   │   └── .env
-│   ├── .env -> ./dev/.env
-│   └── prod
-│       └── .env
 ├── .env.example
 ├── .github
 │   ├── CODEOWNERS
@@ -122,6 +172,9 @@
 │   │   ├── config
 │   │   ├── __init__.py
 │   │   ├── locales
+│   │   │   ├── en-US
+│   │   │   ├── es-ES
+│   │   │   └── __init__.py
 │   │   ├── maps
 │   │   ├── schemas
 │   │   └── story
@@ -134,12 +187,29 @@
 │   │   └── turn
 │   ├── infra
 │   │   ├── config
+│   │   │   ├── __init__.py
+│   │   │   ├── net.py
+│   │   │   └── services.py
 │   │   ├── i18n
+│   │   │   ├── __init__.py
+│   │   │   └── lookup.py
 │   │   ├── __init__.py
 │   │   ├── log
+│   │   │   ├── __init__.py
+│   │   │   └── logger.py
 │   │   ├── net
+│   │   │   ├── client
+│   │   │   ├── __init__.py
+│   │   │   └── server
 │   │   ├── persistence
 │   │   └── schema
+│   │       ├── dto.py
+│   │       ├── envelope.schema.json
+│   │       ├── handshake.request.schema.json
+│   │       ├── __init__.py
+│   │       ├── system.reject.schema.json
+│   │       ├── system.welcome.schema.json
+│   │       └── validator.py
 │   ├── __init__.py
 │   ├── sims
 │   │   ├── ecology
@@ -152,10 +222,19 @@
 │   │   ├── poetry_activate
 │   │   ├── remove-default-labels.sh
 │   │   ├── setup-labels.sh
+│   │   ├── utils
+│   │   │   ├── __init.py__
+│   │   │   ├── match_semver.py
+│   │   │   ├── platform.py
+│   │   │   └── stamps.py
 │   │   └── validate_json.py
 │   ├── ui_cli
-│   │   ├── client
 │   │   ├── commands
+│   │   │   ├── connect.py
+│   │   │   ├── greet.py
+│   │   │   ├── __init__.py
+│   │   │   ├── start.py
+│   │   │   └── version.py
 │   │   ├── __init__.py
 │   │   ├── manage.py
 │   │   └── render
@@ -175,9 +254,10 @@
 ├── tests
 │   ├── conftest.py
 │   ├── test_cli_hello.py
+│   ├── test_lookup.py
 │   └── test_validator.py
 ├── tree.txt
 └── .vscode
     └── settings.json
 
-62 directories, 119 files
+68 directories, 193 files

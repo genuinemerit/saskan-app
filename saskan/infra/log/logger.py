@@ -8,7 +8,7 @@ import os
 import sys
 from datetime import datetime, timezone
 from logging import LogRecord
-from typing import Any, Dict, Iterable, Mapping, Optional, Tuple, cast
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 # Type aliases for clarity
 

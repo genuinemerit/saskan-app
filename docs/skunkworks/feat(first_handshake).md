@@ -665,16 +665,16 @@ Use this as your PR description. Terse, test‑first, no code pasted in the PR t
 * [x] `saskan/infra/net/client.py`
 
   * [x] Connect with 2.0s timeout; send `handshake.request`
-  * [ ] Read one line with 1.0s deadline; return typed DTO or error
-  * [ ] I18n lookup and fallback logic (or expose text to CLI)
+  * [x] Read one line with 1.0s deadline; return typed DTO or error
+  * [x] I18n lookup and fallback logic (or expose text to CLI)
 * [x] `saskan/ui_cli/commands/connect.py`
 
-  * [ ] Flags: `--host/--port/--protocol/--timeout`
-  * [ ] Success → stdout: localized welcome; exit `0`
-  * [ ] Reject/timeout/net errors → stderr; exit codes `10/11`
-* [ ] `saskan/ui_cli/commands/version.py`
+  * [x] Flags: `--host/--port/--protocol/--timeout`
+  * [x] Success → stdout: localized welcome; exit `0`
+  * [x] Reject/timeout/net errors → stderr; exit codes `10/11`
+* [x] `saskan/ui_cli/commands/version.py`
 
-  * [ ] Print: `saskan-cli=<ver> protocol=<ver> python=<x.y.z>`
+  * [x] Print: `saskan-cli=<ver> protocol=<ver> python=<x.y.z>`
 
 ---
 
