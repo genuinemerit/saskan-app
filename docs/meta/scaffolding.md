@@ -1,3 +1,5 @@
+# Scaffolding meta
+
 Scaffolding is the "meta layer" of your projects:
 
 Project definition/configuration (e.g., pyproject.toml, poetry.lock, setup.cfg, tox.ini)

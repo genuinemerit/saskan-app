@@ -643,31 +643,31 @@ Use this as your PR description. Terse, test‑first, no code pasted in the PR t
 
 ## 4) Server (infra)
 
-* [ ] `saskan/infra/net/server.py`
+* [x] `saskan/infra/net/server.py`
 
-  * [ ] `socketserver.ThreadingTCPServer` with one‑exchange policy
-  * [ ] NDJSON framing (UTF‑8; accept `\r\n`; **8 KB** cap → drop)
-  * [ ] Lifecycle flag: `init → ready → draining → stopped`
-  * [ ] Handlers:
+  * [x] `socketserver.ThreadingTCPServer` with one‑exchange policy
+  * [x] NDJSON framing (UTF‑8; accept `\r\n`; **8 KB** cap → drop)
+  * [x] Lifecycle flag: `init → ready → draining → stopped`
+  * [x] Handlers:
 
-    * [ ] Parse line (hard caps first). If unsafe → drop (no reply)
-    * [ ] Validate envelope/payload via validator
-    * [ ] Protocol negotiation (reject with `supported` on mismatch)
-    * [ ] On OK: send `system.welcome` (echo `id`, include `motd`, `i18n_id`)
-    * [ ] On fail: send `system.reject` (echo `id` if known)
-  * [ ] Logging: `READY`, `CONN_OPEN/CLOSE`, `HELLO outcome=… reason? latency_ms=…`
-  * [ ] Draining mode: immediate `server_not_ready` then close
+    * [x] Parse line (hard caps first). If unsafe → drop (no reply)
+    * [x] Validate envelope/payload via validator
+    * [x] Protocol negotiation (reject with `supported` on mismatch)
+    * [x] On OK: send `system.welcome` (echo `id`, include `motd`, `i18n_id`)
+    * [x] On fail: send `system.reject` (echo `id` if known)
+  * [x] Logging: `READY`, `CONN_OPEN/CLOSE`, `HELLO outcome=… reason? latency_ms=…`
+  * [x] Draining mode: immediate `server_not_ready` then close
 
 ---
 
 ## 5) Client API (infra) & CLI (ui\_cli)
 
-* [ ] `saskan/infra/net/client.py`
+* [x] `saskan/infra/net/client.py`
 
-  * [ ] Connect with 2.0s timeout; send `handshake.request`
+  * [x] Connect with 2.0s timeout; send `handshake.request`
   * [ ] Read one line with 1.0s deadline; return typed DTO or error
   * [ ] I18n lookup and fallback logic (or expose text to CLI)
-* [ ] `saskan/ui_cli/commands/connect.py`
+* [x] `saskan/ui_cli/commands/connect.py`
 
   * [ ] Flags: `--host/--port/--protocol/--timeout`
   * [ ] Success → stdout: localized welcome; exit `0`

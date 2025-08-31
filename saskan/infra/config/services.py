@@ -25,11 +25,16 @@ ALLOWED_MESSAGE_NAMES: Final[FrozenSet[str]] = frozenset(
 REJECTION_REASONS: Final[FrozenSet[str]] = frozenset(
     {
         "protocol_version_unsupported",
-        "message_name_unsupported",
         "server_not_ready",
         "invalid_contract",
     }
 )
+
+# server timeout (in seconds) for client inactivity
+SERVER_TIMEOUT: Final[float] = 20.0
+
+# motd
+MOTD: Final[str] = "Welcome to the Saskan game server!"
 
 # i18n defaults
 DEFAULT_LANG: Final[str] = "en-US"

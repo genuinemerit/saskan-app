@@ -109,9 +109,33 @@ Normally injected via CI/CD or secrets manager rather than stored in git.
 * Use **different suffixes** (`.env.test`, `.env.prod`) if your tooling auto-loads based on environment.
 * Document in `CONTRIBUTING.md` which `.env.*` files are required and how to populate them.
 
+Recommendation
+
+Use both shell env and .env wisely:
+
+For shared/common secrets (like GitHub tokens, OpenAI keys you use across apps):
+
+Put them in your ~/.zshrc or a .secrets file and source that in ~/.zshrc (or .bash_alias or whatever)
+
+In any case, never commit them. Protect your home directory.
+
+For app-specific secrets (like DBs, keys, API scopes):
+
+Create a .env in the app root:
+
+/home/mintuser/mint/.env
+
+Gitignore it.
+
+Use load_dotenv() in your app.
+
+Advanced (optional):
+
+Have .env.development, .env.production, and load the correct one via a small bootstrap file.
+
 ---
 
-### Summary
+### Summary on env
 
 `.env.*` files externalize runtime config. You keep a **committed template** to guide contributors, but your **real secrets** live in local `.env` files or CI/CD secrets — never in the repo.
 
@@ -129,7 +153,7 @@ For production, override in .env.prod or via CI/CD secret management.
 
 ---
 
-# .pre-commit-config.yaml
+## .pre-commit-config.yaml
 
 ## Purpose
 
@@ -157,7 +181,7 @@ poetry run pre-commit run --all-files
 
 Then w can wrap these into a Makefile (make lint, make format, make type, make check) so contributors don't need to recall the long commands.
 
-# .editorconfig
+## .editorconfig
 
 ## Purpose of .editorconfig
 
@@ -181,7 +205,7 @@ Notes
 
 This file lives in repo root so all editors honor the same baseline style.
 
-# CODEOWNERS
+## CODEOWNERS
 
 CODEOWNERS is simple once you see what it does.
 
@@ -189,10 +213,10 @@ CODEOWNERS is simple once you see what it does.
 
 ## Purpose of CODEOWNERS
 
-* It’s a special file (`.github/CODEOWNERS`) that tells GitHub:
+- It’s a special file (`.github/CODEOWNERS`) that tells GitHub:
   *“Whenever a PR touches these paths, request reviews from these people/teams.”*
-* It doesn’t block merging by itself — but if branch protection is set to **“Require review from Code Owners”**, then at least one of those owners must approve before merge.
-* For solo mode: you can set yourself as the owner so all PRs auto-request you (nice for discipline and history). Later, if you add collaborators, you can divide responsibility by directory.
+- It doesn’t block merging by itself — but if branch protection is set to **“Require review from Code Owners”**, then at least one of those owners must approve before merge.
+- For solo mode: you can set yourself as the owner so all PRs auto-request you (nice for discipline and history). Later, if you add collaborators, you can divide responsibility by directory.
 
 ---
 
@@ -215,8 +239,8 @@ Examples:
 
 Owners can be:
 
-* Individual GitHub usernames (`@phoenix-quinn`)
-* Teams within an org (`@myorg/devs`)
+- Individual GitHub usernames (`@phoenix-quinn`)
+- Teams within an org (`@myorg/devs`)
 
 ---
 
@@ -233,8 +257,8 @@ Replace `@your-username` with your actual GitHub handle (which is `@genuinemerit
 
 That way:
 
-* Every PR auto-assigns you as reviewer.
-* In branch protection you can later tick **Require review from Code Owners** to enforce it (today you can leave that off if you don’t want the extra click).
+- Every PR auto-assigns you as reviewer.
+- In branch protection you can later tick **Require review from Code Owners** to enforce it (today you can leave that off if you don’t want the extra click).
 
 ---
 
@@ -242,7 +266,7 @@ That way:
 
 Would you like me to show you the **exact GitHub browser steps** to add CODEOWNERS (since you can’t create `.github/CODEOWNERS` through the UI directly), or are you comfortable just making the file in your repo and committing it?
 
-# RELEASE.md
+## RELEASE.md
 
 Purpose of RELEASE.md
 
@@ -275,33 +299,33 @@ For PR‑2, keep **`services.py` as a plain Python module** with constants. That
 
 ### Why a Python module for `services.py`
 
-* **Type safety & IDE help**: constants are typed, discoverable, and refactorable.
-* **Single import path**: schemas, CLI, server all import the same symbols—no file I/O at startup.
-* **Source of truth** lives in Git (exactly what you want for protocol evolution).
-* **No runtime mutability**: avoids “mysterious” behavior differences across environments.
+- **Type safety & IDE help**: constants are typed, discoverable, and refactorable.
+- **Single import path**: schemas, CLI, server all import the same symbols—no file I/O at startup.
+- **Source of truth** lives in Git (exactly what you want for protocol evolution).
+- **No runtime mutability**: avoids “mysterious” behavior differences across environments.
 
 ### When to *not* use `.ini` / `configparser`
 
-* Great for simple key/value pairs, but **weak for structured data** (sets, lists of names, nested mappings). You’ll end up encoding lists as comma strings and parsing them anyway.
+- Great for simple key/value pairs, but **weak for structured data** (sets, lists of names, nested mappings). You’ll end up encoding lists as comma strings and parsing them anyway.
 
 ### JSON vs YAML (if/when you externalize later)
 
-* **JSON**: strict, easy to validate; but **no comments**, which hurts operator docs.
-* **YAML**: comments + readability; but needs a schema and careful parsing to avoid surprises.
-* If you externalize, pair it with a schema (jsonschema or pydantic) so changes fail fast.
+- **JSON**: strict, easy to validate; but **no comments**, which hurts operator docs.
+- **YAML**: comments + readability; but needs a schema and careful parsing to avoid surprises.
+- If you externalize, pair it with a schema (jsonschema or pydantic) so changes fail fast.
 
 ### Practical guidance for this project
 
-* **`services.py`** (authoritative, checked into Git): protocol/version, allowed message names, rejection reasons, capability list, supported locales, i18n IDs.
-* **`net.py`** (defaults in code + env overrides): host/port/timeouts. That gives ops one simple knob (`SASKAN_*`) without adding a file format.
-* **YAML bundles**: continue for i18n only.
+- **`services.py`** (authoritative, checked into Git): protocol/version, allowed message names, rejection reasons, capability list, supported locales, i18n IDs.
+- **`net.py`** (defaults in code + env overrides): host/port/timeouts. That gives ops one simple knob (`SASKAN_*`) without adding a file format.
+- **YAML bundles**: continue for i18n only.
 
 ### “Switch later” triggers
 
 Consider moving some config to YAML/JSON **only if**:
 
-* Non‑developers must edit it without a code review,
-* You need per‑environment profiles (dev/staging/prod),
-* Or settings become **large and nested** (dozens of fields).
+- Non‑developers must edit it without a code review,
+- You need per‑environment profiles (dev/staging/prod),
+- Or settings become **large and nested** (dozens of fields).
 
 Until then, the Python‑module approach keeps things simple, typed, and fast.

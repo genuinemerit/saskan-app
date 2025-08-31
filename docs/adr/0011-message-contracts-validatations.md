@@ -41,7 +41,7 @@ Use **JSON Schema** to define and validate both the **envelope** and **payloads*
 
 ### Detailed version
 
-1) Files & locations
+1. Files & locations
 
 Schemas in saskan/infra/schema/:
 
@@ -55,7 +55,7 @@ system.reject.schema.json
 
 Validator module: saskan/infra/schema/validator.py
 
-2) JSON Schema draft & policy
+1. JSON Schema draft & policy
 
 Use JSON Schema 2020‑12.
 
@@ -63,7 +63,7 @@ Additive changes only (MINOR): new optional fields / enum values.
 
 Breaking changes require protocol MAJOR bump (tie to ADR‑0010).
 
-3) Envelope (common to all)
+1. Envelope (common to all)
 
 Minimal, explicit, tight. Required unless marked optional.
 
@@ -94,13 +94,13 @@ Minimal, explicit, tight. Required unless marked optional.
 
 Notes:
 
-name grammar enforces <namespace>.<kind>.
+name grammar enforces `<namespace>.<kind>`.
 
 audience/severity optional (ADR‑0008).
 
 payload validated by per‑message schema after envelope passes.
 
-4) Handshake payload schemas (PR‑2)
+1. Handshake payload schemas (PR‑2)
 
 Request — system.handshake.request
 
@@ -156,7 +156,7 @@ Reject — system.reject
 }
 ```
 
-5) Validator behavior (spec)
+1. Validator behavior (spec)
 
 Step 1: Validate envelope; if it fails → return invalid_envelope error list.
 
@@ -189,14 +189,14 @@ Server maps this to:
 
 system.reject with reason="invalid_contract" and a single concise details (do not echo the full errors array to clients). Full list goes to logs.
 
-6) Name routing & allow‑list
+1. Name routing & allow‑list
 
 Validator must check name is in ALLOWED_MESSAGE_NAMES (from ADR‑0010).
 
 For PR‑2: allow only
 {"system.handshake.request","system.welcome","system.reject"}.
 
-7) Protocol negotiation hook
+1. Protocol negotiation hook
 
 After envelope OK, check meta.protocol via services metadata.
 
@@ -204,13 +204,13 @@ If not supported → system.reject (protocol_version_unsupported, include suppor
 
 Skip payload validation in that case (you already know it’s a mismatch).
 
-8) Size & safety gates (tie to ADR‑0009)
+1, Size & safety gates (tie to ADR‑0009)
 
 Validator is called only after hard caps (UTF‑8, ≤ 8 KB line, JSON parse) are satisfied.
 
 If JSON can’t be parsed safely (no id certainty) → drop connection (no reply).
 
-9) Test matrix (acceptance)
+1, Test matrix (acceptance)
 
 Happy path: request valid → welcome valid.
 
@@ -279,22 +279,22 @@ Keep motd required in welcome for PR‑2 to guarantee a fallback.
 
 Here’s the **final pass on ADR‑0011 (Message Contracts & Validation)**—tight, actionable, and ready to freeze.
 
-# ADR‑0011 — Finalized
+## ADR‑0011 — Finalized
 
-## Schema index (files, PR‑2)
+### Schema index (files, PR‑2)
 
 * `saskan/infra/schema/envelope.schema.json`
 * `saskan/infra/schema/handshake.request.schema.json` (for `system.handshake.request`)
 * `saskan/infra/schema/system.welcome.schema.json`
 * `saskan/infra/schema/system.reject.schema.json`
 
-## Policy
+### Policy
 
 * Draft: **JSON Schema 2020‑12**.
 * Additive changes only in MINOR; breaking changes require protocol **MAJOR** bump (ties to ADR‑0010).
 * `additionalProperties: false` everywhere for PR‑2.
 
-## Envelope (required keys)
+### Envelope (required keys)
 
 `id, ver="1", name(<namespace>.<kind>), ts(ISO‑8601), meta{protocol}, payload`
 
@@ -302,13 +302,13 @@ Here’s the **final pass on ADR‑0011 (Message Contracts & Validation)**—tig
 * Name allow‑list (ADR‑0010/PR‑2):
   `{ "system.handshake.request", "system.welcome", "system.reject" }`.
 
-## Payloads (PR‑2)
+### Payloads (PR‑2)
 
 * **handshake.request**: `client_version: str`, `capabilities: [str]=[]`
 * **system.welcome**: `server_version: str`, `session_id: str`, `motd: str`, `i18n_id?: str`, `accepted_capabilities: [str]`
 * **system.reject**: `reason: enum{protocol_version_unsupported, server_not_ready, invalid_contract}`, `i18n_id?: str`, `details?: str`, `supported?: [str]` (only for protocol mismatch)
 
-## Validator contract (spec)
+### Validator contract (spec)
 
 * Location: `saskan/infra/schema/validator.py`
 * API (spec): `validate(name: str, message: dict) -> {"ok": bool, "errors": [..]}`

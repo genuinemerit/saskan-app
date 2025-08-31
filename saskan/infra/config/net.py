@@ -1,3 +1,4 @@
+# saskan/infra/config/net.py
 """
 :module:   net.py
 :author:   PQ
@@ -11,7 +12,7 @@ from typing import Final
 
 # Defaults
 DEFAULT_HOST: Final[str] = "127.0.0.1"
-DEFAULT_PORT: Final[int] = 8000
+DEFAULT_PORT: Final[int] = 7777
 DEFAULT_CONNECT_DEADLINE: Final[float] = 2.0
 DEFAULT_READ_DEADLINE: Final[float] = 1.0
 DEFAULT_WRITE_DEADLINE: Final[float] = 1.0
@@ -27,6 +28,9 @@ ENV_OVERRIDES: Final[set[str]] = {
 # Resolved values (used by CLI/server)
 HOST: Final[str] = os.getenv("SASKAN_HOST", DEFAULT_HOST)
 PORT: Final[int] = int(os.getenv("SASKAN_PORT", DEFAULT_PORT))
+
+print(f"Configuring network on {HOST}:{PORT}")
+
 CONNECT_DEADLINE: Final[float] = float(
     os.getenv("SASKAN_CONNECT_DEADLINE", DEFAULT_CONNECT_DEADLINE)
 )
