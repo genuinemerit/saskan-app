@@ -20,6 +20,7 @@ ALLOWED_MESSAGE_NAMES: Final[FrozenSet[str]] = frozenset(
         "system.reject",
     }
 )
+ACCEPTED_CAPABILITIES: Final[FrozenSet[str]] = frozenset({"welcome"})
 
 # Rejection reasons
 REJECTION_REASONS: Final[FrozenSet[str]] = frozenset(
@@ -31,7 +32,7 @@ REJECTION_REASONS: Final[FrozenSet[str]] = frozenset(
 )
 
 # server timeout (in seconds) for client inactivity
-SERVER_TIMEOUT: Final[float] = 20.0
+SERVER_TIMEOUT: Final[float] = 1.0
 
 # motd
 MOTD: Final[str] = "Welcome to the Saskan game server!"

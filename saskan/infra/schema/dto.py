@@ -4,10 +4,22 @@
 :author:   PQ
 
 Dataclasses for Data Transfer Objects.
+These are used for internal representation of validated data.
+For methods to convert to/from dict, see saskan/infra/schema/convert.py
 """
 
 from dataclasses import dataclass
 from typing import List, Optional
+
+
+@dataclass(frozen=True)
+class EnvelopeDTO:
+    id: str
+    ver: int
+    name: str
+    ts: str
+    meta: dict
+    payload: dict
 
 
 @dataclass(frozen=True)

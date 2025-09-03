@@ -12,12 +12,12 @@ console = Console()
 
 
 def start(
-    host: str = typer.Option(HOST, "--host", "-h", help="Host to connect to"),
-    port: int = typer.Option(PORT, "--port", "-p", help="Port to connect to"),
+    host: str = typer.Option(HOST, "--host", "-H", help="Host to bind"),
+    port: int = typer.Option(PORT, "--port", "-p", help="Port to bind"),
 ) -> None:
     """Start up the Saskan game server.
     Example usage:
     `saskan start`
-    `saskan start --h wingchun --p 7777`
+    `saskan start -H wingchun -p 7777`
     """
     server.start_server(host, port)

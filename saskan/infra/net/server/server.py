@@ -28,17 +28,19 @@ import secrets
 import socketserver
 import threading
 import time
+from collections.abc import Iterable
 from importlib.resources import files
 from pprint import pprint as pp  # noqa F401
 from typing import Any, Dict, List, Optional, Tuple, Type, TypedDict
 
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError
 
 from saskan.infra import schema
 from saskan.infra.config import services as svc
 from saskan.infra.config.net import HOST, PORT
 from saskan.infra.log.logger import get_logger
-from saskan.infra.schema import validator
+from saskan.infra.schema import convert, dto, validator
 from saskan.tools.utils import stamps
 
 # Type aliases
@@ -46,12 +48,23 @@ from saskan.tools.utils import stamps
 Address = Tuple[str, int]
 
 
+class Diagnostics(TypedDict):
+    errors: list[str]
+
+
 class Response(TypedDict):
     ok: bool
     reason: Optional[str]
     supported: List[str]
-    diagnostics: Dict[str, Any]
+    diagnostics: Diagnostics
     token: str
+
+
+# Schema caching
+ENVELOPE = json.loads(files(schema).joinpath("envelope.schema.json").read_text())
+HREQ = json.loads(files(schema).joinpath("handshake.request.schema.json").read_text())
+V_ENVELOPE = Draft202012Validator(ENVELOPE)
+V_HREQ = Draft202012Validator(HREQ)
 
 
 # Functional code
@@ -118,54 +131,68 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         # self.server.game = Game()  # Future -- Initialize game state
-        self.client_queue: dict = {}  # Future -- message queue for client
-        schema_path = files(schema).joinpath("envelope.schema.json")
-        with schema_path.open("r", encoding="utf-8") as f:
-            self.envelope_schema = json.load(f)
-        schema_path = files(schema).joinpath("handshake.request.schema.json")
-        with schema_path.open("r", encoding="utf-8") as f:
-            self.handshake_schema = json.load(f)
+        # self.client_queue: dict = {}  # Future -- message queue for client
         self.srv_log = get_logger("saskan.server")
         super().__init__(*args, **kwargs)
 
-    def handle(self) -> None:
-        self.server.touch()  # mark activity
+    def _read_one_line(self, max_bytes: int = 8192) -> str:
+        """
+        Implement a simple line-based protocol (NDJSON).
+        Read until newline, up to max_bytes (default 8192).
+        Raise ValueError if line too long.
+        Raise ConnectionError if client closes connection.
+        """
+        buf = bytearray()
+        while True:
+            chunk = self.request.recv(1024)
+            if not chunk:
+                raise ConnectionError("client closed")
+            buf += chunk
+            if len(buf) > max_bytes:
+                raise ValueError("line too long")
+            if buf.endswith(b"\n"):
+                break
+        return buf.rstrip(b"\r\n").decode("utf-8")
 
-        response: Response = {
-            "ok": True,
-            "reason": None,
-            "supported": svc.SUPPORTED_PROTOCOLS,
-            "diagnostics": {},
-            "token": self.register_client(),
+    def log_message_received(self, token: str, msg: dict) -> None:
+        log_msg = {
+            "event": "log_message",
+            "from": token,
+            "message": msg,
+            "ts": stamps.create_iso_timestamp(),
         }
+        self.srv_log.info(log_msg)
+
+    def handle(self) -> None:
+        """
+        Per ADR-009, read exactly one NDJSON message, reply once, then close connection.
+        Future: keep connection open for multiple exchanges.
+        """
+        self.server.touch()
+        self.request.settimeout(svc.SERVER_TIMEOUT)  # idle timeout on socket
         try:
-            while True:
-                msg_in = self.request.recv(1024)
-                if not msg_in:
-                    continue
+            token = self.register_client()
+            response: Response = {
+                "ok": True,
+                "reason": None,
+                "supported": svc.SUPPORTED_PROTOCOLS,
+                "diagnostics": Diagnostics(errors=[]),
+                "token": token,
+            }
+            line = self._read_one_line(max_bytes=8192)
+            msg_in = json.loads(line)
 
-                self.server.touch()  # mark activity
-                msg_str = msg_in.decode("utf-8").rstrip("\n")
+            self.log_message_received(token, msg_in)
 
-                log_msg = json.dumps(
-                    {
-                        "event": "message_received",
-                        "from": str(self.client_address),
-                        "msg": msg_str,
-                        "ts": stamps.create_iso_timestamp(),
-                    }
-                )
-                self.srv_log.info(log_msg)
+            if response["ok"]:
+                response = self.review_protocol(response, msg_in)
+            if response["ok"]:
+                response = self.review_message(response, msg_in)
 
-                msg_in = json.loads(msg_str)
-                if response["ok"]:
-                    response = self.review_protocol(response, msg_in)
-                if response["ok"]:
-                    response = self.review_message(response, msg_in)
-
-                self.reply_message(response, msg_in)
+            self.reply_message(response, msg_in)
         finally:
             self.unregister_client(response["token"])
+            self.request.close()
 
     def register_client(self) -> str:
         """
@@ -177,9 +204,7 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
         """
         # id = self.server.game.register_player(self.client_address) -- Future
         token = secrets.token_urlsafe(32)
-        # This works but .clients is not really an attribute of TCPServer
-        # See mypy issue. Make my own clients stack?
-        self.client_queue[token] = {"sock": self.client_address}
+        self.server.clients[token] = {"sock": self.client_address}
         return token
 
     def unregister_client(self, token: str) -> None:
@@ -188,9 +213,9 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
         Remove a client from the game's active list of players.
         """
         # self.server.game.unregister_player(response['id']) -- Future
-        if token in self.client_queue:
+        if token in self.server.clients:
             print(f"Unregistering client with token {token}")
-            del self.client_queue[token]
+            del self.server.clients[token]
 
     def review_protocol(self, response: Response, msg_in: Dict) -> Response:
         """
@@ -200,13 +225,20 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
         :param msg_in: (dict) The incoming message dictionary.
         :return: (dict) Updated response dictionary.
         """
-        ok, reason, diagnostics = validator.validate_message_name(msg_in["name"])
-        response.update({"ok": ok, "reason": reason, "diagnostics": diagnostics})
+        ok, reason, errs = validator.validate_message_name(msg_in["name"])
+        response.update(
+            {"ok": ok, "reason": reason, "diagnostics": {"errors": [str(e) for e in errs]}}
+        )
         if response["ok"]:
             protocol = msg_in.get("meta", {}).get("protocol", "")
-            ok, reason, supported, diagnostics = validator.validate_protocol(protocol)
+            ok, reason, supported, errs = validator.validate_protocol(protocol)
             response.update(
-                {"ok": ok, "reason": reason, "supported": supported, "diagnostics": diagnostics}
+                {
+                    "ok": ok,
+                    "reason": reason,
+                    "supported": supported,
+                    "diagnostics": {"errors": [str(e) for e in errs]},
+                }
             )
         return response
 
@@ -219,50 +251,51 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
         :return: (dict) response
         """
 
-        def validate_envelope():
-            diagnostics = sorted(
-                Draft202012Validator(self.envelope_schema).iter_errors(msg_in), key=lambda e: e.path
-            )
-            if diagnostics:
-                response["ok"] = False
-                response["reason"] = "invalid_contract"
-                response["diagnostics"] = diagnostics
+        def fmt_diagnostics(response: Response, errors: Iterable[ValidationError]) -> Response:
+            response["ok"] = False
+            response["reason"] = "invalid_contract"
+            response["diagnostics"] = {"errors": [str(e) for e in errors]}
             return response
 
-        def validate_payload():
-            diagnostics = sorted(
-                Draft202012Validator(self.handshake_schema).iter_errors(msg_in["payload"]),
-                key=lambda e: e.path,
-            )
-            if diagnostics:
-                response["ok"] = False
-                response["reason"] = "invalid_contract"
-                response["diagnostics"] = diagnostics
-            return response
-
-        # Main logic
-        response = validate_envelope()
+        # Validate envelope
+        env_errs: list[ValidationError] = list(V_ENVELOPE.iter_errors(msg_in))
+        env_errs.sort(key=lambda e: e.path)
+        if env_errs:
+            response = fmt_diagnostics(response, env_errs)
         if response["ok"]:
-            response = validate_payload()
+            # Validate payload based on message name
+            pay_errs: list[ValidationError] = list(V_HREQ.iter_errors(msg_in["payload"]))
+            pay_errs.sort(key=lambda e: e.path)
+            if pay_errs:
+                response = fmt_diagnostics(response, pay_errs)
         return response
 
-    def system_welcome(self, response: Response, msg: Dict) -> Dict:
+    def system_welcome(self, token: str, msg: Dict) -> Dict:
+        """
+        Fill in the payload for a welcome message.
+        :param: (str) token = client address
+        :param: (dict) msg = message envelope to fill in
+        """
         msg["name"] = "system.welcome"
-        msg["payload"] = (
-            {
-                "server_version": svc.SERVER_VERSION,
-                "session_id": response["token"],
-                "motd": svc.MOTD,
-                "i18n_id": svc.I18N_WELCOME,
-                "accepted_capabilities": ["system.handshake.request"],
-            },
+        payload = dto.WelcomeDTO(
+            server_version=svc.SERVER_VERSION,
+            session_id=token,
+            motd=svc.MOTD,
+            i18n_id=svc.I18N_WELCOME,
+            accepted_capabilities=list(svc.ACCEPTED_CAPABILITIES),
         )
+        msg["payload"] = convert.payload_from_welcome(payload)
         return msg
 
     def system_reject(self, response: Response, msg: Dict) -> Dict:
+        """
+        Fill in the payload for a reject message.
+        :param: (str) response = information about the rejection
+        :param: (dict) msg = message envelope to fill in
+        """
         msg["name"] = "system.reject"
-        msg["reason"] = response["reason"]
-        msg["i18n_id"] = (
+        reason = response["reason"] or "invalid_contract"
+        i18n_id = (
             svc.I18N_REJECT_PROTOCOL
             if response["reason"] == "protocol_version_unsupported"
             else (
@@ -271,7 +304,13 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
                 else svc.I18N_REJECT_GENERIC
             )
         )
-        msg["details"] = str(response["diagnostics"])
+        payload = dto.RejectDTO(
+            reason=reason,
+            i18n_id=i18n_id,
+            details="; ".join(response["diagnostics"].get("errors", [])),
+            supported=response.get("supported") or None,
+        )
+        msg["payload"] = convert.payload_from_reject(payload)
         return msg
 
     def reply_message(self, response: Response, msg_in: Dict) -> None:
@@ -280,18 +319,19 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
         :param: (dict) msg_in
         Send message back to client based on the response to their request.
         Only send message if we have an active request.
-        Only single-recipient messages are supported for PR-2.
         :return: None
         """
-        msg = {
-            "id": msg_in["id"],
-            "ver": "1",
-            "name": "",
-            "ts": stamps.create_iso_timestamp(),
-            "meta": {"protocol": "0.1.0"},
-        }
+        envelope = dto.EnvelopeDTO(
+            id=msg_in["id"],
+            ver=1,
+            name="",
+            ts=stamps.create_iso_timestamp(),
+            meta={"protocol": "0.1.0"},
+            payload={},
+        )
+        msg = convert.envelope_from_dto(envelope)
         if response["ok"]:
-            msg = self.system_welcome(response, msg)
+            msg = self.system_welcome(response["token"], msg)
         else:
             msg = self.system_reject(response, msg)
 
@@ -308,28 +348,20 @@ def start_server(host: str = HOST, port: int = PORT) -> None:
     # start the idle watchdog
     threading.Thread(target=_idle_watchdog, args=(server,), daemon=True).start()
 
+    def log_server_status(status: str, host: str, port: int) -> None:
+        log_msg = {
+            "event": status,
+            "host": host,
+            "port": port,
+            "ts": stamps.create_iso_timestamp(),
+        }
+        srv_log.info(log_msg)
+
     try:
         print(f"\n{svc.MOTD}")
-        log_msg = json.dumps(
-            {
-                "event": "server_started",
-                "host": host,
-                "port": port,
-                "ts": stamps.create_iso_timestamp(),
-            }
-        )
-        srv_log.info(log_msg)
+        log_server_status("server_starting", host, port)
         server.serve_forever()  # returns after shutdown()
-        print("\nServer has shut down.")
-        log_msg = json.dumps(
-            {
-                "event": "server_shutdown",
-                "host": host,
-                "port": port,
-                "ts": stamps.create_iso_timestamp(),
-            }
-        )
-        srv_log.info(log_msg)
+        log_server_status("server_stopped", host, port)
     finally:
         # double-close safe; ensures socket is released
         server.server_close()
