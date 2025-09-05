@@ -9,10 +9,11 @@ These do NOT do JSON Schema validation; they implement ADR-0010/0011 glue.
 from typing import Dict, List, Optional, Tuple
 
 from saskan.infra.config import services as svc
+from saskan.infra.schema.types import Diagnostics
 
 # Type aliases for clarity
-NegotiationResult = Tuple[bool, Optional[str], List[str], Dict[str, List[str]]]
-AllowlistResult = Tuple[bool, Optional[str], Dict[str, List[str]]]
+NegotiationResult = Tuple[bool, Optional[str], List[str], Diagnostics]
+AllowlistResult = Tuple[bool, Optional[str], Diagnostics]
 
 
 def validate_protocol(requested_ver: str) -> NegotiationResult:
@@ -24,7 +25,7 @@ def validate_protocol(requested_ver: str) -> NegotiationResult:
              - ok=True  -> accepted_protocol=requested_ver
              - ok=False -> accepted_protocol=None, supported_versions=svc.SUPPORTED_PROTOCOLS
     """
-    diagnostics: Dict[str, List[str]] = {"errors": []}
+    diagnostics: Diagnostics = {"errors": []}
     supported = list(svc.SUPPORTED_PROTOCOLS)
 
     if requested_ver in svc.SUPPORTED_PROTOCOLS:
@@ -43,7 +44,7 @@ def validate_message_name(msg_name: str) -> AllowlistResult:
              - ok=True  -> name allowed
              - ok=False -> reason = 'invalid_contract'
     """
-    diagnostics: Dict[str, List[str]] = {"errors": []}
+    diagnostics: Diagnostics = {"errors": []}
     if msg_name in svc.ALLOWED_MESSAGE_NAMES:
         return True, None, diagnostics
 

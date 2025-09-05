@@ -31,8 +31,14 @@ REJECTION_REASONS: Final[FrozenSet[str]] = frozenset(
     }
 )
 
-# server timeout (in seconds) for client inactivity
-SERVER_TIMEOUT: Final[float] = 1.0
+# server timeouts (in seconds)
+SERVER_TIMEOUT: Final[float] = 10.0
+IDLE_POLL_INTERVAL: Final[float] = 0.5
+DRAIN_GRACE_PERIOD: Final[float] = 5.0
+SOCKET_IDLE_TIMEOUT: Final[float] = 1.0
+
+# max message size (in bytes)
+MAX_MESSAGE_SIZE: Final[int] = 8192
 
 # motd
 MOTD: Final[str] = "Welcome to the Saskan game server!"

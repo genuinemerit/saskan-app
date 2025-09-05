@@ -114,10 +114,8 @@ def send_msg_to_server(
             response_bytes = sock.recv(1024)
             raw = response_bytes.decode().strip()
             response_json: dict[str, Any] = json.loads(raw)
-            name = response_json.get("name")
+            name = response_json.get("name")  # name of the reply message
             payload = response_json.get("payload", {})
-            payload = payload[0]
-
             if name == "system.welcome":
                 welcome_dto = to_welcome_dto(payload)
                 msg_string = localize_reply(welcome_dto)
