@@ -127,7 +127,8 @@
 │   │   └── type_Mapping.md
 │   └── skunkworks
 │       ├── feat(first_handshake).md
-│       └── feat(greeting).md
+│       ├── feat(greeting).md
+│       └── PR-2_smoke_tests.txt
 ├── .editorconfig
 ├── env
 ├── .env.example
@@ -211,6 +212,7 @@
 │   │       ├── __init__.py
 │   │       ├── system.reject.schema.json
 │   │       ├── system.welcome.schema.json
+│   │       ├── types.py
 │   │       └── validator.py
 │   ├── __init__.py
 │   ├── sims
@@ -262,4 +264,4 @@
 └── .vscode
     └── settings.json
 
-68 directories, 195 files
+68 directories, 197 files

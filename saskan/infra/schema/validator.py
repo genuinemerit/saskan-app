@@ -6,7 +6,7 @@ Validation helpers for protocol negotiation and message allow-list checks.
 These do NOT do JSON Schema validation; they implement ADR-0010/0011 glue.
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from saskan.infra.config import services as svc
 from saskan.infra.schema.types import Diagnostics

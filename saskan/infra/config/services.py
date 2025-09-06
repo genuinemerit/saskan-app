@@ -41,7 +41,7 @@ SOCKET_IDLE_TIMEOUT: Final[float] = 1.0
 MAX_MESSAGE_SIZE: Final[int] = 8192
 
 # motd
-MOTD: Final[str] = "Welcome to the Saskan game server!"
+MOTD: Final[str] = "message_of_the_day"
 
 # i18n defaults
 DEFAULT_LANG: Final[str] = "en-US"
