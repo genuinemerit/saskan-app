@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 
 def create_iso_timestamp():
@@ -6,6 +6,6 @@ def create_iso_timestamp():
     Create a  string with the current UTC timestamp.
     :returns: (str) string with timestamp in ISO 8601 format
     """
-    timestamp = datetime.utcnow().isoformat() + "Z"  # Append 'Z' for UTC
+    timestamp = datetime.now(UTC).isoformat(timespec="milliseconds")
     timestamp = str(timestamp)
     return timestamp

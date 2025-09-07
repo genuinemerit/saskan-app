@@ -1,5 +1,6 @@
+# tests/test_lookup.py
 """
-Tests for saskan.infra.i18n.lookup.
+Tests for saskan.infra.i18n.lookup
 """
 
 from saskan.infra.i18n.lookup import get_text, lang
@@ -32,7 +33,8 @@ def test_get_text_final_fallback():
     assert get_text("nonexistent.key", fallback="Welcome!") == "Welcome!"
 
 
-def test_en_welcome_default():
+def test_en_welcome_default(monkeypatch):
+    monkeypatch.setenv("SASKAN_LANG", "en-EN")
     assert get_text("msg.handshake.welcome") == "Welcome to the Saskan Lands"
 
 
