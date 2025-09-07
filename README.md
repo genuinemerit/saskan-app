@@ -7,6 +7,7 @@ Tools and scaffolding for the **Saskan Lands** project: world-building utilities
 ---
 
 ## Features (current / planned)
+
 - Map and timeline utilities for world-building
 - Data schemas and loaders for locations, factions, ecology
 - CLI scaffolding for generators and validators
@@ -15,6 +16,7 @@ Tools and scaffolding for the **Saskan Lands** project: world-building utilities
 ---
 
 ## Installation
+
 > Requires Python 3.11+.
 
 Clone and install in editable mode:
