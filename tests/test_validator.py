@@ -6,10 +6,7 @@ Tests for saskan.infra_scheme.validator.
 """
 
 from saskan.infra.config import services as svc
-from saskan.infra.schema.validator import (
-    validate_message_name,
-    validate_protocol,
-)
+from saskan.infra.schema.validator import validate_message_name, validate_protocol
 
 
 def test_validate_protocol_ok():

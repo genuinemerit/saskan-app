@@ -79,7 +79,7 @@ type:  ## Type-check with mypy
 .PHONY: test
 test:  ## Run tests (quiet)
 	$(call header,pytest)
-	$(PRUN) pytest -q
+	$(PRUN) pytest -q -p no:warnings
 
 .PHONY: cov
 cov:  ## Coverage: run tests with coverage + report (text + optional HTML)
