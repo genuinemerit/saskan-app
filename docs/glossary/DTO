@@ -1,0 +1,41 @@
+# DTO (Data Transfer Object)
+
+In layered/system architecture it means:
+
+- A simple container of data, usually just fields/attributes.
+
+- No behavior / no methods other than maybe trivial constructors or validation.
+
+Purpose: carry structured data across layer boundaries (UI ↔ client API ↔ engine, or server ↔ client).
+
+Characteristics
+
+- Shape is explicit (fields are known and fixed).
+
+- Serialization-friendly (easy to convert to JSON, dict, etc.).
+
+- Immutable or at least side-effect free once constructed.
+
+- Not an Entity — doesn’t own persistence, doesn’t encapsulate rules.
+
+- Not a Domain object — doesn’t carry logic or enforce invariants.
+
+Example (Pythonic)
+
+```python
+from dataclasses import dataclass
+from typing import List
+
+@dataclass
+class HandshakeReplyDTO:
+    server_version: str
+    session_id: str
+    motd: str
+    accepted_capabilities: List[str]
+```
+
+Used in UI-CLI to receive server’s reply.
+
+Then rendered as text (Welcome …).
+
+The DTO itself doesn’t know how to connect, log, or enforce contracts — that’s handled in infra/engine.

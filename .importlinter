@@ -1,0 +1,73 @@
+[importlinter]
+root_package = saskan
+
+# --- UI must ONLY depend on client API + config (and its own package) ---
+
+[contract: ui_cli_forbidden]
+name = ui_cli may not reach into engine/core/server/persistence/schema
+type = forbidden
+modules = saskan.ui_cli
+forbidden_modules =
+    saskan.engine
+    saskan.core
+    saskan.infra.net.server
+    saskan.infra.persistence
+    saskan.infra.schema
+
+[contract: ui_pygame_forbidden]
+name = ui_pygame may not reach into engine/core/server/persistence/schema
+type = forbidden
+modules = saskan.ui_pygame
+forbidden_modules =
+    saskan.engine
+    saskan.core
+    saskan.infra.net.server
+    saskan.infra.persistence
+    saskan.infra.schema
+
+[contract: ui_pyside_forbidden]
+name = ui_pyside may not reach into engine/core/server/persistence/schema
+type = forbidden
+modules = saskan.ui_pyside
+forbidden_modules =
+    saskan.engine
+    saskan.core
+    saskan.infra.net.server
+    saskan.infra.persistence
+    saskan.infra.schema
+
+# --- Engine must NOT depend on Infra or UI (use ports/adapters), but may use Core ---
+
+[contract: engine_forbidden]
+name = engine may not import infra or ui
+type = forbidden
+modules = saskan.engine
+forbidden_modules =
+    saskan.ui_cli
+    saskan.ui_pygame
+    saskan.ui_pyside
+    saskan.infra
+
+# --- Core is pure: only depends on itself ---
+
+[contract: core_is_pure]
+name = core may not import outside core
+type = forbidden
+modules = saskan.core
+forbidden_modules =
+    saskan.engine
+    saskan.infra
+    saskan.ui_cli
+    saskan.ui_pygame
+    saskan.ui_pyside
+
+# --- Infra may not depend on UI (it may import engine facades and core types) ---
+
+[contract: infra_must_not_import_ui]
+name = infra may not import any ui package
+type = forbidden
+modules = saskan.infra
+forbidden_modules =
+    saskan.ui_cli
+    saskan.ui_pygame
+    saskan.ui_pyside

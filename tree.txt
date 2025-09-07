@@ -4,12 +4,24 @@
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── docs
+│   ├── 2d 3d modeling
+│   │   ├── 3d ellipsoid models
+│   │   └── 3d matplotlib
 │   ├── adr
-│   │   ├── 0001-hex-grid
-│   │   ├── 0002-per-turn-snapshots
-│   │   ├── 0003-json-predicates
-│   │   ├── 0004-cli-with-typer
-│   │   └── 0005-clean-layers
+│   │   ├── 0001-hex-grid.md
+│   │   ├── 0002-per-turn-snapshots.md
+│   │   ├── 0003-json-predicates.md
+│   │   ├── 0004-cli-with-typer.md
+│   │   ├── 0005-clean-layers.md
+│   │   ├── 0006-flat-maps.md
+│   │   ├── 0007-constrained-procedural-worldgen.md
+│   │   ├── 0008-notification-taxonomy.md
+│   │   ├── 0009-minimal-client-server.md
+│   │   ├── 0010-services-metadata.md
+│   │   ├── 0011-message-contracts-validatations.md
+│   │   ├── 0012-client-relations-delivery-semantics.md
+│   │   ├── 0013-message-retention.md
+│   │   └── 0014-startup-handshake-activation.md
 │   ├── architecture
 │   │   ├── client_server_game.md
 │   │   ├── documentation_system.md
@@ -17,29 +29,106 @@
 │   │   └── summary.md
 │   ├── build_release_deploy
 │   │   ├── gitflow_releases.md
-│   │   ├── GitHub_Checklist
+│   │   ├── GitHub_Checklist.md
 │   │   ├── github_general.md
+│   │   ├── github_secrets.md
 │   │   ├── poetry.md
 │   │   ├── summary.md
 │   │   └── workflows.md
 │   ├── diagrams
+│   │   ├── ADR-0014 Handshake Activation.png
+│   │   ├── app_architecture.pdf
+│   │   └── ports_connections
 │   ├── glossary
 │   │   ├── ADR
+│   │   ├── bundle
+│   │   ├── draining
 │   │   ├── DSL
+│   │   ├── DTO
+│   │   ├── fullgate.md
 │   │   ├── HUD
 │   │   ├── i18n
+│   │   ├── idempotent
+│   │   ├── merges
+│   │   ├── meta-schema
+│   │   ├── motd
 │   │   ├── MVP
 │   │   ├── MVVM
+│   │   ├── nc
+│   │   ├── NDJSON
 │   │   ├── PR
-│   │   └── RNG
+│   │   ├── QoS
+│   │   ├── refs.md
+│   │   ├── RNG
+│   │   ├── RPC
+│   │   ├── semver
+│   │   ├── telnet
+│   │   ├── TTL
+│   │   └── URN
+│   ├── math_physics
+│   │   ├── circle_relationship.md
+│   │   ├── collision.md
+│   │   ├── compare_spheres.md
+│   │   ├── ellipsoid.md
+│   │   ├── ellipsoid_volume.md
+│   │   ├── enclosing_rectangle.md
+│   │   ├── pitch_yaw_roll.md
+│   │   └── sphere_volume.md
 │   ├── meta
+│   │   ├── ai_models.md
+│   │   ├── bash_aliases.md
 │   │   ├── configs_and_envs.md
+│   │   ├── environment_vars.md
+│   │   ├── file_permission_bits.md
+│   │   ├── html_markdown_convert.md
+│   │   ├── json_validate.md
+│   │   ├── linters_and_typechecks.md
+│   │   ├── lru_cache.md
+│   │   ├── macos_quirks.md
 │   │   ├── makefiles.md
 │   │   ├── package_installers.md
-│   │   └── summary.md
+│   │   ├── pg_install.md
+│   │   ├── python
+│   │   │   ├── pygame_mouseclick.md
+│   │   │   ├── pygame_resolution.md
+│   │   │   ├── pytest_monkeypatch.md
+│   │   │   ├── python_blender.md
+│   │   │   ├── python_bytes.md
+│   │   │   ├── python_cli_help.md
+│   │   │   ├── python_dictdiffer.md
+│   │   │   ├── python_extend_zip.md
+│   │   │   ├── python_functional_principles.md
+│   │   │   ├── python_import_files.md
+│   │   │   ├── python_logger.md
+│   │   │   ├── python_mypy.md
+│   │   │   ├── python_openai.md
+│   │   │   ├── python_pytest.md
+│   │   │   ├── python_random_seeds.md
+│   │   │   ├── python_remove_dups.md
+│   │   │   └── python_traceback.md
+│   │   ├── scaffolding.md
+│   │   ├── socketserver.md
+│   │   ├── Spanish_style_guide.md
+│   │   ├── sqlite
+│   │   │   ├── sqlite_backup.md
+│   │   │   ├── sqlite_blobs.md
+│   │   │   ├── sqlite_booleans.md
+│   │   │   ├── sqlite_col_names.md
+│   │   │   ├── sqlite_commit.md
+│   │   │   ├── sqlite_date_and_time.md
+│   │   │   ├── sqlite_db_status.md
+│   │   │   ├── sqlite_empties.md
+│   │   │   ├── sqlite_enums.md
+│   │   │   ├── sqlite_execute_scripts.md
+│   │   │   ├── sqlite_foreign_keys.md
+│   │   │   ├── sqlite_get_checks.md
+│   │   │   └── sqlite_new_db.md
+│   │   ├── type_annotations.md
+│   │   └── type_Mapping.md
 │   └── skunkworks
-│       ├── first_clean_pull_request.md
-│       └── socketserver.md
+│       ├── feat(first_handshake).md
+│       ├── feat(greeting).md
+│       └── PR-2_smoke_tests.txt
 ├── .editorconfig
 ├── env
 ├── .env.example
@@ -65,6 +154,7 @@
 │       ├── test.yml
 │       └── typecheck.yml
 ├── .gitignore
+├── importlinter.ini
 ├── LICENSE
 ├── Makefile
 ├── poetry.lock
@@ -84,6 +174,9 @@
 │   │   ├── config
 │   │   ├── __init__.py
 │   │   ├── locales
+│   │   │   ├── en-US
+│   │   │   ├── es-ES
+│   │   │   └── __init__.py
 │   │   ├── maps
 │   │   ├── schemas
 │   │   └── story
@@ -96,11 +189,31 @@
 │   │   └── turn
 │   ├── infra
 │   │   ├── config
+│   │   │   ├── __init__.py
+│   │   │   ├── net.py
+│   │   │   └── services.py
+│   │   ├── i18n
+│   │   │   ├── __init__.py
+│   │   │   └── lookup.py
 │   │   ├── __init__.py
 │   │   ├── log
+│   │   │   ├── __init__.py
+│   │   │   └── logger.py
 │   │   ├── net
+│   │   │   ├── client
+│   │   │   ├── __init__.py
+│   │   │   └── server
 │   │   ├── persistence
 │   │   └── schema
+│   │       ├── convert.py
+│   │       ├── dto.py
+│   │       ├── envelope.schema.json
+│   │       ├── handshake.request.schema.json
+│   │       ├── __init__.py
+│   │       ├── system.reject.schema.json
+│   │       ├── system.welcome.schema.json
+│   │       ├── types.py
+│   │       └── validator.py
 │   ├── __init__.py
 │   ├── sims
 │   │   ├── ecology
@@ -112,10 +225,20 @@
 │   │   ├── __init__.py
 │   │   ├── poetry_activate
 │   │   ├── remove-default-labels.sh
-│   │   └── setup-labels.sh
+│   │   ├── setup-labels.sh
+│   │   ├── utils
+│   │   │   ├── __init.py__
+│   │   │   ├── match_semver.py
+│   │   │   ├── platform.py
+│   │   │   └── stamps.py
+│   │   └── validate_json.py
 │   ├── ui_cli
-│   │   ├── client
 │   │   ├── commands
+│   │   │   ├── connect.py
+│   │   │   ├── greet.py
+│   │   │   ├── __init__.py
+│   │   │   ├── start.py
+│   │   │   └── version.py
 │   │   ├── __init__.py
 │   │   ├── manage.py
 │   │   └── render
@@ -129,11 +252,16 @@
 │       ├── __init__.py
 │       ├── viewmodels
 │       └── views
-├── saskan_lands.tar.gz
 ├── scripts
 │   └── make_tree.sh
 ├── SECURITY.md
 ├── tests
-└── tree.txt
+│   ├── conftest.py
+│   ├── test_cli_hello.py
+│   ├── test_lookup.py
+│   └── test_validator.py
+├── tree.txt
+└── .vscode
+    └── settings.json
 
-58 directories, 79 files
+68 directories, 197 files

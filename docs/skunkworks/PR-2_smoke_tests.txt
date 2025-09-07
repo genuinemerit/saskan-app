@@ -1,0 +1,227 @@
+TEST RESULTS
+
+-------  CLI commands extended ---------
+
+(saskan-py3.12) saskan-app$ saskan
+Configuring network on 127.0.0.1:7777
+                                                                                                     
+ Usage: saskan [OPTIONS] COMMAND [ARGS]...                                                           
+                                                                                                     
+ Saskantinon Command Line Interface                                                                  
+                                                                                                     
+ saskan [COMMAND] --help for more info on a command                                                  
+                                                                                                     
+╭─ Options ─────────────────────────────────────────────────────────────────────────────────────────╮
+│ --install-completion          Install completion for the current shell.                           │
+│ --show-completion             Show completion for the current shell, to copy it or customize the  │
+│                               installation.                                                       │
+│ --help                        Show this message and exit.                                         │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ────────────────────────────────────────────────────────────────────────────────────────╮
+│ hello     Print a friendly greeting. Example usage: `saskan greet --name Alice` `saskan greet`    │
+│ version   Display platform info and Saskan configuration info. Example usage: `saskan version`    │
+│ start     Start up the Saskan game server. Example usage: `saskan start` `saskan start --h        │
+│           wingchun --p 7777`                                                                      │
+│ connect   Connect to Saskan game server and send a valid request. All parameters are optional.    │
+│           Example usages: `saskan connect` `saskan connect --host localhost --port 8000` `saskan  │
+│           connect --request handshake` `saskan connect -h 127.0.0.1 -p 7777 -s 0.1.0 -r handshake │
+│           -i Player_1 -t 1.0`                                                                     │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────╯
+(saskan-py3.12) saskan-app$ 
+
+
+-------  connect fails if server is not running ---------
+
+(saskan-py3.12) saskan-app$ saskan connect
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:7777
+[CLIENT] Connection refused by the server.
+(saskan-py3.12) saskan-app$ 
+
+
+-------  server starts up correctly using default values ---------
+
+(saskan-py3.12) saskan-app$ saskan start
+Configuring network on 127.0.0.1:7777
+
+Starting server on 127.0.0.1:7777
+
+Welcome to the Saskan game server!
+{"ts":"2025-08-31T22:19:18.053776+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"server_started\", \"host\": \"127.0.0.1\", \"port\": 7777, \"ts\": \"2025-08-31T22:19:18.053725Z\"}","name":"saskan.server","process":8270,"thread":"MainThread","module":"server","funcName":"start_server","lineno":321,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"MainThread","processName":"MainProcess","taskName":null}
+
+
+-------  server shuts down automatically after 20 seconds of no activity ---------
+
+Draining and closing connections after 20.0s of inactivity.
+
+Server has shut down.
+{"ts":"2025-08-31T22:19:38.078895+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"server_shutdown\", \"host\": \"127.0.0.1\", \"port\": 7777, \"ts\": \"2025-08-31T22:19:38.078840Z\"}","name":"saskan.server","process":8270,"thread":"MainThread","module":"server","funcName":"start_server","lineno":332,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"MainThread","processName":"MainProcess","taskName":null}
+(saskan-py3.12) saskan-app$ 
+
+
+
+-------  basic activity is logged ---------
+
+saskan-app$ cd ~/saskan
+saskan$ ll
+total 24
+drwxrwxr-x  2 dave dave  4096 Aug 30 16:28 ./
+drwxr-xr-x 65 dave dave  4096 Aug 31 12:44 ../
+-rw-rw-r--  1 dave dave     0 Aug 30 16:28 debug.jsonl
+-rw-rw-r--  1 dave dave     0 Aug 30 16:28 events.jsonl
+-rw-rw-r--  1 dave dave 12506 Aug 31 18:19 server.jsonl
+
+
+saskan$ tail server.jsonl
+
+...
+
+{"ts":"2025-08-31T22:19:18.053776+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"server_started\", \"host\": \"127.0.0.1\", \"port\": 7777, \"ts\": \"2025-08-31T22:19:18.053725Z\"}","name":"saskan.server","process":8270,"thread":"MainThread","module":"server","funcName":"start_server","lineno":321,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"MainThread","processName":"MainProcess","taskName":null}
+{"ts":"2025-08-31T22:19:38.078895+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"server_shutdown\", \"host\": \"127.0.0.1\", \"port\": 7777, \"ts\": \"2025-08-31T22:19:38.078840Z\"}","name":"saskan.server","process":8270,"thread":"MainThread","module":"server","funcName":"start_server","lineno":332,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"MainThread","processName":"MainProcess","taskName":null}
+
+
+------  server processes a correctly formatted handshake request -----
+
+server side (CLI)...(log messages currently being echoed to console as well as written)...
+
+Starting server on 127.0.0.1:7777
+
+Welcome to the Saskan game server!
+{"ts":"2025-08-31T22:30:42.588445+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"server_started\", \"host\": \"127.0.0.1\", \"port\": 7777, \"ts\": \"2025-08-31T22:30:42.588398Z\"}","name":"saskan.server","process":8679,"thread":"MainThread","module":"server","funcName":"start_server","lineno":321,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"MainThread","processName":"MainProcess","taskName":null}
+{"ts":"2025-08-31T22:30:45.577756+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"message_received\", \"from\": \"('127.0.0.1', 35518)\", \"msg\": \"{\\\"id\\\": \\\"GnxzU0QbH4UphX3h2QHcYEyXPjJu4PG2GjiksK1GCzQ\\\", \\\"ver\\\": \\\"1\\\", \\\"name\\\": \\\"system.handshake.request\\\", \\\"ts\\\": \\\"2025-08-31T22:30:45.577004Z\\\", \\\"meta\\\": {\\\"protocol\\\": \\\"0.1.0\\\"}, \\\"payload\\\": {\\\"client_version\\\": \\\"0.1.0\\\"}}\", \"ts\": \"2025-08-31T22:30:45.577729Z\"}","name":"saskan.server","process":8679,"thread":"Thread-2 (process_request_thread)","module":"server","funcName":"handle","lineno":158,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"Thread-2 (process_request_thread)","processName":"MainProcess","taskName":null}
+
+client side (CLI)...reponse displayed using DTO ....
+
+(saskan-py3.12) saskan-app$ saskan connect
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:7777
+[CLIENT] Sending:
+ b'{"id": "GnxzU0QbH4UphX3h2QHcYEyXPjJu4PG2GjiksK1GCzQ", "ver": "1", "name": "system.handshake.request", "ts": "2025-08-31T22:30:45.577004Z", "meta": {"protocol": "0.1.0"}, "payload": {"client_version": "0.1.0"}}\n'
+[CLIENT] Sent request in 0.00s, waiting for reply...
+CLIENT] Received reply:
+[CLIENT] Welcome to Saskan server version 0.1.0!
+Session ID: epaQnF5Q-W8_Knm4JVufkZcpcs6G6hKgf-qKmX1zeo4
+MOTD: Welcome to the Saskan game server!
+Message: Welcome to the Saskan Lands
+Accepted capabilities: system.handshake.request
+
+receipt of message was logged....
+
+saskan$ tail server.jsonl
+
+...
+
+{"ts":"2025-08-31T22:30:45.577756+00:00","level":"INFO","logger":"saskan.server","message":"{\"event\": \"message_received\", \"from\": \"('127.0.0.1', 35518)\", \"msg\": \"{\\\"id\\\": \\\"GnxzU0QbH4UphX3h2QHcYEyXPjJu4PG2GjiksK1GCzQ\\\", \\\"ver\\\": \\\"1\\\", \\\"name\\\": \\\"system.handshake.request\\\", \\\"ts\\\": \\\"2025-08-31T22:30:45.577004Z\\\", \\\"meta\\\": {\\\"protocol\\\": \\\"0.1.0\\\"}, \\\"payload\\\": {\\\"client_version\\\": \\\"0.1.0\\\"}}\", \"ts\": \"2025-08-31T22:30:45.577729Z\"}","name":"saskan.server","process":8679,"thread":"Thread-2 (process_request_thread)","module":"server","funcName":"handle","lineno":158,"pathname":"/home/dave/Dropbox/GitHub/saskan-app/saskan/infra/net/server/server.py","threadName":"Thread-2 (process_request_thread)","processName":"MainProcess","taskName":null}
+
+...
+
+-------  all options available for client connect via CLI -----------
+
+(saskan-py3.12) saskan-app$ saskan connect --help
+Configuring network on 127.0.0.1:7777
+                                                                                                                
+ Usage: saskan connect [OPTIONS]                                                                                
+                                                                                                                
+ Connect to Saskan game server and send a valid request. All parameters are optional. Example usages: `saskan   
+ connect` `saskan connect --host localhost --port 8000` `saskan connect --request handshake` `saskan connect -h 
+ 127.0.0.1 -p 7777 -s 0.1.0 -r handshake -i Player_1 -t 1.0`                                                    
+                                                                                                                
+                                                                                                                
+╭─ Options ────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --host      -h      TEXT     Host to connect to [default: 127.0.0.1]                                         │
+│ --port      -p      INTEGER  Port to connect to [default: 7777]                                              │
+│ --protocol  -s      TEXT     Version of protocol [default: 0.1.0]                                            │
+│ --request   -r      TEXT     Name of request to server [default: handshake]                                  │
+│ --id        -i      TEXT     Player ID [default: HbIRkskGPnTLYQYZYq0SxNquv8C-qJgV3nIIn0mq2xM]                │
+│ --timeout   -t      FLOAT    Timeout in seconds [default: 1.0]                                               │
+│ --help                       Show this message and exit.                                                     │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+(saskan-py3.12) saskan-app$ saskan connect --host nowhere --port 0000 --protocol 99.9.9 --request system.all.access --id admin --timeout 60.0
+Configuring network on 127.0.0.1:7777
+Attempting connection to nowhere:0
+[CLIENT] An error occurred: [Errno -3] Temporary failure in name resolution
+
+(saskan-py3.12) saskan-app$ saskan connect -s 3.4.5
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:7777
+[CLIENT] Sending:
+ b'{"id": "u_mvfPGXIRyPMmOIyKsMwy5JK6HVJBpajsSDKIMecm8", "ver": "1", "name": "system.handshake.request", "ts": "2025-08-31T22:37:13.688386Z", "meta": {"protocol": "3.4.5"}, "payload": {"client_version": "0.1.0"}}\n'
+[CLIENT] Sent request in 0.00s, waiting for reply...
+[CLIENT] An error occurred: 0
+
+(saskan-py3.12) saskan-app$ saskan connect -h 444.33.21.1
+Configuring network on 127.0.0.1:7777
+Attempting connection to 444.33.21.1:7777
+[CLIENT] An error occurred: [Errno -2] Name or service not known
+
+(saskan-py3.12) saskan-app$ saskan connect -p 99999
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:99999
+[CLIENT] An error occurred: connect(): port must be 0-65535.
+
+(saskan-py3.12) saskan-app$ saskan connect -p 9999
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:9999
+[CLIENT] Connection refused by the server.
+
+-------  Changed app language to Spanish -----
+
+saskan$ echo $SASKAN_LANG
+en-US
+saskan$ source ~/.bash_aliases
+saskan$ echo $SASKAN_LANG
+es-ES
+
+(saskan-py3.12) saskan-app$ source ~/.bash_aliases
+(saskan-py3.12) saskan-app$ saskan connect
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:7777
+[CLIENT] Sending:
+ b'{"id": "v6JpZFXpwKCXnsgtP0W6Skw4stn7mR4ZyN6n27F94GE", "ver": "1", "name": "system.handshake.request", "ts": "2025-08-31T22:42:32.457488Z", "meta": {"protocol": "0.1.0"}, "payload": {"client_version": "0.1.0"}}\n'
+[CLIENT] Sent request in 0.00s, waiting for reply...
+CLIENT] Received reply:
+[CLIENT] Welcome to Saskan server version 0.1.0!
+Session ID: Jx1cAHpMSnqvA9ose-ZAzFU6919oMAXLVDAViYISjKY
+MOTD: Welcome to the Saskan game server!
+Message: Bienvenido a las Tierras Saskan
+Accepted capabilities: system.handshake.request
+
+
+------- Removed SASKAN_LANG env var ------
+
+saskan$ echo $SASKAN_LANG
+
+saskan$ 
+
+(saskan-py3.12) saskan-app$ saskan connect
+Configuring network on 127.0.0.1:7777
+Attempting connection to 127.0.0.1:7777
+[CLIENT] Sending:
+ b'{"id": "W9-hxKb-3Ih2AnC1X03MWLuXp8BCIZG3H993EM9DwtQ", "ver": "1", "name": "system.handshake.request", "ts": "2025-08-31T22:45:48.596964Z", "meta": {"protocol": "0.1.0"}, "payload": {"client_version": "0.1.0"}}\n'
+[CLIENT] Sent request in 0.00s, waiting for reply...
+CLIENT] Received reply:
+[CLIENT] Welcome to Saskan server version 0.1.0!
+Session ID: geV16syq5yt_nz-BBgNCu4fcuFQXP3s7J9fkEzsAiv8
+MOTD: Welcome to the Saskan game server!
+Message: Welcome to the Saskan Lands
+Accepted capabilities: system.handshake.request
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

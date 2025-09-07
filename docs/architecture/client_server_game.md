@@ -90,6 +90,3 @@ See: docs/skunkworks/socketserver.md
 - Build turn-handling logic in the server:
 
   - Does the server wait for all players before advancing? Or can it handle simultaneous actions?
-
-
-

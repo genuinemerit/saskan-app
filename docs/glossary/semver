@@ -1,0 +1,3 @@
+# semver (Semantic Versioning)
+
+Semantic Versioning, or SemVer, is a versioning system that uses a three-part number format: Major.Minor.Patch. This system helps communicate the nature of changes in software, where major version changes indicate breaking changes, minor version changes add new features without breaking compatibility, and patch version changes fix bugs.

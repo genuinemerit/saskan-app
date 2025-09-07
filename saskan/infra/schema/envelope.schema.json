@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "envelope.schema.json",
+  "type": "object",
+  "required": ["id", "ver", "name", "ts", "meta", "payload"],
+  "properties": {
+    "id":   { "type": "string", "minLength": 1 },
+    "ver":  { "type": "integer", "const": 1 },
+    "name": { "type": "string", "pattern": "^[a-z0-9]+(\\.[a-z0-9_-]+)+$" },
+    "ts":   { "type": "string", "format": "date-time" },
+    "audience": { "type": "string", "enum": ["user","operator","dev","all"] },
+    "severity": { "type": "string", "enum": ["info","warning","error"] },
+    "meta": {
+      "type": "object",
+      "required": ["protocol"],
+      "properties": { "protocol": { "type": "string", "minLength": 1 } },
+      "additionalProperties": false
+    },
+    "payload": {}
+  },
+  "additionalProperties": false
+}

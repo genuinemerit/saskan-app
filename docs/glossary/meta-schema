@@ -1,0 +1,86 @@
+# JSON Schema “meta‑schema” and $-prefixed keywords
+
+Meta‑schema = the schema that defines what a JSON Schema looks like.
+Example: "$schema": "https://json-schema.org/draft/2020-12/schema" tells validators which dialect/keywords to use.
+
+$ keywords are JSON Schema control keywords, not your data fields:
+
+"$schema": which draft/vocabulary to use.
+
+"$id": canonical identifier/URI for the schema (helps with $ref resolution).
+
+"$ref": reference another schema by URI/ID (reuse).
+
+"$defs" (or older $definitions): local named subschemas.
+
+"$anchor", "$vocabulary", "$dynamicRef"… advanced, rarely needed for our use case.
+
+## Why use them in envelope.schema.json?
+
+"$schema": makes tool behavior consistent (we’ve chosen 2020‑12).
+
+"$id": lets other schemas $ref the envelope cleanly.
+
+"$defs": if we factor shared bits (e.g., an Id or Meta object).
+
+We do not put $ in our message fields; $ is reserved for schema control.
+
+## Minimal envelope schema head (what we use)
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "envelope.schema.json",
+  "type": "object",
+  "required": ["id", "ver", "name", "ts", "meta", "payload"],
+  ...
+}
+
+## Origins
+
+Around 2010–2012, the JSON Schema project began as a community effort to define a standard way to describe and validate JSON documents.
+
+The domain json-schema.org was set up as the official home of the specification drafts and documentation.
+
+## Governance
+
+JSON Schema is not an ISO or W3C standard.
+
+It is published as an IETF Internet-Draft series (not yet an RFC).
+
+Current drafts are named like draft-handrews-json-schema-01 (after the editor).
+
+These drafts are recognized but not on the standards track at IETF (so not an RFC 8xxx).
+
+The project is managed by the JSON Schema Organization, a group of maintainers (not a formal standards body).
+
+Their GitHub: https://github.com/json-schema-org
+
+They publish the specs and host tooling docs on json-schema.org.
+
+## Status
+
+Widely adopted in tooling (OpenAPI, Swagger, AJV, FastAPI/Pydantic internally, etc.).
+
+Because it’s not an RFC, some specs call it “informal standard” or “de facto standard”.
+
+Drafts:
+
+Draft-04 (2013) → widely supported, still in use.
+
+Draft-07 (2018).
+
+Draft 2019-09.
+
+Draft 2020-12 (current).
+
+Validators usually support multiple drafts.
+
+## Why it matters for us
+
+When we put "$schema": "https://json-schema.org/draft/2020-12/schema" at the top of a schema, we’re telling validators “use the 2020-12 dialect defined by the JSON Schema Org group, per IETF draft”.
+
+That string isn’t magic — it’s just a URI identifier. But most validators recognize it and load the correct vocabulary.
+
+In one sentence
+
+json-schema.org is the community-managed home of the IETF Internet-Draft “JSON Schema” specification — not ISO/W3C, but the accepted de facto standard, maintained by a working group of volunteers and tool authors.

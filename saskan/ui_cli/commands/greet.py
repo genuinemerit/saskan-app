@@ -8,6 +8,10 @@ console = Console()
 
 
 def hello(name: Optional[str] = typer.Option(None, "--name", "-n", help="Name to greet")) -> None:
-    """Print a friendly greeting."""
+    """Print a friendly greeting.
+    Example usage:
+    `saskan greet --name Alice`
+    `saskan greet`
+    """
     who = name or "Saskan Lands"
     console.print(f"Hello {who}!")
