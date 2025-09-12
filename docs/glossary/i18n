@@ -1,5 +1,0 @@
-i18n (Internationalization):
-
-Abbreviation for the process of making software ready for localization (“i” + 18 letters + “n”). 
-
-In practice: separating user-facing text into message catalogs, using keys/IDs, respecting locale formats (date, number), so translations (l10n) can be layered in later.

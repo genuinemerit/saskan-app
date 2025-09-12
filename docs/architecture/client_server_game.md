@@ -1,92 +1,70 @@
-# Summary, Snippets, Notes on Client/Server and architecture
+# Summary: Client/Server Architecture
 
-## PyGame + PySide
+## PyGame + PySide Integration
 
-- PyGame: For the core engine (maps, rendering, input, more complex HUD).
+- **PyGame:** Core engine for maps, rendering, input, and complex HUD.
+- **PySide:** Adds widgets like menus and logs without reinventing them in PyGame.
 
-- PySide: Layer in widgets (menus, inspectors, logs) without having to re-invent everything in PyGame.
+### Considerations
 
-Maybe: keep PyGame as "main canvas" and run PySide in a parent window or as dockable panels.
+- Use PyGame as the main canvas with PySide as dockable panels or embed PyGame in a PySide widget for a unified UI.
+- Ideal for building tools like data browsers, world editors, and debugging panels.
 
-Maybe: embed the PyGame surface in a PySide widget if we want a single window UI.
+## Database Layer
 
-👉 For a tools-heavy game like Saskan Lands, we can build proper data browsers, world editors, and debugging panels.
+- **SQLite (Development):** Suitable for testing and potential client-side storage.
+- **Postgres (Production):** Offers richer features and consistent migration paths.
+- **SQLAlchemy:** Abstracts database differences, ensuring seamless transitions.
 
-## Database Layer (SQLAlchemy, SQLite, Postres)
+### Role of the Database
 
-- SQLite in dev: perfect for testing. May also be suitable for client-side storage.
-
-- Postgres in production: consistent migration path, richer features for multiplayer, though that may not be a concern if we have good separation.
-
-- SQLAlchemy abstracts away 99% of the differences. See prototyping in previous projects: mint/app/models.py
-
-- The DB holds the authoritative world state.  We can persist full campaigns this way, which should make debugging and hot-reloading easier.
+- Holds authoritative world state, enabling full campaign persistence, debugging, and hot-reloading.
 
 ## Multiplayer Architecture
 
-We don’t need Flask or a big HTTP stack. A simple message server and local engines for each client works for this style of game.
+- Avoid large HTTP stacks; use a simple message server with local engines for each client.
 
-### How It Could Work
+### Implementation Strategy
 
-- Each client runs its own local engine (PyGame/PySide + SQLite).
-- A lightweight messaging server coordinates players:
-  - Receives move data (turn submissions).
-  - Broadcasts events, game state deltas, and chat.
-  - Could be Python’s asyncio/socketserver or ZeroMQ.
+- Each client operates its own local engine (PyGame/PySide + SQLite).
+- A lightweight messaging server coordinates player actions:
+  - Handles move data and broadcasts events.
+  - Options include Python’s asyncio/socketserver or ZeroMQ.
 
-Clients update their local DB based on the messages received.
+### Benefits
 
-👉 The beauty: most game logic stays deterministic and local, and networking is only about synchronizing deltas.
+- Deterministic local game logic with networking for synchronizing deltas.
+- Parallel development of single-player and multiplayer modes.
+- Background jobs simulate unseen world parts.
+- Dev tools can query and visualize the world independently.
 
-- Avoid web frameworks and keep all control over game state.
-- Easier to develop single-player and multiplayer in parallel:
-  - Single-player = just don’t spin up the message server. (?) 
-  - Multiplayer = attach to the server, apply deltas.
-- Run background jobs to simulate parts of the world players aren’t looking at.
-- Build dev tools that query and visualize the world without touching the game engine.
+### Testing Approach
 
-### Mocking this up with ports
+- Run server and clients on separate ports/processes on a single machine.
+- Utilize Python's socketserver, asyncio, or multiprocessing for mock testing.
 
-We can easily test this by having a single machine run the "server" on one port and each client on its own port (or separate processes).
+### Networking Tools
 
-Python’s socketserver, asyncio, or even multiprocessing.connection.Listener and Client are perfect for mocking.
+- **asyncio:** Native, handles chat and signals.
+- **ZeroMQ:** Simple, effective for pub/sub patterns.
+- **Twisted:** Robust but heavier option.
 
-### Possible tooling
+### Mock Testing
 
-#### Networking:
+- Use multiple processes on localhost to simulate clients.
+- Employ SQLite for client-side databases, periodically dumped for debugging.
 
-- asyncio (native, can handle chat + signals)
-- ZeroMQ (very simple, great for pub/sub and request/response patterns)
-- Twisted (if you want robust networking but it’s heavier)
+### Starting Point: socketserver
 
-Mock testing:
+- **Advantages:** No external dependencies, easy setup, transition to asyncio possible without major changes.
 
-- Run N clients as separate processes on localhost, each connecting to the server on a different port.
-- SQLite DB per client, periodically dumped for debugging.
+## Minimum Viable Product (MVP)
 
-Start Simple: socketserver
+1. **Prototype Message Server:**
+   - Implement basic message echo functionality between clients.
 
-- What it is: A part of Python's standard library designed for simple TCP or UDP servers.
+2. **Define Delta Format:**
+   - Establish minimal data requirements for world state synchronization using JSON packets initially.
 
-Why it’s great:
-
-- No external dependencies.
-- Dead simple to start a server and accept messages.
-- Can switch to asyncio later without rewriting the game logic.
-
-See: docs/skunkworks/socketserver.md
-
-### Minimum Viable Product
-
-- Prototype the message server:
-
-  - Send a "move submitted" message from one client and echo it to the others.
-
-- Define the delta format:
-
-  - What minimal data do you need to synchronize world state?
-  - Can be JSON packets at first, then optimize later.
-
-- Build turn-handling logic in the server:
-
-  - Does the server wait for all players before advancing? Or can it handle simultaneous actions?
+3. **Turn-Handling Logic:**
+   - Decide on synchronous or asynchronous turn advancement based on player actions.

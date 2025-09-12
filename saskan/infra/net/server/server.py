@@ -43,7 +43,8 @@ from jsonschema.exceptions import ValidationError
 from saskan.infra import schema
 from saskan.infra.config import services as svc
 from saskan.infra.config.net import HOST, PORT
-from saskan.infra.log.logger import get_logger
+from saskan.infra.i18n.localize import lookup
+from saskan.infra.log import events as ev
 from saskan.infra.schema import convert, dto, validator
 from saskan.infra.schema.types import Diagnostics
 from saskan.tools.utils import stamps
@@ -100,40 +101,6 @@ ENVELOPE = json.loads(files(schema).joinpath("envelope.schema.json").read_text()
 HREQ = json.loads(files(schema).joinpath("handshake.request.schema.json").read_text())
 V_ENVELOPE = Draft202012Validator(ENVELOPE)
 V_HREQ = Draft202012Validator(HREQ)
-
-# --- Logging methods ---
-
-logger = get_logger("saskan.server")
-
-
-def log_message_received(token: str, msg: dict) -> None:
-    log_msg = {
-        "event": "message_received",
-        "from": token,
-        "message": msg,
-        "ts": stamps.create_iso_timestamp(),
-    }
-    logger.info(log_msg)
-
-
-def log_message_sent(msg: dict) -> None:
-    log_msg = {
-        "event": "message_sent",
-        "name": msg["name"],
-        "payload": msg["payload"],
-        "ts": stamps.create_iso_timestamp(),
-    }
-    logger.info(log_msg)
-
-
-def log_server_status(status: str, host: str, port: str) -> None:
-    log_msg = {
-        "event": status,
-        "host": host,
-        "port": port,
-        "ts": stamps.create_iso_timestamp(),
-    }
-    logger.info(log_msg)
 
 
 # Functional code
@@ -243,7 +210,8 @@ def _idle_watchdog(server: IdleShutdownServer) -> None:
         if state == ServerState.READY and idle >= server.idle_timeout:
             server.state = ServerState.DRAINING
             drain_started = time.monotonic()
-            log_server_status("server_draining", str(host), str(port))
+            ev.draining_start(host=str(host), port=int(port))
+            print("\nServer started draining")
         elif state == ServerState.DRAINING:
             if active == 0 and (
                 drain_started and time.monotonic() - drain_started >= svc.DRAIN_GRACE_PERIOD
@@ -251,7 +219,6 @@ def _idle_watchdog(server: IdleShutdownServer) -> None:
                 server.state = ServerState.STOPPED
                 for token in list(server.clients.keys()):
                     _unregister_session(token, server)
-                log_server_status("server_closing", str(host), str(port))
                 server.shutdown()  # stop serve_forever loop
                 server.server_close()  # release the socket
                 break
@@ -272,6 +239,7 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
         # self.server.game = Game()  # Future -- Initialize game state
         super().__init__(*args, **kwargs)
         self.token: str = ""  # session token (future use)
+        self.timer: float = 0.0
 
     def _read_one_line(self) -> str:
         """
@@ -336,13 +304,20 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
                 self.reply_message(server_not_ready_response(), None)
                 return
             # else establish session
+            self.timer = time.time()  # in milliseconds
             self.token = _register_session(self.client_address, self.server)
             # monitor idle timeout on socket -- not same as server idle timeout
             self.request.settimeout(svc.SOCKET_IDLE_TIMEOUT)
             # read one line, parse JSON
             line = self._read_one_line()
             msg_in = json.loads(line)
-            log_message_received(self.token, msg_in)
+            ess = {"id": msg_in["id"]}
+            ev.msg_recv(
+                msg_name=msg_in["name"],
+                essentials=ess,
+                payload=msg_in["payload"],
+                session_id=self.token,
+            )
             # write response
             self.reply_message(server_welcome_or_reject_response(msg_in), msg_in)
         finally:
@@ -462,9 +437,21 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
             if response["ok"]
             else self.system_reject(response, msg)
         )
-        log_message_sent(msg)
-        msg_ndjson = (json.dumps(msg, separators=(",", ":")) + "\n").encode("utf-8")
-        self.request.sendall(msg_ndjson)
+        if msg["id"] != "":
+            ev.msg_sent(msg_name=msg["name"], session_id=self.token, payload=msg["payload"])
+            reason = ""
+            if "reason" in msg["payload"]:
+                reason = msg["payload"]["reason"]
+                del msg["payload"]["reason"]
+            ev.hello(
+                outcome="success" if response["ok"] else "fail",
+                latency_ms=(time.time() - self.timer),
+                reason=reason,
+                payload=msg["payload"],
+                session_id=self.token,
+            )
+            msg_ndjson = (json.dumps(msg, separators=(",", ":")) + "\n").encode("utf-8")
+            self.request.sendall(msg_ndjson)
 
 
 def start_server(host: str = HOST, port: int = PORT) -> None:
@@ -475,10 +462,10 @@ def start_server(host: str = HOST, port: int = PORT) -> None:
     threading.Thread(target=_idle_watchdog, args=(server,), daemon=True).start()
 
     try:
-        print(f"\n{svc.MOTD}")
-        log_server_status("server_starting", str(host), str(port))
+        print(f"\n{lookup.get_text(svc.MOTD, fallback='Welcome to the Saskan Lands server!')}")
+        ev.ready(host=host, port=port, protocol=svc.PROTOCOL_VERSION)
         server.serve_forever()  # returns after shutdown()
     finally:
         # double-close safe; ensures socket is released
         server.server_close()
-        log_server_status("server_stopped", str(host), str(port))
+        ev.conn_close(addr=f"{host}:{port}")

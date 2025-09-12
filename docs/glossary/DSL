@@ -1,3 +1,0 @@
-DSL: Domain-Specific Language
-
-A small, specialized “mini-language” designed to express rules or logic in one domain. Example: SQL for databases, or a custom event-trigger syntax for your game. Not general purpose like Python.

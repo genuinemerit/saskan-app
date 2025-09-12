@@ -16,7 +16,7 @@ WELCOME = {
     "name": "system.welcome",
     "ts": "2025-09-06T21:38:38.842+00:00",
     "meta": {"protocol": "0.1.0"},
-    "payload": {"server_version": "0.1.0", "session_id": "abc", "motd": "message_of_the_day"},
+    "payload": {"server_version": "0.1.0", "session_id": "abc", "motd": "ui.message_of_the_day"},
 }
 
 

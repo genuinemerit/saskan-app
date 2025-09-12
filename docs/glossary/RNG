@@ -1,3 +1,0 @@
-RNG: Random Number Generator
-
-The algorithm/service that produces pseudo-random values in simulations. In games, it’s seeded so outcomes are reproducible (e.g., same seed → same world).

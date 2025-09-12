@@ -1,0 +1,43 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop]
+  schedule:
+    - cron: '0 6 * * 1'   # weekly, Monday 06:00 UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (Python)
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [python]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Optional: choose a specific Python version for dependency resolution
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # If you have a build step or deps, add it here. Not required for many CodeQL Python scans.
+      # - run: pipx install poetry && poetry install --no-root
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # queries: security-and-quality  # uncomment to include extra quality rules
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3

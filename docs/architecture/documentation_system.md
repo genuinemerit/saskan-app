@@ -1,57 +1,38 @@
-ABOUT DOCUMENTATION
+# Documentation Strategy
 
-Sphinx is overkill. GitHub renders `.md`/`.rst` well, gives you decent navigation, and you can keep everything in-repo without a docs toolchain. Add a site generator only when you *need* one.
+## Overview
 
-This means I can use .md (markdown) and don't need to use .rst (re-structured text).
+For technical documentation, prioritize Markdown in the `/docs/` directory. Use GitBook for user manuals and storytelling aspects. Avoid complex tools like Sphinx unless necessary.
 
-# Choose based on needs
+## Documentation Approach
 
-Use **just GitHub + Markdown** if you:
+### Current Phase: Keep it Simple
 
-* Have a small codebase and a handful of pages (README, CONTRIBUTING, RELEASE, a few guides).
-* Don’t need API auto-docs, cross-references, or custom theming.
-* Want zero build pipeline for docs.
+- **Markdown in Repo:**
+  - Place core docs in the root and `/docs/`:
+    - `README.md`: Top-level overview, quickstart.
+    - Convert `.rst` files to `.md` for consistency.
+    - Include `RELEASE.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`.
+    - Add topic pages in `/docs/` (e.g., `architecture.md`, `style.md`, `faq.md`).
+  - Link documents via the `README.md`.
 
-Use **MkDocs** (with Material) if you:
+### Future Expansion: MkDocs and GitHub Pages
 
-* Want a simple, attractive docs site with search and sidebar, minimal config.
-* Prefer Markdown, not reST.
-* Don’t need heavy Sphinx extensions.
-* Want trivial GitHub Pages publishing.
+- **MkDocs Setup** (if a site is needed):
+  - Create `mkdocs.yml` and use `/docs/` with Markdown.
+  - Publish using GitHub Pages with a simple GitHub Action.
+  - Convert any remaining `.rst` to `.md`.
 
-Use **Sphinx** if you:
+### Advanced Needs: Sphinx
 
-* Need Python API autodoc/autosummary (pulling docstrings), intersphinx cross-linking, or nitpicky link checking.
-* Have complex doc structures (many sections, indices, reference manuals).
-* Already invested in reST and Sphinx extensions.
+- **Sphinx Usage** (for Python API docs):
+  - Maintain Markdown guides; Sphinx can read them via `myst-parser`.
+  - Implement API autodoc and intersphinx if needed.
+  - Publish using a Sphinx build Action on GitHub Pages.
 
-# Recommended “careful turtle” path
+## Minimal Configuration Examples
 
-**Phase 0 (now): keep it simple**
-
-* Put core docs in Markdown in the repo root and `docs/`:
-
-  * `README.md` (top-level overview, quickstart)
-  * `CONTRIBUTING.rst` is fine, but consider converting to `.md` for consistency
-  * `RELEASE.md`, `SECURITY.md`, `CODE_OF_CONDUCT.md`
-  * A few topic pages in `docs/` (architecture.md, style.md, faq.md)
-* Link them together via the README.
-
-**Phase 1 (only if/when you want a site) — pick MkDocs**
-
-* Add `mkdocs.yml` + `docs/` (Markdown).
-* Publish via GitHub Pages using a tiny GitHub Action.
-* Convert any `.rst` to `.md` (keeps the stack uniform).
-
-**Phase 2 (only if you need Python API docs/cross-refs) — Sphinx**
-
-* Keep existing Markdown guides; Sphinx can read Markdown via `myst-parser`.
-* Add API autodoc and intersphinx.
-* Publish to Pages with a Sphinx build Action.
-
-# Minimal configs (for later reference)
-
-**MkDocs (Material)**
+### MkDocs (Material)
 
 ```yaml
 # mkdocs.yml
@@ -65,7 +46,7 @@ nav:
   - Architecture: architecture.md
 ```
 
-**Sphinx (bare minimum)**
+### Sphinx (Minimal)
 
 ```python
 # docs/conf.py
@@ -75,11 +56,25 @@ source_suffix = {".md": "markdown", ".rst": "restructuredtext"}
 html_theme = "sphinx_rtd_theme"
 ```
 
-# Practical advice for a solo repo today
+## Practical Advice
 
-* Standardize on **Markdown** for now. GitHub is your doc host.
-* Keep a single `docs/` folder and link from the README.
-* Defer any site generator until you feel pain: “I can’t find pages,” “I need API docs,” or “I want a real sidebar/search.”
+- **Standardize on Markdown:** Use GitHub as your primary doc host.
+- **Centralize Documentation:** Keep everything in a single `/docs/` folder and link from the `README.md`.
+- **Defer Site Generators:** Only consider them when navigation or API documentation becomes cumbersome.
 
-If you want, I’ll convert the `.rst` snippets we made into `.md` and lay out a minimal `docs/` tree you can drop in immediately.
+## User Manual with GitBook
 
+- **GitBook Integration:**
+  - Ideal for crafting a user guide separate from technical documentation.
+  - Integrates well with GitHub for seamless updates.
+  - Suitable for storytelling and user-facing materials.
+
+## Additional Tools
+
+- **Storytelling and RPG Elements:**
+  - Use Scrivener for narrative development.
+  - Develop RPG content in World Anvil.
+  - Create maps in Inkarnate, with support from Wonderdraft and GIMP.
+  - Store graphics generated via DALL-E API in a `/draw/` folder.
+
+By following this strategy, we can maintain a streamlined and effective documentation process tailored to both technical and user needs.

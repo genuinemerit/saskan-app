@@ -1,0 +1,10 @@
+{
+    "accepted_capabilities": "msg.accepted.capabilities",
+    "details": "msg.details.text",
+    "reason": "msg.reason.code",
+    "reply_code": "msg.reply.code",
+    "message": "ui.message.label",
+    "server_version": "msg.server.version",
+    "session_id": "msg.session.id",
+    "supported": "msg.supported"
+}

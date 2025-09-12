@@ -34,7 +34,7 @@ def test_get_text_final_fallback():
 
 
 def test_en_welcome_default(monkeypatch):
-    monkeypatch.setenv("SASKAN_LANG", "en-EN")
+    monkeypatch.setenv("SASKAN_LANG", "en-US")
     assert get_text("msg.handshake.welcome") == "Welcome to the Saskan Lands"
 
 

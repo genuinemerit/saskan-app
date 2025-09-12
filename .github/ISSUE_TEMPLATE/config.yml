@@ -2,7 +2,7 @@ blank_issues_enabled: false
 
 contact_links:
   - name: 📖 Documentation
-    url: https://github.com/genuinemerit/saskan-app/wiki
+    url: https://github.com/genuinemerit/saskan-app#readme
     about: Please check the documentation and wiki before filing an issue.
 
   - name: 💬 Discussions

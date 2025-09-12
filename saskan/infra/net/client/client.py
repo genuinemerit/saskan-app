@@ -83,22 +83,23 @@ def send_msg_to_server(
             payload = response_json.get("payload", {})
             if name == "system.welcome":
                 reply_dict = to_welcome_dto(payload).__dict__ | {
-                    "message_name": name,
-                    "reply_code": 0,
+                    "msg.message.name": name,
+                    "msg.reply.code": 0,
                 }
             elif name == "system.reject":
                 reply_dict = to_reject_dto(payload).__dict__ | {
-                    "message_name": name,
-                    "reply_code": 2,
+                    "msg.message.name": name,
+                    "msg.reply.code": 2,
                 }
             else:
                 reply_dict = {
-                    "message": "error.unknown_reply",
-                    "message_name": name,
-                    "reply_code": 1,
+                    "message": "err.unknown_reply",
+                    "msg.message.name": name,
+                    "msg.reply.code": 1,
                 }
         except ConnectionRefusedError:
-            reply_dict = {"message": "error.connection_refused", "reply_code": 1}
+            reply_dict = {"message": "err.connection_refused", "msg.reply.code": 1}
         except Exception as e:
-            reply_dict = {"message": f"An error occurred: {e}", "reply_code": 1}
+            # Consider how to localize this:
+            reply_dict = {"message": f"An error occurred: {e}", "msg.reply.code": 1}
         return reply_dict

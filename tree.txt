@@ -4,133 +4,141 @@
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
 ├── docs
-│   ├── 2d 3d modeling
-│   │   ├── 3d ellipsoid models
-│   │   └── 3d matplotlib
-│   ├── adr
-│   │   ├── 0001-hex-grid.md
-│   │   ├── 0002-per-turn-snapshots.md
-│   │   ├── 0003-json-predicates.md
-│   │   ├── 0004-cli-with-typer.md
-│   │   ├── 0005-clean-layers.md
-│   │   ├── 0006-flat-maps.md
-│   │   ├── 0007-constrained-procedural-worldgen.md
-│   │   ├── 0008-notification-taxonomy.md
-│   │   ├── 0009-minimal-client-server.md
-│   │   ├── 0010-services-metadata.md
-│   │   ├── 0011-message-contracts-validatations.md
-│   │   ├── 0012-client-relations-delivery-semantics.md
-│   │   ├── 0013-message-retention.md
-│   │   └── 0014-startup-handshake-activation.md
 │   ├── architecture
+│   │   ├── adr
+│   │   │   ├── 0001-hex-grid.md
+│   │   │   ├── 0002-per-turn-snapshots.md
+│   │   │   ├── 0003-json-predicates.md
+│   │   │   ├── 0004-cli-with-typer.md
+│   │   │   ├── 0005-clean-layers.md
+│   │   │   ├── 0006-flat-maps.md
+│   │   │   ├── 0007-constrained-procedural-worldgen.md
+│   │   │   ├── 0008-notification-taxonomy.md
+│   │   │   ├── 0009-minimal-client-server.md
+│   │   │   ├── 0010-services-metadata.md
+│   │   │   ├── 0011-message-contracts-validatations.md
+│   │   │   ├── 0012-client-relations-delivery-semantics.md
+│   │   │   ├── 0013-message-retention.md
+│   │   │   ├── 0014-startup-handshake-activation.md
+│   │   │   ├── 0015-asset-mgmt-and-dist.md
+│   │   │   └── 0016_ux_shells_and_interaction.md
+│   │   ├── architecture_summary.md
 │   │   ├── client_server_game.md
+│   │   ├── diagrams
+│   │   │   └── ADR-0014 Handshake Activation.png
 │   │   ├── documentation_system.md
-│   │   ├── project_structure.md
-│   │   └── summary.md
-│   ├── build_release_deploy
-│   │   ├── gitflow_releases.md
-│   │   ├── GitHub_Checklist.md
-│   │   ├── github_general.md
-│   │   ├── github_secrets.md
-│   │   ├── poetry.md
-│   │   ├── summary.md
-│   │   └── workflows.md
-│   ├── diagrams
-│   │   ├── ADR-0014 Handshake Activation.png
-│   │   ├── app_architecture.pdf
-│   │   └── ports_connections
-│   ├── glossary
-│   │   ├── ADR
-│   │   ├── bundle
-│   │   ├── draining
-│   │   ├── DSL
-│   │   ├── DTO
-│   │   ├── fullgate.md
-│   │   ├── HUD
-│   │   ├── i18n
-│   │   ├── idempotent
-│   │   ├── merges
-│   │   ├── meta-schema
-│   │   ├── motd
-│   │   ├── MVP
-│   │   ├── MVVM
-│   │   ├── nc
-│   │   ├── NDJSON
-│   │   ├── PR
-│   │   ├── QoS
-│   │   ├── refs.md
-│   │   ├── RNG
-│   │   ├── RPC
-│   │   ├── semver
-│   │   ├── telnet
-│   │   ├── TTL
-│   │   └── URN
-│   ├── math_physics
-│   │   ├── circle_relationship.md
-│   │   ├── collision.md
-│   │   ├── compare_spheres.md
-│   │   ├── ellipsoid.md
-│   │   ├── ellipsoid_volume.md
-│   │   ├── enclosing_rectangle.md
-│   │   ├── pitch_yaw_roll.md
-│   │   └── sphere_volume.md
-│   ├── meta
-│   │   ├── ai_models.md
-│   │   ├── bash_aliases.md
-│   │   ├── configs_and_envs.md
-│   │   ├── environment_vars.md
-│   │   ├── file_permission_bits.md
-│   │   ├── html_markdown_convert.md
-│   │   ├── json_validate.md
-│   │   ├── linters_and_typechecks.md
-│   │   ├── lru_cache.md
-│   │   ├── macos_quirks.md
-│   │   ├── makefiles.md
-│   │   ├── package_installers.md
-│   │   ├── pg_install.md
-│   │   ├── python
-│   │   │   ├── pygame_mouseclick.md
-│   │   │   ├── pygame_resolution.md
-│   │   │   ├── pytest_monkeypatch.md
-│   │   │   ├── python_blender.md
-│   │   │   ├── python_bytes.md
-│   │   │   ├── python_cli_help.md
-│   │   │   ├── python_dictdiffer.md
-│   │   │   ├── python_extend_zip.md
-│   │   │   ├── python_functional_principles.md
-│   │   │   ├── python_import_files.md
-│   │   │   ├── python_logger.md
-│   │   │   ├── python_mypy.md
-│   │   │   ├── python_openai.md
-│   │   │   ├── python_pytest.md
-│   │   │   ├── python_random_seeds.md
-│   │   │   ├── python_remove_dups.md
-│   │   │   └── python_traceback.md
-│   │   ├── scaffolding.md
-│   │   ├── socketserver.md
-│   │   ├── Spanish_style_guide.md
-│   │   ├── sqlite
-│   │   │   ├── sqlite_backup.md
-│   │   │   ├── sqlite_blobs.md
-│   │   │   ├── sqlite_booleans.md
-│   │   │   ├── sqlite_col_names.md
-│   │   │   ├── sqlite_commit.md
-│   │   │   ├── sqlite_date_and_time.md
-│   │   │   ├── sqlite_db_status.md
-│   │   │   ├── sqlite_empties.md
-│   │   │   ├── sqlite_enums.md
-│   │   │   ├── sqlite_execute_scripts.md
-│   │   │   ├── sqlite_foreign_keys.md
-│   │   │   ├── sqlite_get_checks.md
-│   │   │   └── sqlite_new_db.md
-│   │   ├── type_annotations.md
-│   │   └── type_Mapping.md
-│   └── skunkworks
-│       ├── feat(first_handshake).md
-│       ├── feat(greeting).md
-│       └── PR-2_smoke_tests.txt
+│   │   ├── i18n_authoring_guide.md
+│   │   ├── ports_connections.md
+│   │   └── project_structure.md
+│   ├── design
+│   │   ├── feat(first_handshake).md
+│   │   ├── feat(first_splash).md
+│   │   ├── feat(greeting).md
+│   │   └── test_results
+│   │       └── PR-2_smoke_tests.txt
+│   └── reference
+│       ├── 2d 3d modeling
+│       │   ├── 3d_ellipsoid_models.md
+│       │   └── 3d_matplotlib.md
+│       ├── ai_models.md
+│       ├── bash_aliases.md
+│       ├── build_release_deploy
+│       │   ├── build_release_summary.md
+│       │   ├── build_release_workflows.md
+│       │   ├── gitflow_releases.md
+│       │   ├── gitHub_checklist.md
+│       │   ├── github_general.md
+│       │   ├── github_secrets.md
+│       │   ├── opening_closing_issues.md
+│       │   └── poetry.md
+│       ├── configs_and_envs.md
+│       ├── environment_vars.md
+│       ├── file_permission_bits.md
+│       ├── glossary
+│       │   ├── ADR.md
+│       │   ├── bundle.md
+│       │   ├── draining.md
+│       │   ├── DSL.md
+│       │   ├── DTO.md
+│       │   ├── fullgate.md
+│       │   ├── HUD.md
+│       │   ├── i18n.md
+│       │   ├── idempotent.md
+│       │   ├── IPC.md
+│       │   ├── merges.md
+│       │   ├── meta-schema.md
+│       │   ├── motd.md
+│       │   ├── MVP.md
+│       │   ├── MVVM.md
+│       │   ├── nc.md
+│       │   ├── NDJSON.md
+│       │   ├── PR.md
+│       │   ├── QoS.md
+│       │   ├── refs.md
+│       │   ├── RNG.md
+│       │   ├── RPC.md
+│       │   ├── semver.md
+│       │   ├── telnet.md
+│       │   ├── TTL.md
+│       │   └── URN.md
+│       ├── html_markdown_convert.md
+│       ├── json_validate.md
+│       ├── linters_and_typechecks.md
+│       ├── lru_cache.md
+│       ├── macos_quirks.md
+│       ├── makefiles.md
+│       ├── math_physics
+│       │   ├── circle_relationship.md
+│       │   ├── collision.md
+│       │   ├── compare_spheres.md
+│       │   ├── ellipsoid.md
+│       │   ├── ellipsoid_volume.md
+│       │   ├── enclosing_rectangle.md
+│       │   ├── pitch_yaw_roll.md
+│       │   └── sphere_volume.md
+│       ├── package_installers.md
+│       ├── pg_install.md
+│       ├── python
+│       │   ├── pygame_mouseclick.md
+│       │   ├── pygame_resolution.md
+│       │   ├── pyside_qt.md
+│       │   ├── pytest_monkeypatch.md
+│       │   ├── python_blender.md
+│       │   ├── python_bytes.md
+│       │   ├── python_cli_help.md
+│       │   ├── python_dictdiffer.md
+│       │   ├── python_extend_zip.md
+│       │   ├── python_functional_principles.md
+│       │   ├── python_import_files.md
+│       │   ├── python_logger.md
+│       │   ├── python_mypy.md
+│       │   ├── python_openai.md
+│       │   ├── python_pytest.md
+│       │   ├── python_random_seeds.md
+│       │   ├── python_remove_dups.md
+│       │   └── python_traceback.md
+│       ├── scaffolding.md
+│       ├── socketserver.md
+│       ├── Spanish_style_guide.md
+│       ├── sqlite
+│       │   ├── sqlite_backup.md
+│       │   ├── sqlite_blobs.md
+│       │   ├── sqlite_booleans.md
+│       │   ├── sqlite_col_names.md
+│       │   ├── sqlite_commit.md
+│       │   ├── sqlite_date_and_time.md
+│       │   ├── sqlite_db_status.md
+│       │   ├── sqlite_empties.md
+│       │   ├── sqlite_enums.md
+│       │   ├── sqlite_execute_scripts.md
+│       │   ├── sqlite_foreign_keys.md
+│       │   ├── sqlite_get_checks.md
+│       │   └── sqlite_new_db.md
+│       ├── type_annotations.md
+│       └── type_Mapping.md
+├── draw
+│   └── huge_barbican.py
 ├── .editorconfig
-├── env
 ├── .env.example
 ├── .github
 │   ├── CODEOWNERS
@@ -139,14 +147,11 @@
 │   │   ├── bug_report.yml
 │   │   ├── config.yml
 │   │   └── feature_request.yml
-│   ├── PULL_REQUEST_TEMPLATE
-│   │   ├── bugfix.md
-│   │   ├── docs.md
-│   │   └── feature.md
 │   ├── pull_request_template.md
 │   ├── release-drafter.yml
 │   └── workflows
 │       ├── ci.yml
+│       ├── codeql.yml
 │       ├── lint.yml
 │       ├── publish-release.yml
 │       ├── release-drafter.yml
@@ -154,7 +159,7 @@
 │       ├── test.yml
 │       └── typecheck.yml
 ├── .gitignore
-├── importlinter.ini
+├── .importlinter
 ├── LICENSE
 ├── Makefile
 ├── poetry.lock
@@ -165,28 +170,16 @@
 ├── RELEASE.md
 ├── saskan
 │   ├── core
-│   │   ├── hex
-│   │   ├── __init__.py
-│   │   ├── model
-│   │   ├── rules
-│   │   └── selectors
+│   │   └── __init__.py
 │   ├── data
-│   │   ├── config
 │   │   ├── __init__.py
-│   │   ├── locales
-│   │   │   ├── en-US
-│   │   │   ├── es-ES
-│   │   │   └── __init__.py
-│   │   ├── maps
-│   │   ├── schemas
-│   │   └── story
+│   │   └── locales
+│   │       ├── en-US
+│   │       ├── es-ES
+│   │       ├── i18n_keymap.json
+│   │       └── __init__.py
 │   ├── engine
-│   │   ├── events
-│   │   ├── __init__.py
-│   │   ├── intents
-│   │   ├── rng
-│   │   ├── systems
-│   │   └── turn
+│   │   └── __init__.py
 │   ├── infra
 │   │   ├── config
 │   │   │   ├── __init__.py
@@ -194,6 +187,7 @@
 │   │   │   └── services.py
 │   │   ├── i18n
 │   │   │   ├── __init__.py
+│   │   │   ├── localize.py
 │   │   │   └── lookup.py
 │   │   ├── __init__.py
 │   │   ├── log
@@ -203,7 +197,6 @@
 │   │   │   ├── client
 │   │   │   ├── __init__.py
 │   │   │   └── server
-│   │   ├── persistence
 │   │   └── schema
 │   │       ├── convert.py
 │   │       ├── dto.py
@@ -216,12 +209,8 @@
 │   │       └── validator.py
 │   ├── __init__.py
 │   ├── sims
-│   │   ├── ecology
-│   │   ├── __init__.py
-│   │   ├── logistics
-│   │   └── population
+│   │   └── __init__.py
 │   ├── tools
-│   │   ├── exporters
 │   │   ├── __init__.py
 │   │   ├── poetry_activate
 │   │   ├── remove-default-labels.sh
@@ -240,28 +229,23 @@
 │   │   │   ├── start.py
 │   │   │   └── version.py
 │   │   ├── __init__.py
-│   │   ├── manage.py
-│   │   └── render
+│   │   └── manage.py
 │   ├── ui_pygame
-│   │   ├── hud
-│   │   ├── __init__.py
-│   │   ├── input
-│   │   └── render
+│   │   └── __init__.py
 │   └── ui_pyside
-│       ├── i18n
-│       ├── __init__.py
-│       ├── viewmodels
-│       └── views
+│       └── __init__.py
 ├── scripts
 │   └── make_tree.sh
 ├── SECURITY.md
 ├── tests
 │   ├── conftest.py
+│   ├── test_cli_connect.py
+│   ├── test_client_unit.py
 │   ├── test_cli_hello.py
+│   ├── test_cli_version.py
 │   ├── test_lookup.py
+│   ├── test_server_integration.py
 │   └── test_validator.py
-├── tree.txt
-└── .vscode
-    └── settings.json
+└── tree.txt
 
-68 directories, 197 files
+42 directories, 207 files

@@ -1,5 +1,0 @@
-# RPC (Remote Procedure Call)
-
-In distributed computing, a remote procedure call is when a computer program causes a procedure to execute in a different address space, which is written as if it were a normal procedure call, without the programmer explicitly writing the details for the remote interaction. That is, the programmer writes essentially the same code whether the subroutine is local to the executing program, or remote. This is a form of server interaction, typically implemented via a request–response message passing system. 
-
-An RPC server is a program that provides services to clients by executing procedures or functions remotely over a network. It receives requests from clients, processes them, and sends back the results, allowing different programs to communicate as if they were on the same machine.

@@ -1,3 +1,0 @@
-HUD (Heads-Up Display):
-
-The on-screen overlay showing game information without interrupting play. Classic examples: health bars, minimaps, resource counters. In our context: turn summary, faction stats, story notifications layered on the PyGame canvas.

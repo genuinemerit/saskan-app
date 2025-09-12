@@ -41,7 +41,7 @@ SOCKET_IDLE_TIMEOUT: Final[float] = 1.0
 MAX_MESSAGE_SIZE: Final[int] = 8192
 
 # motd
-MOTD: Final[str] = "message_of_the_day"
+MOTD: Final[str] = "ui.message_of_the_day"
 
 # i18n defaults
 DEFAULT_LANG: Final[str] = "en-US"
@@ -49,7 +49,7 @@ SUPPORTED_LANGS: Final[list[str]] = ["en-US", "es-ES"]
 
 # i18n identifiers used in PR-2
 I18N_WELCOME: Final[str] = "msg.handshake.welcome"
-I18N_REJECT_GENERIC: Final[str] = "msg.handshake.reject.generic"
-I18N_REJECT_PROTOCOL: Final[str] = "msg.handshake.reject.protocol"
-I18N_REJECT_NOT_READY: Final[str] = "msg.handshake.reject.not_ready"
-I18N_REJECT_INVALID: Final[str] = "msg.handshake.reject.invalid"
+I18N_REJECT_GENERIC: Final[str] = "system.reject.generic"
+I18N_REJECT_PROTOCOL: Final[str] = "system.reject.protocol"
+I18N_REJECT_NOT_READY: Final[str] = "system.reject.not_ready"
+I18N_REJECT_INVALID: Final[str] = "system.reject.invalid"

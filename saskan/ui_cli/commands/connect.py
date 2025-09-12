@@ -6,47 +6,9 @@ import typer
 
 import saskan.infra.config.services as svc
 from saskan.infra.config.net import HOST, PORT
-from saskan.infra.i18n import lookup
+from saskan.infra.i18n.localize import format_reply
 from saskan.infra.net.client import client
-
-# from saskan.infra.schema.dto import RejectDTO, WelcomeDTO
 from saskan.tools.utils.match_semver import match_semver
-
-
-def format_reply(reply: dict) -> str:
-    """
-    If an item in the reply is keyed as i18n_id, translate the message string.
-    If a key appears in the i18n lookup table, translate the label.
-    Drop the reply_code key; it is handled by Typer exit code.
-    :return: str translated message
-    """
-    msg_string = ""
-    for key, value in reply.items():
-        if key == "reply_code":
-            continue
-        elif key == "i18n_id":
-            if value is not None:
-                msg_tag = lookup.get_text("client_tag", fallback="[CLIENT] ")
-                msg_label = lookup.get_text("message", fallback="Message: ")
-                msg_text = lookup.get_text(value, fallback="No message provided")
-        else:
-            if key in ("message"):
-                msg_tag = lookup.get_text("client_tag", fallback="[CLIENT] ")
-            else:
-                msg_tag = ""
-            if key in ("motd"):
-                msg_label = ""
-            else:
-                msg_label = lookup.get_text(key, fallback=f"{key.capitalize()}: ")
-            if isinstance(value, list):
-                msg_text = "["
-                for text in value:
-                    msg_text += lookup.get_text(text, fallback=text) + ", "
-                msg_text = msg_text.rstrip(", ") + "]"
-            else:
-                msg_text = lookup.get_text(value, fallback=value)
-        msg_string += f"{msg_tag}{msg_label}{msg_text}\n"
-    return msg_string
 
 
 def connect(
@@ -71,6 +33,8 @@ def connect(
     if not match_semver(protocol):
         protocol = svc.PROTOCOL_VERSION
     reply = client.send_msg_to_server(host, port, protocol, request, id, timeout)
+    reply_code = reply["msg.reply.code"]
+    del reply["msg.reply.code"]
     reply_msg = format_reply(reply)
     typer.echo(reply_msg)
-    raise typer.Exit(code=reply["reply_code"])
+    raise typer.Exit(reply_code)
