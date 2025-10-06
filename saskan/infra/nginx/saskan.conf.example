@@ -1,0 +1,67 @@
+server {
+    
+    server_name  sfp.genuinemerit.org;
+    root   /usr/share/nginx/html/sfp;
+
+    location / {
+	    index sfp.html;
+        try_files $uri $uri/ =404;   # optional but nicer for dirs
+    }
+    
+    error_page  404              /404.html;
+    location = /404.html {
+        root   /usr/share/nginx/html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+
+    # Base: https://sfp.genuinemerit.org/saskan/
+    location /saskan/ {
+        autoindex off;                 # no directory listing
+        try_files $uri =404;           # only serve existing files
+    }
+
+    # Short-cache manifest so clients see updates quickly
+    location = /saskan/assets/manifest.json {
+        add_header Cache-Control "public, max-age=60";
+        add_header Access-Control-Allow-Origin "*" always;   # if cross-origin use is likely
+        add_header Vary "Origin" always;
+        try_files $uri =404;
+    }
+
+    # Long-lived cache for hashed files (e.g., foo.6f8b1c2.png)
+    location ~* ^/saskan/assets/.+\.[0-9a-f]{6,}\.(png|webp|jpg|jpeg|gif|svg|ogg|mp3|wav)$ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        add_header Access-Control-Allow-Origin "*" always;   # optional CORS for external clients
+        add_header Vary "Origin" always;
+        try_files $uri =404;
+    }
+
+    # General assets fallback
+    location /saskan/assets/ {
+        add_header Access-Control-Allow-Origin "*" always;   # optional
+        add_header Vary "Origin" always;
+        try_files $uri =404;
+    }
+
+    listen 443 ssl http2; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/sfp.genuinemerit.org/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/sfp.genuinemerit.org/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+server {
+    if ($host = sfp.genuinemerit.org) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    server_name  sfp.genuinemerit.org;
+    listen 80;
+    return 404; # managed by Certbot
+
+}

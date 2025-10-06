@@ -150,3 +150,13 @@ This project is licensed under the MIT License – see `LICENSE` for details.
 ## Acknowledgments
 
 See `AUTHORS.md`.
+
+---
+
+## saskan-app
+
+[![CI](https://img.shields.io/github/actions/workflow/status/genuinemerit/saskan-app/ci.yml?branch=develop)](https://github.com/genuinemerit/saskan-app/actions)
+[![License](https://img.shields.io/github/license/genuinemerit/saskan-app)](https://github.com/genuinemerit/saskan-app/blob/develop/LICENSE)
+[![Issues](https://img.shields.io/github/issues/genuinemerit/saskan-app)](https://github.com/genuinemerit/saskan-app/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/genuinemerit/saskan-app)](https://github.com/genuinemerit/saskan-app/pulls)
+

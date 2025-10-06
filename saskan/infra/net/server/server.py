@@ -437,21 +437,26 @@ class GameRequestHandler(socketserver.BaseRequestHandler):
             if response["ok"]
             else self.system_reject(response, msg)
         )
+        payload_for_events = msg["payload"]
+        reason_for_events = ""
+        if "reason" in payload_for_events:
+            reason_for_events = payload_for_events["reason"]
+            payload_for_events = {
+                key: value for key, value in payload_for_events.items() if key != "reason"
+            }
+
+        msg_ndjson = (json.dumps(msg, separators=(",", ":")) + "\n").encode("utf-8")
+        self.request.sendall(msg_ndjson)
+
         if msg["id"] != "":
-            ev.msg_sent(msg_name=msg["name"], session_id=self.token, payload=msg["payload"])
-            reason = ""
-            if "reason" in msg["payload"]:
-                reason = msg["payload"]["reason"]
-                del msg["payload"]["reason"]
+            ev.msg_sent(msg_name=msg["name"], session_id=self.token, payload=payload_for_events)
             ev.hello(
                 outcome="success" if response["ok"] else "fail",
                 latency_ms=(time.time() - self.timer),
-                reason=reason,
-                payload=msg["payload"],
+                reason=reason_for_events,
+                payload=payload_for_events,
                 session_id=self.token,
             )
-            msg_ndjson = (json.dumps(msg, separators=(",", ":")) + "\n").encode("utf-8")
-            self.request.sendall(msg_ndjson)
 
 
 def start_server(host: str = HOST, port: int = PORT) -> None:

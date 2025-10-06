@@ -1,9 +1,9 @@
 # Supported funding platforms for this repository.
-github: genuinemerit            # If you enable GitHub Sponsors later
-ko_fi: genuinemerit             # If you open Ko-fi
-open_collective:                # e.g., saskan
+github:                    # If you enable GitHub Sponsors later
+ko_fi:                     # If you open Ko-fi
+open_collective:           # e.g., saskan
 liberapay:
 buy_me_a_coffee:
-tidelift:                       # e.g., pypi/saskan-app
+tidelift:                  # e.g., pypi/saskan-app
 custom:
 #   - https://genuinemerit.com/support
