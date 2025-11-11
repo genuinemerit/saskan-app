@@ -1,0 +1,123 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "manifest.schema.json",
+    "type": "object",
+    "required": ["id", "generated_at", "base_url", "assets"],
+    "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "generated_at": {"type": "string", "format": "date-time"},
+        "base_url": {"type": "string", "format": "uri"},
+        "world_id": {"type": "string", "default": ""},
+        "defaults": {
+        "type": "object",
+        "properties": {
+            "image_max_px": {"type": "integer"},
+            "audio_bitrate_kbps": {"type": "integer"},
+            "cache_control": {"type": "string"}
+        },
+        "additionalProperties": false
+        },
+        "meta": {
+        "type": "object",
+        "properties": {
+            "build_hash": {"type": "string"},
+            "git_commit": {"type": "string"},
+            "tool_versions": {"type": "object"}
+        },
+        "additionalProperties": true
+        },
+        "assets": {
+        "type": "object",
+        "additionalProperties": {
+            "$ref": "#/$defs/asset"
+        }
+        }
+    },
+    "$defs": {
+        "asset": {
+        "type": "object",
+        "required": ["asset_type", "variants"],
+        "properties": {
+            "asset_type": {"type": "string", "enum": ["image","audio","video","sprite","tileset","document"]},
+            "purpose": {"type": "string", "enum": ["story","hud","map","ui","ambience","music","voice"]},
+            "title": {"type": "string", "default": ""},
+            "description": {"type": "string", "default": ""},
+            "locale": {"type": "string", "default": ""},
+            "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true, "default": []},
+            "license": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "url": {"type": "string", "format": "uri"},
+                "attribution": {"type": "string"}
+            },
+            "additionalProperties": false
+            },
+            "source": {
+            "type": "object",
+            "properties": {
+                "provenance": {"type": "string"},
+                "original_link": {"type": "string", "format": "uri"}
+            },
+            "additionalProperties": false
+            },
+            "variants": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/$defs/variant" }
+            }
+        },
+        "additionalProperties": false
+        },
+        "variant": {
+        "type": "object",
+        "required": ["format", "mime", "url", "size_bytes", "hash"],
+        "properties": {
+            "format": {"type": "string", "enum": ["webp","avif","png","opus","mp3","mp4"]},
+            "mime":   {"type": "string", "enum": ["image/webp","image/avif","image/png","audio/opus","audio/mpeg","video/mp4"]},
+            "url": {"type": "string", "minLength": 1},
+            "size_bytes": {"type": "integer"},
+            "hash": {"type": "string"},
+            "width": {"type": "integer"},
+            "height": {"type": "integer"},
+            "duration_sec": {"type": "integer"},
+            "bitrate_kbps": {"type": "integer"},
+            "channels": {"type": "integer"},
+            "locale": {"type": "string", "default": ""},
+            "sprite": {
+            "type": "object",
+            "properties": {
+                "frame_w": {"type": "integer"},
+                "frame_h": {"type": "integer"},
+                "frames": {"type": "integer"},
+                "fps": {"type": "integer"}
+            },
+            "additionalProperties": false
+            },
+            "tileset": {
+            "type": "object",
+            "properties": {
+                "tile_w": {"type": "integer"},
+                "tile_h": {"type": "integer"},
+                "columns": {"type": "integer"},
+                "rows": {"type": "integer"},
+                "margin": {"type": "integer"},
+                "spacing": {"type": "integer"}
+            },
+            "additionalProperties": false
+            },
+            "cache": {
+            "type": "object",
+            "properties": {
+                "immutable": {"type": "boolean"},
+                "max_age_sec": {"type": "integer"}
+            },
+            "additionalProperties": false
+            },
+            "created_at": {"type": "string", "format": "date-time"},
+            "notes": {"type": "string", "default": ""}
+        },
+        "additionalProperties": false
+        }
+    },
+    "additionalProperties": false
+}

@@ -4,11 +4,11 @@ Tests for saskan.ui_cli.commands.connect
 """
 
 from pprint import pprint as pp  # noqa: F401
-from saskan.infra.schema.dto import WelcomeDTO
-from saskan.infra.schema.dto import RejectDTO
 
+from saskan.infra.schema.dto import RejectDTO, WelcomeDTO
 
 # --- Monkey patching functions ---------------------------------------
+
 
 def fake_fail(host, port, protocol, request, id, timeout):
     reject = RejectDTO(
@@ -40,6 +40,7 @@ def fake_send(host, port, protocol, request, id, timeout):
 
 
 # --- Tests ---------------------------------------------------------------
+
 
 def test_connect_en(runner, cli_app, monkeypatch):
     # Server is not running, so test fail condidtion (English)

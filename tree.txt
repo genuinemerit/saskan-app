@@ -1,5 +1,6 @@
 .
 ├── AUTHORS.md
+├── backup_certbots.sh
 ├── CHANGELOG.md
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md
@@ -21,7 +22,8 @@
 │   │   │   ├── 0013-message-retention.md
 │   │   │   ├── 0014-startup-handshake-activation.md
 │   │   │   ├── 0015-asset-mgmt-and-dist.md
-│   │   │   └── 0016_ux_shells_and_interaction.md
+│   │   │   ├── 0016_ux_shells_and_interaction.md
+│   │   │   └── 0017-logging-policy.md
 │   │   ├── architecture_summary.md
 │   │   ├── client_server_game.md
 │   │   ├── diagrams
@@ -42,6 +44,7 @@
 │       │   └── 3d_matplotlib.md
 │       ├── ai_models.md
 │       ├── bash_aliases.md
+│       ├── bcp47.md
 │       ├── build_release_deploy
 │       │   ├── build_release_summary.md
 │       │   ├── build_release_workflows.md
@@ -82,6 +85,7 @@
 │       │   ├── TTL.md
 │       │   └── URN.md
 │       ├── html_markdown_convert.md
+│       ├── jq_observability.md
 │       ├── json_validate.md
 │       ├── linters_and_typechecks.md
 │       ├── lru_cache.md
@@ -134,6 +138,7 @@
 │       │   ├── sqlite_foreign_keys.md
 │       │   ├── sqlite_get_checks.md
 │       │   └── sqlite_new_db.md
+│       ├── tox.md
 │       ├── type_annotations.md
 │       └── type_Mapping.md
 ├── draw
@@ -169,6 +174,18 @@
 ├── README.md
 ├── RELEASE.md
 ├── saskan
+│   ├── assets
+│   │   ├── __init__.py
+│   │   ├── local
+│   │   │   ├── SmokingHouse.orig.jpg
+│   │   │   ├── SmokingHouse.orig.webp
+│   │   │   ├── SmokingHouse.splash.jpg
+│   │   │   └── SmokingHouse.splash.webp
+│   │   ├── manifest.json
+│   │   └── v0
+│   │       ├── images
+│   │       ├── sounds
+│   │       └── thumbs
 │   ├── core
 │   │   └── __init__.py
 │   ├── data
@@ -185,18 +202,24 @@
 │   │   │   ├── __init__.py
 │   │   │   ├── net.py
 │   │   │   └── services.py
+│   │   ├── deploy
+│   │   │   └── push-assets.sh
 │   │   ├── i18n
 │   │   │   ├── __init__.py
 │   │   │   ├── localize.py
 │   │   │   └── lookup.py
 │   │   ├── __init__.py
 │   │   ├── log
+│   │   │   ├── events.py
 │   │   │   ├── __init__.py
 │   │   │   └── logger.py
 │   │   ├── net
 │   │   │   ├── client
 │   │   │   ├── __init__.py
 │   │   │   └── server
+│   │   ├── nginx
+│   │   │   ├── readme.md
+│   │   │   └── saskan.conf.example
 │   │   └── schema
 │   │       ├── convert.py
 │   │       ├── dto.py
@@ -215,6 +238,9 @@
 │   │   ├── poetry_activate
 │   │   ├── remove-default-labels.sh
 │   │   ├── setup-labels.sh
+│   │   ├── studio
+│   │   │   ├── build_assets.py
+│   │   │   └── __init__.py
 │   │   ├── utils
 │   │   │   ├── __init.py__
 │   │   │   ├── match_semver.py
@@ -235,7 +261,10 @@
 │   └── ui_pyside
 │       └── __init__.py
 ├── scripts
-│   └── make_tree.sh
+│   ├── backup_certbots.sh
+│   ├── graphic_tweaks.sh
+│   ├── make_tree.sh
+│   └── use_archive_repo_on_do.sh
 ├── SECURITY.md
 ├── tests
 │   ├── conftest.py
@@ -248,4 +277,4 @@
 │   └── test_validator.py
 └── tree.txt
 
-42 directories, 207 files
+51 directories, 227 files

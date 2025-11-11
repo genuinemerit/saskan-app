@@ -100,12 +100,15 @@ dumps/
 Thumbs.db
 
 # --- Project-specific scratch areas ---
-assets
-!/assets/manifest.json
+# Dont' put any assets into the repo
+assets/
+# Except for *.manifest.json files and thumbs
+!/assets/*.manifest.json
 !/assets/v0/thumbs/**
 lab/
 legacy/
 snips/
+draw/
 
 # --- Configs (be careful) ---
 # Avoid blanket ignoring of *.conf to prevent accidental loss of real config.

@@ -97,15 +97,13 @@ TODO:
 """
 
 from __future__ import annotations
-
+from pathlib import Path
+from PIL import Image
 import argparse
 import hashlib
 import json
 import os
 import sys
-from pathlib import Path
-
-from PIL import Image
 
 # --- paths ---------------------------------------------------------------
 # Define the root directory of the repository, two levels up from this file's location
@@ -142,24 +140,20 @@ MAX_BYTES = 1_000_000  # 1 MiB budget
 SPLASH_W_H = (1920, 1080)
 
 # Define a list of splash image sizes, including half and quarter sizes
-SPLASH_SIZES = [
-    SPLASH_W_H,
-    (int(SPLASH_W_H[0] / 2), int(SPLASH_W_H[1] / 2)),
-    (int(SPLASH_W_H[0] / 4), int(SPLASH_W_H[1] / 4)),
-]
+SPLASH_SIZES = [SPLASH_W_H,
+                (int(SPLASH_W_H[0]/2), int(SPLASH_W_H[1]/2)),
+                (int(SPLASH_W_H[0]/4), int(SPLASH_W_H[1]/4))]
 
 # Define the thumbnail size for splash images
-SPLASH_THUMB_SIZE = (int(SPLASH_W_H[0] / 8), int(SPLASH_W_H[1] / 8))
+SPLASH_THUMB_SIZE = (int(SPLASH_W_H[0]/8), int(SPLASH_W_H[1]/8))
 
 # Define the dimensions for tiles, marked as experimental
 TILE_W_H = (64, 64)
 
 # Define a list of sprite sizes based on tile dimensions
-SPRITE_SIZES = [
-    TILE_W_H,
-    (int(TILE_W_H[0] * 2), int(TILE_W_H[1] * 2)),
-    (int(TILE_W_H[0] * 4), int(TILE_W_H[1] * 4)),
-]
+SPRITE_SIZES = [TILE_W_H,
+                (int(TILE_W_H[0] * 2), int(TILE_W_H[1] * 2)),
+                (int(TILE_W_H[0] * 4), int(TILE_W_H[1] * 4))]
 
 
 # --- helpers -------------------------------------------------------------
@@ -219,10 +213,10 @@ def _save_variant(img: Image.Image, base: str, size: tuple[int, int]) -> str:
     """
     w, h = size
     variant = img.copy().resize((w, h), Image.LANCZOS)
-    tmp = OUT / f"{base}.webp"
+    tmp = IMAGES_OUT / f"{base}.webp"
     q, sz = _webp_save_under_1mb(variant, tmp)
     tag = _hash_bytes(tmp)
-    out = OUT / f"{base}.{tag}.webp"
+    out = IMAGES_OUT / f"{base}.{tag}.webp"
     tmp.replace(out)
     return out.name
 
@@ -235,10 +229,10 @@ def _copy_or_reencode_1x(src: Path, base: str) -> str:
                 w, h = im.size
             if (w, h) == SPLASH_SIZES[0]:
                 # reuse: copy → hash-name
-                tmp = OUT / f"{base}.webp"
+                tmp = IMAGES_OUT / f"{base}.webp"
                 tmp.write_bytes(src.read_bytes())
                 tag = _hash_bytes(tmp)
-                out = OUT / f"{base}.{tag}.webp"
+                out = IMAGES_OUT / f"{base}.{tag}.webp"
                 tmp.replace(out)
                 return out.name
     except Exception:
@@ -266,7 +260,7 @@ def build_splash(src: Path, logical_id: str = "splash.bg") -> None:
     one_x_name = _copy_or_reencode_1x(src, f"{base}.1920x1080")
 
     # Open the *1×* product as the master for downscales (avoids re-reading src)
-    master = Image.open(OUT / one_x_name).convert("RGB")
+    master = Image.open(IMAGES_OUT / one_x_name).convert("RGB")
 
     # ½ and ¼
     half_name = _save_variant(master, f"{base}.960x540", SPLASH_SIZES[1])
